@@ -10,6 +10,7 @@ CLAUDE.md                     pointer to AGENTS.md, read by Claude Code
 agent.md                      lessons learned the hard way
 INSTALL.md                    how the kit installs into a repo
 .claude/commands/*.md         slash commands
+.github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
 codex/PROFILES.md             Codex profile definitions
 design/
   00-brief.md                 mine

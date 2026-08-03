@@ -126,6 +126,9 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 - **`/track` owns every GitHub write.** No other command creates issues, milestones, or projects. It is idempotent, so run it often rather than batching.
 - `design/30-slices.md` stays authoritative for what a slice *is*; its issue tracks whether it is *done*. If the two come to describe the work differently, say so rather than editing either.
 - The `## Open` section of `design/90-decisions.md` is a staging area, not a home. Once an item becomes an issue, remove it from there.
+- **Every issue reads human-first.** A narrative anyone can follow, then `### Done when` checkboxes, then the agent detail in a collapsed `<details>` block. The agent block is navigation and constraints — where to read, what not to touch, when to halt — **never a second copy of the contract.**
+- **Never rewrite a `Done when` checkbox.** Its ticked state is progress someone recorded. When criteria and doc disagree, report it and change neither.
+- **Bugs and stories are filed by hand** from `.github/ISSUE_TEMPLATE/`, which carries the same shape pre-filled. `/track` does not open them — a bug has no upstream document, so the issue is its origin.
 - **This does not suspend one-at-a-time sign-off.** Findings are still presented for adjudication; the tracker is where the ones you accept go, not a way to skip the conversation.
 
 ## Decision logging

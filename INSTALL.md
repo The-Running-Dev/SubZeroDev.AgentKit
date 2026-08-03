@@ -46,6 +46,7 @@ The artifacts:
 | `agent.md` | Lessons. Seeded, then pruned |
 | `.claude/commands/*.md` | The stage commands, plus `install.md` |
 | `design/*.md` | Five design docs. Check phase 2 before creating the directory |
+| `.github/ISSUE_TEMPLATE/*.md` | `bug.md`, `story.md`. **If the target already has templates, stop and report** — do not overwrite or merge. A repository with its own templates has a triage process, and replacing it silently changes how every future issue is filed |
 | `codex/PROFILES.md` | **Skip by default**, and report it as skipped. Install only if the target shows evidence of Codex use — a `.codex/` directory, a profile reference, or the user saying so. Asking in every install is noise |
 
 `INSTALL.md` itself is **not** installed into targets. It is the kit's procedure, and a copy in the target is a copy that drifts.
