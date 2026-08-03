@@ -129,7 +129,17 @@ Only after sign-off.
 
 1. **Re-check the target's state first.** Phase 0's snapshot is stale by now — a long reconciliation gives the user time to commit, branch, or edit the very file you are about to move. Re-run `git status --short --branch` and diff your source-of-truth for any moved content against `HEAD`, not against what you read in phase 0.
 2. Write the approved files. Preserve UTF-8 and LF.
-3. Append a decision-log entry to `90-decisions.md` for every fork that had a real alternative — the relocation, the `CLAUDE.md` direction, anything the target overrode. Rejected alternatives included; that is the point of the log.
+3. **Record every fork that had a real alternative** — the relocation, the `AGENTS.md`/`CLAUDE.md` direction, anything the target overrode, anything skipped. **Rejected alternatives included**; without them the next install relitigates the same choices, and the commonest question a re-install faces is "why is it set up this way here?"
+
+   The log's home, in this order — the first that applies:
+
+   1. **`design/90-decisions.md`**, if `design/` was installed.
+   2. **The target's own slice-local decision log**, if it has one that is not an architecture ADR set.
+   3. **A `Why it is installed this way` subsection** in whichever instruction file holds content, listing each fork as one line with its rejected alternatives compressed to a clause.
+
+   **Never put install decisions into an architecture ADR set.** Different audience, different lifetime, and ADR numbers are usually cited across repositories — tooling setup does not belong among them.
+
+   **Skipping `design/` does not skip this.** A repository that already has the design chain under other names is exactly the one where the reasoning is least obvious later, because the mapping is invisible from the file tree.
 4. **Verify, with commands, not by recollection:**
    - **Nothing was lost in a move.** Every non-blank line of the file you moved content out of must appear in the file you moved it into. Diff it mechanically; do not eyeball it. Expect exactly the lines you deliberately changed, and be able to name each one.
    - **No rule appears twice.** Search the target for the distinctive phrase of each rule you added — not for the rule's topic. You are looking for your own duplicates, and you will have made some: this install's own verification caught two that careful authoring did not.
