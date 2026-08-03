@@ -43,18 +43,20 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 
 ## Stage map
 
-| Stage | Command | Tier | Effort | Writes |
-|---|---|---|---|---|
-| 0 Brief | — | you | — | `00-brief.md` |
-| 1 Interrogate | `/brief-check` | mid | medium | nothing |
-| 2 Design | `/design` | top | xhigh | `10-design.md`, `90-decisions.md` |
-| 3 Red team | `/redteam` | top, **other vendor** | high/xhigh | nothing |
-| 4 Contract | `/contract` | top | high | `20-contract.md` |
-| 5 Slices | `/slices` | mid | medium | `30-slices.md` |
-| 6 Implement | `/slice S<n>` | mid, or fast for mechanical | medium / low | code + tests |
-| 7 Reconcile | `/reconcile` | mid | medium | design docs, `agent.md` |
+| Stage | Command | Writes |
+|---|---|---|
+| 0 Brief | — | `00-brief.md` |
+| 1 Interrogate | `/brief-check` | nothing |
+| 2 Design | `/design` | `10-design.md`, `90-decisions.md` |
+| 3 Red team | `/redteam` | nothing |
+| 4 Contract | `/contract` | `20-contract.md` |
+| 5 Slices | `/slices` | `30-slices.md` |
+| 6 Implement | `/slice S<n>` | code + tests |
+| 7 Reconcile | `/reconcile` | design docs, `agent.md` |
 
-Effort tracks irreversibility, not stage prestige. Schemas and public interfaces are expensive to change; code is cheap to throw away. Stage 2 and 4 are where the money goes. Stage 6 is where it usually gets wasted.
+**Which model runs which command is in [`AGENTS.md`](AGENTS.md), *Command routing*** — it is binding policy, so it has one home and this is not it.
+
+Effort tracks irreversibility, not stage prestige. Schemas and public interfaces are expensive to change; code is cheap to throw away. Stages 2 and 4 are where the money goes. Stage 6 is where it usually gets wasted.
 
 ## Invocation
 
@@ -110,8 +112,8 @@ Never run `/design` and `/redteam` in the same session.
 
 You hit limits across all three subscriptions, so the allocation matters more than it would otherwise. Rough shape per project:
 
-- Stages 2–4 consume the top tier. This is a few tens of thousands of tokens and it is the highest-leverage spend you make.
-- Stage 5 onward runs mid-tier. A precise `20-contract.md` is what makes this safe — Spark's known failure mode is multi-step architecture and stateful debugging, neither of which is its job if stage 4 did its work.
+- Stages 1–5 consume the top tier. Interrogating the brief and cutting slices are judgement work, not clerical work — a badly cut slice costs more than the tokens saved by cutting it cheaply. This is a few tens of thousands of tokens and it is the highest-leverage spend you make.
+- Stage 6 runs mid-tier. A precise `20-contract.md` is what makes this safe — the cheap tiers' known failure mode is multi-step architecture and stateful debugging, neither of which is stage 6's job if stage 4 did its work.
 - Stage 6 on the top tier is the classic waste. If you find yourself reaching for it there, the real problem is usually an underspecified contract, not an underpowered model.
 
 A wrong architecture costs several full re-implementations. A thin spec costs a few thousand tokens. Spend accordingly.

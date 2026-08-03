@@ -7,6 +7,19 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 
 ---
 
+### 2026-08-03 — Model routing names families and lives in `AGENTS.md`
+Context: The tier table named tiers only, on the reasoning that model identifiers churn (entry of 2026-08-02, *Import only project-independent conventions*). That reasoning conflated two things: pinned *versions* churn, model *families* do not. In practice a tier table with no names left every session guessing which model a tier meant, and per-command routing had drifted into the README's stage map, where it was documentation rather than binding policy — and where it disagreed with itself once the routing was revised.
+Chosen: One table in `AGENTS.md` keyed on tier, with Claude family aliases and Codex profiles as columns. A `Command routing` subsection under it owns per-command model and effort; the README's stage map drops its Tier and Effort columns and points at the contract. Routing revised in the same pass: `/brief-check` and `/slices` up to `opus`/`high` — interrogation and slicing are judgement work — and `/design` down from `xhigh` to `high`, with `xhigh` reserved for a single unresolved question.
+Rejected: **Claude aliases only** — the kit ships `codex/PROFILES.md` and a cross-vendor red-team rule; naming one vendor in a file that opens "regardless of tool or model" makes the other second-class. **A separate `MODELS.md`** — strictest neutrality, but a fourth instruction file and a lookup hop for something read every session. **Leave routing in the README** — puts binding policy in documentation, which is how the two copies disagreed in the first place.
+Reversibility: cheap
+Amends: the 2026-08-02 entry's clause "the tier table names tiers, not model IDs, because those churn" — families, not versions, is the distinction that entry missed.
+
+### 2026-08-03 — A red-team pass is a phase gate, with its stopping rule in the command
+Context: Nothing bounded `/redteam`. An adversarial reviewer with no stopping rule re-attacks the same design every time it is invoked, re-raises decisions already accepted as known-and-retained, and treats a wording change as grounds for a full re-read — spending the most expensive tier on re-litigation.
+Chosen: A `## Stopping rule` section in `.claude/commands/redteam.md`: one invocation is one pass, at most one pass per materially changed revision, never self-recommend another, findings adjudicated one at a time and classified as defect / accepted risk / brief conflict / not sustained. A known-and-retained decision is a new defect only against named new evidence. `AGENTS.md` carries one cross-cutting line — never recommend re-running a phase gate — because that fires when `redteam.md` is not loaded.
+Rejected: **All of it in `AGENTS.md`** — bloats the contract with one command's mechanics and duplicates that command's existing Rules section. **All of it in `redteam.md`** — cleanest ownership, but the no-self-recommend rule applies precisely when that file is not in context.
+Reversibility: cheap
+
 ### 2026-08-02 — The target's lessons file is never merged into, and provenance is checked
 Context: A read-only dry run against `SubZeroDev.GameEngine` — which has `AGENTS.md`, `CLAUDE.md` and `agent.md` all populated — exposed that several lessons in the kit's seed were **harvested from that repository**. Installing would have re-imported its own lessons in generalised, evidence-stripped form, reading as new because the wording had changed, and diluting a maintained file with weaker copies of its own content.
 Chosen: Where the target already has a lessons file with content, it wins wholesale and the seed is not merged. Individual kit lessons are offered only where absent *and* applicable, one at a time. A kit lesson that already appears in the target's file with more detail is treated as having originated there and dropped silently.

@@ -34,19 +34,43 @@ rg --files
 - Work on a focused branch.
 - Where guidance conflicts, follow the most specific applicable instruction.
 
-## Effort and model selection
+## Model, effort, and review budget
 
-Match capability and reasoning effort to the **task**, not to the tool that reached it and not to the number of files involved. Budget scales with **complexity, not size** — a one-line change to an invariant is architectural; a 500-line transcription against a settled contract is not.
+**Model choice follows task complexity. The command being invoked does not determine the model.** Budget scales with **complexity, not size** — a one-line change to an invariant is architectural; a 500-line transcription against a settled contract is not.
 
-| Tier | Work | Effort |
+Name model *families*, never pinned versions. Version identifiers churn; family aliases do not.
+
+| Tier | Work | Effort | Claude | Codex |
+|---|---|---|---|---|
+| **Deep reasoning** | Brief interrogation, architecture, contracts, slice planning, security, concurrency, recovery, root-cause analysis, adjudicating design findings | `high` | `opus` | `architect` |
+| **Exceptional fork** | One specific architectural or security question that stayed ambiguous at `high` | `xhigh` | `opus` | `architect` |
+| **Implementation** | Code against a settled contract, tests, refactors, bug fixes, CI, infrastructure, implementation-coupled documentation | `medium`, `high` when difficult | `sonnet` | `builder` |
+| **High volume** | Summaries, formatting, changelogs, commit messages, PR descriptions, mechanical triage | `low` | `haiku` | `quick` |
+
+- **Never use `max` effort unless I ask for it by name.**
+- **`xhigh` is for one question, not one pipeline.** Running a whole design phase at `xhigh` is not rigour, it is a substitute for asking a precise question.
+- **Escalate rather than guess.** A high-volume task that raises an implementation question becomes implementation tier; an implementation task that raises an architectural question becomes deep reasoning. **Do not keep implementing while that uncertainty is unresolved.**
+- **Say so when the session is under-powered.** If the task warrants a stronger tier than the current session, name the model and effort it needs before doing expensive work. If the session is *stronger* than required, just proceed — do not interrupt to say so.
+
+**Division of control.** I set the session model. You set subagent models and scale your own reasoning depth. You cannot change your own session model.
+
+### Command routing
+
+| Command | Tier | Notes |
 |---|---|---|
-| **Deep reasoning** | Architecture, contracts, API and seam design, root-cause analysis, multi-step planning, security and performance strategy, comparing materially different approaches | Strongest model, high or xhigh |
-| **Implementation** | Code against a settled contract, tests, refactors, bug fixes, CI and infrastructure, docs coupled to implementation | Mid tier; high effort for large or hard changes, standard for small ones |
-| **High volume** | Summaries, changelogs, commit messages, PR descriptions, formatting, triage, log and tool-output summarisation | Cheapest tier, default effort |
+| `/brief-check`, `/design`, `/contract`, `/slices` | `opus`, `high` | — |
+| `/redteam` | strongest model, **different vendor from the design author** | If it must be Claude, a fresh `opus`, `high` session |
+| `/slice` | `sonnet`, `medium` | `high` for a large or difficult slice |
+| `/reconcile` | `opus`, `high` to decide which side of a drift is correct | `sonnet`, `medium` for the mechanical edits once I have decided |
+| `/install` | `sonnet`, `medium` | — |
 
-**Escalate rather than guess.** A high-volume task that raises an implementation question becomes implementation tier; an implementation task that raises an architectural question becomes deep reasoning. **Do not keep implementing while that uncertainty is unresolved** — that is stage 6 spending the savings stages 2–4 bought.
+**Never recommend re-running a phase gate.** I decide when a phase repeats. This holds outside `/redteam` too — see that command for its own stopping rule.
 
-**Division of control.** I set the session model. You set subagent models and scale your own reasoning depth. You cannot change your own session model — if a task warrants a different tier, say so rather than silently over- or under-spending.
+### Budget discipline
+
+- **Do not spend reasoning to manufacture findings, alternatives, or open questions.** A short honest answer beats a padded one; "none at this level" is a valid result.
+- **Once a policy decision is signed off and recorded, do not relitigate it** without new evidence. Name the evidence if you think there is some.
+- **Spend frontier-model reasoning on decisions that are expensive to reverse**, not on producing more prose.
 
 ## Hard rules
 
