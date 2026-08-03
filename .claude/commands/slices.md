@@ -25,3 +25,5 @@ Rules:
 - Order slices so the riskiest assumption in the design gets exercised earliest. If the design bets on something working, slice 1 or 2 should prove it.
 - Target a slice a coding agent can finish in one session without compaction. If a slice needs more, split it.
 - No slice may introduce a signature absent from the contract.
+
+Write the document only. **Do not open issues** — that is `/track`'s job (`AGENTS.md`, *Tracking work*). Say that it should be run next.

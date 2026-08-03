@@ -3,9 +3,16 @@
 Append-only. Newest at the top. The rejected alternatives are the point — without them, every future session relitigates the same choice.
 
 ## Open
-<Things noticed mid-slice that were deliberately not acted on. Move them out or delete them; do not let this section rot.>
+<A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
 ---
+
+### 2026-08-03 — Work defers to GitHub issues, and `/track` owns every GitHub write
+Context: Findings, follow-ups and defects noticed in passing were accumulating in conversation and in `## Open` sections — prose, which is where work goes to be forgotten. GitHub issues are the obvious home, but opening one is an external write, which the contract requires authorization for, and a round trip per finding is exactly the friction that causes items to be dropped inline instead. Survey of the four repositories: issues and projects enabled everywhere, zero milestones, six issues total.
+Chosen: A narrow carve-out — opening and labelling issues in a repository the user owns needs no prompt, because issues are cheap and reversible. Closing, editing others' issues, and writing to repositories the user does not own stay authorized. Milestones and projects stay authorized, being structural and few. `/track` is the single command that touches GitHub, and is idempotent so it can be run often rather than batched. `design/30-slices.md` stays authoritative for what a slice *is*; the issue tracks whether it is *done*. `## Open` becomes a staging area that `/track` drains.
+Rejected: **Propose-then-create on approval** — preserves the gate with no exception to reason about, but the round trip is the friction the change exists to remove. **Carve out milestones and projects too** — fewest interruptions, but a wrong milestone is structural, visible on a public repository, and awkward to unpick. **Move slices into issues wholesale** — one home, no sync; rejected because `/redteam` and `/slices` operate on the slice list *as a set*, and a tracker is a poor place to review coherence. **Let `/slices` open its own issues** — the option as originally framed; rejected on implementation because two commands writing to GitHub is the two-homes problem the ownership split exists to prevent.
+Reversibility: cheap
+Blocked: GitHub Projects v2 needs the `project` token scope, which `repo` does not include. `/track` detects this and stops rather than working around it; the fix is `gh auth refresh -s project`, which only the user can run.
 
 ### 2026-08-03 — Install decisions get a home even when `design/` is skipped
 Context: Installing into `SubZeroDev.GameEngine` skipped `design/` — that repository already runs the whole chain under other names (`01-vision`, `02-architecture`, `04-core`, `TODO`, `OPEN-QUESTIONS` §1) across sixteen documents, plus 42 files in `plans/`. Phase 4 then instructed appending a decision-log entry to `90-decisions.md`, a file the install had just decided not to create. The decisions were recorded in `CLAUDE.md` instead, but their **rejected alternatives were lost** — the one thing the log format exists to preserve.
