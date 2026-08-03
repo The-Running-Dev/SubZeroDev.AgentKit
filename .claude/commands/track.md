@@ -51,7 +51,13 @@ Use `slice` and `open` if they exist. Create them if missing — say that you di
 
 ## Projects
 
-GitHub Projects v2 needs the `project` token scope, which `repo` does not include. If `gh project list --owner <owner>` fails on scope, **say so and stop** — do not work around it. The fix is the user running `gh auth refresh -s project` in an interactive terminal; you cannot complete an OAuth flow.
+The convention is **one project per repository, named after it**.
+
+- Look for a project whose title matches this repository's name. If one exists, **add every issue you opened to it** and say so.
+- If none exists, **say so and carry on.** Do not create one — board structure is columns, fields and views, and a command gets that generically wrong. Creating it is an approval step, and a bare project is worth less than the thirty seconds it saves.
+- Never remove an issue from a project, change its status field, or reorder a board. Adding is the only project write.
+
+GitHub Projects v2 needs the `project` token scope, which `repo` does not include. If `gh project list --owner <owner>` fails on scope, **say so and continue with issues and milestones** — a missing board is not a reason to abandon the sync. The fix is the user running `gh auth refresh -s project` in an interactive terminal; you cannot complete an OAuth flow.
 
 ## Report
 
@@ -59,6 +65,7 @@ GitHub Projects v2 needs the `project` token scope, which `repo` does not includ
 - Issues that already existed, skipped
 - Slices whose criteria drifted from their issue
 - Open items removed from `90-decisions.md`
+- Whether a matching project was found, and what was added to it
 - Anything skipped, and why
 
 ## Never
