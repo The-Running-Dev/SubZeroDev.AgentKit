@@ -122,7 +122,9 @@ Decisions needing you:    <the forks, one at a time, recommendation first>
 Dirty files, untouched:   <paths from phase 0>
 ```
 
-Present the decisions **one at a time**. Do not batch them, and do not proceed on the ones you think are obvious while waiting on the rest — a later answer can change an earlier one.
+**An install is a reconciliation, so it ends in a decision, not a report** (`AGENTS.md`, *Working with me*). The block above is not the deliverable — closing with the questions is. Every divergence you listed becomes a question with a recommendation and the cost of each alternative.
+
+Present the decisions **one at a time**. Do not batch them, and do not proceed on the ones you think are obvious while waiting on the rest — a later answer can change an earlier one. If nothing diverged, say the install is a no-op; do not invent a fork to have something to ask.
 
 ## Phase 4 — Apply
 

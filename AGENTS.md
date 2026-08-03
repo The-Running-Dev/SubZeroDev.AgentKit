@@ -102,6 +102,9 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 
 - Present findings and review items **one at a time for sign-off**. Never bulk-apply findings unreviewed.
 - Surface real forks as a question with a recommendation, recommended option first. I routinely pick the more rigorous non-recommended option — so ask, do not assume.
+- **A reconciliation ends in a decision, not a report.** Any time you compare two things and find they disagree — `/reconcile`, `/install`, `/track` drift, or any time I say "reconcile" — the work is not finished at the findings. Close by asking, one divergence at a time, each with a recommendation and what the alternatives cost. **A report I have to turn into questions myself is half the job.** If a comparison genuinely found nothing, say that plainly rather than manufacturing a fork.
+  - Recommend the **resolution**, not merely which side you prefer: name what changes, in which file, and what it costs to reverse.
+  - `/redteam` is the one exception, and only partly — it must not propose fixes, since naming a fix frames the problem. It still recommends a **classification** for each finding: defect, accepted risk, brief conflict, or not sustained.
 - When I decline a suggestion, record it in the affected document as known-and-retained rather than dropping it silently. Otherwise it is rediscovered later as a bug.
 - Ask before any choice that sets policy or a public contract: licensing, compatibility promises, a major information-architecture change.
 - Call out assumptions, unverified claims, and known risks plainly. Explain the concrete evidence behind a recommendation.

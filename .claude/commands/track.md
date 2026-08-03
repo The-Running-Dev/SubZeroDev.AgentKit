@@ -123,6 +123,8 @@ GitHub Projects v2 needs the `project` token scope, which `repo` does not includ
 - Whether a matching project was found, and what was added to it
 - Anything skipped, and why
 
+**Then ask.** Drift between a slice and its issue is a reconciliation, and **a reconciliation ends in a decision, not a report** (`AGENTS.md`, *Working with me*). For each mismatch, put the resolution to the user with a recommendation — amend the doc, amend the issue, or accept the difference — and say what each costs. Report a clean run as clean; do not invent a question to close on.
+
 ## Never
 
 - Close an issue. Work being finished is not something this command can observe.
