@@ -20,6 +20,9 @@ Choices made during implementation that are not in `90-decisions.md`. These are 
 ## Invalidated assumptions
 Anything the design assumed that implementation showed to be false.
 
+## Generated-guide drift
+If `docs/docs/guide.md` (or `guide.md`) exists, compare it against the design and contract. It is generated, so it goes stale silently. Report only **semantic** divergence — behaviour it describes that the design no longer specifies, or design changes it does not reflect. Do not report wording differences; a regenerated file is never byte-identical. If it is stale, say so and recommend `/make-human-docs`; do not regenerate it as part of this command.
+
 ## Lessons
 Things that cost time and would cost it again. Each one must name what it actually cost — a lesson with no cost attached is a preference, and preferences go in `AGENTS.md`, not `agent.md`. Propose these for `agent.md`; do not append them yourself. If nothing here would have changed a decision, say "none" rather than padding.
 

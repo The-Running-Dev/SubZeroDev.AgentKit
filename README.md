@@ -1,6 +1,6 @@
 # Design pipeline — agent kit
 
-Seven stages, each ending in a committed artifact. The artifact is the handoff, not the conversation.
+Eight stages. Most end in a committed artifact; the two review gates deliberately write nothing. The artifact is the handoff, not the conversation.
 
 ## Layout
 
@@ -53,6 +53,7 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | 5 Slices | `/slices` | `30-slices.md` |
 | 6 Implement | `/slice S<n>` | code + tests |
 | 7 Reconcile | `/reconcile` | design docs, `agent.md` |
+| 8 Human docs | `/make-human-docs` | `docs/docs/guide.md` (generated) |
 
 **Which model runs which command is in [`AGENTS.md`](AGENTS.md), *Command routing*** — it is binding policy, so it has one home and this is not it.
 
@@ -120,9 +121,9 @@ A wrong architecture costs several full re-implementations. A thin spec costs a 
 
 ## When to skip most of this
 
-The pipeline has real overhead — four artifacts, three vendor handoffs. That is right for something you will maintain for a year. For a 500-line tool, building it badly and rewriting it once is faster, and the failed version teaches you more about the actual problem than the design doc would have. The `Lifespan` line in the brief exists to make you decide this before you start, not after.
+The pipeline has real overhead — four authored artifacts, a generated guide, three vendor handoffs. That is right for something you will maintain for a year. For a 500-line tool, building it badly and rewriting it once is faster, and the failed version teaches you more about the actual problem than the design doc would have. The `Lifespan` line in the brief exists to make you decide this before you start, not after.
 
-Minimum viable version for short-lived work: `00-brief.md` with real non-goals, `20-contract.md`, and `/slice`. Skip 1, 2, 3, 7.
+Minimum viable version for short-lived work: `00-brief.md` with real non-goals, `20-contract.md`, and `/slice`. Skip 1, 2, 3, 7, 8.
 
 ## On stage 0
 

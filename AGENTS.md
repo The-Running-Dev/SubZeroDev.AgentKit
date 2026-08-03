@@ -62,6 +62,7 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 | `/redteam` | strongest model, **different vendor from the design author** | If it must be Claude, a fresh `opus`, `high` session |
 | `/slice` | `sonnet`, `medium` | `high` for a large or difficult slice |
 | `/reconcile` | `opus`, `high` to decide which side of a drift is correct | `sonnet`, `medium` for the mechanical edits once I have decided |
+| `/make-human-docs` | `sonnet`, `medium` | Escalate only if the design turns out to be ambiguous — then stop, do not resolve it in prose |
 | `/install` | `sonnet`, `medium` | — |
 
 **Never recommend re-running a phase gate.** I decide when a phase repeats. This holds outside `/redteam` too — see that command for its own stopping rule.
