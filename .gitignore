@@ -1,0 +1,11 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.log
+
+# Per-machine Claude Code settings; the tracked settings.json is deliberate
+.claude/settings.local.json
+
+# graphify — regenerable and expensive; never commit
+graphify-out/
+.graphify_*
