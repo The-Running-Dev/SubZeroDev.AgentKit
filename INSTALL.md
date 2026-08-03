@@ -51,7 +51,21 @@ The artifacts:
 
 `INSTALL.md` itself is **not** installed into targets. It is the kit's procedure, and a copy in the target is a copy that drifts.
 
-**Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
+**Record which kit commit was installed.** Write `.claude/kit.json` in the target:
+
+```json
+{ "source": "https://github.com/The-Running-Dev/SubZeroDev.AgentKit", "commit": "<kit HEAD sha>", "installed": "YYYY-MM-DD" }
+```
+
+The kit's commit **is** its version — a hand-maintained `VERSION` file would drift from the tree it claims to describe, and this one cannot. On a re-install, read the recorded commit first and report how far behind the target is:
+
+```powershell
+git -C <kit> log --oneline <recorded>..HEAD
+```
+
+That list is what the upgrade actually consists of. Without it, "is this repo current?" is answerable only by hashing every file, which is what the first three installs had to do.
+
+**Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately. `.claude/kit.json` **is** yours: it is this procedure's own record, written in phase 4. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
 
 **`90-decisions.md` is the kit's own decision log.** Its entries are decisions about building the kit and mean nothing in a target. Install the heading, the preamble, and the `## Open` section — **never the entries**. The target's log starts empty and gets the decisions this install makes. This is the one artifact where a straight file copy is wrong, and it is easy to miss because the file looks like a template.
 
@@ -147,8 +161,9 @@ Only after sign-off.
    - **Nothing was lost in a move.** Every non-blank line of the file you moved content out of must appear in the file you moved it into. Diff it mechanically; do not eyeball it. Expect exactly the lines you deliberately changed, and be able to name each one.
    - **No rule appears twice.** Search the target for the distinctive phrase of each rule you added — not for the rule's topic. You are looking for your own duplicates, and you will have made some: this install's own verification caught two that careful authoring did not.
    - **No stale paths.** If you relocated anything, search for the old path. Hits in the decision log are correct; hits anywhere else are not.
-5. `git -C <target> status --short` and `git diff --check`.
-6. **Stage nothing and commit nothing.** Show what changed and let the user commit. The kit's own contract requires named-path staging, and an installer that commits for you is an installer that has staged something you did not read.
+5. **Write `.claude/kit.json`** with the kit's current HEAD sha and today's date — now, after the work succeeded, not before it.
+6. `git -C <target> status --short` and `git diff --check`.
+7. **Stage nothing and commit nothing.** Show what changed and let the user commit. The kit's own contract requires named-path staging, and an installer that commits for you is an installer that has staged something you did not read.
 
 Report what was created, what was reconciled and how, and what remains for the user to decide.
 
@@ -157,6 +172,8 @@ Report what was created, what was reconciled and how, and what remains for the u
 ## Re-running
 
 Installing again upgrades. The classification in phase 1 is what makes it safe: an unchanged file is identical and skipped, and a file the target has since edited is divergent and reconciled with the target winning. **Never treat a re-install as a reset** — the target's edits since the last install are the accumulated knowledge the kit does not have.
+
+**Open by reading `.claude/kit.json` and naming the gap.** `git -C <kit> log --oneline <recorded>..HEAD` is the upgrade, stated as commits rather than as a diff of files. Report it before phase 1, because it tells the user what they are about to get. Update the recorded commit only in phase 4, after the install actually succeeds — a version marker written ahead of the work claims an upgrade that did not happen.
 
 ## What installing must not do
 

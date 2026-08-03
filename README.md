@@ -56,6 +56,8 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | 7 Reconcile | `/reconcile` | design docs, `agent.md` |
 | 8 Human docs | `/make-human-docs` | `docs/docs/guide.md` (generated) |
 
+Outside the numbered stages: `/verify` runs the repo's gates and reports what did *not* run, `/pr` opens a pull request following the repo's own merge convention, `/track` syncs `design/` to GitHub issues, and `/install` puts the kit into a repo.
+
 **Which model runs which command is in [`AGENTS.md`](AGENTS.md), *Command routing*** — it is binding policy, so it has one home and this is not it.
 
 Effort tracks irreversibility, not stage prestige. Schemas and public interfaces are expensive to change; code is cheap to throw away. Stages 2 and 4 are where the money goes. Stage 6 is where it usually gets wasted.

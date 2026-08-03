@@ -88,6 +88,12 @@ and preferences belong in `AGENTS.md`.
   holding credentials it never uses.
 - **Verify a regression test by reverting the fix.** A test that passes either way guards
   nothing.
+- **A fix that only changed the odds is not a fix.** An intermittent failure went away when
+  test parallelism was disabled — three consecutive clean runs — and came back on the fourth.
+  The real cause was connection pooling handing out a stale schema snapshot, found by a tight
+  single-threaded loop that reproduced it on iteration zero. **Cost: a wrong diagnosis that
+  looked right, plus the repro loop to overturn it.** When a fix is "it stopped failing",
+  suspect the odds moved rather than the cause, and say over how many runs.
 
 ## Rendering and encoding
 

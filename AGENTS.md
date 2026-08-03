@@ -64,6 +64,8 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 | `/reconcile` | `opus`, `high` to decide which side of a drift is correct | `sonnet`, `medium` for the mechanical edits once I have decided |
 | `/make-human-docs` | `sonnet`, `medium` | Escalate only if the design turns out to be ambiguous — then stop, do not resolve it in prose |
 | `/track` | `sonnet`, `medium` | Mechanical sync; escalate only to judge whether a drifted slice is a design change |
+| `/verify` | `sonnet`, `medium` | Escalate to deep reasoning only to diagnose a failure, never to run the gates |
+| `/pr` | `sonnet`, `medium` | — |
 | `/install` | `sonnet`, `medium` | — |
 
 **Never recommend re-running a phase gate.** I decide when a phase repeats. This holds outside `/redteam` too — see that command for its own stopping rule.
@@ -93,7 +95,7 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 ## Verification
 
 - **Verify, don't assert.** State only what you have checked. Assert nothing from memory that a command could confirm — remembered values and inferred contracts are how wrong facts get written down confidently.
-- **Do not claim a gate passed that did not run.** If a tool is unavailable, say so plainly and name what was not checked. "Tests pass" means you ran them and read the output.
+- **Do not claim a gate passed that did not run.** If a tool is unavailable, say so plainly and name what was not checked. "Tests pass" means you ran them and read the output. `/verify` exists to make this checkable rather than aspirational — its report has three lists, and the one that matters is *what did not run*.
 - **Never state or imply a deployed URL or a published artifact** until the deploy for that exact commit reports success. A merged PR is not a deployed site. Poll; do not estimate.
 - **A regression test is verified by reverting the fix** and confirming it fails. A test that passes with and without the fix guards nothing.
 - **A schema or validator change is not done until it has rejected something.** Positive and negative cases both, with the counts stated. A validator that has never failed is not known to constrain anything.
@@ -134,6 +136,7 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 - **Where a document already governs, the block points; where none does, it carries.** A slice names `design/30-slices.md § S<n> @ <sha>` and leaves procedure to `.claude/commands/slice.md` — copying stop conditions into an issue freezes a stale copy that nothing can go back and fix. A bug or a story has no upstream document, so its block legitimately holds the constraints. That asymmetry is the rule, not an inconsistency.
 - **Criteria carry stable ids** (`S3.1`), and drift is compared on ids, never prose. Reworded criteria are not drift; an added, removed, or renumbered id is.
 - **Report drift, change neither side.** Which is wrong is my call.
+- **Ticking a checkbox is mine, not yours.** An agent reporting "S3.1 met" and a ticked box are different claims by different parties, and collapsing them removes the only human gate between "the tests pass" and "this is done". `/slice` ends by listing the ids it believes are met so ticking is mechanical.
 - **Bugs and stories are filed by hand** from `.github/ISSUE_TEMPLATE/`. `/track` does not open them.
 - **This does not suspend one-at-a-time sign-off.** Findings are still presented for adjudication; the tracker is where the ones you accept go, not a way to skip the conversation.
 
