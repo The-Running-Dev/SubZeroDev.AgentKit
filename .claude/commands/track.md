@@ -29,27 +29,36 @@ Every issue this command writes has the same two parts, in this order.
 ```markdown
 **S3 — Host registration, heartbeat, and the split-brain surface**
 
-A caller can register a host, watch it heartbeat, and see when two hosts claim the
-same identity. Until this lands, nothing detects a split brain.
+A caller can register a host, watch it heartbeat, and see when two hosts claim
+the same identity.
 
 ### Done when
-- [ ] `RegisterAsync` returns `AlreadyRegistered` and leaves the record untouched when the id exists
-- [ ] A missed heartbeat window marks the host `Stale` within one interval
+- [ ] **S3.1** `RegisterAsync` returns `AlreadyRegistered` and leaves the record untouched when the id exists
+- [ ] **S3.2** A missed heartbeat window marks the host `Stale` within one interval
 
 ---
-<details><summary><b>Agent instructions</b> — read before starting</summary>
+<details><summary><b>Agent instructions</b></summary>
+<!-- agent:start -->
 
-- **Run:** `/slice S3`
-- **Authority:** `design/30-slices.md` § S3 for scope, `design/20-contract.md` for signatures. If they disagree, stop and say which is wrong.
-- **Out of scope:** redrive and telemetry — S7 and S8 own those.
-- **Stop if:** the contract lacks a signature you need; two readings of a criterion are both defensible; the slice needs a schema or public-interface change.
-- Generated from `design/30-slices.md` by `/track`. Do not edit this block by hand.
+Run `/slice S3`.
+
+- **Scope and criteria:** `design/30-slices.md` § S3 @ `a1b2c3d`
+- **Signatures:** `design/20-contract.md`
+- **Out of scope here:** redrive (S7), telemetry (S8)
+
+Stop conditions and procedure: `.claude/commands/slice.md`. Not restated here.
+<!-- agent:end -->
 </details>
 ```
 
-The rules this shape obeys — human-first, agent block is not a copy, never rewrite a checkbox — are stated in `AGENTS.md`, *Tracking work*. This section is the format; that one is why.
+Four properties make this work, and each is load-bearing:
 
-The `Done when` checkboxes are the one deliberate copy, because progress has to be tickable. `/track` **drift-checks them and never silently edits them** — see below.
+- **The narrative is `Delivers:` verbatim.** Never invent prose for it. If it reads badly, that is a `/slices` defect — fix the doc, where the slice set is reviewed, and re-run.
+- **The block is fenced.** `<!-- agent:start -->` and `<!-- agent:end -->` are a boundary, not a request. Everything between them is regenerable; everything outside is human-owned and never touched.
+- **The block is thin.** Only what is specific to this issue: which slice, where authority lives, this slice's out-of-scope. **Generic stop conditions stay in `.claude/commands/slice.md`.** Copying them here would freeze a stale copy into every issue, and this command cannot edit issues to fix them.
+- **Authority is pinned to a commit.** `§ S3 @ <sha>` is the sha of the last commit touching `design/30-slices.md`. It tells a reader whether the doc moved since the issue was written.
+
+The rules this shape obeys — human-first, agent block is not a copy, never rewrite a checkbox — are stated in `AGENTS.md`, *Tracking work*. This section is the format; that one is why.
 
 ## What syncs
 
@@ -58,8 +67,13 @@ The `Done when` checkboxes are the one deliberate copy, because progress has to 
 For each `## S<n> — <name>` in `design/30-slices.md`:
 
 - Search existing issues, **open and closed**, for a title beginning `S<n> —`. A closed issue means the slice is done — do not reopen it and do not open a second one.
-- If none exists, open one in the shape above. `Delivers:` becomes the narrative; `Acceptance:` becomes the `Done when` checkboxes; `Touches:` and `Out of scope:` go in the agent block.
-- If one exists, **compare its `Done when` checkboxes against the slice's current `Acceptance:` lines.** Report any difference and **change nothing** — not the issue, not the doc. A criterion that moved after work started is a design change, and which side is wrong is the user's call. **Never rewrite a checkbox**: its ticked state is progress someone recorded, and regenerating the block destroys it.
+- If none exists, open one in the shape above. `Delivers:` becomes the narrative; `Acceptance:` becomes the `Done when` checkboxes, ids included; `Out of scope:` goes in the agent block.
+- If one exists, **compare criterion ids, not prose.** Read `S<n>.<m>` from the issue's checkboxes and from the slice's `Acceptance:` lines:
+  - **Ids match** — nothing to report, even if the wording differs. Reworded criteria are the common case and are not drift.
+  - **An id is in the doc but not the issue** — a criterion was added after the issue was opened. Report it.
+  - **An id is in the issue but not the doc** — a criterion was removed or, worse, renumbered. Report it and say which; a renumber means an existing checkbox now refers to something else.
+- **Change nothing on a mismatch** — not the issue, not the doc. Which side is wrong is the user's call.
+- **Never rewrite anything outside the `<!-- agent:start -->` … `<!-- agent:end -->` fence.** A ticked checkbox is progress someone recorded and an edited narrative is someone's deliberate wording. Inside the fence, regenerating is safe and is how a stale commit pin gets refreshed.
 
 `design/30-slices.md` stays authoritative for what a slice *is*. The issue tracks whether it is *done*.
 
