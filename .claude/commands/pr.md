@@ -52,17 +52,9 @@ Closes #<n>
 
 ## Reviews
 
-**Check review *threads*, not requested reviewers.** An automated reviewer can leave conversation threads that block merge and do **not** appear in `gh pr view --json reviewRequests,latestReviews`. Query them directly:
+**Check review *threads*, not requested reviewers.** An automated reviewer can leave conversation threads that block merge and do **not** appear in `gh pr view --json reviewRequests,latestReviews`.
 
-```bash
-gh api graphql -f query='
-{ repository(owner:"OWNER", name:"REPO") {
-    pullRequest(number:N) {
-      reviewThreads(first:50) { nodes { isResolved path comments(first:1){ nodes{ body } } } }
-    } } }'
-```
-
-Resolve a thread only when a validated fix satisfies it. **Leave ambiguous findings open and report them** — resolving a thread you did not actually address is how a blocking review becomes invisible.
+**Working those threads is `/resolve`, not this command** — it holds the GraphQL query and the triage rules. Here, only report the unresolved count: if `required_review_thread_resolution` is on, that count is the merge blocker regardless of what the checks say.
 
 ## Merging
 
