@@ -31,6 +31,11 @@
 .PARAMETER Detail
     Break each session down by slash-command segment.
 
+.PARAMETER Human
+    Print the aligned text table instead of JSON. Default output is JSON so
+    the report can be piped into other tools without a parser written against
+    a table meant for a terminal; pass -Human for the table a person reads.
+
 .PARAMETER Hook
     Run as a SessionEnd hook. Reads the hook's JSON from stdin, measures the
     session it names, and writes one row to .claude/session-costs.tsv beside
@@ -85,6 +90,7 @@ param(
     [string]$TranscriptPath,
     [string]$SessionId,
     [switch]$Detail,
+    [switch]$Human,
     [switch]$Hook,
     [switch]$Watch,
     [int]$WarnAtTokens = 150000,
@@ -200,7 +206,7 @@ function Read-Session {
         }
     }
 
-    $ordered = $stamps | Sort-Object
+    $ordered = @($stamps | Sort-Object)
     $span = if ($ordered.Count -ge 2) { $ordered[-1] - $ordered[0] } else { [timespan]::Zero }
 
     $active = [timespan]::Zero
@@ -338,8 +344,8 @@ $files = @(Get-ChildItem $directory -Filter *.jsonl -File)
 if ($SessionId) { $files = @($files | Where-Object BaseName -like "$SessionId*") }
 if (-not $files.Count) { throw "No transcripts matched in $directory." }
 
-$header = '{0,-28} {1,6} {2,10} {3,12} {4,13} {5,10}' -f 'Segment', 'calls', 'input', 'cache_new', 'cache_read', 'output'
 $totals = [pscustomobject]@{ Calls = 0; Input = 0L; CacheCreate = 0L; CacheRead = 0L; Output = 0L }
+$reportSessions = [System.Collections.Generic.List[object]]::new()
 
 foreach ($file in ($files | Sort-Object LastWriteTime)) {
     $session = Read-Session -File $file
@@ -354,27 +360,81 @@ foreach ($file in ($files | Sort-Object LastWriteTime)) {
     }
 
     $shortId = if ($session.Id.Length -gt 8) { $session.Id.Substring(0, 8) } else { $session.Id }
-    ''
-    "Session {0}   {1}" -f $shortId, $session.Models
-    "  started {0:yyyy-MM-dd HH:mm}   span {1:hh\:mm\:ss}   active {2:hh\:mm\:ss} (gaps over {3} min excluded)" -f
-        $session.Started, $session.Span, $session.Active, $IdleThresholdMinutes
-    ''
-    $header
-    ('-' * $header.Length)
-    if ($Detail) {
-        foreach ($segment in $session.Segments) { Format-Row -Label $segment.Label -S $segment }
+    $reportSessions.Add([pscustomobject]@{
+        Id      = $shortId
+        Started = $session.Started
+        Span    = $session.Span
+        Active  = $session.Active
+        Models  = $session.Models
+        Total   = $sum
+        Segments = $session.Segments
+    })
+}
+
+if ($Human) {
+    $header = '{0,-28} {1,6} {2,10} {3,12} {4,13} {5,10}' -f 'Segment', 'calls', 'input', 'cache_new', 'cache_read', 'output'
+
+    foreach ($session in $reportSessions) {
+        ''
+        "Session {0}   {1}" -f $session.Id, $session.Models
+        "  started {0:yyyy-MM-dd HH:mm}   span {1:hh\:mm\:ss}   active {2:hh\:mm\:ss} (gaps over {3} min excluded)" -f
+            $session.Started, $session.Span, $session.Active, $IdleThresholdMinutes
+        ''
+        $header
         ('-' * $header.Length)
+        if ($Detail) {
+            foreach ($segment in $session.Segments) { Format-Row -Label $segment.Label -S $segment }
+            ('-' * $header.Length)
+        }
+        Format-Row -Label 'session total' -S $session.Total
     }
-    Format-Row -Label 'session total' -S $sum
-}
 
-if ($files.Count -gt 1) {
+    if ($files.Count -gt 1) {
+        ''
+        ('=' * $header.Length)
+        Format-Row -Label "all sessions ($($files.Count))" -S $totals
+    }
+
     ''
-    ('=' * $header.Length)
-    Format-Row -Label "all sessions ($($files.Count))" -S $totals
+    'cache_read is the term that grows with conversation length. If it dominates,'
+    'the lever is session boundaries, not per-command waste.'
+    ''
 }
+else {
+    function ConvertTo-UsageObject { param($S)
+        [ordered]@{
+            calls       = $S.Calls
+            input       = $S.Input
+            cacheCreate = $S.CacheCreate
+            cacheRead   = $S.CacheRead
+            output      = $S.Output
+        }
+    }
 
-''
-'cache_read is the term that grows with conversation length. If it dominates,'
-'the lever is session boundaries, not per-command waste.'
-''
+    $payload = [ordered]@{
+        idleThresholdMinutes = $IdleThresholdMinutes
+        sessions = @($reportSessions | ForEach-Object {
+            $entry = [ordered]@{
+                id      = $_.Id
+                started = if ($_.Started) { ('{0:yyyy-MM-ddTHH:mm:ss}' -f $_.Started) } else { $null }
+                spanSeconds   = [math]::Round($_.Span.TotalSeconds)
+                activeSeconds = [math]::Round($_.Active.TotalSeconds)
+                models  = @($_.Models -split ',\s*' | Where-Object { $_ })
+                total   = ConvertTo-UsageObject $_.Total
+            }
+            if ($Detail) {
+                $entry.segments = @($_.Segments | ForEach-Object {
+                    $seg = ConvertTo-UsageObject $_
+                    $seg.Insert(0, 'label', $_.Label)
+                    $seg
+                })
+            }
+            $entry
+        })
+    }
+    if ($files.Count -gt 1) {
+        $payload.allSessions = ConvertTo-UsageObject $totals
+    }
+
+    $payload | ConvertTo-Json -Depth 6
+}
