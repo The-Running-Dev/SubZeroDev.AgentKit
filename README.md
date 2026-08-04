@@ -152,7 +152,9 @@ pwsh ./tools/Measure-Session.ps1 -Detail
 
 It reports the four input classes separately because they are priced differently and behave differently. On the first sessions measured here, cache reads ran roughly fifty times cache creation — a single "tokens in" figure would have hidden the only term that was growing. Which work should stop being model work altogether is in [`AGENTS.md`](AGENTS.md), *What should stop being model work*.
 
-A `SessionEnd` hook in `.claude/settings.json` runs the same script automatically and appends one row per session to `.claude/session-costs.tsv`, which is gitignored. That file is a convenience, not the record — transcripts are durable, so a session that ends without the hook firing is recovered by running the script again. The hook is the one thing an install may write into a target's `settings.json`, under the conditions in [`INSTALL.md`](INSTALL.md).
+Two hooks in `.claude/settings.json` run the same script automatically. `SessionEnd` appends one row per session to `.claude/session-costs.tsv`, which is gitignored — a convenience, not the record, since transcripts are durable and a session that ends without the hook firing is recovered by running the script again. `UserPromptSubmit` runs `-Watch`, which is silent until the session's context crosses a threshold and then says so on each prompt, while the session can still be ended.
+
+That second hook exists because measurement found session cost is roughly **quadratic in turn count** — per-call context grows with conversation length, and you pay it again every turn. Ending a long session is worth more than any per-command saving. These two hooks are the only thing an install may write into a target's `settings.json`, under the conditions in [`INSTALL.md`](INSTALL.md).
 
 ## When to skip most of this
 
