@@ -57,7 +57,7 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | 7 Reconcile | `/reconcile` | design docs, `agent.md` |
 | 8 Human docs | `/make-human-docs` | `docs/docs/guide.md` (generated) |
 
-Outside the numbered stages: `/verify` runs the repo's gates and reports what did *not* run, `/pr` opens a pull request following the repo's own merge convention, `/resolve` works a pull request's review threads, `/track` syncs `design/` to GitHub issues, and `/install` puts the kit into a repo.
+Outside the numbered stages: `/kit-help` says where the repository is and what to run next, `/verify` runs the repo's gates and reports what did *not* run, `/pr` opens a pull request following the repo's own merge convention, `/resolve` works a pull request's review threads, `/track` syncs `design/` to GitHub issues, and `/install` puts the kit into a repo.
 
 `/refine` is the front door for asks that fall between the stages. Every other command assumes you are already inside the pipeline — `/slice` needs a slice, `/contract` needs a design. `/refine` takes a rough ask, routes it to the command that owns it where one does, and otherwise emits a prompt carrying the constraints that bind it. It emits rather than executes, because the tier it names is usually not the tier it is running at.
 
@@ -67,48 +67,15 @@ Effort tracks irreversibility, not stage prestige. Schemas and public interfaces
 
 ## Start to finish
 
-The stage map says what each command writes. This says how a project actually runs — the order, where a session ends, and what **you** do between commands.
+**Run [`/kit-help`](.claude/commands/kit-help.md).** It works out where the repository actually is — which design docs exist, which branch you are on, what the tracker says — and tells you the current step, the next one, and whether it needs a fresh session. `/kit-help all` shows the whole flow.
 
-**Where a session must end is binding policy and lives in [`AGENTS.md`](AGENTS.md), *Session boundaries*.** This section walks them in order; it does not define them.
+That command holds the walkthrough, rather than this file, because commands install into target repositories and this README does not. The shape it walks:
 
-### Once per project — stages 0 to 5
+- **Stages 0 to 5, once per project.** One session each, ending in a committed file that is the next stage's only input. Three of them stop rather than proceed — `/design` on a thin brief, `/contract` on a signature the design does not determine, `/redteam` at findings. Sending work back a stage costs a few thousand tokens; finding it in stage 6 costs a re-implementation.
+- **Stage 6, once per slice.** Branch → `/slice` → you tick the boxes → `/verify` → push → `/pr` → `/resolve` → merge → `/track` in a new session. One slice, one branch, one session.
+- **`/reconcile` and `/make-human-docs`** when the slices run out.
 
-Each of these is its own session. Every one of them ends in a committed file, and that file is what the next stage reads.
-
-1. **Write `design/00-brief.md`.** Yourself — see *On stage 0*. Problem, non-goals, definition of done, and a `Lifespan` line.
-2. **`/brief-check`.** Returns four lists — underspecified, implied non-goals, unstated environment assumptions, definition-of-done gaps. It writes nothing and proposes nothing. **You edit the brief** from those lists. Repeat until the lists come back thin.
-3. **`/design`** → `10-design.md` and decision-log entries. If it stops saying the brief is too thin, go back to 1; that is the cheapest failure in the whole pipeline.
-4. **`/redteam`** → findings only, no fixes, no verdict. **Different vendor, fresh session.** Adjudicate the findings one at a time; you classify each as defect, accepted risk, brief conflict, or not sustained. Defects go back through `/design`. One pass per revision — never ask for another.
-5. **`/contract`** → `20-contract.md`. If it emits an `## Unresolved` section it has stopped on purpose. Resolve those before slicing; every one left is a decision an implementing agent will make for you.
-6. **`/slices`** → `30-slices.md`. Read the `Delivers:` lines as a set. This is the last cheap moment to notice that a slice is too big or in the wrong order.
-7. **`/track`** → one GitHub issue per slice, plus anything staged under `## Open`. Idempotent, so run it whenever `design/` changes rather than saving it up.
-
-Commit after each. Stages 1 and 3 write nothing, so their output lives only in that session — act on it before the session ends.
-
-### Per slice — stage 6, on repeat
-
-One slice, one branch, one session. Do not start slice N+1 because you noticed something in slice N — that goes in `## Open`, and `/track` turns it into an issue.
-
-1. **Branch.** Never work on the default branch; `/pr` refuses to open from it.
-2. **`/slice S3`**, or bare **`/slice`** for the lowest-numbered slice that is neither closed nor fully ticked and whose dependencies are done. It states the criteria by id, writes failing tests first, implements against the contract, and ends by listing the ids it believes are met.
-3. **You tick the boxes** on the issue. Deliberately not the agent's to do — "S3.1 met" and a ticked box are different claims by different parties, and that gate is the only thing between "the tests pass" and "this is done".
-4. **`/verify`** — same session. Discovers the repo's gates from CI and reports three lists. The one that matters is *did not run*. It fixes nothing; a failure comes back to you as a decision.
-5. **Commit, then push.** Named paths only. Push before announcing anything.
-6. **`/pr`** — same session, because it must carry `/verify`'s did-not-run list into the description verbatim. It follows the repository's own merge convention and, where that convention is silent, opens the PR and stops.
-7. **`/resolve`** — same session, once review lands. Automated reviewers leave threads that `gh pr view` does not show, which is why the GraphQL query is written out in the command. It classifies every thread, fixes the defects, files issues for the out-of-scope ones, and brings only the genuinely ambiguous back to you. Order is fixed: fix → push → confirm checks on the **new** head → only then resolve.
-8. **Merge** — yours, unless the repository's instruction file explicitly delegates it.
-9. **`/track`** — **new session**, after the merge. It syncs `design/` against the tracker and reports drift without editing either side.
-
-Back to 1 for the next slice.
-
-### When the slices run out
-
-10. **`/reconcile`** — fresh session. Compares the tree against `10-design.md` and `20-contract.md` and reports contract drift, design drift, undocumented decisions, invalidated assumptions, and proposed `agent.md` lessons. You decide each direction; it applies the edits afterwards. This is the step that stops the docs becoming fiction.
-11. **`/make-human-docs`** — generates the guide from the design docs. Generated, so never hand-edit it; `/reconcile` checks it for semantic drift.
-
-### If the ask does not fit any of that
-
-**`/refine`.** Every other command assumes you are already inside the pipeline. `/refine` takes a rough ask, routes it to the command that owns it where one exists, and otherwise emits a prompt carrying the constraints that bind it — for you to run at the tier it names.
+**Which model runs each command is in [`AGENTS.md`](AGENTS.md), *Command routing*. Where a session must end is in [`AGENTS.md`](AGENTS.md), *Session boundaries*.** Both are binding policy, so each has one home and this is not it.
 
 ## Invocation
 
