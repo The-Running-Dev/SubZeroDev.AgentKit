@@ -68,15 +68,16 @@ That list is what the upgrade actually consists of. Without it, "is this repo cu
 
 **Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately.
 
-**One exception, and it is the only one.** `tools/Measure-Session.ps1` runs as a `SessionEnd` hook, which can only live in `settings.json`. Installing it is permitted under all of these, together:
+**One exception, bounded to two events.** `tools/Measure-Session.ps1` runs as a `SessionEnd` hook and a `UserPromptSubmit` hook, which can only live in `settings.json`. Installing them is permitted under all of these, together:
 
-- **Only the `hooks.SessionEnd` key**, and only this hook. Every other key is untouchable — `permissions` and `model` especially, which are the deliberate pins the rule above exists to protect.
+- **Only the `hooks.SessionEnd` and `hooks.UserPromptSubmit` keys**, and only this script's two hooks. Every other key is untouchable — `permissions` and `model` especially, which are the deliberate pins the rule above exists to protect.
 - **Propose the exact JSON and wait.** This is not covered by any carve-out; it is a write to a file that controls how the target's sessions behave.
-- **If a `SessionEnd` hook already exists, stop and report.** Do not append to it, do not merge into it. A second hook on one event is a behaviour the target did not ask for.
-- **Absent `settings.json`** may be created containing only this hook, under the same sign-off.
-- **Needs PowerShell 7 on `PATH`.** Check with `Get-Command pwsh`; if it is missing, skip the hook, install the script, and say which you did.
+- **If a hook already exists on either event, stop and report that event.** Do not append to it, do not merge into it. A second hook on one event is a behaviour the target did not ask for. The other event may still be installed, and saying which you skipped is the point.
+- **Absent `settings.json`** may be created containing only these hooks, under the same sign-off.
+- **Needs PowerShell 7 on `PATH`.** Check with `Get-Command pwsh`; if it is missing, skip the hooks, install the script, and say which you did.
+- **`-Watch` must never exit non-zero.** It runs on every prompt, and exit 2 on `UserPromptSubmit` blocks the prompt *and erases what the user typed*. Every failure path in it exits 0 in silence. A change that can break that invariant makes it uninstallable, not merely buggy.
 
-Nothing else about the target's configuration is yours, and this exception does not generalise to a second hook later. Widening it is a decision, not an install detail. `.claude/kit.json` **is** yours: it is this procedure's own record, written in phase 4. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
+Nothing else about the target's configuration is yours, and this exception does not generalise to a third event later. It has been widened once, from one event to two, and that took a signed-off decision entry naming what it cost — which is the bar. Widening it again is a decision, not an install detail. `.claude/kit.json` **is** yours: it is this procedure's own record, written in phase 4. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
 
 **`90-decisions.md` is the kit's own decision log.** Its entries are decisions about building the kit and mean nothing in a target. Install the heading, the preamble, and the `## Open` section — **never the entries**. The target's log starts empty and gets the decisions this install makes. This is the one artifact where a straight file copy is wrong, and it is easy to miss because the file looks like a template.
 
