@@ -57,7 +57,9 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | 7 Reconcile | `/reconcile` | design docs, `agent.md` |
 | 8 Human docs | `/make-human-docs` | `docs/docs/guide.md` (generated) |
 
-Outside the numbered stages: `/verify` runs the repo's gates and reports what did *not* run, `/pr` opens a pull request following the repo's own merge convention, `/track` syncs `design/` to GitHub issues, and `/install` puts the kit into a repo.
+Outside the numbered stages: `/verify` runs the repo's gates and reports what did *not* run, `/pr` opens a pull request following the repo's own merge convention, `/resolve` works a pull request's review threads, `/track` syncs `design/` to GitHub issues, and `/install` puts the kit into a repo.
+
+`/refine` is the front door for asks that fall between the stages. Every other command assumes you are already inside the pipeline — `/slice` needs a slice, `/contract` needs a design. `/refine` takes a rough ask, routes it to the command that owns it where one does, and otherwise emits a prompt carrying the constraints that bind it. It emits rather than executes, because the tier it names is usually not the tier it is running at.
 
 **Which model runs which command is in [`AGENTS.md`](AGENTS.md), *Command routing*** — it is binding policy, so it has one home and this is not it.
 

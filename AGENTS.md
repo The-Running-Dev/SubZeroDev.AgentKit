@@ -67,6 +67,7 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 | `/verify` | `sonnet`, `medium` | Escalate to deep reasoning only to diagnose a failure, never to run the gates |
 | `/pr` | `sonnet`, `medium` | — |
 | `/resolve` | `sonnet`, `medium` | Escalate to judge a contested finding, not to triage the obvious ones |
+| `/refine` | `sonnet`, `medium` | Never escalates — an architectural ask is routed to the command that owns it, not refined |
 | `/install` | `sonnet`, `medium` | — |
 
 **Never recommend re-running a phase gate.** I decide when a phase repeats. This holds outside `/redteam` too — see that command for its own stopping rule.
