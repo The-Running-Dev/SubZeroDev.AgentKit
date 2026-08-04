@@ -145,7 +145,7 @@ A wrong architecture costs several full re-implementations. A thin spec costs a 
 Those are estimates. `tools/Measure-Session.ps1` reports what a session actually cost, read from the transcript rather than guessed:
 
 ```powershell
-./tools/Measure-Session.ps1 -Detail
+pwsh ./tools/Measure-Session.ps1 -Detail
 ```
 
 It reports the four input classes separately because they are priced differently and behave differently. On the first sessions measured here, cache reads ran roughly fifty times cache creation — a single "tokens in" figure would have hidden the only term that was growing. Which work should stop being model work altogether is in [`AGENTS.md`](AGENTS.md), *What should stop being model work*.
