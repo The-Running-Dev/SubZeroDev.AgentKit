@@ -11,6 +11,7 @@ agent.md                      lessons learned the hard way
 INSTALL.md                    how the kit installs into a repo
 .claude/commands/*.md         slash commands
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
+tools/Measure-Session.ps1     what a session actually cost, from the transcript
 codex/PROFILES.md             Codex profile definitions
 design/
   00-brief.md                 mine
@@ -52,19 +53,35 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | 3 Red team | `/redteam` | nothing |
 | 4 Contract | `/contract` | `20-contract.md` |
 | 5 Slices | `/slices` | `30-slices.md` |
-| 6 Implement | `/slice S<n>` | code + tests |
+| 6 Implement | `/slice [S<n>]` | code + tests |
 | 7 Reconcile | `/reconcile` | design docs, `agent.md` |
 | 8 Human docs | `/make-human-docs` | `docs/docs/guide.md` (generated) |
 
-Outside the numbered stages: `/verify` runs the repo's gates and reports what did *not* run, `/pr` opens a pull request following the repo's own merge convention, `/track` syncs `design/` to GitHub issues, and `/install` puts the kit into a repo.
+Outside the numbered stages: `/kit-help` says where the repository is and what to run next, `/verify` runs the repo's gates and reports what did *not* run, `/pr` opens a pull request following the repo's own merge convention, `/resolve` works a pull request's review threads, `/track` syncs `design/` to GitHub issues, and `/install` puts the kit into a repo.
+
+`/refine` is the front door for asks that fall between the stages. Every other command assumes you are already inside the pipeline — `/slice` needs a slice, `/contract` needs a design. `/refine` takes a rough ask, routes it to the command that owns it where one does, and otherwise emits a prompt carrying the constraints that bind it. It emits rather than executes, because the tier it names is usually not the tier it is running at.
 
 **Which model runs which command is in [`AGENTS.md`](AGENTS.md), *Command routing*** — it is binding policy, so it has one home and this is not it.
 
 Effort tracks irreversibility, not stage prestige. Schemas and public interfaces are expensive to change; code is cheap to throw away. Stages 2 and 4 are where the money goes. Stage 6 is where it usually gets wasted.
 
+## Start to finish
+
+**Run [`/kit-help`](.claude/commands/kit-help.md).** It works out where the repository actually is — which design docs exist, which branch you are on, what the tracker says — and tells you the current step, the next one, and whether it needs a fresh session. `/kit-help all` shows the whole flow.
+
+That command holds the walkthrough, rather than this file, because commands install into target repositories and this README does not. The shape it walks:
+
+- **Stages 0 to 5, once per project.** One session each, ending in a committed file that is the next stage's only input. Three of them stop rather than proceed — `/design` on a thin brief, `/contract` on a signature the design does not determine, `/redteam` at findings. Sending work back a stage costs a few thousand tokens; finding it in stage 6 costs a re-implementation.
+- **Stage 6, once per slice.** Branch → `/slice` → you tick the boxes → `/verify` → push → `/pr` → `/resolve` → merge → `/track` in a new session. One slice, one branch, one session.
+- **`/reconcile` and `/make-human-docs`** when the slices run out.
+
+**Which model runs each command is in [`AGENTS.md`](AGENTS.md), *Command routing*. Where a session must end is in [`AGENTS.md`](AGENTS.md), *Session boundaries*.** Both are binding policy, so each has one home and this is not it.
+
 ## Invocation
 
 **Claude Code** — the commands are native. `/brief-check`, `/design`, `/redteam`, `/contract`, `/slices`, `/slice S3`, `/reconcile`. Set the model per session with `/model`.
+
+`/slice` takes the slice id, or no argument at all — bare, it takes the lowest-numbered slice whose issue is neither closed nor fully ticked and whose dependencies are done, says which it picked, and proceeds. It asks rather than guessing when the tracker cannot be read, since doneness is not observable from the working tree.
 
 **Codex CLI** — no slash-command equivalent, so pipe the command body in:
 
@@ -77,6 +94,9 @@ codex --profile architect exec (Get-Content .claude/commands/redteam.md -Raw)
 
 # stage 6, one slice
 codex --profile builder exec ((Get-Content .claude/commands/slice.md -Raw) -replace '\$1','S3')
+
+# stage 6, whichever slice is next
+codex --profile builder exec ((Get-Content .claude/commands/slice.md -Raw) -replace '\$1','')
 
 # stage 6, mechanical edits only
 codex --profile quick exec ((Get-Content .claude/commands/slice.md -Raw) -replace '\$1','S7')
@@ -110,7 +130,7 @@ Stage 3 only works if the reviewer did not write the design. Same model, fresh c
 - Design in Claude Code (Opus) → red team with `codex --profile architect`
 - Design with `codex --profile architect` (Sol) → red team in Claude Code (Opus)
 
-Never run `/design` and `/redteam` in the same session.
+That the two never share a session is stated in [`AGENTS.md`](AGENTS.md), *Session boundaries*, with the rest of them.
 
 ## Rate-limit budget
 
@@ -121,6 +141,16 @@ You hit limits across all three subscriptions, so the allocation matters more th
 - Stage 6 on the top tier is the classic waste. If you find yourself reaching for it there, the real problem is usually an underspecified contract, not an underpowered model.
 
 A wrong architecture costs several full re-implementations. A thin spec costs a few thousand tokens. Spend accordingly.
+
+Those are estimates. `tools/Measure-Session.ps1` reports what a session actually cost, read from the transcript rather than guessed:
+
+```powershell
+./tools/Measure-Session.ps1 -Detail
+```
+
+It reports the four input classes separately because they are priced differently and behave differently. On the first sessions measured here, cache reads ran roughly fifty times cache creation — a single "tokens in" figure would have hidden the only term that was growing. Which work should stop being model work altogether is in [`AGENTS.md`](AGENTS.md), *What should stop being model work*.
+
+A `SessionEnd` hook in `.claude/settings.json` runs the same script automatically and appends one row per session to `.claude/session-costs.tsv`, which is gitignored. That file is a convenience, not the record — transcripts are durable, so a session that ends without the hook firing is recovered by running the script again. The hook is the one thing an install may write into a target's `settings.json`, under the conditions in [`INSTALL.md`](INSTALL.md).
 
 ## When to skip most of this
 
