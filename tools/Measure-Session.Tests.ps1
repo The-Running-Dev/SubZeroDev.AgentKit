@@ -104,6 +104,95 @@ Describe 'Measure-Session -TranscriptPath' {
     }
 }
 
+Describe 'Measure-Session vendor guards' {
+    <#
+      The negative half of the contract. Every case here is a shape that used
+      to produce a table of zeros, which is the one output a measurement tool
+      must never emit - it cannot be told apart from a session that was free.
+
+      The Codex fixture is trimmed from a real ~/.codex rollout: a session_meta
+      header and a token_count event, keeping the field names that detection
+      keys on.
+    #>
+
+    BeforeAll {
+        function New-TranscriptFile {
+            param([string]$Name, [string[]]$Lines)
+            $path = Join-Path $script:FixtureDir $Name
+            Set-Content -LiteralPath $path -Value $Lines -Encoding utf8NoBOM
+            return $path
+        }
+    }
+
+    BeforeEach {
+        $script:FixtureDir = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $script:FixtureDir -Force | Out-Null
+    }
+
+    It 'refuses a Codex transcript instead of reporting zero' {
+        New-TranscriptFile -Name 'rollout-2026-07-30T03-43-51-019fb07a.jsonl' -Lines @(
+            '{"timestamp":"2026-07-30T03:43:51.000Z","type":"session_meta","payload":{"session_id":"019fb07a","cwd":"D:\\repo","originator":"Codex Desktop","source":"vscode"}}'
+            '{"timestamp":"2026-07-30T03:44:10.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":539135,"cached_input_tokens":493312,"cache_write_input_tokens":0,"output_tokens":2900,"reasoning_output_tokens":693,"total_tokens":542035}}}}'
+        )
+
+        { & $script:ScriptPath -TranscriptPath $script:FixtureDir } |
+            Should -Throw '*detected: codex*'
+    }
+
+    It 'refuses a transcript of no known shape' {
+        New-TranscriptFile -Name 'mystery.jsonl' -Lines @(
+            '{"who":"knows","what":{"is":"this"}}'
+            '{"who":"knows","what":{"is":"that"}}'
+        )
+
+        { & $script:ScriptPath -TranscriptPath $script:FixtureDir } |
+            Should -Throw '*detected: unknown*'
+    }
+
+    It 'names Copilot specifically when pointed at its SQLite store' {
+        Set-Content -LiteralPath (Join-Path $script:FixtureDir 'session-store.db') `
+            -Value 'SQLite format 3' -Encoding utf8NoBOM
+
+        { & $script:ScriptPath -TranscriptPath $script:FixtureDir } |
+            Should -Throw '*Copilot records no token usage*'
+    }
+
+    It 'names Copilot from a chatSessions directory holding no transcripts' {
+        $chat = Join-Path $script:FixtureDir 'chatSessions'
+        New-Item -ItemType Directory -Path $chat -Force | Out-Null
+
+        { & $script:ScriptPath -TranscriptPath $chat } |
+            Should -Throw '*Copilot records no token usage*'
+    }
+
+    It 'refuses a directory of Claude transcripts that recorded no usage' {
+        New-TranscriptFile -Name 'empty-a.jsonl' -Lines @(
+            '{"type":"user","timestamp":"2026-01-01T10:00:00Z","message":{"role":"user","content":"hi"}}'
+        )
+        New-TranscriptFile -Name 'empty-b.jsonl' -Lines @(
+            '{"type":"user","timestamp":"2026-01-01T10:00:00Z","message":{"role":"user","content":"hello"}}'
+        )
+
+        { & $script:ScriptPath -TranscriptPath $script:FixtureDir } |
+            Should -Throw '*none of which recorded any usage*'
+    }
+
+    It 'still skips a single empty session when another one has usage' {
+        New-TranscriptFile -Name 'empty.jsonl' -Lines @(
+            '{"type":"user","timestamp":"2026-01-01T10:00:00Z","message":{"role":"user","content":"hi"}}'
+        )
+        New-TranscriptFile -Name 'real.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:05Z","message":{"model":"claude-sonnet-5","usage":{"input_tokens":7,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":2}}}'
+        )
+
+        $json = (& $script:ScriptPath -TranscriptPath $script:FixtureDir) -join "`n" | ConvertFrom-Json
+
+        $json.sessions.Count | Should -Be 1
+        $json.sessions[0].id | Should -Be 'real'
+        $json.sessions[0].total.input | Should -Be 7
+    }
+}
+
 Describe 'Measure-Session -Hook' {
     BeforeAll {
         function New-TranscriptFile {

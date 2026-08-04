@@ -121,7 +121,7 @@ Routing decides *which* model does a job. This decides whether a model should be
 Two distinctions that are easy to get wrong:
 
 - **The mechanical half of a task is red; the judgement half is not.** Opening an issue is an API call, but deciding what warrants one is not. Writing a PR description is a template, but which merge convention governs is not — `/pr` exists because that half is real. Do not classify a whole command by its cheapest step.
-- **Do not report a cost you did not measure.** A model is not given its own token counts or elapsed time, so any figure it states about its own run is an estimate presented as a measurement. `tools/Measure-Session.ps1` reads the real per-call usage from the session transcript. Use it, or say nothing.
+- **Do not report a cost you did not measure.** A model is not given its own token counts or elapsed time, so any figure it states about its own run is an estimate presented as a measurement. `tools/Measure-Session.ps1` reads the real per-call usage from the session transcript. Use it, or say nothing. It measures **Claude Code sessions only** — Codex writes a different schema this has no reader for, and Copilot records no token usage at all. Under either, *say nothing* is the whole instruction.
 
 ## Hard rules
 

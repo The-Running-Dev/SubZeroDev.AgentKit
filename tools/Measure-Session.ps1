@@ -18,6 +18,21 @@
     fabricated number this script exists to replace. Multiply the columns by
     current published rates yourself.
 
+    Claude Code only, and it says so rather than guessing. Every transcript is
+    shape-checked before it is summed, and anything else is a hard error: a
+    foreign transcript parsed for 'message.usage' yields zero, and a zero is
+    indistinguishable from a session that cost nothing.
+
+    The other two agents in this repository's routing table:
+
+      Codex     Stores ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl and records
+                usage as 'token_count' events under payload.info. Readable in
+                principle, unimplemented here, and its counts are per turn
+                rather than per call.
+      Copilot   Stores globalStorage/github.copilot-chat/session-store.db, whose
+                'turns' table has no usage column. Copilot meters premium
+                requests, not tokens. Nothing to read, at any effort.
+
 .PARAMETER Project
     Repository root to report on. Defaults to the current directory.
 
@@ -132,6 +147,72 @@ function Resolve-TranscriptDirectory {
     throw "No transcript directory for $full. Expected $derived."
 }
 
+function Get-TranscriptVendor {
+    <#
+      Which agent wrote this transcript, decided by record shape rather than by
+      path. A path check would be wrong exactly where it matters most - an
+      exported or relocated store - and -TranscriptPath exists to point at
+      those.
+
+      Two discriminators, both verified against every transcript on the machine
+      this was written on (18 Claude, 4 Codex): no Claude record carries a
+      top-level 'payload', and no Codex record carries a top-level
+      'message.usage'.
+
+      Returns 'claude' for a Claude-shaped file even when it holds no usage
+      yet. An empty session is a legitimate thing to skip; another vendor's
+      file is not, and the caller treats the two differently.
+    #>
+    param([System.IO.FileInfo]$File, [int]$MaxLines = 50)
+
+    # Get-Content -TotalCount, not [System.IO.File]::ReadLines: this function
+    # returns from inside the loop as soon as it is sure, and abandoning that
+    # lazy enumerator leaves the file handle open until GC collects it. The
+    # next write to the same path then fails with a sharing violation.
+    $shape = 'unknown'
+    foreach ($line in @(Get-Content -LiteralPath $File.FullName -TotalCount $MaxLines)) {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        try { $record = $line | ConvertFrom-Json } catch { continue }
+        $names = $record.PSObject.Properties.Name
+
+        # Codex wraps everything in a 'payload' and opens with 'session_meta'.
+        # Checked first: it is the definitive shape, and cheaper to be sure
+        # about than the absence of one.
+        if ($names -contains 'payload' -or ($names -contains 'type' -and $record.type -eq 'session_meta')) {
+            return 'codex'
+        }
+
+        if ($names -contains 'message' -and $record.message) {
+            if ($record.message.PSObject.Properties.Name -contains 'usage') { return 'claude' }
+            $shape = 'claude'
+        }
+    }
+
+    return $shape
+}
+
+function Assert-NotCopilotStore {
+    <#
+      Copilot is named explicitly rather than falling through to 'unrecognised'
+      because the reason is different in kind and the user cannot act on it.
+      Copilot Chat persists to SQLite (globalStorage/github.copilot-chat/
+      session-store.db) whose 'turns' table is (id, session_id, turn_index,
+      user_message, assistant_response, timestamp) - there is no usage column
+      anywhere in the schema. It meters premium requests, not tokens, so there
+      is nothing here to read and no reader that could be written.
+    #>
+    param([string]$Path)
+
+    $copilot = @(
+        (Test-Path (Join-Path $Path 'session-store.db')),
+        ($Path -match 'github\.copilot-chat'),
+        ((Split-Path $Path -Leaf) -in 'chatSessions', 'chatEditingSessions')
+    )
+    if ($copilot -contains $true) {
+        throw "$Path is a GitHub Copilot store. Copilot records no token usage - its 'turns' table has no usage column, and it meters premium requests rather than tokens. There is nothing here to measure; see the VS Code quota indicator instead."
+    }
+}
+
 function Read-Session {
     param([System.IO.FileInfo]$File)
 
@@ -239,6 +320,14 @@ if ($Hook) {
     try {
         $payload = ([Console]::In.ReadToEnd() | ConvertFrom-Json)
         $file = Get-Item -LiteralPath $payload.transcript_path
+
+        # SessionEnd only fires under Claude Code, so this should be
+        # unreachable. It is checked anyway: the alternative to erroring is a
+        # row of zeros in the log, and the log's whole value is that its
+        # numbers were measured.
+        $vendor = Get-TranscriptVendor -File $file
+        if ($vendor -ne 'claude') { throw "$($file.Name) is not a Claude Code transcript (detected: $vendor)." }
+
         $session = Read-Session -File $file
 
         $sum = [pscustomobject]@{ Calls = 0; Input = 0L; CacheCreate = 0L; CacheRead = 0L; Output = 0L }
@@ -340,6 +429,11 @@ $directory = if ($TranscriptPath) {
     (Resolve-Path $TranscriptPath).Path
 }
 else { Resolve-TranscriptDirectory -ProjectPath $Project }
+
+# Checked before the *.jsonl listing: a Copilot store holds no .jsonl at all,
+# so the generic "no transcripts matched" would name the wrong problem.
+Assert-NotCopilotStore -Path $directory
+
 $files = @(Get-ChildItem $directory -Filter *.jsonl -File)
 if ($SessionId) { $files = @($files | Where-Object BaseName -like "$SessionId*") }
 if (-not $files.Count) { throw "No transcripts matched in $directory." }
@@ -348,6 +442,23 @@ $totals = [pscustomobject]@{ Calls = 0; Input = 0L; CacheCreate = 0L; CacheRead 
 $reportSessions = [System.Collections.Generic.List[object]]::new()
 
 foreach ($file in ($files | Sort-Object LastWriteTime)) {
+    # A foreign transcript is a hard stop, not a skip. Parsing one for
+    # 'message.usage' finds nothing and sums to zero, and a zero here is
+    # indistinguishable from a session that genuinely cost nothing - which is
+    # the fabricated measurement this script exists to replace.
+    $vendor = Get-TranscriptVendor -File $file
+    if ($vendor -ne 'claude') {
+        # Not $detail: PowerShell variable names are case-insensitive, so that
+        # would assign to the -Detail switch parameter and fail on the cast.
+        $reason = if ($vendor -eq 'codex') {
+            "Codex records usage as 'token_count' events under payload.info, not as 'message.usage'. No Codex reader is implemented, and its per-turn counts are not the same unit as Claude's per-call ones."
+        }
+        else {
+            'No known agent writes this shape.'
+        }
+        throw "$($file.Name) is not a Claude Code transcript (detected: $vendor). $reason"
+    }
+
     $session = Read-Session -File $file
     if (-not $session.Segments.Count) { continue }
 
@@ -369,6 +480,12 @@ foreach ($file in ($files | Sort-Object LastWriteTime)) {
         Total   = $sum
         Segments = $session.Segments
     })
+}
+
+# Every file was Claude-shaped and every one was empty. Skipping a single
+# empty session is right; reporting a table of zeros for all of them is not.
+if (-not $reportSessions.Count) {
+    throw "Matched $($files.Count) Claude transcript(s) in $directory, none of which recorded any usage. Refusing to report zero, which would read as a session that cost nothing."
 }
 
 if ($Human) {
