@@ -69,6 +69,7 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 | `/resolve` | `sonnet`, `medium` | Escalate to judge a contested finding, not to triage the obvious ones |
 | `/refine` | `sonnet`, `medium` | Never escalates — an architectural ask is routed to the command that owns it, not refined |
 | `/install` | `sonnet`, `medium` | — |
+| `/install-all` | `sonnet`, `medium` | Escalate only to judge whether a per-repo hard stop is actually safe to resolve — never to resolve it unattended |
 | `/kit-help` | `haiku`, `low` | Orientation from file existence and a tracker listing. Escalate only where the repository's state matches no stage |
 
 **Never recommend re-running a phase gate.** I decide when a phase repeats. This holds outside `/redteam` too — see that command for its own stopping rule.
