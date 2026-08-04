@@ -11,6 +11,7 @@ agent.md                      lessons learned the hard way
 INSTALL.md                    how the kit installs into a repo
 .claude/commands/*.md         slash commands
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
+tools/Measure-Session.ps1     what a session actually cost, from the transcript
 codex/PROFILES.md             Codex profile definitions
 design/
   00-brief.md                 mine
@@ -121,6 +122,16 @@ You hit limits across all three subscriptions, so the allocation matters more th
 - Stage 6 on the top tier is the classic waste. If you find yourself reaching for it there, the real problem is usually an underspecified contract, not an underpowered model.
 
 A wrong architecture costs several full re-implementations. A thin spec costs a few thousand tokens. Spend accordingly.
+
+Those are estimates. `tools/Measure-Session.ps1` reports what a session actually cost, read from the transcript rather than guessed:
+
+```powershell
+./tools/Measure-Session.ps1 -Detail
+```
+
+It reports the four input classes separately because they are priced differently and behave differently. On the first sessions measured here, cache reads ran roughly fifty times cache creation — a single "tokens in" figure would have hidden the only term that was growing. Which work should stop being model work altogether is in [`AGENTS.md`](AGENTS.md), *What should stop being model work*.
+
+A `SessionEnd` hook in `.claude/settings.json` runs the same script automatically and appends one row per session to `.claude/session-costs.tsv`, which is gitignored. That file is a convenience, not the record — transcripts are durable, so a session that ends without the hook firing is recovered by running the script again. The hook is the one thing an install may write into a target's `settings.json`, under the conditions in [`INSTALL.md`](INSTALL.md).
 
 ## When to skip most of this
 

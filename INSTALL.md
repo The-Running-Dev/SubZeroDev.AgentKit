@@ -45,6 +45,7 @@ The artifacts:
 | `CLAUDE.md` | Pointer to `AGENTS.md` in the kit's arrangement — but see below |
 | `agent.md` | Lessons. Seeded, then pruned |
 | `.claude/commands/*.md` | The stage commands, plus `install.md` |
+| `tools/*.ps1` | Reporting helpers, currently `Measure-Session.ps1`. Root `tools/` is commonly occupied — classify the directory before writing into it, and stop if it holds something unrelated rather than sharing it |
 | `design/*.md` | Five design docs. Check phase 2 before creating the directory |
 | `.github/ISSUE_TEMPLATE/*.md` | `bug.md`, `story.md`. **If the target already has templates, stop and report** — do not overwrite or merge. A repository with its own templates has a triage process, and replacing it silently changes how every future issue is filed |
 | `codex/PROFILES.md` | **Skip by default**, and report it as skipped. Install only if the target shows evidence of Codex use — a `.codex/` directory, a profile reference, or the user saying so. Asking in every install is noise |
@@ -65,7 +66,17 @@ git -C <kit> log --oneline <recorded>..HEAD
 
 That list is what the upgrade actually consists of. Without it, "is this repo current?" is answerable only by hashing every file, which is what the first three installs had to do.
 
-**Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately. `.claude/kit.json` **is** yours: it is this procedure's own record, written in phase 4. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
+**Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately.
+
+**One exception, and it is the only one.** `tools/Measure-Session.ps1` runs as a `SessionEnd` hook, which can only live in `settings.json`. Installing it is permitted under all of these, together:
+
+- **Only the `hooks.SessionEnd` key**, and only this hook. Every other key is untouchable — `permissions` and `model` especially, which are the deliberate pins the rule above exists to protect.
+- **Propose the exact JSON and wait.** This is not covered by any carve-out; it is a write to a file that controls how the target's sessions behave.
+- **If a `SessionEnd` hook already exists, stop and report.** Do not append to it, do not merge into it. A second hook on one event is a behaviour the target did not ask for.
+- **Absent `settings.json`** may be created containing only this hook, under the same sign-off.
+- **Needs PowerShell 7 on `PATH`.** Check with `Get-Command pwsh`; if it is missing, skip the hook, install the script, and say which you did.
+
+Nothing else about the target's configuration is yours, and this exception does not generalise to a second hook later. Widening it is a decision, not an install detail. `.claude/kit.json` **is** yours: it is this procedure's own record, written in phase 4. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
 
 **`90-decisions.md` is the kit's own decision log.** Its entries are decisions about building the kit and mean nothing in a target. Install the heading, the preamble, and the `## Open` section — **never the entries**. The target's log starts empty and gets the decisions this install makes. This is the one artifact where a straight file copy is wrong, and it is easy to miss because the file looks like a template.
 

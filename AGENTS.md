@@ -77,6 +77,23 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 - **Once a policy decision is signed off and recorded, do not relitigate it** without new evidence. Name the evidence if you think there is some.
 - **Spend frontier-model reasoning on decisions that are expensive to reverse**, not on producing more prose.
 
+### What should stop being model work
+
+Routing decides *which* model does a job. This decides whether a model should be doing it at all.
+
+| | Work | Where it belongs |
+|---|---|---|
+| 🟢 **Necessary** | Architecture, contracts, root-cause analysis, design tradeoffs, adjudicating findings | A model, at the tier above |
+| 🟡 **Maybe avoidable** | Regenerating context already established, duplicate repository scans, rewriting boilerplate | A model, but the repetition is a signal — say so |
+| 🔴 **Definitely avoidable** | Formatting, mechanical text transformation, arithmetic over files, counting, collecting metrics | Code. It should leave the model entirely |
+
+**A red item is a defect in the tooling, not in the run.** Noticing one is worth a line; performing it repeatedly and never saying so is the failure. When a red item recurs, put it in `## Open` in `design/90-decisions.md` so `/track` can turn it into an issue — that is the existing path, and there is no separate mechanism for this.
+
+Two distinctions that are easy to get wrong:
+
+- **The mechanical half of a task is red; the judgement half is not.** Opening an issue is an API call, but deciding what warrants one is not. Writing a PR description is a template, but which merge convention governs is not — `/pr` exists because that half is real. Do not classify a whole command by its cheapest step.
+- **Do not report a cost you did not measure.** A model is not given its own token counts or elapsed time, so any figure it states about its own run is an estimate presented as a measurement. `tools/Measure-Session.ps1` reads the real per-call usage from the session transcript. Use it, or say nothing.
+
 ## Hard rules
 
 - **Non-goals are binding.** Anything listed as a non-goal in the brief is out of scope even if it looks trivial, even if you are already touching that file.
