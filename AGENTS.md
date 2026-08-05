@@ -77,6 +77,7 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 | `/verify` | `sonnet`, `medium` | Escalate to deep reasoning only to diagnose a failure, never to run the gates |
 | `/pr` | `sonnet`, `medium` | — |
 | `/resolve` | `sonnet`, `medium` | Escalate to judge a contested finding, not to triage the obvious ones |
+| `/fix` | `sonnet`, `medium` | Escalate only where the fix turns out to need a contract, schema, or public-interface change — that is `/contract`'s or `/design`'s, and this command stops rather than absorbing it |
 | `/refine` | `sonnet`, `medium` | Never escalates — an architectural ask is routed to the command that owns it, not refined |
 | `/install` | `sonnet`, `medium` | — |
 | `/install-all` | `sonnet`, `medium` | Escalate only to judge whether a per-repo hard stop is actually safe to resolve — never to resolve it unattended |
@@ -94,6 +95,7 @@ Routing says which model runs a command. This says **when a session must end.** 
 | Any stage that writes an artifact → the next | Fresh. | The next stage's input is the committed file. A session that also remembers the arguments behind it will design against the arguments. |
 | `/slices` → `/slice` | Fresh, and **one slice per session**. | A slice that does not fit one session without compaction is too large — that is a `/slices` defect, so say so rather than pressing on. |
 | `/slice` → `/verify` → `/pr` → `/resolve` | **Same session.** | These act on the branch and worktree the slice just produced, and `/pr` must carry `/verify`'s did-not-run list into the description **verbatim**. A fresh session would restate it from a summary, which is the fabricated gate result *Verification* exists to prevent. |
+| `/fix` → `/verify` → `/pr` → `/resolve` | **Same session.** | Same reason as the slice loop above: these act on the branch and worktree `/fix` just produced, and the did-not-run list must be carried verbatim rather than restated from a summary. |
 | merge → `/track` | Fresh. | `/track` reads the tracker and `design/` as they now stand. The session that just implemented the slice holds an opinion about whether it is done, and doneness is my mark, not an agent's. |
 | implementation → `/reconcile` | Fresh. | It compares the tree against the docs. The session that wrote the code carries what it *intended* to write, which is the one thing the comparison must not be given. |
 
@@ -196,7 +198,7 @@ Two distinctions that are easy to get wrong:
 - **Criteria carry stable ids** (`S3.1`), and drift is compared on ids, never prose. Reworded criteria are not drift; an added, removed, or renumbered id is.
 - **Report drift, change neither side.** Which is wrong is my call.
 - **Ticking a checkbox is carved out of the authorization rule, the same as opening an issue.** `/slice` ticks a `Done when` box in the same run it reports the criterion met, by id, so the tick is traceable to the report that justified it rather than a separate confirmation.
-- **Bugs and stories are filed by hand** from `.github/ISSUE_TEMPLATE/`. `/track` does not open them.
+- **Bugs and stories are filed by hand** from `.github/ISSUE_TEMPLATE/`. `/track` does not open them — with one narrowing: `/fix` (`.claude/commands/fix.md`), on its description path, files one bug issue itself, and only after reproducing the defect. It never files one for a defect it could not reproduce.
 - **This does not suspend one-at-a-time sign-off.** Findings are still presented for adjudication; the tracker is where the ones you accept go, not a way to skip the conversation.
 
 ## Decision logging
