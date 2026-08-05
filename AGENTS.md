@@ -50,7 +50,17 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 - **Never use `max` effort unless I ask for it by name.**
 - **`xhigh` is for one question, not one pipeline.** Running a whole design phase at `xhigh` is not rigour, it is a substitute for asking a precise question.
 - **Escalate rather than guess.** A high-volume task that raises an implementation question becomes implementation tier; an implementation task that raises an architectural question becomes deep reasoning. **Do not keep implementing while that uncertainty is unresolved.**
-- **Say so when the session is under-powered.** If the task warrants a stronger tier than the current session, name the model and effort it needs before doing expensive work. If the session is *stronger* than required, just proceed — do not interrupt to say so.
+- **Open substantive work with a banner, then gate on it.** Before starting anything beyond a trivial lookup, state what the work is (task or command, plus slice id if applicable) and the tier it requires per *Command routing* or the table above. **It is a heading, not a sentence** — three plain lines fenced above and below by a rule of `=`, labels and tier names in Title Case, never folded into a paragraph. For example:
+
+  ```
+  ===============================
+  Work: /design — write design/10-design.md
+  Tier: Deep Reasoning → opus/high
+  Session: opus
+  ===============================
+  ```
+
+  Then check the session's actual model against the required family. If it matches or exceeds it, proceed without further comment. If the session is under-powered for the tier, **stop before doing any expensive work**, name the model and effort actually needed, and wait — do not proceed on the wrong model unless the user explicitly overrides after seeing the mismatch. If the session is *stronger* than required, just proceed — do not interrupt to say so.
 
 **Division of control.** I set the session model. You set subagent models and scale your own reasoning depth. You cannot change your own session model.
 
@@ -89,13 +99,13 @@ Routing says which model runs a command. This says **when a session must end.** 
 
 **Compaction is a boundary you did not choose.** If a session compacts mid-slice, report it — the slice was mis-sized, and the work after the compaction was done against a summary of the contract rather than the contract.
 
-**End a response that lands on a fresh-session boundary with a banner, not a footnote.** A boundary buried in the last sentence of a report gets carried into the next reply of the same session out of habit, which is the exact failure the boundary exists to prevent. Set it off visibly — a horizontal rule and a bold line is enough — naming: the boundary just crossed, the next command, and its tier from *Command routing*. For example:
+**End a response that lands on a fresh-session boundary with a banner, not a footnote.** A boundary buried in the last sentence of a report gets carried into the next reply of the same session out of habit, which is the exact failure the boundary exists to prevent. Set it off as a heading in the same form as the [work-start banner](#model-effort-and-review-budget) — `=` rules, Title Case, plain lines — naming: the boundary just crossed, the next command, and its tier from *Command routing*. For example:
 
 ```
----
-**Session boundary.** This context should not carry into `/track`.
-Next: `/track`, fresh session, `sonnet`/`medium`.
----
+===============================
+Session Boundary — Do Not Carry Into /track
+Next: /track, Fresh Session, sonnet/medium
+===============================
 ```
 
 Do not run the next command yourself. Ending a session may be the next step, and a command that starts work cannot also tell the user to start a new one for it — that restriction is unchanged, only how visibly the handoff is stated.
