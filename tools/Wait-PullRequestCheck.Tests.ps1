@@ -103,6 +103,24 @@ Describe 'Wait-PullRequestCheck' {
         ($head.HeadSha -ne 'abc123') | Should -Be $true
     }
 
+    It 'I2: a gh failure on the post-check head re-read reports the actual failure, not HeadMoved' {
+        $script:viewCalls = 0
+        Mock gh {
+            if ($args[1] -eq 'view') {
+                $script:viewCalls++
+                if ($script:viewCalls -eq 1) { '{"headRefOid":"abc123"}' }
+                else { $global:LASTEXITCODE = 4 }
+            }
+            elseif ($args[1] -eq 'checks') { '[{"name":"build","bucket":"pass"}]' }
+        }
+
+        $r = Invoke-Wait -PullRequest 9 -HeadSha 'abc123' -PollSeconds 0
+
+        $r.State | Should -Be 'NotEvaluated'
+        $r.Failure | Should -Be 'GhUnavailable'
+        Get-WaitExitCode -State $r.State | Should -Be 2
+    }
+
     It 'S1.5: a bucket outside the recognised sets yields UnknownBucket with the bucket reproduced verbatim, exit 2, never Passed' {
         Mock gh {
             if ($args[1] -eq 'view') { '{"headRefOid":"abc123"}' }
