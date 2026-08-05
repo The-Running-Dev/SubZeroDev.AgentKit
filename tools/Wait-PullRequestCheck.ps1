@@ -195,7 +195,10 @@ function Invoke-Wait {
         # I2: re-verified after reading checks, not just before - a push landing mid-read
         # must not let a check list read for the old SHA be reported as this SHA's.
         $headAfter = Get-PullRequestHead -PullRequest $PullRequest -Repository $Repository
-        if ($headAfter.Failure -or $headAfter.HeadSha -ne $HeadSha) {
+        if ($headAfter.Failure) {
+            return New-WaitResult -State 'NotEvaluated' -HeadSha $HeadSha -Failure $headAfter.Failure -PollCount $pollCount
+        }
+        if ($headAfter.HeadSha -ne $HeadSha) {
             return New-WaitResult -State 'NotEvaluated' -HeadSha $HeadSha -Failure 'HeadMoved' -PollCount $pollCount
         }
 
