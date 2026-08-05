@@ -63,6 +63,10 @@ One slice, one branch, one session. Do not start slice N+1 because you noticed s
 
 Then back to 1 for the next slice.
 
+### Outside the slice loop — a defect with no slice
+
+**`/fix`** — reproduces a defect first, then gets to a bug issue (given a number, or filing one from `.github/ISSUE_TEMPLATE/bug.md` after reproducing on the description path), branches, fixes, and hands off through the same `/verify` → `/pr` → `/resolve` chain, same session throughout. Use it instead of `/slice` when the work has no slice id and no contract signature to implement against.
+
 ### When the slices run out
 
 - **`/reconcile`** — fresh session. Reports contract drift, design drift, undocumented decisions, invalidated assumptions, and proposed `agent.md` lessons; the user decides each direction and it applies the edits after. This is the step that stops the docs becoming fiction.
