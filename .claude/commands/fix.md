@@ -31,7 +31,8 @@ Derive `fix/<issue>-<slug>` from the issue number and title, **after the issue e
 Implement against the issue's agent block. When it is satisfied:
 
 - **`/verify`** — same session. Discovers this repository's gates and reports the three lists.
-- **`/pr`** — same session. Opens the pull request, carrying `/verify`'s did-not-run list verbatim.
+- **Ask.** The batch here names two actions: push, and open the pull request as a draft, closing the issue from above. There are no thread ids to name.
+- **Push, then open the pull request as a draft.** `/pr` — same session — writes the real description, carrying `/verify`'s did-not-run list verbatim, and asks separately before marking it ready.
 - **`/resolve`** — same session, once review lands. Works the threads under the batch `AGENTS.md` defines.
 
 This command does not carry a second copy of any of those three files' rules — it references them by name and hands off.
