@@ -5,8 +5,6 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
-- **Nothing sizes a prompt to the target model.** `/slice` hands over `AGENTS.md` (17 KB), `agent.md` (8 KB) and the design docs regardless of what is receiving them. That is correct for `opus` and hostile to a small local model, which the kit claims to support by being vendor-neutral. A backend that emits the same slice at a reduced context budget — contract verbatim, only the rules binding that slice, `agent.md` dropped — is the one part of the compiler proposal below that is genuinely absent rather than already built or already declined. `Measure-Session.ps1` can tell whether it worked, which is why this is worth doing as a measured experiment rather than an assumption.
-
 ---
 
 ### 2026-08-05 — `design/` is filled for one path, scoped in its own first paragraph, while the brief stays unwritten
