@@ -20,7 +20,7 @@ query($endCursor: String) {
         pageInfo { hasNextPage endCursor }
         nodes {
           id isResolved isOutdated path line
-          comments(first:10) { pageInfo { hasNextPage } nodes { author { login } body } }
+          comments(first:10) { pageInfo { hasNextPage endCursor } nodes { author { login } body } }
         }
       }
     }
@@ -28,7 +28,23 @@ query($endCursor: String) {
 }'
 ```
 
-`--paginate` walks `reviewThreads`' own `pageInfo` to exhaustion — a PR with more than 100 threads is not silently truncated. Each thread's nested `comments` connection paginates separately: if a thread's `comments.pageInfo.hasNextPage` comes back `true`, its first 10 comments are not the whole conversation, and a follow-up query for that thread's remaining comments is required before it can be classified. **Classifying from a partial fetch — a truncated thread list or a truncated comment list — is exactly the failure this pagination exists to prevent.**
+`--paginate` walks `reviewThreads`' own `pageInfo` to exhaustion — a PR with more than 100 threads is not silently truncated. Each thread's nested `comments` connection paginates separately and `--paginate` does not reach it: if a thread's `comments.pageInfo.hasNextPage` comes back `true`, its first 10 comments are not the whole conversation, and it needs its own follow-up query, looped on that thread's `comments.pageInfo.endCursor` until `hasNextPage` is `false`, before it can be classified:
+
+```bash
+gh api graphql -f query='
+query($threadId: ID!, $commentsCursor: String) {
+  node(id: $threadId) {
+    ... on PullRequestReviewThread {
+      comments(first:100, after:$commentsCursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes { author { login } body }
+      }
+    }
+  }
+}' -f threadId="PRRT_…"
+```
+
+**Classifying from a partial fetch — a truncated thread list or a truncated comment list — is exactly the failure this pagination exists to prevent.**
 
 Count unresolved threads before you start and say the number. If `required_review_thread_resolution` is on, that count *is* the merge blocker.
 
@@ -53,7 +69,7 @@ This sequence is the safeguard. Do not reorder it.
 1. **Fix** the defects. Nothing else — no adjacent tidying, no refactors. Fixing code is not itself an external write, so this does not wait on the batch.
 2. **Request the batch.** Now that classification is complete, ask once: name every `PRRT_` id you intend to resolve — the `Defect`-class threads the fix above addresses — and state that the single yes covers pushing, updating the pull request, and resolving exactly those ids (`AGENTS.md`, *Git and delivery* — the resolution batch, **I3**, **I4**). In a repository I do not own, the batch is unavailable (**I9**): ask for push, PR update, and each resolution individually instead, per that same section.
 3. **Push.** A fix that is not pushed does not exist as far as the reviewer or CI is concerned.
-4. **Confirm the checks are green on the new head SHA — not the old one — by calling `tools/Wait-PullRequestCheck.ps1 -PullRequest $1 -HeadSha <pushed SHA>`.** Resolution proceeds only when its `WaitResult.State` is `Passed`. Any other state — `Failed`, or `NotEvaluated` for any reason including `HeadMoved` or `NoChecksConfigured` — means stop and report; do not resolve anything.
+4. **Confirm the checks are green on the new head SHA — not the old one — by calling `pwsh -File tools/Wait-PullRequestCheck.ps1 -PullRequest $1 -HeadSha <pushed SHA>`.** Resolution proceeds only when its `WaitResult.State` is `Passed`. Any other state — `Failed`, or `NotEvaluated` for any reason including `HeadMoved` or `NoChecksConfigured` — means stop and report; do not resolve anything.
 5. **Re-query the threads** (§ Find every thread, fully paginated again) before resolving anything. **Only then resolve**, and only the ids named in the granted batch. A thread that appears in this re-query but was not in the batch — including a fresh bot review posted while the wait was running — is not covered by the earlier yes and needs its own ask, per the batch's own limit (**I4**).
 
 **Never resolve a thread you did not address.** Resolving is how a blocking finding becomes invisible — it is the one action here that cannot be noticed afterwards. Leave anything ambiguous, contested, or merely replied-to **open**, and say so in your report.
