@@ -50,7 +50,17 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 - **Never use `max` effort unless I ask for it by name.**
 - **`xhigh` is for one question, not one pipeline.** Running a whole design phase at `xhigh` is not rigour, it is a substitute for asking a precise question.
 - **Escalate rather than guess.** A high-volume task that raises an implementation question becomes implementation tier; an implementation task that raises an architectural question becomes deep reasoning. **Do not keep implementing while that uncertainty is unresolved.**
-- **Say so when the session is under-powered.** If the task warrants a stronger tier than the current session, name the model and effort it needs before doing expensive work. If the session is *stronger* than required, just proceed — do not interrupt to say so.
+- **Open substantive work with a banner, then gate on it.** Before starting anything beyond a trivial lookup, state what the work is (task or command, plus slice id if applicable) and the tier it requires per *Command routing* or the table above, set off the same way as a [session boundary](#session-boundaries) — a horizontal rule and a bold line, not buried in a paragraph. For example:
+
+  ```
+  ---
+  **Work:** `/slice S4`
+  **Tier:** implementation → `sonnet`/`medium`
+  **Session:** `sonnet`
+  ---
+  ```
+
+  Then check the session's actual model against the required family. If it matches or exceeds it, proceed without further comment. If the session is under-powered for the tier, **stop before doing any expensive work**, name the model and effort actually needed, and wait — do not proceed on the wrong model unless the user explicitly overrides after seeing the mismatch. If the session is *stronger* than required, just proceed — do not interrupt to say so.
 
 **Division of control.** I set the session model. You set subagent models and scale your own reasoning depth. You cannot change your own session model.
 
