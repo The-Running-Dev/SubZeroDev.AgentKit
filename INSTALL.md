@@ -46,7 +46,7 @@ The artifacts:
 | `agent.md` | Lessons. Seeded, then pruned |
 | `.claude/commands/*.md` | The stage commands, plus `install.md` |
 | `tools/*.ps1` | Reporting helpers, currently `Measure-Session.ps1`. Root `tools/` is commonly occupied — classify the directory before writing into it, and stop if it holds something unrelated rather than sharing it |
-| `design/*.md` | Five design docs. Check phase 2 before creating the directory |
+| `templates/design/*.md` | Five seed design docs, written to `design/` in the target. Check phase 2 before creating the directory |
 | `.github/ISSUE_TEMPLATE/*.md` | `bug.md`, `story.md`. **If the target already has templates, stop and report** — do not overwrite or merge. A repository with its own templates has a triage process, and replacing it silently changes how every future issue is filed |
 | `codex/PROFILES.md` | **Skip by default**, and report it as skipped. Install only if the target shows evidence of Codex use — a `.codex/` directory, a profile reference, or the user saying so. Asking in every install is noise |
 
@@ -79,7 +79,9 @@ That list is what the upgrade actually consists of. Without it, "is this repo cu
 
 Nothing else about the target's configuration is yours, and this exception does not generalise to a third event later. It has been widened once, from one event to two, and that took a signed-off decision entry naming what it cost — which is the bar. Widening it again is a decision, not an install detail. `.claude/kit.json` **is** yours: it is this procedure's own record, written in phase 4. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
 
-**`90-decisions.md` is the kit's own decision log.** Its entries are decisions about building the kit and mean nothing in a target. Install the heading, the preamble, and the `## Open` section — **never the entries**. The target's log starts empty and gets the decisions this install makes. This is the one artifact where a straight file copy is wrong, and it is easy to miss because the file looks like a template.
+**The seed is `templates/design/`; the kit's own `design/` is never installed.** The seed holds a brief template, three empty documents, and a decision log carrying only its heading, preamble and `## Open` section. The kit's `design/` holds the kit's own design and its decision entries, which are decisions about *building the kit* and mean nothing in a target. Copy from `templates/design/` and never from `design/`.
+
+That split replaces a carve-out this file used to carry — install `90-decisions.md`'s heading but never its entries — which was the one place a straight file copy was wrong, and easy to miss because the file looked like a template. Separating the seed from the instance by directory makes a straight copy correct again, so there is no longer a rule to remember here. The hazard it guarded against is now a path, not a caveat.
 
 ## Phase 2 — Reconcile
 

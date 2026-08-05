@@ -13,7 +13,8 @@ INSTALL.md                    how the kit installs into a repo
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
 tools/Measure-Session.ps1     what a session actually cost, from the transcript
 codex/PROFILES.md             Codex profile definitions
-design/
+templates/design/*.md         seed copied into a target's design/
+design/                       the kit's own design. Never installed
   00-brief.md                 mine
   10-design.md                /design
   20-contract.md              /contract
