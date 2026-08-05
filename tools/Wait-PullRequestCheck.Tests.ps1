@@ -16,9 +16,18 @@
 
 BeforeAll {
     $script:ScriptPath = Join-Path $PSScriptRoot 'Wait-PullRequestCheck.ps1'
+    # The dot-source below also runs the script's own Set-StrictMode/$ErrorActionPreference
+    # in this scope, which would otherwise leak into any test that runs after this file in
+    # the same Pester invocation. Captured here and restored in the matching AfterAll.
+    $script:PreDotSourceErrorActionPreference = $ErrorActionPreference
     # Dummy values only to satisfy the Mandatory top-level params; the guard this dot-source
     # relies on skips using them for anything.
     . $script:ScriptPath -PullRequest 1 -HeadSha 'unused'
+}
+
+AfterAll {
+    $ErrorActionPreference = $script:PreDotSourceErrorActionPreference
+    Set-StrictMode -Off
 }
 
 Describe 'Wait-PullRequestCheck' {
