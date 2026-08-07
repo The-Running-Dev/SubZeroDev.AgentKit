@@ -66,6 +66,8 @@ git -C <kit> log --oneline <recorded>..HEAD
 
 That list is what the upgrade actually consists of. Without it, "is this repo current?" is answerable only by hashing every file, which is what the first three installs had to do.
 
+**`branch` is an optional fourth field, written only by `/kit-sync`** (`.claude/commands/kit-sync.md`), recording which branch of the kit that command last synced from. Plain `/install` neither reads nor writes it. A `kit.json` without it is not stale — it just means `/kit-sync` has never run here.
+
 **Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately.
 
 **One exception, bounded to two events.** `tools/Measure-Session.ps1` runs as a `SessionEnd` hook and a `UserPromptSubmit` hook, which can only live in `settings.json`. Installing them is permitted under all of these, together:
