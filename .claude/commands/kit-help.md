@@ -55,9 +55,9 @@ Three of these stop rather than proceed, and that is the cheapest failure availa
 One slice, one branch, one session. Do not start slice N+1 because you noticed something in slice N — that goes in `90-decisions.md` under `## Open`, and `/track` turns it into an issue.
 
 1. **`/slice S3`**, or bare **`/slice`** for the lowest-numbered slice that is neither closed nor fully ticked and whose dependencies are done. Branches, states criteria by id, writes failing tests first, implements against the contract, commits, pushes, opens the PR **as a draft**, ticks the `Done when` boxes it confirms, and ends by reporting the ids it believes are met.
-2. **`/verify`** — same session. Discovers the gates from CI and reports three lists; the one that matters is *did not run*. It fixes nothing.
-3. **`/pr`** — same session. Finds the draft `/slice` opened, writes the real description — carrying `/verify`'s did-not-run list **verbatim** — and asks before marking it ready for review.
-4. **`/resolve`** — same session, once review lands. Fixed order: fix → push → confirm checks on the **new** head → only then resolve.
+2. **`/pr`** — same session. Finds the draft `/slice` opened and writes the real description, `Verified` section marked not yet run.
+3. **`/verify`** — same session. Discovers the gates from CI, reports three lists — the one that matters is *did not run* — and updates the PR's `Verified` section with them **verbatim**. It fixes nothing.
+4. **`/resolve`** — same session, once review lands. Fixed order: fix → push → confirm checks on the **new** head → only then resolve — resolving is delegated here, no ask required (`AGENTS.md`, *Git and delivery*).
 5. **Merge** — the user's, unless this repository's instruction file explicitly delegates it.
 6. **`/track`** — **new session**, after the merge. Closes the issue if every box is ticked.
 
@@ -65,7 +65,7 @@ Then back to 1 for the next slice.
 
 ### Outside the slice loop — a defect with no slice
 
-**`/fix`** — reproduces a defect first, then gets to a bug issue (given a number, or filing one from `.github/ISSUE_TEMPLATE/bug.md` after reproducing on the description path), branches, fixes, and hands off through the same `/verify` → `/pr` → `/resolve` chain, same session throughout. Use it instead of `/slice` when the work has no slice id and no contract signature to implement against.
+**`/fix`** — reproduces a defect first, then gets to a bug issue (given a number, or filing one from `.github/ISSUE_TEMPLATE/bug.md` after reproducing on the description path), branches, fixes, and hands off through the same `/pr` → `/verify` → `/resolve` chain, same session throughout. Use it instead of `/slice` when the work has no slice id and no contract signature to implement against.
 
 ### When the slices run out
 

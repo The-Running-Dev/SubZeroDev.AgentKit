@@ -75,7 +75,7 @@ Effort tracks irreversibility, not stage prestige. Schemas and public interfaces
 That command holds the walkthrough, rather than this file, because commands install into target repositories and this README does not. The shape it walks:
 
 - **Stages 0 to 5, once per project.** One session each, ending in a committed file that is the next stage's only input. Three of them stop rather than proceed — `/design` on a thin brief, `/contract` on a signature the design does not determine, `/redteam` at findings. Sending work back a stage costs a few thousand tokens; finding it in stage 6 costs a re-implementation.
-- **Stage 6, once per slice.** `/slice` (branches, implements, commits, pushes, opens the PR as a draft, ticks the boxes it confirms) → `/verify` → `/pr` (writes the real description, asks before marking ready) → `/resolve` → merge → `/track` in a new session. One slice, one branch, one session.
+- **Stage 6, once per slice.** `/slice` (branches, implements, commits, pushes, opens the PR as a draft, ticks the boxes it confirms) → `/pr` (writes the real description, asks before marking ready) → `/verify` (fills in the description's `Verified` section) → `/resolve` (fixes and resolves automatically, no ask) → merge → `/track` in a new session. One slice, one branch, one session.
 - **`/reconcile` and `/make-human-docs`** when the slices run out.
 
 **Which model runs each command is in [`AGENTS.md`](AGENTS.md), *Command routing*. Where a session must end is in [`AGENTS.md`](AGENTS.md), *Session boundaries*.** Both are binding policy, so each has one home and this is not it.
