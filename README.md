@@ -60,7 +60,7 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | 7 Reconcile | `/reconcile` | design docs, `agent.md` |
 | 8 Human docs | `/make-human-docs` | `docs/docs/guide.md` (generated) |
 
-Outside the numbered stages: `/kit-help` says where the repository is and what to run next, `/verify` runs the repo's gates and reports what did *not* run, `/pr` opens a pull request following the repo's own merge convention, `/resolve` works a pull request's review threads, `/fix` reproduces and fixes a defect that has no slice, `/track` syncs `design/` to GitHub issues, `/install` puts the kit into a repo, and `/install-all` runs that same install unattended across every sibling repo.
+Outside the numbered stages: `/kit-help` says where the repository is and what to run next, `/verify` runs the repo's gates and reports what did *not* run, `/pr` opens a pull request following the repo's own merge convention, `/resolve` works a pull request's review threads, `/fix` reproduces and fixes a defect that has no slice, `/done` switches back to the default branch and cleans up merged local branches, `/track` syncs `design/` to GitHub issues, `/install` puts the kit into a repo, and `/install-all` runs that same install unattended across every sibling repo.
 
 `/refine` is the front door for asks that fall between the stages. Every other command assumes you are already inside the pipeline — `/slice` needs a slice, `/contract` needs a design. `/refine` takes a rough ask, routes it to the command that owns it where one does, and otherwise emits a prompt carrying the constraints that bind it. It emits rather than executes, because the tier it names is usually not the tier it is running at.
 
