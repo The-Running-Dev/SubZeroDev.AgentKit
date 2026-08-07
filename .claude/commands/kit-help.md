@@ -60,6 +60,7 @@ One slice, one branch, one session. Do not start slice N+1 because you noticed s
 4. **`/resolve`** — same session, once review lands. Fixed order: fix → push → confirm checks on the **new** head → only then resolve — resolving is delegated here, no ask required (`AGENTS.md`, *Git and delivery*).
 5. **Merge** — the user's, unless this repository's instruction file explicitly delegates it.
 6. **`/track`** — **new session**, after the merge. Closes the issue if every box is ticked.
+7. **`/done`** — any time after the merge. Switches back to the default branch, deletes the now-merged local slice branch (and any other local branch already merged), and prunes remote-tracking refs for branches gone from `origin`. Optional housekeeping, not a pipeline step — nothing downstream depends on it.
 
 Then back to 1 for the next slice.
 

@@ -82,6 +82,7 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 | `/install` | `sonnet`, `medium` | — |
 | `/install-all` | `sonnet`, `medium` | Escalate only to judge whether a per-repo hard stop is actually safe to resolve — never to resolve it unattended |
 | `/kit-help` | `haiku`, `low` | Orientation from file existence and a tracker listing. Escalate only where the repository's state matches no stage |
+| `/done` | `haiku`, `low` | Mechanical git housekeeping — branch switch, `--merged` check, prune. Escalate only to judge whether an unmerged-looking branch is actually safe to delete |
 
 **Never recommend re-running a phase gate.** I decide when a phase repeats. This holds outside `/redteam` too — see that command for its own stopping rule.
 
