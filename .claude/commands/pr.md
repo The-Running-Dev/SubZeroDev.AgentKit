@@ -19,7 +19,7 @@ gh pr view --json number,isDraft,url,title 2>$null
 
 - **Every commit must be pushed first.** Announcing a PR invites an immediate merge, and a commit pushed after that lands on a branch nobody merges. Check `@{u}..HEAD` is empty before you announce anything.
 - **Never open a PR from the default branch.** If that is where the work is, stop and say so — moving commits to a branch is the user's call.
-- **Run `/verify` first, or say that you did not.** A PR description claiming green checks without having run them is the exact failure `AGENTS.md` names.
+- **`/verify` runs after this command, against the opened PR** (`AGENTS.md`, *Session boundaries*). Open the PR with the `Verified` section marked not yet run, then run `/verify` and update the description with its results before moving on to `/resolve`.
 - Stage by explicit named path. Never `git add -A`, `git add .`, or a bare directory.
 
 **Check for a PR already open on this branch before creating one.** `/slice` opens its own PR as a draft when it finishes a slice (`.claude/commands/slice.md`) — that carve-out is narrower than this command's. If `gh pr view` finds one:
@@ -39,8 +39,7 @@ reading the diff. State what was decided and why it was not the obvious alternat
 Closes #<n>
 
 ### Verified
-- `npm run check` — passed
-- Documentation build — **did not run**, Docker unavailable; relying on the CI check
+Not yet run — `/verify` runs next against this PR and this section is updated with its report.
 
 ---
 <details><summary><b>Agent detail</b></summary>

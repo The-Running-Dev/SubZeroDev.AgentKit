@@ -4,6 +4,8 @@ description: Discover this repository's gates, run them, and report honestly wha
 
 Run the checks this repository actually has, and report the result without softening it.
 
+**This runs after `/pr` has opened the pull request** (`AGENTS.md`, *Session boundaries*), against the branch and worktree that PR points at. Once the report below is final, update the PR description's `Verified` section with it **verbatim** — the same three lists, not a summary — before moving on to `/resolve`.
+
 **The point of this command is the second half of its report — what did *not* run.** Silence is not success, and a gate that could not run is the most likely place a false "everything passes" comes from.
 
 ## Discover, do not assume
