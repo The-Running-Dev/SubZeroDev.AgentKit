@@ -5,6 +5,8 @@ argument-hint: [pr number]
 
 Work the review comments on pull request **$1** — the current branch's PR if no number is given.
 
+**`/pr` runs this as its final phase**, once review has landed on the pull request it took to merge-ready. This file owns the procedure — the query, the classes, the order of operations; `/pr` owns only where the sequence sits. Invoked on its own, it does exactly the same thing against any pull request named.
+
 **Resolving a thread is an external write, but this repository delegates it** (`AGENTS.md`, *Git and delivery*): once a thread is classified `Defect` and the fix satisfying it is pushed, resolve it without asking first. This delegation covers execution only — classification itself still runs on the merit of the claim, and `Ambiguous` threads are still brought individually. This delegation is unavailable in a repository this account does not own; there, ask before resolving anything, per that same section.
 
 ## Find every thread

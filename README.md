@@ -30,6 +30,8 @@ Installing is a **reconciliation, not a copy**. A repository that already has ag
 
 `/install-all` runs the same reconciliation unattended, across every `SubZeroDev.*` sibling repository in one pass. It applies only the resolutions `INSTALL.md` already states as deterministic; anything that would otherwise stop for sign-off is skipped per repository and reported as needing a decision, not guessed.
 
+Once a repository has the kit installed, `/kit-sync` keeps it current without anyone having to locate the kit by hand: it clones (or fast-forwards) a shared checkout at `~/.agent-kit`, then runs the same `INSTALL.md` reconciliation against the current repository as the target. It asks which branch the first time, and remembers the answer in `.claude/kit.json`.
+
 Design docs install at `design/` in the repository root, deliberately — `docs/` is usually occupied by a documentation site, and a design directory inside its build context gets baked into the published image. `INSTALL.md` still checks the path before creating anything.
 
 To do it by hand instead: copy `AGENTS.md`, `CLAUDE.md`, `agent.md`, `.claude/`, and `design/` into the repo root. Profiles go in `~/.codex/`, not the repo.
@@ -60,7 +62,7 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | 7 Reconcile | `/reconcile` | design docs, `agent.md` |
 | 8 Human docs | `/make-human-docs` | `docs/docs/guide.md` (generated) |
 
-Outside the numbered stages: `/kit-help` says where the repository is and what to run next, `/verify` runs the repo's gates and reports what did *not* run, `/pr` opens a pull request following the repo's own merge convention, `/resolve` works a pull request's review threads, `/fix` reproduces and fixes a defect that has no slice, `/done` switches back to the default branch and cleans up merged local branches, `/track` syncs `design/` to GitHub issues, `/install` puts the kit into a repo, and `/install-all` runs that same install unattended across every sibling repo.
+Outside the numbered stages: `/kit-help` says where the repository is and what to run next, `/pr` takes a branch to merge-ready — description, then gates, then review threads — following the repo's own merge convention, `/verify` and `/resolve` are `/pr`'s gate and thread phases and stay callable on their own, `/fix` reproduces and fixes a defect that has no slice, `/done` switches back to the default branch and cleans up merged local branches, `/track` syncs `design/` to GitHub issues, `/install` puts the kit into a repo, `/install-all` runs that same install unattended across every sibling repo, and `/kit-sync` updates a shared `~/.agent-kit` checkout and re-runs that install against the current repo.
 
 `/refine` is the front door for asks that fall between the stages. Every other command assumes you are already inside the pipeline — `/slice` needs a slice, `/contract` needs a design. `/refine` takes a rough ask, routes it to the command that owns it where one does, and otherwise emits a prompt carrying the constraints that bind it. It emits rather than executes, because the tier it names is usually not the tier it is running at.
 
@@ -75,7 +77,7 @@ Effort tracks irreversibility, not stage prestige. Schemas and public interfaces
 That command holds the walkthrough, rather than this file, because commands install into target repositories and this README does not. The shape it walks:
 
 - **Stages 0 to 5, once per project.** One session each, ending in a committed file that is the next stage's only input. Three of them stop rather than proceed — `/design` on a thin brief, `/contract` on a signature the design does not determine, `/redteam` at findings. Sending work back a stage costs a few thousand tokens; finding it in stage 6 costs a re-implementation.
-- **Stage 6, once per slice.** `/slice` (branches, implements, commits, pushes, opens the PR as a draft, ticks the boxes it confirms) → `/pr` (writes the real description, asks before marking ready) → `/verify` (fills in the description's `Verified` section) → `/resolve` (fixes and resolves automatically, no ask) → merge → `/track` in a new session. One slice, one branch, one session.
+- **Stage 6, once per slice.** `/slice` (branches, implements, commits, pushes, opens the PR — never as a draft — ticks the boxes it confirms) → `/pr` (writes the real description, runs the gates into its `Verified` section, then works the review threads) → merge → `/track` in a new session. One slice, one branch, one session.
 - **`/reconcile` and `/make-human-docs`** when the slices run out.
 
 **Which model runs each command is in [`AGENTS.md`](AGENTS.md), *Command routing*. Where a session must end is in [`AGENTS.md`](AGENTS.md), *Session boundaries*.** Both are binding policy, so each has one home and this is not it.
