@@ -6,45 +6,16 @@ Housekeeping for the end of a piece of work: get back to the default branch, rem
 
 **Deleting a branch is not carved out of the authorization rule** (`AGENTS.md`, *Git and delivery* — "Do not delete files, branches, or history without explicit authorization"). This command lists every candidate before deleting any of it and asks once, over the whole list — it does not delete branch-by-branch.
 
-## Before doing anything
+## Run the mechanical half
+
+Everything up through building the candidate list has no judgement call in it — dirty-tree check, default-branch resolution, the unmerged-current-branch check, the switch, the prune, `--merged`, and the `gh` cross-check for squash-merges are all facts, not decisions. `tools/Invoke-DoneHousekeeping.ps1 -RepoRoot <repo>` does all of it in one call and deletes nothing:
 
 ```powershell
-git status --short
-git branch --show-current
+tools/Invoke-DoneHousekeeping.ps1 -RepoRoot <repo>
 ```
 
-**If the working tree is dirty, stop and say so.** Uncommitted work is not this command's to stash or discard — that decision belongs to whoever is mid-change, not to a cleanup command.
-
-## Switch back
-
-Find the actual default branch rather than assuming `main`:
-
-```powershell
-git remote show origin | Select-String "HEAD branch"
-```
-
-```powershell
-git checkout <default branch>
-git pull
-```
-
-**If the current branch has commits not on the default branch and no merged PR accounts for them, stop before switching** — that is unmerged work, not a done branch, and this command does not decide whether to abandon it.
-
-## Prune the remote-tracking refs
-
-```powershell
-git fetch --prune origin
-```
-
-This only removes local *references* to branches already deleted on the remote (e.g. after a squash-merge on GitHub). It deletes nothing that still exists anywhere.
-
-## Find local branches that are done
-
-```powershell
-git branch --merged <default branch>
-```
-
-Exclude the default branch itself from that list. **`--merged` is a genuine merge check** — a branch only appears here if its commits are actually reachable from the default branch's tip, so this will not catch a branch that was squash-merged (GitHub's squash produces a new commit that `--merged` cannot see as "the same"). For each remaining candidate, cross-check with `gh pr list --state merged --head <branch>` before treating a branch git itself doesn't recognize as merged as safe to delete.
+- **`Stopped: true`** means it refused to switch at all — `Reason` is `DirtyTree` (uncommitted work; not this command's to stash or discard) or `UnmergedCurrentBranch` (the current branch has commits not on the default branch and no merged PR accounts for them, checked via `gh pr list --state merged --head <branch>`). Report `Detail` and stop; do not proceed past either.
+- **Otherwise** it has already checked out `DefaultBranch`, pulled (unless it failed), pruned remote-tracking refs (`PrunedCount`), and built `Candidates` — every branch `--merged <default>` confirms, each with its `MergedPr` where `gh` found one. **`--merged` is a genuine merge check**, so a squash-merged branch (GitHub's squash produces a new commit `--merged` cannot see as "the same") will not appear here even though `gh` shows it merged — if you know of one, name it in the ask below anyway with the PR link, same as any other candidate.
 
 ## Ask, once
 
@@ -52,20 +23,20 @@ Present the full candidate list — branch name and, where known, the PR it merg
 
 ## Delete
 
-On yes:
+On yes, call the same script again with the approved list:
 
 ```powershell
-git branch -d <branch>
+tools/Invoke-DoneHousekeeping.ps1 -RepoRoot <repo> -SkipPull -DeleteBranches <branch1>,<branch2>
 ```
 
-**Always the safe form, never `-D`.** `-d` refuses to delete a branch with commits git cannot prove are merged; if it refuses one that `gh pr list` showed as merged (the squash-merge case above), report it and ask separately before using `-D` on that specific branch — do not silently escalate to a force delete.
+It runs `git branch -d`, never `-D`, and only on the names you pass — a name that is not in `--merged`'s list is refused, not deleted, even if you pass it. **`Refused` entries where `--merged` did confirm the branch** are `-d`'s own safety refusal; report those and ask separately before manually running `-D` on that specific branch — do not silently escalate to a force delete.
 
 ## Report
 
 - Default branch confirmed and checked out
-- Remote-tracking refs pruned, and how many
-- Branches deleted, and the PR each merged through where known
-- Any branch left alone, and why — dirty tree, unmerged work, or a `-d` refusal not separately authorized
+- Remote-tracking refs pruned, and how many (`PrunedCount`)
+- Branches deleted, and the PR each merged through where known (`Deleted`)
+- Any branch left alone, and why — dirty tree, unmerged work, or a `-d` refusal not separately authorized (`Refused`)
 
 ## Never
 

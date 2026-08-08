@@ -45,7 +45,7 @@ The artifacts:
 | `CLAUDE.md` | Pointer to `AGENTS.md` in the kit's arrangement — but see below |
 | `agent.md` | Lessons. Seeded, then pruned |
 | `.claude/commands/*.md` | The stage commands, plus `install.md` |
-| `tools/*.ps1` | Reporting helpers, currently `Measure-Session.ps1`, `Wait-PullRequestCheck.ps1`, `New-DesignDocs.ps1`, `Sync-Kit.ps1`, `Test-GatesCache.ps1`. Root `tools/` is commonly occupied — classify the directory before writing into it, and stop if it holds something unrelated rather than sharing it |
+| `tools/*.ps1` | Reporting helpers, currently `Measure-Session.ps1`, `Wait-PullRequestCheck.ps1`, `New-DesignDocs.ps1`, `Sync-Kit.ps1`, `Test-GatesCache.ps1`, `Invoke-DoneHousekeeping.ps1`. Root `tools/` is commonly occupied — classify the directory before writing into it, and stop if it holds something unrelated rather than sharing it |
 | `templates/design/*.md` | Five seed design docs, written to `design/` in the target. Check phase 2 before creating the directory |
 | `.github/ISSUE_TEMPLATE/*.md` | `bug.md`, `story.md`. **If the target already has templates, stop and report** — do not overwrite or merge. A repository with its own templates has a triage process, and replacing it silently changes how every future issue is filed |
 | `codex/PROFILES.md` | **Skip by default**, and report it as skipped. Install only if the target shows evidence of Codex use — a `.codex/` directory, a profile reference, or the user saying so. Asking in every install is noise |
