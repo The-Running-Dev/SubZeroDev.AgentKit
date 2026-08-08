@@ -45,10 +45,12 @@ The artifacts:
 | `CLAUDE.md` | Pointer to `AGENTS.md` in the kit's arrangement — but see below |
 | `agent.md` | Lessons. Seeded, then pruned |
 | `.claude/commands/*.md` | The stage commands, plus `install.md` |
-| `tools/*.ps1` | Reporting helpers, currently `Measure-Session.ps1`. Root `tools/` is commonly occupied — classify the directory before writing into it, and stop if it holds something unrelated rather than sharing it |
+| `tools/*.ps1` | Reporting helpers, currently `Measure-Session.ps1`, `Wait-PullRequestCheck.ps1`, `New-DesignDocs.ps1`, `Sync-Kit.ps1`, `Test-GatesCache.ps1`, `Invoke-DoneHousekeeping.ps1`. Root `tools/` is commonly occupied — classify the directory before writing into it, and stop if it holds something unrelated rather than sharing it |
 | `templates/design/*.md` | Five seed design docs, written to `design/` in the target. Check phase 2 before creating the directory |
 | `.github/ISSUE_TEMPLATE/*.md` | `bug.md`, `story.md`. **If the target already has templates, stop and report** — do not overwrite or merge. A repository with its own templates has a triage process, and replacing it silently changes how every future issue is filed |
 | `codex/PROFILES.md` | **Skip by default**, and report it as skipped. Install only if the target shows evidence of Codex use — a `.codex/` directory, a profile reference, or the user saying so. Asking in every install is noise |
+
+**On a re-install (`.claude/kit.json` already present), classify `.claude/commands/*.md` and `tools/*.ps1` by running `tools/Sync-Kit.ps1 -TargetRepo <target> -KitRoot <kit-root> -DryRun`, not by reading each file.** It diffs every kit-owned file against the sha the target was last synced from and reports Added/Updated (unmodified, safe to take), Divergent-Skipped (the target edited it — carry into phase 2 as a fork, same as any other divergence), Collision-Skipped (a new kit file whose name the target already used for something else), and RemovedUpstream (the kit deleted it upstream). Fold its report into phase 1's classification directly — an `Updated`/`Added` row is **Identical-once-applied**, a `Divergent-Skipped`/`Collision-Skipped` row is **Divergent**, `RemovedUpstream-Skipped` has no state in the table above and goes into phase 3 as its own kind of fork. **On a first install (no `.claude/kit.json` yet), skip it and classify by hand as usual** — everything is Absent, and the script needs a recorded sha to diff from that does not exist yet.
 
 `INSTALL.md` itself is **not** installed into targets. It is the kit's procedure, and a copy in the target is a copy that drifts.
 
@@ -65,6 +67,8 @@ git -C <kit> log --oneline <recorded>..HEAD
 ```
 
 That list is what the upgrade actually consists of. Without it, "is this repo current?" is answerable only by hashing every file, which is what the first three installs had to do.
+
+**`branch` is an optional fourth field, written only by `/kit-sync`** (`.claude/commands/kit-sync.md`), recording which branch of the kit that command last synced from. Plain `/install` neither reads nor writes it. A `kit.json` without it is not stale — it just means `/kit-sync` has never run here.
 
 **Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately.
 
@@ -125,9 +129,11 @@ The kit ships this seeded with lessons harvested from other projects. It says so
 
 **Check provenance before offering any lesson back.** The kit's seed was harvested from real repositories, and some of those repositories are targets. Re-installing a lesson into the repository it came from re-imports that repo's own hard-won specifics in generalised, evidence-stripped form — and it will read as new, because the wording has changed. If a kit lesson describes something that already appears in the target's own file with more detail, it did not come from somewhere else; it came from here. Drop it silently and say so in the report.
 
-### `.claude/commands/`
+### `.claude/commands/` and `tools/`
 
-Copy every command in the kit. If the target already has a command of the same name, stop and report — a same-named command doing something else is a trap for whoever types it next. Rewrite the `design/` path inside them if phase 2 relocated it.
+**First install:** copy every command and tool script in the kit. If the target already has a command of the same name, stop and report — a same-named command doing something else is a trap for whoever types it next. Rewrite the `design/` path inside them if phase 2 relocated it.
+
+**Re-install:** this is `tools/Sync-Kit.ps1`'s report from phase 1, already computed. Nothing left to propose for the `Added`/`Updated` rows — they apply in phase 4 by re-running the same command without `-DryRun`. The `Divergent-Skipped`, `Collision-Skipped` and `RemovedUpstream-Skipped` rows are what phase 3 asks about, one at a time, the same as any other divergence. **A relocated `design/` path is exactly the case `Divergent-Skipped` catches** — a command file rewritten to point at the new path differs from the kit's copy at the recorded sha, so it is reported and never silently overwritten; say so when it comes up rather than treating it as an ordinary edit.
 
 ### Rules the target already states
 
@@ -159,7 +165,7 @@ Present the decisions **one at a time**. Do not batch them, and do not proceed o
 Only after sign-off.
 
 1. **Re-check the target's state first.** Phase 0's snapshot is stale by now — a long reconciliation gives the user time to commit, branch, or edit the very file you are about to move. Re-run `git status --short --branch` and diff your source-of-truth for any moved content against `HEAD`, not against what you read in phase 0.
-2. Write the approved files. Preserve UTF-8 and LF.
+2. Write the approved files. Preserve UTF-8 and LF. **On a re-install, apply `.claude/commands/*.md` and `tools/*.ps1` by re-running `tools/Sync-Kit.ps1 -TargetRepo <target> -KitRoot <kit-root>` — the same call as phase 1, without `-DryRun`.** It applies every `Added`/`Updated` file, advances the target's `syncedCommit`, and leaves every `Divergent-Skipped`/`Collision-Skipped` file untouched by design; write those by hand only where phase 3's sign-off approved overriding the target's edit. Pass `-Force` only if a `RemovedUpstream` row was approved for deletion.
 3. **Record every fork that had a real alternative** — the relocation, the `AGENTS.md`/`CLAUDE.md` direction, anything the target overrode, anything skipped. **Rejected alternatives included**; without them the next install relitigates the same choices, and the commonest question a re-install faces is "why is it set up this way here?"
 
    The log's home, in this order — the first that applies:
@@ -175,7 +181,7 @@ Only after sign-off.
    - **Nothing was lost in a move.** Every non-blank line of the file you moved content out of must appear in the file you moved it into. Diff it mechanically; do not eyeball it. Expect exactly the lines you deliberately changed, and be able to name each one.
    - **No rule appears twice.** Search the target for the distinctive phrase of each rule you added — not for the rule's topic. You are looking for your own duplicates, and you will have made some: this install's own verification caught two that careful authoring did not.
    - **No stale paths.** If you relocated anything, search for the old path. Hits in the decision log are correct; hits anywhere else are not.
-5. **Write `.claude/kit.json`** with the kit's current HEAD sha and today's date — now, after the work succeeded, not before it.
+5. **Write `.claude/kit.json`**'s `commit` field with the kit's current HEAD sha and today's date — now, after the work succeeded, not before it. This is the whole-kit reconciliation marker and stays this phase's to write. If step 2 ran `Sync-Kit.ps1`, it has already written `syncedCommit` itself, scoped to what it actually synced — a separate field, not a second copy of this one.
 6. `git -C <target> status --short` and `git diff --check`.
 7. **Stage nothing and commit nothing.** Show what changed and let the user commit. The kit's own contract requires named-path staging, and an installer that commits for you is an installer that has staged something you did not read.
 
