@@ -10,6 +10,8 @@ Run the checks this repository actually has, and report the result without softe
 
 ## Discover, do not assume
 
+**Check the cache first.** `tools/Test-GatesCache.ps1 -RepoRoot <repo>` hashes the files this discovery reads (every workflow's content, `package.json`'s content, and whether the known build-script paths exist) and compares it to `.claude/gates.json`. `Fresh` means none of those inputs have changed since the last discovery — skip straight to **Run** with the gates it returns. `Stale` or `Missing` means discover as below, then call `tools/Test-GatesCache.ps1 -Write -GatesJson '<the gates you found, as [{"name","command"}]>'` before running them, so the next `/verify` on this tree does not re-derive the same answer. The cache only remembers gates; it never decides what they are — that judgement stays here.
+
 **CI is the authoritative list.** Read `.github/workflows/*.yml` first: whatever the required checks invoke is the set worth running locally. A gate that exists but CI never runs is optional; a gate CI runs that you skipped is a hole in your report.
 
 Then look for what those workflows call, and for anything else the repository ships:
