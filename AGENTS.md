@@ -60,7 +60,7 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
   ===============================
   ```
 
-  Then check the session's actual model against the required family. If it matches or exceeds it, proceed without further comment. If the session is under-powered for the tier, **stop before doing any expensive work**, name the model and effort actually needed, and wait — do not proceed on the wrong model unless the user explicitly overrides after seeing the mismatch. If the session is *stronger* than required, just proceed — do not interrupt to say so.
+  Then check the session's actual model against the required family. If it matches exactly, proceed without further comment. Any mismatch gates the same way, in either direction: **stop before doing any expensive work**, name the tier the task actually needs, and wait — do not proceed on the wrong tier unless the user explicitly overrides after seeing the mismatch. Under-powered, name the stronger model needed. Over-powered, name the lighter tier that fits — running deep reasoning against implementation-tier work is the same unbudgeted cost as running implementation-tier reasoning against a task that needed more of it, just paid in the other direction. Where the model itself can't be changed mid-session (*Division of control*, next), the override this gate waits for can also be "cap your own reasoning effort to the lighter tier and proceed" rather than a model swap.
 
 **Division of control.** I set the session model. You set subagent models and scale your own reasoning depth. You cannot change your own session model.
 
