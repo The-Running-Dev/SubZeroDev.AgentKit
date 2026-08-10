@@ -75,6 +75,7 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 | `/make-human-docs` | `sonnet`, `medium` | Escalate only if the design turns out to be ambiguous — then stop, do not resolve it in prose |
 | `/track` | `sonnet`, `medium` | Mechanical sync; escalate only to judge whether a drifted slice is a design change |
 | `/verify` | `sonnet`, `medium` | Escalate to deep reasoning only to diagnose a failure, never to run the gates |
+| `/code-review` | review agents run at the effort passed (e.g. `high`); adjudicating findings is deep-reasoning tier, `opus`/`high` | The effort argument sets how hard the review agents think, not the session model, which stays mine to set. A contract contradiction it surfaces goes in the slice's PR description, not a `design/` edit, while `design/FROZEN.md` exists |
 | `/pr` | `sonnet`, `medium` | Runs `/verify` and `/resolve` as its own phases — the same tier, and the same escalation rules, apply inside them |
 | `/resolve` | `sonnet`, `medium` | Escalate to judge a contested finding, not to triage the obvious ones |
 | `/fix` | `sonnet`, `medium` | Escalate only where the fix turns out to need a contract, schema, or public-interface change — that is `/contract`'s or `/design`'s, and this command stops rather than absorbing it |
@@ -84,6 +85,8 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 | `/kit-sync` | `sonnet`, `medium` | Escalate only to judge whether a refused fast-forward in `~/.agent-kit` is safe to resolve — never to force past it unattended |
 | `/kit-help` | `haiku`, `low` | Orientation from file existence and a tracker listing. Escalate only where the repository's state matches no stage |
 | `/done` | `haiku`, `low` | Mechanical git housekeeping — branch switch, `--merged` check, prune. Escalate only to judge whether an unmerged-looking branch is actually safe to delete |
+| `/freeze` | `sonnet`, `medium` | `Frozen because`/`Lifts when` come from the user, never invented — ask rather than draft them |
+| `/unfreeze` | `sonnet`, `medium` for the sequencing; runs `/reconcile` (`opus`, `high`) and `/track` (`sonnet`, `medium`) as its own phases | Runs unattended, no confirmation prompt — that is this repository's policy, not a gap |
 
 **Never recommend re-running a phase gate.** I decide when a phase repeats. This holds outside `/redteam` too — see that command for its own stopping rule.
 
@@ -157,7 +160,7 @@ The pipeline's normal loop keeps `design/` live: a slice lands, `/reconcile` wri
 - **Slices implement against `20-contract.md` as a fixed artifact**, at the SHA the marker names.
 - **A contradiction found while implementing is stated in that slice's pull request and left in the document.** Do not fix it in `design/`. The staleness is the point; recording it in the PR is what makes the eventual reconciliation cheap.
 
-**Lifting it is deliberate and manual: delete the file, then run one reconciliation pass** — `/reconcile`, then `/track`. There is no command that lifts a freeze, because a freeze that something can lift on your behalf is one that gets lifted by habit. A slice that turns out to need a contract amendment stops and says so; that escalation is the user's to answer, and answering it may well be "thaw, amend, re-freeze."
+**`/freeze` writes the marker; `/unfreeze` lifts it** — deletes the file, then runs one reconciliation pass, `/reconcile` then `/track`, in the same session. `/unfreeze` runs unattended, without a confirmation prompt; the freeze itself is still the user's decision, made when `/freeze` is invoked, and lifting it early is one command call away rather than gated a second time. A slice that turns out to need a contract amendment still stops and says so; that escalation is the user's to answer, and answering it may well be "thaw, amend, re-freeze."
 
 The marker's format, which the five gated commands read and must not restate:
 
@@ -168,7 +171,7 @@ Frozen at: <sha>, <YYYY-MM-DD>
 Frozen because: <what the freeze is escaping>
 Lifts when: <the checkable condition — "tier one is code-complete", not "when we are ready">
 
-To lift: delete this file, then run `/reconcile`, then `/track`.
+To lift: run `/unfreeze`, or delete this file by hand and run `/reconcile`, then `/track`.
 ```
 
 A command that refuses reports `Frozen because` and `Lifts when` **verbatim** rather than paraphrasing them — the point of a stated condition is that it can be checked against, and a paraphrase is where it stops being checkable.
