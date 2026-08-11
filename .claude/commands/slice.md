@@ -46,6 +46,16 @@ Sequence:
 8. **Tick the `Done when` boxes** on the matching issue for every id this run confirms met. Carved out the same way (`AGENTS.md`, *Tracking work*) — the report in step 9 and the tick are the same claim now, not two.
 9. Report **by criterion id**: which are met, which are not and why, anything you had to decide that the contract did not determine, and the branch name and PR URL.
 
+## Correcting the document as you go
+
+**Descriptive drift is corrected here, in this slice's commit** — the rule and its boundaries are in `AGENTS.md`, *Hard rules*, and are not restated. What that means in practice:
+
+- A declaration, parameter list, field name, path, or count in `design/` that the tree now states differently is a **transcription error**. Fix the document by named path, in the same commit as the code, and say in step 9 what you corrected. Do not raise it as a fork and do not log a decision — there is no decision in it.
+- Materialising a `20-contract.md` scaffold is this same correction: once a declaration exists in the tree, **replace the block in the contract with a pointer to the file that now declares it** and keep only what the declaration cannot say (`.claude/commands/contract.md`, *Semantics, not shape*).
+- **An invariant, a non-goal, an acceptance criterion, or a public interface is not descriptive drift.** Those are the stop conditions below, unchanged.
+- **`design/30-slices.md` is never edited here**, including this slice's own criteria. A criterion that is wrong is a `/slices` matter.
+- **If `design/FROZEN.md` exists, correct nothing.** State the contradiction in the pull request and leave the document alone (`AGENTS.md`, *The design freeze*).
+
 Stop conditions — halt and report rather than proceeding:
 
 - The contract does not contain a signature you need.
@@ -58,4 +68,4 @@ Do not:
 - Touch files outside `Touches` without saying why first.
 - Refactor adjacent code.
 - Add dependencies.
-- Update the design docs. That is `/reconcile`.
+- Edit `design/30-slices.md`, or change any invariant, non-goal, or public interface. Descriptive correction is bounded to the section above; everything else is still `/slices`', `/contract`'s, or `/reconcile`'s.

@@ -1,5 +1,5 @@
 ---
-description: Write implementation reality back into the design docs
+description: Check the design docs against the tree, and decide the differences that are decisions
 ---
 
 ## Stop if `design/` is frozen
@@ -12,10 +12,19 @@ Compare the working tree against `design/10-design.md` and `design/20-contract.m
 
 This is the step that stops the docs becoming fiction. A stale design doc is worse than none, because every future agent session gets confidently briefed on a system that does not exist.
 
+## What is no longer this command's
+
+**This is a check, not a rewrite.** Two things were taken off it deliberately, and taking either back is how it becomes generative again — which is the loop `AGENTS.md`, *The design freeze* exists to escape.
+
+- **Descriptive drift is already gone.** A declaration, parameter list, field name, path or count that disagreed with the tree was corrected in the slice that found it, in that slice's commit (`AGENTS.md`, *Hard rules*). Anything of that kind still here is a slice that missed it: correct it, in one line, and move on. **Do not open it as a fork** — there is no decision in a transcription error, and turning one into a question is most of what made this command expensive.
+- **`design/30-slices.md` is out of scope entirely, and an unlanded slice's acceptance criteria are never edited here.** Landing slice N and then rewriting slice N+1's criteria is the first link in the churn loop, and it is the one link this command owns. A problem found with an unlanded slice's criteria is escalated to `/slices` or written to `## Open` in `90-decisions.md` — never resolved in this pass. `/track` compares the tracker against that document; if this command has just rewritten it, the two were never independent.
+
 Produce a drift report first, before editing anything:
 
 ## Contract drift
-Signatures, types, schemas or error variants where the code and `20-contract.md` disagree. For each: which is currently correct, and what the other should become.
+Places where the code and `20-contract.md` disagree **about meaning**: an error variant raised under conditions the contract does not describe, a documented retry story the caller does not implement, a field the contract says is meaningful only under one state being populated under another, an invariant no longer held. For each: which is currently correct, and what the other should become.
+
+`20-contract.md` no longer restates declarations, so a signature difference is not reportable here — it is either a descriptive correction (above) or, where a public interface genuinely changed, a contract amendment that belongs to `/contract`. Say which; do not absorb it.
 
 ## Design drift
 Places where the implemented structure differs from `10-design.md` — module boundaries crossed, control flow changed, a failure mode handled differently or not at all.

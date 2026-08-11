@@ -12,6 +12,7 @@ INSTALL.md                    how the kit installs into a repo
 .claude/commands/*.md         slash commands
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
 tools/Measure-Session.ps1     what a session actually cost, from the transcript
+tools/Test-DesignDrift.ps1    criterion-id and commit-pin drift, doc against tracker
 codex/PROFILES.md             Codex profile definitions
 templates/design/*.md         seed copied into a target's design/
 design/                       the kit's own design. Never installed
