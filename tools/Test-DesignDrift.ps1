@@ -153,7 +153,11 @@ function Get-IssueCriteria {
 function Get-IssuePin {
     param([string] $Body)
     if ([string]::IsNullOrWhiteSpace($Body)) { return $null }
-    if ($Body -match '30-slices\.md\s*§\s*S(?<n>\d+)\s*@\s*`?(?<sha>[0-9a-fA-F]{7,40})`?') {
+    # The backtick after `.md` is not optional decoration: track.md's pin format is
+    # `design/30-slices.md` § S3 @ `a1b2c3d`, so the path is code-fenced and the closing
+    # fence sits between `.md` and the section mark. Omitting it here matched no real issue
+    # at all - caught by the first CI run of this file's tests, not by reading it.
+    if ($Body -match '30-slices\.md`?\s*§\s*S(?<n>\d+)\s*@\s*`?(?<sha>[0-9a-fA-F]{7,40})`?') {
         return [pscustomobject]@{ Slice = [int]$Matches['n']; Sha = $Matches['sha'] }
     }
     $null
