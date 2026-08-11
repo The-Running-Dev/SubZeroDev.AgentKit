@@ -3,45 +3,28 @@
 > Scoped to `design/10-design.md`, which covers one path and not the whole kit. Read that
 > file's scope warning first.
 
-Two languages are under contract here. `tools/` is PowerShell Core, and its contract is a
-parameter block and an exit code. `.claude/commands/` is Markdown loaded into a model, and
-its contract is its invocation, its required output, and its stop conditions — stated
-here so `/reconcile` has something to compare a command file against.
+Two languages are under contract here, and they are not carried the same way.
+
+`tools/` is PowerShell Core, and its shape — parameter lists, result fields, the state and
+failure vocabularies — **is declared in the scripts themselves and is not restated here**
+(`AGENTS.md`, *Single ownership*). This document names where each declaration lives and
+then states what a declaration cannot: when a field is meaningful, what may never be
+normalised, which parameter must not acquire a default and what that would defeat.
+
+`.claude/commands/` is Markdown loaded into a model. It has no separate declaration to
+point at, so its surface is stated here in full — invocation, what it reads and writes,
+what it must output, what it must not do — which is what gives `/reconcile` something to
+compare a command file against.
 
 ## Types
 
-```powershell
-enum CheckState {
-    Passed      # every check reached a terminal bucket, none failed
-    Failed      # at least one check reached a failing terminal bucket
-    NotEvaluated # head moved, timed out, or a bucket was not recognised
-}
-
-enum WaitFailure {
-    HeadMoved          # -HeadSha is not the pull request's current head
-    TimedOut           # -TimeoutSeconds elapsed with a check still non-terminal
-    UnknownBucket      # gh reported a bucket outside the terminal/pending sets
-    NoChecksConfigured # the pull request has no checks at all
-    GhUnavailable      # gh absent, not on PATH, or not authenticated
-    PullRequestMissing # no such pull request, or issues/PRs disabled
-}
-
-class CheckRunResult {
-    [string]   $Name
-    [string]   $Bucket   # verbatim from gh, never normalised away
-    [bool]     $IsTerminal
-}
-
-class WaitResult {
-    [CheckState]        $State
-    [string]            $HeadSha       # the SHA actually evaluated
-    [CheckRunResult[]]  $Passed
-    [CheckRunResult[]]  $Failed
-    [CheckRunResult[]]  $NotRun        # non-terminal at timeout, or unrecognised
-    [WaitFailure]       $Failure       # set only when State is NotEvaluated
-    [int]               $PollCount
-}
-```
+| Entity | Declared in | What the declaration cannot say |
+|---|---|---|
+| `WaitResult` | `tools/Wait-PullRequestCheck.ps1`, `New-WaitResult` | `Failure` is meaningful **only** when `State` is `NotEvaluated`; on `HeadMoved` the check collections are empty by design, because a moved head means no outcome was observed for the SHA asked about |
+| `CheckRunResult` | `tools/Wait-PullRequestCheck.ps1`, `New-CheckRunResult` | `Bucket` is reproduced **verbatim from `gh`** and is never normalised, mapped, or lower-cased on its way out — a bucket nobody recognises must survive intact to be reported |
+| The `State` vocabulary | same file, `Get-WaitExitCode` | The three states map to exit codes 0/1/2, and `Failed` is **not** an error: the script succeeded at determining a check failed |
+| The `Failure` vocabulary | same file, the `Invoke-Wait` return paths | Enumerated with its raising conditions under *Error semantics* below, which is where the meaning lives |
+| The drift result | `tools/Test-DesignDrift.ps1`, `New-DriftResult` | `Findings` and `Failures` are **not interchangeable**: a finding is "the two sides disagree", a failure is "this comparison did not happen". A non-empty `Failures` forces the whole run to *could not evaluate* however many findings it also collected (I12) |
 
 `ThreadClass` is **not declared here.** Its five values and their meanings are owned by
 `.claude/commands/resolve.md`, which is the canonical copy; declaring them a second time
@@ -60,30 +43,39 @@ it rested on has changed.
 Migration story: not applicable, and any future proposal to persist any of this needs its
 own decision-log entry naming what stops a stale record being trusted.
 
-## Public signatures
+## Public surface
 
 ### `tools/Wait-PullRequestCheck.ps1`
 
-```powershell
-[CmdletBinding()]
-param(
-    [Parameter(Mandatory)] [int]    $PullRequest,
-    [Parameter(Mandatory)] [string] $HeadSha,
-    [string] $Repository,                    # owner/repo; defaults to the current remote
-    [int]    $TimeoutSeconds   = 900,
-    [int]    $PollSeconds      = 20,
-    [switch] $Quiet
-)
-# Emits: [WaitResult] on the success stream, always, including on failure.
-# Exit codes: 0 = Passed
-#             1 = Failed
-#             2 = NotEvaluated (inspect .Failure)
-```
+**The parameter list is the script's own `param` block and is not copied here.** Read it
+there. What that block cannot state, and what a change to it must preserve:
 
-- `-HeadSha` is **mandatory and has no default.** Defaulting it to the current head is the
-  one convenience that would defeat the invariant it exists to enforce.
+- `-HeadSha` is **mandatory and has no default, permanently.** Defaulting it to the current
+  head is the one convenience that would defeat I2, the invariant the whole script exists
+  to enforce — so this is a constraint on every future edit, not a description of today's
+  signature.
+- The `WaitResult` is emitted on the success stream **always, including on every failure
+  path.** A caller that gets an exception loses the partial check list, which is the part
+  worth reporting.
+- Exit codes carry the state: 0 `Passed`, 1 `Failed`, 2 `NotEvaluated`. A caller branching
+  on the exit code and a caller reading `.State` must reach the same conclusion.
 - Never prompts. Never re-runs a check. Never merges, resolves, or writes anything.
 - `-Quiet` suppresses the progress line only; the `WaitResult` is always emitted.
+
+### `tools/Test-DesignDrift.ps1`
+
+**The parameter list is the script's own `param` block and is not copied here.** What it
+cannot state:
+
+- It is **read-only against both sides.** It never edits `design/`, never edits an issue,
+  and never opens or closes one. Which side of a drift is wrong is the user's call
+  (`AGENTS.md`, *Tracking work*) — this script only establishes that the two disagree.
+- Exit codes: 0 no drift, 1 drift found, 2 could not evaluate. **1 and 2 are different
+  answers and must never collapse into each other** — "the ids disagree" is a finding,
+  "`gh` is not authenticated" is the absence of one, and reporting the second as the first
+  is the fabricated gate result *Verification* exists to prevent.
+- A criterion id it cannot parse is reported as unparseable, never silently dropped. A
+  dropped id is an id that appears to match.
 
 ### `.claude/commands/fix.md`
 
@@ -162,9 +154,17 @@ rather than route around; neither may substitute an adjacent action for a blocke
 | **I9** | The batch is **unavailable** in a repository the user does not own. Every action in it is requested individually there, as today | `AGENTS.md` |
 | **I10** | `/fix` always implements against a bug issue's agent block — the one it was given, or the one it filed after reproducing. It never carries its own copy of those constraints | `fix.md` |
 | **I11** | `/fix` never opens an issue for a defect it could not reproduce. That is a diagnosis report to the user, not a bug | `fix.md` |
+| **I12** | `Test-DesignDrift.ps1` never reports a clean run for a comparison it could not complete — an unreadable tracker, an unparseable criterion id, or an unresolvable pin yields *could not evaluate*, never *no drift* | the script |
+| **I13** | `Test-DesignDrift.ps1` writes nothing: not `design/`, not an issue, not git. It establishes that two sides disagree and stops there | the script |
 
-I1 and I2 are the pair that matter. I2 is the only invariant in this contract enforced by
-code rather than by instruction, and I1 is the rule it exists to make enforceable.
+I1 and I2 are the pair that matter. I2, I7, I8, I12 and I13 are the invariants enforced by
+code rather than by instruction, and they are the only ones a reader may trust without
+checking. I1 is the rule I2 exists to make enforceable.
+
+**I12 and I13 are scope creep, knowingly taken.** `Test-DesignDrift.ps1` is not part of the
+defect-to-merge path this document covers; it is contracted here because there is no other
+contract document in the repository, and an uncontracted script is one nothing can be
+checked against. If a second path is ever designed, these two move with the script.
 
 I8 is the deliberate cost of I1. "No checks ran" and "checks ran and passed" are different
 facts, and only one of them is evidence. A repository with no CI therefore cannot reach
