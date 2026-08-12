@@ -37,3 +37,10 @@ Rules:
 - No code. No file layouts. No package names beyond what a decision required.
 - Every decision that survives goes into `design/90-decisions.md` in the logged format.
 - If the brief is too thin to design against, stop and say what is missing rather than inventing requirements.
+
+## Re-run
+
+Rewrites `design/10-design.md` in full from the current brief — there is no partial
+regeneration. Check `design/90-decisions.md` before restating a choice; a decision already
+logged there is not made fresh on a re-run, only re-expressed. `## Open questions` only ever
+shrinks as the brief answers them — a question the brief now answers must not reappear.

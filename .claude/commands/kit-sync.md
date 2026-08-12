@@ -61,3 +61,11 @@ Everything `INSTALL.md` phase 3 already requires, plus:
 - Force-push, reset, or discard uncommitted work in `~/.agent-kit`. It is shared across every repository that runs this command.
 - Hardcode a source URL as a fallback. Absent `kit.json` means asking, once.
 - Commit or push anything in *this* repository — same as `/install`, this stops at the phase 3 report, and applies only after sign-off.
+
+## Re-run
+
+Meant to be run routinely — that is why `~/.agent-kit` fast-forwards rather than being cloned
+fresh every time. A re-run against an already-current checkout is a fast-forward of zero
+commits, not an error, and reconciliation still runs against the target exactly as `/install`
+describes there: an artifact already reconciled reports identical, an unresolved fork is asked
+about again rather than assumed answered.
