@@ -66,14 +66,16 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 
 ### Vendor model aliases
 
-The table above names each vendor's primary identity for a tier. A vendor's own tooling can report a session under a different name for the same tier — Codex has been observed reporting `Sol` and `Terra`, neither of which appears in the table above. A name below is a **synonym for an existing tier row, never a new tier of its own**; the gate matches on tier, not on which name the vendor happened to print.
+The table above names each vendor's primary identity for a tier. A vendor's own tooling can report a session under a different name for the same tier — Codex has been observed reporting `Sol`, `Terra`, `Luna`, and `Codex Spark`, none of which appear in the table above. A name below is a **synonym for an existing tier row, never a new tier of its own**; the gate matches on tier, not on which name the vendor happened to print.
 
 | Vendor | Reported as | Tier |
 |---|---|---|
 | Codex | `Sol` | Deep reasoning |
 | Codex | `Terra` | Implementation |
+| Codex | `Luna` | High volume |
+| Codex | `Codex Spark` | Implementation |
 
-**`xhigh` and High volume have no confirmed Codex alias yet.** A session reporting a name that matches neither the table above nor this list is a real mismatch — the gate stops on it, same as any other mismatch. Add a row here, never a new column above, when another vendor name turns up; that is what keeps the primary table one identity per vendor per tier instead of an accumulating list of historical names.
+**`xhigh` still has no confirmed Codex alias.** A session reporting a name that matches neither the table above nor this list is a real mismatch — the gate stops on it, same as any other mismatch. Add a row here, never a new column above, when another vendor name turns up; that is what keeps the primary table one identity per vendor per tier instead of an accumulating list of historical names.
 
 ### Command routing
 
