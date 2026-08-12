@@ -61,3 +61,11 @@ A clean run needs no question. Say it is clean, name what ran, and stop.
 - Do not fix a failure as part of this command. Verifying and repairing are different jobs, and doing both means the report describes a tree that no longer exists.
 - Do not re-run a gate until it passes. If a check is flaky, that is a finding — say how many runs and what varied. **A fix that only changed the odds is not a fix.**
 - Do not skip the full suite in favour of the tests you think are relevant.
+
+## Re-run
+
+Re-running this command itself (not an individual flaky gate, forbidden above) is expected —
+`/pr` calls it fresh on every pass through its gate phase. Discovery is cache-assisted
+(`tools/Test-GatesCache.ps1`, above) but the run and the report are not: every invocation
+re-runs the full discovered set and reports fresh, never reusing a prior pass's pass/fail
+verdict. A gate that passed last time is still run again, not assumed still green.

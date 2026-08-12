@@ -44,3 +44,11 @@ This command does not carry a second copy of `/pr`'s rules, or of the gate and t
 - Merge.
 - File an issue for a defect that did not reproduce.
 - Fix an adjacent defect noticed along the way. Note it, do not widen the change — the same discipline `resolve.md` and `AGENTS.md`'s *One slice at a time* already state.
+
+## Re-run
+
+Each invocation is independent — this command does not resume a prior attempt at the same
+issue, and remembers nothing between runs. Given the same issue number again: reproduce fresh
+against its current agent block, do not assume an earlier session's diagnosis still holds, and
+do not open a second bug issue or a second branch (`fix/<issue>-<slug>` already names it — if
+that branch and its PR already exist, this is `/pr`'s territory, not a fresh `/fix`).
