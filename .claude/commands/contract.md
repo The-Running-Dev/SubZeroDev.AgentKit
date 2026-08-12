@@ -40,3 +40,11 @@ Rules:
 - **Do not restate a declaration the tree already carries.** Point at it and state what it cannot say.
 - No implementation. No comments explaining intent — the design doc carries intent. File paths are permitted **only** as the pointers this section requires.
 - Anything you add here that was not implied by the design doc gets a decision-log entry.
+
+## Re-run
+
+Rewrites `design/20-contract.md` in full from the current `design/10-design.md` — there is no
+partial regeneration. A scaffold already replaced by a pointer to a materialised declaration
+(*Semantics, not shape*, above) must stay a pointer; a re-run never turns it back into a
+scaffold. `## Unresolved` only ever shrinks between runs, as signatures get resolved — an
+entry a previous run resolved must never reappear.

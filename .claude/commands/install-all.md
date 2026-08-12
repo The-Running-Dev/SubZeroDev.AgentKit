@@ -66,3 +66,11 @@ Worktree status:    <git status --short, so the user can see what to review>
 Then one summary line: how many repos ran clean, how many have at least one item needing a decision, how many were aborted by the write-surface guard, and how many were skipped outright (not a git repository, or a duplicate root already handled under another candidate).
 
 **Re-run `/install <repo>` by hand for anything listed under "needs a decision"** — that is the interactive path this command deliberately does not take on its own.
+
+## Re-run
+
+Same as `/install`, per target: each run reclassifies every artifact from scratch, so nothing
+is remembered across runs or across repositories. An artifact already reconciled in a prior
+pass reports identical and is skipped; a fork still unresolved keeps landing under "needs a
+decision" on every subsequent run until the target's own tree resolves it — this command never
+guesses at one just because it saw it before.

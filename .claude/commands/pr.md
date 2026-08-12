@@ -54,7 +54,7 @@ Not yet run — the gates run next and this section is replaced with their repor
 
 ## Phase 2 — the gates
 
-**Run `.claude/commands/verify.md` in full**, against the branch and worktree this PR points at, then replace the description's `Verified` section with its report **verbatim** — the same three lists, not a summary. Restating it from memory is the fabricated gate result that command exists to prevent.
+**Run `.claude/commands/verify.md` in full**, against the branch and worktree this PR points at, then replace the description's `Verified` section with its report **verbatim** — the same three lists, not a summary. Restating it from memory is the fabricated gate result that command exists to prevent. `/verify` validates its own `.claude/verify-report.json` before rendering it (`tools/Test-VerifyReport.ps1`); a report that fails that validation is not copied into the PR — fix the artifact and re-render first.
 
 - **Do not claim a check passed that did not run.** The did-not-run list goes into the description word for word, including the reason each entry did not run.
 - **Do not fix a failing gate here.** That prohibition belongs to `/verify` and this command does not relax it by wrapping it — a failing gate ends in a decision put to the user, not a repair (`AGENTS.md`, *Working with me*).
