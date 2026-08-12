@@ -17,3 +17,10 @@ Rules:
 - No architecture. No technology names. No solutions.
 - Do not rewrite the brief. Output the lists only.
 - If a list is empty, say so. Do not manufacture entries.
+
+## Re-run
+
+Writes nothing, so there is no state to skip or refresh — a re-run reads `design/00-brief.md`
+fresh and produces new lists from scratch. Run again after every hand-edit to the brief; a
+prior run's lists live only in that session's output and are not carried forward or treated as
+already answered.

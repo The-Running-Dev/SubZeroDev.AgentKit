@@ -108,3 +108,14 @@ In a repository this account does not own, the delegation above is unavailable: 
 - Merge. That is `/pr`'s territory and this repository's convention, not this command's.
 - Treat an outdated thread as resolved. `isOutdated` means the line moved, not that the point was answered.
 - Resolve a thread that was not classified `Defect` and addressed by the pushed fix, even if it looks like a clear win. It needs its own classification pass.
+
+## Re-run
+
+Re-running re-queries every thread from scratch (fully paginated, per *Find every thread*
+above) rather than trusting a prior run's table. `isResolved` on the re-query is authoritative:
+an already-resolved thread is not reclassified and not touched again. A thread already replied
+to under `Not sustained`, `Already decided`, or `Out of scope` is not replied to a second time
+unless its conversation changed since — check for an existing reply before adding another. An
+out-of-scope finding already filed as an issue is not filed again; link the existing issue
+instead of opening a duplicate. **Never resolve a thread twice** — a thread this command
+already resolved is not re-opened or re-resolved on a later run.

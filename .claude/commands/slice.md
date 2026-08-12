@@ -69,3 +69,14 @@ Do not:
 - Refactor adjacent code.
 - Add dependencies.
 - Edit `design/30-slices.md`, or change any invariant, non-goal, or public interface. Descriptive correction is bounded to the section above; everything else is still `/slices`', `/contract`'s, or `/reconcile`'s.
+
+## Not meant to be re-run
+
+**One slice, one session** (`AGENTS.md`, *Session boundaries*). This command does not resume
+itself — it has no notion of picking back up mid-implementation, and does not replay or trust
+what an earlier session on the same slice did from memory. If a session ends before a slice is
+done, the next invocation is a fresh `/slice` (with or without an explicit id) that re-selects
+purely from the tracker's current state — issue open or closed, which boxes are ticked — per
+*Which slice* above, and re-establishes what still fails rather than assuming the unticked
+criteria are exactly the outstanding work. A session that compacted mid-slice is not resumed
+either; report it as a mis-sized slice, per `AGENTS.md`, *Session boundaries*.

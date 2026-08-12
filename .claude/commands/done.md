@@ -58,3 +58,10 @@ Report after acting, not before — this is a summary of what happened, not a re
 - Delete a branch `--merged` does not confirm without a separate ask, even if `gh pr list` shows it merged.
 - Touch a remote branch. This command prunes local refs to already-deleted remotes; it does not delete anything on `origin` itself.
 - Discard uncommitted changes. Stashing is the only concession `-AutoStash` makes, and it is never popped automatically.
+
+## Re-run
+
+Safe to run any time a merge is on the table, including right after a prior run — every list
+(`--merged` candidates, `Refused` entries) is recomputed from the tree's current state, and
+nothing is cached between runs. A run with nothing newly merged reports an empty candidate
+list and deletes nothing; it never re-deletes a branch a prior run already removed.
