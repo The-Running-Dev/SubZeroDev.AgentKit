@@ -7,12 +7,12 @@ This file is binding for every agent session in this repo, regardless of tool or
 The design docs outrank the code. In precedence order:
 
 1. `design/00-brief.md` — problem, non-goals, definition of done
-2. `design/20-contract.md` — types, schemas, signatures, error semantics
+2. `design/20-contract.md` — invariants, error semantics, and the surface the tree cannot state
 3. `design/10-design.md` — architecture, data model, failure modes
 4. `design/30-slices.md` — work breakdown and acceptance criteria
 5. `design/90-decisions.md` — append-only decision log
 
-If the code contradicts the contract, that is a defect in one of them. **Stop and say which one you think is wrong. Do not silently reconcile.**
+If the code contradicts the contract *about meaning* — an invariant no longer held, an error raised under conditions the contract does not describe — that is a defect in one of them. **Stop and say which one you think is wrong. Do not silently reconcile.** A document merely *describing* the tree inaccurately is a different thing and is corrected on the spot; the line between them is drawn in *Hard rules*, **descriptive drift is corrected where it is found**.
 
 Lessons learned the hard way live in [`agent.md`](agent.md) — read it after this file.
 
@@ -157,6 +157,7 @@ Two distinctions that are easy to get wrong:
 - **One slice at a time.** Do not start slice N+1 because you noticed something while doing slice N. Write it to `90-decisions.md` under `## Open` instead.
 - **No new dependencies** without a decision-log entry naming the alternatives rejected and why.
 - **No new public interfaces** that are not in `20-contract.md`. If you need one, stop and ask for a contract amendment.
+- **Descriptive drift is corrected where it is found; decisions are not.** Where `design/` states a fact the tree now states differently — a declaration, a parameter list, a field name, a path, a count — that is a **transcription error**, not a fork: the implementing command corrects the document in the same commit, by named path, and reports what it corrected. No question, no decision-log entry. An **invariant, a non-goal, an acceptance criterion, or a public interface is a decision**, and those stop and escalate exactly as they always have. Two boundaries: while `design/FROZEN.md` exists **neither** is corrected — *The design freeze* wins, and the contradiction goes in the pull request instead; and this is `/slice`'s power, not `/fix`'s, because a slice implements against `design/` and therefore reads it, while a fix implements against a bug issue's agent block and has no business in `design/` at all (**I6**).
 - **Ask instead of assuming.** If two readings of the spec are both defensible, stop and present both. Do not pick one and proceed.
 - **Every slice ends runnable.** No half-wired states committed.
 
@@ -191,6 +192,7 @@ A command that refuses reports `Frozen because` and `Lifts when` **verbatim** ra
 
 - **Reference, never restate.** A rule that lives in another document is linked, not copied. Two copies of a rule is a promise they will diverge and a guarantee nobody notices which is stale.
 - **Move, never copy.** A rule has exactly one home. When it belongs somewhere else, move it and leave a reference behind.
+- **A document states only what the tree cannot.** This rule binds doc-to-code, not only doc-to-doc. A type declaration, a parameter list, a field name, a path, or a count written in `design/` *and* present in the tree is two copies — and the document's is the one that rots, because the code is executed and the prose is not. Write the why, the invariant, the failure mode, the rejected alternative. Never the shape. **The test: could a reader recover this fact by reading the tree?** If yes, point at the tree instead. This is what keeps a reconciliation a *check* rather than a rewrite — a document that restates the tree makes every pass generative by construction, which is the loop *The design freeze* exists to escape.
 - If a document genuinely must repeat something to stand on its own, name the canonical copy in the text and change both in the same commit. Naming a canonical copy is what makes the others checkable.
 - **The test for where a decision belongs:** would a second consumer face this same question? If yes it belongs in the shared document, even while only one consumer exercises it. Where it is genuinely unclear, the shared document is the safer home — a rule that turns out to be specific is easy to relax later; a rule discovered to be shared after three consumers each answered it differently is a migration.
 
