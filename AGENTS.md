@@ -60,9 +60,20 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
   ===============================
   ```
 
-  Then check the session's actual model against the required family. If it matches exactly, proceed without further comment. Any mismatch gates the same way, in either direction: **stop before doing any expensive work**, name the tier the task actually needs, and wait — do not proceed on the wrong tier unless the user explicitly overrides after seeing the mismatch. Under-powered, name the stronger model needed. Over-powered, name the lighter tier that fits — running deep reasoning against implementation-tier work is the same unbudgeted cost as running implementation-tier reasoning against a task that needed more of it, just paid in the other direction. Where the model itself can't be changed mid-session (*Division of control*, next), the override this gate waits for can also be "cap your own reasoning effort to the lighter tier and proceed" rather than a model swap.
+  Then check the session's actual model against the required family, matching against *Vendor model aliases* below when the reported name is not in the table above. If it matches exactly, proceed without further comment. Any mismatch gates the same way, in either direction: **stop before doing any expensive work**, name the tier the task actually needs, and wait — do not proceed on the wrong tier unless the user explicitly overrides after seeing the mismatch. Under-powered, name the stronger model needed. Over-powered, name the lighter tier that fits — running deep reasoning against implementation-tier work is the same unbudgeted cost as running implementation-tier reasoning against a task that needed more of it, just paid in the other direction. Where the model itself can't be changed mid-session (*Division of control*, next), the override this gate waits for can also be "cap your own reasoning effort to the lighter tier and proceed" rather than a model swap.
 
 **Division of control.** I set the session model. You set subagent models and scale your own reasoning depth. You cannot change your own session model.
+
+### Vendor model aliases
+
+The table above names each vendor's primary identity for a tier. A vendor's own tooling can report a session under a different name for the same tier — Codex has been observed reporting `Sol` and `Terra`, neither of which appears in the table above. A name below is a **synonym for an existing tier row, never a new tier of its own**; the gate matches on tier, not on which name the vendor happened to print.
+
+| Vendor | Reported as | Tier |
+|---|---|---|
+| Codex | `Sol` | Deep reasoning |
+| Codex | `Terra` | Implementation |
+
+**`xhigh` and High volume have no confirmed Codex alias yet.** A session reporting a name that matches neither the table above nor this list is a real mismatch — the gate stops on it, same as any other mismatch. Add a row here, never a new column above, when another vendor name turns up; that is what keeps the primary table one identity per vendor per tier instead of an accumulating list of historical names.
 
 ### Command routing
 
