@@ -50,3 +50,12 @@ For each: which direction you recommend — the code changing to match the doc, 
 If a section found nothing, say "none" and move on. Do not manufacture a fork to have something to ask about.
 
 Once I have decided, apply the edits and append the decision-log entries. Nothing else.
+
+## Re-run
+
+Every run re-derives every section from the tree and `design/` as they currently stand —
+nothing from a prior pass is cached or assumed still true, and every section is checked again
+even where a previous run said "none." A divergence already decided and applied should not
+reappear as a fresh question; if it does, that is drift in what got applied, not a re-ask, and
+is itself a finding worth naming. A decision I already made and recorded in `90-decisions.md`
+is not relitigated (`AGENTS.md`, *Budget discipline*).
