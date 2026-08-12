@@ -4,7 +4,7 @@ description: Discover this repository's gates, run them, and report honestly wha
 
 Run the checks this repository actually has, and report the result without softening it.
 
-**`/pr` runs this as its gate phase**, against the branch and worktree its pull request points at, and writes the report below into that PR's `Verified` section **verbatim** — the same three lists, not a summary. This file owns the procedure; `/pr` owns only where the sequence sits. Invoked on its own, it does the same discovery and the same three lists against whatever tree is checked out, and writes to no pull request.
+**`/pr` runs this as its gate phase**, against the branch and worktree its pull request points at, and writes the report below into that PR's `Verified` section **verbatim** — the same three lists, not a summary, rendered from a `.claude/verify-report.json` that `tools/Test-VerifyReport.ps1` has validated (see *Report*). This file owns the procedure; `/pr` owns only where the sequence sits. Invoked on its own, it does the same discovery and the same three lists against whatever tree is checked out, and writes to no pull request.
 
 **The point of this command is the second half of its report — what did *not* run.** Silence is not success, and a gate that could not run is the most likely place a false "everything passes" comes from.
 
@@ -67,7 +67,9 @@ Common shapes, none of them assumed:
 
 ## Report
 
-Three lists. All three are required, and the second is the one that matters.
+**Write the result as a structured artifact first, never the prose directly.** Same pattern as `Test-DesignDrift.ps1` (`AGENTS.md`, "structured artifact plus deterministic validator"): this command writes `.claude/verify-report.json` — one entry per discovered gate, `{"name", "status", "detail"|"reason"}` with `status` one of `Passed` / `Failed` / `DidNotRun` — and never edits a PR body or any other visible surface directly. Then run `tools/Test-VerifyReport.ps1` against it. `Valid` (exit 0) means every gate has exactly one outcome, every `Failed` gate carries real detail, and every `DidNotRun` gate carries a reason — render the three lists below from the artifact and proceed. `Invalid` or `NotEvaluated` (exit 1 or 2) means the report itself is malformed — fix the artifact, not the prose, and do not render or hand off a report that failed validation.
+
+Three lists, rendered from the validated artifact. All three are required, and the second is the one that matters.
 
 ```
 Ran and passed:   <gate> — <what it covered>
@@ -79,7 +81,7 @@ Did not run:      <gate> — <why: tool missing, Docker down, no such script>
   point of discovering gates by flag instead of by looking: a flagged step cannot be
   silently absent from the report the way a gate nobody thought to search for could be.
   Cross-check the list you are about to write against the flags you found before finishing.
-- **Quote failures.** Paste the failing output. A summary of a failure is a claim about a failure.
+- **Quote failures.** Paste the failing output into the artifact's `detail` field. A summary of a failure is a claim about a failure — `Test-VerifyReport.ps1` rejects a `detail` too short to plausibly be pasted output.
 - **Never write "all checks pass"** unless every discovered gate is in the first list. If anything is in the third list, the honest sentence names it: *"the three that ran passed; the documentation build did not run because Docker is unavailable."*
 - **A gate that cannot run locally is not a gate you may report on.** Say so, and say that the corresponding CI check on the pull request is where the answer will come from.
 - If CI runs a check you could not reproduce locally at all, name it explicitly rather than leaving it out.
