@@ -89,3 +89,10 @@ For something short-lived, the honest minimum is `00-brief.md` with real non-goa
 - **Where it needs a fresh session, say so as the banner defined in `AGENTS.md`, *Session boundaries*** — set off visibly, not folded into the same sentence as the orientation line. This is the one command whose entire job is telling the user what's next, so it is the last place that banner should be easy to miss.
 - **Do not run the next command.** This orients; it does not act. Ending a session may be the next step, and a command that starts work cannot tell the user to start a new session for it.
 - **Do not invent a step, a stage, or a tier.** If something here does not cover the situation, say so — an invented step in a help command is the one that gets followed.
+
+## Re-run
+
+Stateless and safe to run any time, including back to back. It writes nothing and remembers
+nothing between runs — every orientation is re-derived from `design/`, the current branch, and
+the tracker as they stand at the moment it runs, so the answer can legitimately change between
+two calls in the same conversation if something else moved the tree in between.
