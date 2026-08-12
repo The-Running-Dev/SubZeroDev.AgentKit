@@ -122,6 +122,10 @@ function Invoke-GitRaw {
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
     $psi.UseShellExecute = $false
+    # Without this, .NET picks the OS's OEM code page (e.g. ibm437) instead of the UTF-8
+    # git actually writes, so any non-ASCII byte (an em dash, for example) decodes to the
+    # wrong character and every comparison below reports a false divergence.
+    $psi.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
     $proc = [System.Diagnostics.Process]::Start($psi)
     $stdout = $proc.StandardOutput.ReadToEnd()
     $proc.StandardError.ReadToEnd() | Out-Null
@@ -233,7 +237,14 @@ foreach ($relPath in ($scopePaths | Sort-Object)) {
     $targetExists = Test-Path -LiteralPath $targetPath
     $targetContent = if ($targetExists) { Get-Content -LiteralPath $targetPath -Raw } else { $null }
 
-    $targetMatchesRecorded = ($targetExists -eq $recordedExists) -and ($targetContent -ceq $recordedContent)
+    # $targetContent preserves whatever line endings are on disk (CRLF under
+    # core.autocrlf=true); $recordedContent is the git blob, normally LF-only. Normalise
+    # both before comparing so a target that never touched the file's content - just
+    # checked it out with CRLF - isn't reported as a local edit.
+    $targetContentNormalized = if ($null -ne $targetContent) { $targetContent -replace "`r`n", "`n" } else { $targetContent }
+    $recordedContentNormalized = if ($null -ne $recordedContent) { $recordedContent -replace "`r`n", "`n" } else { $recordedContent }
+
+    $targetMatchesRecorded = ($targetExists -eq $recordedExists) -and ($targetContentNormalized -ceq $recordedContentNormalized)
 
     if (-not $targetMatchesRecorded) {
         if (-not $recordedExists -and $targetExists) {
