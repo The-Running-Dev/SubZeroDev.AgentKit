@@ -3,6 +3,13 @@ description: Triage a pull request's review comments, fix what is valid, and res
 argument-hint: [pr number]
 ---
 
+<!-- companion:start -->
+**Per-repo companion:** `.claude/commands/resolve-local.md`. Read it now, if it exists — an absent,
+empty, or frontmatter-only file is no companion, and this file then stands alone.
+It may override: `vocabulary`, `tightened-authorization`. It may never override anything in
+[`.claude/COMPANIONS.md`](../COMPANIONS.md) § *Never*, which is also where these categories are defined.
+<!-- companion:end -->
+
 Work the review comments on pull request **$1** — the current branch's PR if no number is given.
 
 **`/pr` runs this as its final phase**, once review has landed on the pull request it took to merge-ready. This file owns the procedure — the query, the classes, the order of operations; `/pr` owns only where the sequence sits. Invoked on its own, it does exactly the same thing against any pull request named.

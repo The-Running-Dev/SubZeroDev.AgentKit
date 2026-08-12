@@ -33,3 +33,10 @@ jobs:
           Import-Module Pester -MinimumVersion 5.0
           $result = Invoke-Pester -Path tools -Output Detailed -PassThru
           if ($result.FailedCount -gt 0) { exit 1 }
+
+      # verification: true
+      # Exit 2 (NotEvaluated) fails this step as well as exit 1 - .claude/COMPANIONS.md
+      # going missing means nothing was checked, which must not read as a pass.
+      - name: Validate the core/companion split
+        shell: pwsh
+        run: ./tools/Test-Companion.ps1 | Out-Null
