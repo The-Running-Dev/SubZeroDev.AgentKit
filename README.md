@@ -9,10 +9,13 @@ AGENTS.md                     binding contract, read by Codex
 CLAUDE.md                     pointer to AGENTS.md, read by Claude Code
 agent.md                      lessons learned the hard way
 INSTALL.md                    how the kit installs into a repo
-.claude/commands/*.md         slash commands
+.claude/commands/*.md         slash commands. Cores — the kit owns these outright
+.claude/commands/*-local.md   optional per-repo companions. The target owns these
+.claude/COMPANIONS.md         what a companion may and may not override
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
 tools/Measure-Session.ps1     what a session actually cost, from the transcript
 tools/Test-DesignDrift.ps1    criterion-id and commit-pin drift, doc against tracker
+tools/Test-Companion.ps1      validates the core/companion split
 codex/PROFILES.md             Codex profile definitions
 templates/design/*.md         seed copied into a target's design/
 design/                       the kit's own design. Never installed
@@ -28,6 +31,8 @@ design/                       the kit's own design. Never installed
 Work in this repo and say **"run this against `<path>`"**, or `/install <path>`. It works from the target end too, pointed back at the kit. Either way the agent reads [`INSTALL.md`](INSTALL.md) and follows it.
 
 Installing is a **reconciliation, not a copy**. A repository that already has agent instructions has them for a reason, usually a better-informed one than this kit's defaults. The installer classifies every artifact as absent, identical, divergent, or occupied; proposes a resolution for each; and stops for sign-off before writing. Re-running it upgrades, with the target winning wherever it has since been edited.
+
+**Command files are outside that, on purpose.** Each one ships as a **core** the consuming repository never edits, optionally paired with a **companion** at `.claude/commands/<name>-local.md` that the repository owns entirely. The core names which categories its companion may override — vocabulary, document map, extra steps, gate commands, a tightened authorization — and [`.claude/COMPANIONS.md`](.claude/COMPANIONS.md) holds the vocabulary and the never-list. A core installs outright, with no reconciliation pass at all; a companion is never read, written, or deleted by any automated path. `tools/Test-Companion.ps1` checks the split holds.
 
 `/install-all` runs the same reconciliation unattended, across every `SubZeroDev.*` sibling repository in one pass. It applies only the resolutions `INSTALL.md` already states as deterministic; anything that would otherwise stop for sign-off is skipped per repository and reported as needing a decision, not guessed.
 
