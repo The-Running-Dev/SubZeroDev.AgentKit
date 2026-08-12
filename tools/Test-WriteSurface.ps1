@@ -73,6 +73,7 @@ function Get-DefaultAllowedPrefixes {
         '.github/ISSUE_TEMPLATE/'
         'codex/PROFILES.md'
         '.claude/kit.json'
+        '.claude/COMPANIONS.md'
     )
 }
 

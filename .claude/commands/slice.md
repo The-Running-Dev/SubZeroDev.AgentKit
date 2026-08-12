@@ -3,6 +3,13 @@ description: Implement one slice. Usage - /slice S3, or /slice for the next one
 argument-hint: [slice id, omit for the next]
 ---
 
+<!-- companion:start -->
+**Per-repo companion:** `.claude/commands/slice-local.md`. Read it now, if it exists — an absent,
+empty, or frontmatter-only file is no companion, and this file then stands alone.
+It may override: `vocabulary`, `document-map`, `extra-steps`, `gate-commands`. It may never override anything in
+[`.claude/COMPANIONS.md`](../COMPANIONS.md) § *Never*, which is also where these categories are defined.
+<!-- companion:end -->
+
 Implement one slice from `design/30-slices.md`. The slice is **$1**, where that names one. Where it is empty — or, invoked outside Claude Code, still the literal `$1` — select it as below first.
 
 ## Which slice

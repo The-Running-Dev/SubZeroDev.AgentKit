@@ -3,6 +3,13 @@ description: Turn a rough ask into a prompt carrying this repository's binding c
 argument-hint: <rough ask>
 ---
 
+<!-- companion:start -->
+**Per-repo companion:** `.claude/commands/refine-local.md`. Read it now, if it exists — an absent,
+empty, or frontmatter-only file is no companion, and this file then stands alone.
+It may override: `vocabulary`, `document-map`. It may never override anything in
+[`.claude/COMPANIONS.md`](../COMPANIONS.md) § *Never*, which is also where these categories are defined.
+<!-- companion:end -->
+
 Turn **$ARGUMENTS** into a prompt that carries the constraints this repository actually binds an agent to.
 
 The value here is not better wording. It is that you do not have to remember which decision, non-goal, or lesson applies before you ask for something. Generic prompt refinement is available elsewhere and is not what this is for.

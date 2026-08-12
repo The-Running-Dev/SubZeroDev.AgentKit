@@ -2,6 +2,13 @@
 description: Discover this repository's gates, run them, and report honestly what did and did not run
 ---
 
+<!-- companion:start -->
+**Per-repo companion:** `.claude/commands/verify-local.md`. Read it now, if it exists — an absent,
+empty, or frontmatter-only file is no companion, and this file then stands alone.
+It may override: `vocabulary`, `extra-steps`, `gate-commands`. It may never override anything in
+[`.claude/COMPANIONS.md`](../COMPANIONS.md) § *Never*, which is also where these categories are defined.
+<!-- companion:end -->
+
 Run the checks this repository actually has, and report the result without softening it.
 
 **`/pr` runs this as its gate phase**, against the branch and worktree its pull request points at, and writes the report below into that PR's `Verified` section **verbatim** — the same three lists, not a summary, rendered from a `.claude/verify-report.json` that `tools/Test-VerifyReport.ps1` has validated (see *Report*). This file owns the procedure; `/pr` owns only where the sequence sits. Invoked on its own, it does the same discovery and the same three lists against whatever tree is checked out, and writes to no pull request.
