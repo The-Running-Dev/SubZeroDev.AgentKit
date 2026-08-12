@@ -32,3 +32,10 @@ The file opens with:
 - You would have to invent behaviour to make the guide read coherently.
 
 Report what you cut, and anything the design left ambiguous.
+
+## Re-run
+
+Overwrites the guide in full from the current design docs — there is no partial regeneration
+and no diffing against the previous version. Re-run whenever `design/` changes underneath it;
+`/reconcile`'s *Generated-guide drift* is what notices when a stale copy was never
+regenerated, not this command noticing its own staleness.
