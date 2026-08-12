@@ -39,3 +39,11 @@ Rules:
 - No slice may introduce a signature absent from the contract.
 
 Write the document only. **Do not open issues** — that is `/track`'s job (`AGENTS.md`, *Tracking work*). Say that it should be run next.
+
+## Re-run
+
+A re-run only appends new slices under `## Outstanding` (`design/30-slices.md`, *How this
+document is kept*) — it never rewrites `## Landed`, and never renumbers or reuses a retired
+id, even for a slice that never got an issue. Resizing or splitting a slice that already has an
+open issue desyncs that issue's criteria; that drift is `/track`'s to report against the
+tracker, not this command's to avoid by refusing to ever re-run.

@@ -93,3 +93,10 @@ Halt and say so rather than refining:
 - Never widen the ask. A vague request becomes precise, not larger.
 - Never write to `design/`, to `agent.md`, or to the tracker. This command emits text and nothing else.
 - Never emit more than about fifteen lines. A prompt long enough to need skimming has reproduced the problem it was meant to solve.
+
+## Re-run
+
+Stateless — nothing it emits is stored, so a re-run on the same ask re-derives the prompt from
+`AGENTS.md`, `design/`, and `agent.md` as they stand now, not from a remembered prior emission.
+A constraint lifted since the last run drops out of `Binding`; one added since shows up. It
+never treats a prior refinement of the same ask as already answered.
