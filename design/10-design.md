@@ -1,281 +1,489 @@
-# Design — the defect-to-merge path
+# Design — explicit design state
 
-> **Scope warning, read before treating this as authoritative.** This document describes
-> **one path through the kit**: taking a defect from report to a merge-ready pull request.
-> It is not a design of the AgentKit as a whole. `design/00-brief.md` was
-> written on 2026-08-19, but it states a different problem — making design state explicit —
-> so there is still no whole-repository design for this to sit inside. `/redteam`,
-> `/contract` and `/reconcile` read this file as authoritative — they should read it as
-> authoritative **for this path only**, and treat every other part of the kit as designed in
-> `design/90-decisions.md`, which is where every other command was decided.
+> **Scope.** This designs the mechanism `design/00-brief.md` asks for: a representation of
+> current design state that is retrieved rather than reconstructed, and an agreement check
+> that is arithmetic rather than reasoning. It does **not** redesign the kit's twenty-one
+> commands — those were decided in `design/90-decisions.md` and stay there. What changes for
+> them is stated below as a boundary condition, not as a redesign.
+>
+> **This file previously held the design of the defect-to-merge path** (`/fix`,
+> `Wait-PullRequestCheck.ps1`, the authorization batch). That path landed as S1–S3; its
+> contract stands in `design/20-contract.md` and its body is recoverable at
+> `git show dfd1cab:design/10-design.md`, the same retirement convention
+> `design/30-slices.md` uses for a landed slice.
 
-The path already exists in pieces. `/verify` runs the gates and reports what did not run,
-`/resolve` classifies and resolves review threads, `/pr` writes the description and defers
-the merge. What has no owner is the entry point for a defect that is **not** a slice and
-**not** already a review thread, the wait for checks on a named head SHA, and the
-authorization shape that lets one approval cover push, pull request, and resolution.
+The brief's problem is one sentence long: establishing what the design *currently is* costs a
+semantic reconstruction, and reconstruction is generative, so it never converges. Everything
+below follows from two commitments that answer that sentence directly.
+
+**Current state is a fact with an address, not a conclusion drawn from prose.** A session
+that needs to know what is true about `/track` reads the record for `/track`. It does not
+read the corpus and decide.
+
+**No generated prose is ever an input.** Facts flow one way — records into rendered regions —
+and never back. This is what gives the system a fixed point, and it is the property most
+easily lost later, so it is stated first and enforced in *Module boundaries*.
 
 ## Data model
 
-Nothing here is persisted. Every entity lives in one session, and that is the design
-rather than an omission — persisting a classification or an approval across sessions is
-what would make a stale one usable.
+Six entity kinds. Every one is persisted as text in the tree; nothing is cached, indexed, or
+built. There is no state directory to rebuild before a question can be asked, which is the
+brief's *no round-trip* non-goal expressed structurally rather than as a promise.
 
-### Defect
+### Unit
 
-The unit of work. Distinct from a slice: it has no contract signature, no `Done when`
-criteria, and no entry in `design/30-slices.md`.
-
-| Field | Type | Notes |
-|---|---|---|
-| `Source` | `Issue` \| `ReviewThread` \| `Description` \| `FailingTest` | Determines the entry path below |
-| `IssueNumber` | integer | Given for `Issue`; **filed by `/fix` after reproducing** otherwise |
-| `Reproduction` | evidence, required | **Derived by running something**, never by reading code |
-| `Branch` | string | Derived: `fix/<issue>-<slug>` |
-
-`Reproduction` is a required field and the one with teeth. A defect whose claim has not
-been reproduced is a *claim*, and `/resolve` already forbids changing code to satisfy one
-(*Not sustained*). The same rule applies when the claim arrives as an issue rather than a
-bot comment.
-
-`IssueNumber` is **not** nullable by the time a fix is written, and that is the load-bearing
-decision in this model. `.github/ISSUE_TEMPLATE/bug.md` states that a bug issue *is* the
-specification — a bug has no design document behind it, so its agent block carries the
-constraints rather than pointing at them. A defect with no issue therefore has no authority
-document, and the only alternative is for `fix.md` to carry a second copy of those
-constraints. So the description path files one, and both paths converge on the same shape
-before any code is touched.
-
-The ordering matters as much as the rule: the issue is filed **after** reproduction, so its
-`Reproduce` section is something that was run rather than something that was claimed. A
-defect that cannot be reproduced never becomes an issue at all — the template calls that a
-diagnosis task rather than an implementation one, and filing it as a bug would mislabel it.
-
-### ReviewThread
-
-Read from the GitHub GraphQL `reviewThreads` connection. Identity is the `PRRT_` node id.
+The addressable thing design state is *about*. Four kinds, and they are the kinds the tree
+already has: **command**, **script**, **document**, **invariant**. No new decomposition.
 
 | Field | Type | Notes |
 |---|---|---|
-| `Id` | string | `PRRT_…` |
-| `IsResolved` | bool | |
-| `IsOutdated` | bool | **The line moved. Not an answer.** |
-| `Path`, `Line` | string, integer | |
-| `Comments` | list | Paginated — see *Failure modes* |
-| `Class` | `ThreadClass` | **Derived, in-session.** Semantics owned by `.claude/commands/resolve.md` |
+| `Id` | stable string | Assigned once. **Never reused, never renumbered** — the criterion-id precedent in `AGENTS.md` (*Tracking work*) applies to every id in this system |
+| `Kind` | command \| script \| document \| invariant | |
+| `Anchor` | tree path, or an invariant number | A **checked** restatement, not a copy — see *Every restatement is either forbidden or checked* below |
+| `Owns` | one sentence | What this unit is responsible for. The only free prose in the record and deliberately capped |
+| `Consumes`, `Exposes` | contract ids | |
+| `Binds` | invariant ids | |
+| `Live` | decision ids | Decisions whose claim is currently in force here |
+| `Archival` | decision ids + dates | Superseded. Present so the history is reachable, **excluded from the orientation closure** |
+| `Questions` | question ids | |
+| `Work` | issue numbers | The tracker binding |
+| `Evidence` | tree pointers | A test or a code path that demonstrates the unit does what the record says |
 
-### CheckRun
+**Lifecycle.** A record is created when its artifact appears and is **retired, never deleted**
+— a deleted command whose record vanished would leave every decision that cited it dangling,
+and dangling is the one thing this system is built to make impossible. Retirement keeps the
+id resolvable and marks it inactive.
+
+**Identity is the `Id`, not the path.** A renamed command keeps its record; the `Anchor`
+moves. This is the difference between an address and a name, and getting it the other way
+round is what makes a rename a corpus-wide edit.
+
+### Contract
+
+A named surface one unit exposes and others consume.
 
 | Field | Type | Notes |
 |---|---|---|
-| `Name` | string | |
-| `Bucket` | terminal or non-terminal | Unknown buckets are non-terminal — see *Failure modes* |
-| `HeadSha` | string | **Part of the identity, not an attribute** |
+| `Id` | stable string | |
+| `Owner` | unit id | Exactly one. A contract with two owners is a defect in the split, not a feature |
+| `Declaration` | tree pointer, or `prose` | Where the *shape* is declared. `prose` only for a Markdown command surface, which has no declaration to point at |
+| `Semantics` | prose | **What the declaration cannot say** — when a field is meaningful, what must never be normalised, which parameter must not acquire a default. `AGENTS.md`, *Single ownership*, unchanged and now mechanically addressable |
+| `Consumers` | — | **Derived.** Never written |
 
-A check result without the SHA it ran against is not a fact about anything. Every rule in
-`/resolve` and `/pr` that says "green" means "green on this SHA", and this model makes the
-SHA impossible to drop.
+### Invariant
 
-### AuthorizationBatch
-
-The new entity, and the reason this design needs a decision entry rather than just a
-command file. It exists only in the conversation.
+Extraction, not invention: `design/20-contract.md` already distinguishes the invariants
+enforced by code from those enforced by instruction, and already says only the first kind may
+be trusted without checking. That distinction becomes a field.
 
 | Field | Type | Notes |
 |---|---|---|
-| `Actions` | enumerated set | Exactly what was named when the approval was requested |
-| `ThreadIds` | list of `PRRT_…` | **Enumerated at grant time.** May be empty |
-| `PullRequest` | integer, nullable | Null when the batch will open one |
-| `Granted` | bool | |
+| `Id` | `I<n>` | The existing thirteen keep their numbers |
+| `Statement` | one sentence | |
+| `Owner` | unit id | |
+| `Enforcement` | `code` \| `instruction` | |
+| `Evidence` | tree pointer | **Required when `Enforcement` is `code`**, and its absence is a finding. An invariant claimed to be mechanically enforced with nothing pointing at the mechanism is the claim this field exists to stop |
+| `BoundBy` | — | **Derived.** Never written |
 
-Two invariants make this a specific approval rather than a standing one, and both are the
-whole point:
+### Decision
 
-- **`ThreadIds` is fixed at grant time.** A thread discovered after the approval — which is
-  the normal case, since pushing triggers a fresh bot review — is not in the batch.
-- **The batch does not survive the response that acts on it.** It is not a session-level
-  permission.
+The extraction the brief asks for, and the part most likely to be misread as a duplicate of
+the log, so the distinction is stated rather than implied.
+
+**A log entry records what was decided on a date. A decision record records what is true
+now.** The entry never changes when its decision is superseded; the record does. They are a
+fact and its history, not two copies of one fact — which is why extraction does not violate
+*Single ownership*, and why the log stays append-only and untouched.
+
+| Field | Type | Notes |
+|---|---|---|
+| `Id` | stable string | |
+| `Date` | date | Not an identity — the log has several entries per date |
+| `Anchor` | the log heading it binds to | Must resolve to **exactly one** heading. Zero or two is a finding |
+| `Status` | `accepted` \| `superseded` | |
+| `SupersededBy` | decision id | Required when `Status` is `superseded`. The log's existing `Amends:` line is the prose ancestor of this field |
+| `Claim` | short prose | The standing claim, and **the only thing a session reads instead of the entry**. Capped by the orientation budget, which is what keeps it a claim rather than a summary |
+| `Affects` | unit ids | |
+
+**The rejected alternatives stay in the log and are not extracted.** They are the reason the
+log exists (`AGENTS.md`, *Decision logging*) and they are read when relitigating a choice, not
+when orienting. Pulling them into the state layer would put the largest and least-consulted
+half of the corpus back inside the per-unit budget.
+
+### Question
+
+| Field | Type | Notes |
+|---|---|---|
+| `Id`, `Text` | | |
+| `Status` | `open` \| `answered` | |
+| `AnsweredBy` | decision or invariant id | Required when `answered` |
+| `Affects` | unit ids | |
+
+The `## Open` staging area in `design/90-decisions.md` keeps its existing job — a to-do bound
+for the tracker. A *question* is the other thing that section currently absorbs: something
+undecided that blocks reasoning about a unit. Separating them is what makes "unresolved
+questions affecting this unit" answerable at all.
+
+### WorkRef
+
+**GitHub is the authority for a slice's acceptance criteria, its completion, and its order.**
+No file in the repository is. What the checkout carries is a `WorkRef` — a mirror, generated,
+explicitly not authoritative, and stale by default.
+
+| Field | Type | Notes |
+|---|---|---|
+| `Issue` | integer | The binding. Authoritative |
+| `Title`, `State`, `Criteria`, `Rank` | | **Mirrored.** Every one of these is a copy of a tracker fact and may be stale |
+| `MirroredAt` | commit sha | When the mirror was last generated |
+
+**Authority transfers at issue creation.** Before an issue exists, `/slices` output is a
+*proposal*, not criteria — a slice has no acceptance criteria until it has an issue. That
+sequencing is what lets "no file is the authority" and "`/slices` drafts criteria" both be
+true, and it is the only reading under which the brief's two work-state lines do not
+contradict each other.
+
+`Rank` degrades rather than failing: a project field where a project exists, otherwise
+milestone then issue number. `/track` "adds issues to an existing project, and never creates
+one" (`design/90-decisions.md`, 2026-08-03), so a repository with no project must still
+produce an order, and an order that silently disappeared would break the offline criterion
+without saying so.
+
+### Marked region
+
+Not a record — a structure inside a prose document. An opening marker naming **which
+projection of which source** it renders, a body, a closing marker.
+
+This **generalises the existing agent-fence rule** rather than replacing it. `AGENTS.md`
+(*Tracking work*) already says an issue's `<!-- agent:start -->` block is regenerable and
+everything outside it is not; that rule becomes the general one, stated once, and the issue
+block becomes an instance of it. Every command that currently restates it points at it
+instead.
+
+A region's identity is (document, projection id) and must be unique within the document.
+Nested or unbalanced markers are a finding, not a parse failure to route around.
+
+### Derived, and where derived facts may appear
+
+Reverse edges are **derived and never written**: which units an invariant binds, which units
+consume a contract, which units a decision affects in the other direction. Writing them would
+create the second copy that rots.
+
+They still have to be *readable* — "which units does I3 bind" is a question a human offline
+must be able to answer. So they appear exactly one way: as a **projection into a marked
+region**. Generated, checked, one-directional. This is the whole reason the marked-region
+mechanism carries its weight rather than being a documentation nicety.
+
+### Every restatement is either forbidden or checked
+
+The governing rule, and the honest generalisation of `AGENTS.md`'s *a document states only
+what the tree cannot*.
+
+A record's `Anchor`, a contract's `Declaration`, an invariant's `Evidence` and a decision's
+`Anchor` are all restatements of something in the tree or the log. They are permitted
+**because each one is a reference whose resolution is mechanically checked** — the path
+exists, the heading resolves to exactly one entry, the test is present. A restatement with no
+check is forbidden; a restatement with a check is a binding. Every blocking divergence class
+in *Control flow* is an instance of this rule.
+
+### The orientation closure
+
+The brief's 16,384-byte ceiling is only checkable if "the state loaded to begin work" is a
+*defined set*. It is:
+
+> **closure(U) = record(U), plus the record of every id `record(U)` names directly, excluding
+> `Archival`.** One hop. Not transitive.
+
+Three consequences, all load-bearing:
+
+- **One hop is the line between orienting and investigating.** Following a decision's claim
+  to the units it also affects is pursuing a question, not starting work. An unbounded closure
+  reaches everything, because decisions bind many units, and the budget would be unmeetable
+  by construction.
+- **Archival exclusion is what makes a fixed ceiling survivable against a monotonic corpus.**
+  The brief records the log as append-only and growing at roughly two design commits a day.
+  Closure size therefore grows with a unit's *live* decisions, not with all decisions ever
+  made about it, and superseding a decision *shrinks* the closure. Without this the ceiling
+  is a countdown.
+- **The measurement must equal what is actually read**, so each record is separately
+  openable and the closure is a sum of whole records. A representation where records share a
+  file would make the metric understate the load, because a reader opens the file. This is
+  the one place the design constrains storage granularity, and *Alternatives considered*
+  records why.
+
+The largest closure is **named by the checker, not predicted here**. `/track` and the
+document units are the plausible candidates and neither is worth asserting without the
+measurement.
+
+### Persisted versus in-memory
+
+Persisted: every record, every marked region, every projection. In-memory and never written:
+the parsed graph, all derived edges, closure sizes, the check result, and the live half of
+any tracker comparison. **No cache and no index**, so there is nothing that must be current
+before a question can be asked and nothing that can be current-looking and wrong.
 
 ## Module boundaries
 
 | Module | Owns | Depends on | Exposes |
 |---|---|---|---|
-| `tools/Wait-PullRequestCheck.ps1` | Polling checks to a terminal state against a named SHA | `gh` | Exit code, one report object |
-| `AGENTS.md` *Git and delivery* | The `AuthorizationBatch` policy | nothing | The rule the commands cite |
-| `.claude/commands/resolve.md` | Thread classification and resolution | the waiter, the policy | — |
-| `.github/ISSUE_TEMPLATE/bug.md` | A defect's constraints, as its agent block | nothing | The specification `/fix` implements against |
-| `.claude/commands/fix.md` | The defect entry point | the template, the policy, `/verify`, `/pr`, `/resolve` | — |
+| The state set | Every record. The facts | nothing | Text, readable unaided |
+| The reader | The record grammar, and the rule that **no line is silently skipped** | the state set | A parsed graph, or a parse failure naming the line |
+| The graph validator | Reference and existence classes | the reader | Findings |
+| The projector | Rendering one projection from records | the reader | Text |
+| The projection checker | Comparing a rendered region against the tree's copy | the projector, the tree | Findings |
+| The budget meter | Closure computation and the ceiling | the reader | Findings, and the largest unit by name |
+| The mirror generator | Refreshing `WorkRef` mirrors | `gh`, the reader | Written mirrors. **`/track`'s alone** |
+| The divergence checker | The closed class list, the freeze gate, the three-list report | validator, projection checker, budget meter, `design/FROZEN.md` | Three lists and an exit code |
+| `AGENTS.md` | The marked-region rule; the freeze rule | nothing | The rule every command cites |
+| `design/20-contract.md` | The class ids and each one's blocking status | nothing | The list CI is judged against |
 
-Dependency direction is `fix.md → {bug.md, resolve.md}`, `resolve.md → {waiter,
-AGENTS.md}`, and `pr.md → waiter`. Acyclic, and it stays acyclic on one condition worth
-stating because it is easy to violate later: **`resolve.md` must never reference
-`fix.md`.** A defect found during review is fixed in place by `/resolve`, exactly as
-today; it does not hand off to `/fix`.
+Direction: `state set → reader → {validator, projector, meter} → checker → {CI, commands}`.
+The projector writes into documents; nothing reads a generated region back. **Acyclic**, and
+the acyclicity rests on that one condition — a projection consumed as an input closes the
+loop and restores the generative pass this design exists to remove.
 
-`bug.md` is a dependency and not merely a template. It already declares itself the home for
-a bug's constraints, so it sits in this graph the way `20-contract.md` sits under a slice —
-`fix.md` reads it and obeys it rather than restating it.
+**The mechanism is inside its own subject matter, and that is data, not a cycle.** The checker
+is a `tools/` script, so it is a unit with a record, which the checker validates. The class
+list lives in a document, which is a unit, which the checker validates. No module depends on
+its own output; the self-reference is that the state set describes the tree it is checked
+against, which is the point. It is also why one blocking class compares the checker's declared
+class ids against the contract document's list — the one restatement the system cannot check
+by any other means.
 
-`/verify` is depended on by name and is **not modified**. It discovers gates and reports
-three lists; nothing in this path improves on that, and the temptation to inline "run
-typecheck, lint, test" — which is what the source specification did — is the
-`Single ownership` failure this design exists to avoid.
+**Two boundary conditions the rest of the kit imposes.**
+
+`tools/*.ps1` is installed into targets (`INSTALL.md`, phase 1) and the kit's own `design/`
+never is. So the checker ships to eighteen repositories that have no state set. It must
+therefore report **could not evaluate** on an absent state set — never clean. Zero records is
+the same shape as I8's zero checks configured: absence of a finding is not a finding of
+absence, and a target must not be told its design state agrees with anything.
+
+Every command this design touches must **degrade to today's behaviour when the state set is
+absent**. That, not a version check, is what makes the brief's zero-hard-stops promise
+mechanical rather than aspirational.
 
 ## Control flow
 
-### Path A — a defect reported outside a pull request
+### Orient — a session begins work on one unit
 
-Triggered by `/fix`, from an issue number or a description.
+The payoff path, and the one the brief's cost criterion measures.
 
-1. **Reproduce**, in the working tree. A failing test that fails for the stated reason.
-   Refuse if the tree is dirty with work that is not this defect's (`AGENTS.md` *Safe
-   start*). If it cannot be reproduced, stop and report it as a diagnosis task — no issue,
-   no branch, no code touched.
-2. **Establish the authority document.** On the issue path it already exists. On the
-   description path, file one now from `.github/ISSUE_TEMPLATE/bug.md`, with step 1's
-   evidence as its `Reproduce` section. From here both paths are identical, and everything
-   after this obeys that issue's agent block.
-3. **Branch** `fix/<issue>-<slug>` from the default branch, carrying the reproduction with
-   it. The branch cannot be named before step 2, which is why it is not step 1.
-4. Fix. Smallest correct change, no adjacent tidying. Never on the default branch.
-5. `/verify` — discover and run the gates, keep the did-not-run list.
-6. Commit by named path.
-7. **Ask.** The batch here names two actions: push, and open a pull request. `ThreadIds`
-   is empty because there are none.
-8. Push. Open the pull request as a draft, closing the issue from step 2; `/pr` writes the
-   description and asks separately before marking it ready. That second ask is unchanged
-   and stays outside the batch.
-9. Wait for checks on the pushed SHA.
-10. Report. Merge is `/pr`'s and the user's.
+1. Resolve the unit by name to its record.
+2. Read the closure: the record, plus one hop.
+3. Begin. **No corpus read, no reconstruction, and `design/90-decisions.md` is not opened.**
 
-### Path B — a defect raised as a review thread
+What makes this different from reading a well-organised document is not the reading — it is
+that step 1 is a lookup with one answer. Today the same step is a judgement about which parts
+of 216 KB are still true.
 
-Triggered by `/resolve` on an existing pull request. The change to the existing flow is
-step 1 moving ahead of the approval.
+### Record — a decision is made
 
-1. Fetch every thread, paginated. Classify all of them. Present the table.
-2. Fix the `Defect` threads. File issues for `Out of scope`; reply to `Not sustained` and
-   `Already decided`; bring `Ambiguous` back one at a time.
-3. `/verify`.
-4. Commit.
-5. **Ask.** The batch names three actions — push, update the pull request, and resolve —
-   and enumerates the specific `PRRT_` ids the fix satisfies.
-6. Push.
-7. Wait for checks on the new head SHA.
-8. Resolve **only** the enumerated ids, and only if the checks passed.
-9. Report, including threads left open and why.
+1. Append the entry to `design/90-decisions.md`, in the existing format, unchanged. Nothing
+   already there is touched.
+2. Write the decision record: anchor, status, claim, affected units.
+3. Update the affected unit records — usually moving one decision id from `Live` to
+   `Archival` and adding one.
+4. Regenerate projections.
+5. Run the checker.
 
-The ordering constraint that makes step 5 meaningful is that classification is complete
-before the approval is requested. Under the source specification the approval came first,
-which asks for a yes covering threads nobody has read.
+Steps 2 and 3 are the new cost, and they are the trade this design makes: **a small
+structured write at every decision, in exchange for no large read at any session start.**
+Whether that trade pays is the brief's cost criterion, and it is measured, not argued.
+
+Step 4 before step 5 is not optional — checking before regenerating reports every projection
+as stale, which trains the reader to ignore the report.
+
+### Check — CI, or `/verify`, or a command's own gate
+
+1. Parse the state set. A line the grammar does not recognise is **reported as unparseable
+   and never skipped** — the I12 precedent, which exists because a dropped id is an id that
+   appears to match.
+2. Validate the graph.
+3. Regenerate every projection into memory and compare against the tree's copy.
+4. Compute every closure and compare against the ceiling.
+5. Read `design/FROZEN.md`. If it exists, **downgrade every blocking class to reported** and
+   say how many were downgraded.
+6. Emit three lists — **findings, reports, and what could not be evaluated** — and an exit
+   code, on the `/verify` and `Test-DesignDrift.ps1` pattern: 0 clean, 1 findings, 2 could not
+   evaluate, with **2 taking precedence over 1**.
+
+**A class is blocking only if it can be evaluated from the checkout alone.** This is the rule
+that decides the closed list, and it is not a convenience — a class needing the network fails
+in exactly the environment where the failure means nothing, and `GhUnavailable` reported as a
+divergence is the fabricated gate result *Verification* exists to prevent.
+
+Blocking, therefore, are the classes that read only the checkout: an unresolvable id; a record
+whose anchor names a path that is not there; a tree artifact of a unit kind with no record; a
+projection that does not match its regeneration; a malformed or nested region; a duplicate or
+renumbered id; a decision anchor resolving to zero or two log headings; a log entry with no
+decision record; an invariant enforced by `code` with no evidence pointer; a closure over the
+ceiling; and the checker's class ids disagreeing with the contract document's list.
+
+Reported and never blocking: mirror staleness, and anything needing the tracker. Pin
+ancestry, because a shallow CI checkout has no history to answer it with — see *Failure
+modes*. And every semantic disagreement, permanently, because the brief's *no formal
+specification of behaviour* non-goal puts them out of reach and a build that fails on a
+model's opinion is a build nobody trusts.
+
+**A freeze suppresses findings, not failures.** Exit 2 stands during a freeze. The freeze
+permits known staleness (`AGENTS.md`, *The design freeze*); it does not permit a checker that
+could not run, and treating those the same would make the freeze a way to turn the gate off.
+
+### Migrate — once, on this repository only
+
+The 54 log entries are read once and their live claims extracted; the entries are not touched.
+Records are written for the units the tree already has. This runs exactly once here and
+**never in a target**, which is the whole of the brief's scope answer expressed as a flow.
 
 ## Failure modes
 
 | Failure | Detection | Response | User sees |
 |---|---|---|---|
-| `gh` absent or unauthenticated | Non-zero exit on first call | Stop. Do not fall back to `gh pr view` | Named as a gate that did not run |
-| Head SHA moved between commit and wait | Waiter compares its argument against the PR's current head | **Refuse.** Report neither pass nor fail | "Checks were not evaluated: head moved to `<sha>`" |
-| A check never reports | Timeout | Stop, do not resolve | The check named, and that it never concluded |
-| A check is flaky | Not detected by the waiter | The waiter **must not re-run**. A second run is a new fact, not a confirmation | — |
-| Unknown check bucket | Bucket not in the terminal set | Treat as non-terminal, then time out. **Fail closed** | The bucket name, verbatim |
-| No checks configured at all | Zero checks reported | `NotEvaluated`. **Never green** | That nothing was evaluated, so this path cannot reach resolution here |
-| No `bug.md` in the repository | `Test-Path` before the description path files anything | Stop. The issue path is unaffected | That the authority document is absent, so there is nothing to implement against |
-| Defect cannot be reproduced | The test does not fail, or fails for another reason | Stop **before** filing or branching | A diagnosis report, not a bug issue |
-| A thread beyond page 1 | Only by paginating | `--paginate` is mandatory | — |
-| New threads appear after the push | Re-query after the waiter returns | Not in the batch. Ask again | The new count, and a fresh ask |
-| The fix is wrong | Checks fail on the new SHA | Batch is spent. Loop back to fix; the resolve half does not carry over | — |
+| A record names an id that does not exist | Graph validation | Finding, blocking | The referring record, the missing id |
+| A record's anchor names a path not in the tree | `Test-Path` | Finding, blocking | Both, and which of the two is wrong is **the user's call** |
+| A tree artifact of a unit kind has no record | Set difference, both directions | Finding, blocking | The unrecorded artifact |
+| A record's line does not parse | The reader | **Could not evaluate**, exit 2 | The file and line, verbatim. Never dropped |
+| A marked region is unbalanced or nested | Marker scan | Finding, blocking | The document and the marker |
+| A projection differs from its regeneration | Regenerate to memory, compare | Finding, blocking | A diff of the region |
+| Line endings differ but content does not | Normalise before comparing | **Not a finding** | Nothing |
+| A decision anchor resolves to zero or two headings | Heading scan of the log | Finding, blocking | The anchor and the count |
+| A log entry has no decision record | Set difference against the log's headings | Finding, blocking | The entry's heading |
+| A closure exceeds 16,384 bytes | The meter | Finding, blocking | The unit, its size, and its largest contributor |
+| An invariant enforced by `code` has no evidence | Field check | Finding, blocking | The invariant id |
+| `gh` absent or unauthenticated | Non-zero exit on first call | **Could not evaluate** for tracker classes only; the rest of the run completes | Named as a comparison that did not happen |
+| A shallow CI checkout | No history for `merge-base` | **Could not evaluate** for ancestry, and never a pass | That ancestry was not checked, and why |
+| The tracker moved during a mirror refresh | Not detected | Mirror is stale, which is its normal state | `MirroredAt`, so staleness is visible rather than inferred |
+| The state set is absent entirely | Zero records | **Could not evaluate**, exit 2. Never clean | That nothing was checked — the I8 shape |
+| `design/FROZEN.md` exists | File exists | Downgrade blocking to reported; exit 2 still stands | The count downgraded, and the marker's `Frozen because` and `Lifts when` **verbatim** |
+| A claim in a record is simply wrong | **Not detected** | Nothing | Nothing — see below |
 
-The unpaginated-threads case deserves naming rather than a table row. Resolving a subset
-while reporting the whole is indistinguishable, afterwards, from resolving the whole — and
-`/resolve` already records that resolution is the one action here that cannot be noticed
-later. That is why pagination is a contract invariant and not a nicety.
+**The last row is the residual risk and it is irreducible.** Every mechanical property of the
+state set is checked; the *truth* of a standing claim is a behavioural assertion, which the
+brief's non-goals put permanently out of scope. What the design buys is that a wrong claim is
+now wrong in **one addressable place** rather than distributed across a corpus, so a human who
+finds it fixes it once. That is a smaller promise than "the design cannot be wrong", and it is
+the honest one.
 
-State left behind on any failure: a branch, a commit, possibly a pushed SHA and a draft
-pull request. Nothing resolved, nothing merged, nothing closed. Every one of those is
-visible and reversible by hand, which is the property that makes stopping safe at any
-step.
+**Line endings deserve the row they get.** `agent.md` already records `prettier --check`
+reporting false failures on a Windows working tree because `core.autocrlf` gives CRLF locally
+against an LF blob. A projection checker that compares bytes without normalising would fail
+every region on every Windows checkout, which is the house platform.
+
+**State left behind on any failure:** the tree exactly as it was. The checker writes nothing —
+`Test-DesignDrift.ps1`'s I13 shape, for the same reason: which side of a divergence is wrong
+is the user's decision, and a checker that resolved one would be making it.
 
 ## Concurrency and ordering
 
-**Nothing runs concurrently.** The fixed order — classify, fix, verify, commit, ask, push,
-wait, resolve — is the safeguard, and `/resolve` already says so in those words.
+**Nothing is concurrent.** One author, sequential sessions by policy (`AGENTS.md`, *Session
+boundaries*), and the brief states this outright.
 
-What enforces it is worth being honest about, because it is mostly not enforced. The
-waiter's refusal to report on a non-head SHA is the **only mechanical** enforcement in the
-path. Everything else is instruction in a command file, obeyed by a model. That is the
-same footing every other command in this kit stands on, but it means the ordering rule
-cannot be described as guaranteed. The one place it is guaranteed is the place where
-getting it wrong is invisible afterwards, which is where the guarantee was worth buying.
+What enforces it is git and nothing else. Two sessions writing state on divergent branches
+produce a merge conflict, which is the intended and sufficient behaviour. Records are
+per-unit, so a conflict is localised to the units both sessions touched rather than spanning
+the corpus — a property of the granularity choice rather than of any locking.
 
-There is one genuine external race: a human or a bot pushing to the branch between the
-commit and the wait. It is detected, not prevented, and detection is sufficient — the
-response is to refuse rather than to report a stale result.
+Three orderings do matter, and none of them is enforced by a lock:
+
+- **Regenerate before checking.** Otherwise every projection reports stale and the report
+  becomes noise.
+- **Regeneration must be idempotent and order-independent.** Regenerating twice must produce
+  the same bytes, and regenerating region A must not change what region B renders to. Without
+  both, "regenerate then compare" gives different answers on different runs, and the check
+  stops being a check. This is a constraint on the projector, and it is the one place the
+  design forbids something a plausible implementation would otherwise do.
+- **Authority transfers before criteria are cited.** A slice's criteria are the issue's from
+  the moment the issue exists; a session reading the proposal after that point is reading a
+  mirror. Nothing enforces this but the sequencing of `/slices` then `/track`.
+
+The one genuine external race is the tracker moving while a mirror is being written. It is
+**not** detected, and detection is not worth buying: the mirror is stale by construction,
+`MirroredAt` says so, and GitHub is authoritative for anyone who can reach it.
 
 ## Alternatives considered
 
-**One command carrying all ten phases.** The source specification as written. Rejected:
-its phases 0–3 and 6–10 restate `AGENTS.md` *Safe start*, `/verify`'s three-list report,
-`/resolve`'s five-class table and GraphQL query, and `/pr`'s merge deferral. *Single
-ownership* — "two copies of a rule is a promise they will diverge" — makes that the one
-shape this kit may not take. Splitting into a policy change, a script, an amendment, and
-one genuinely new command touches four files instead of one and duplicates nothing.
+**Storage granularity: one file per record.** Rejected: grouping records into a document per
+unit kind, which gives a human offline seven files to read instead of a few hundred and was
+the better answer on that criterion alone. It loses on measurement honesty — the ceiling
+counts the bytes a session loads, an agent handed a grouped document loads the document, and
+the metric would understate the real load while passing. The brief is explicit that a line
+which cannot be honestly checked is not finished being written, so the representation that
+makes the check honest wins, and the human-reading case is bought back by the grouped views
+existing as **projections** instead of as storage.
 
-**An inline polling loop in the command file.** `while true; … sleep 20` as specified.
-Rejected twice over: it is bash against a PowerShell-Core house convention, and polling
-and comparing buckets is a 🔴 item in the avoidable-work taxonomy — "arithmetic over
-files, counting, collecting metrics… should leave the model entirely". A model re-deriving
-"are all buckets terminal?" on every iteration is the exact cost `Measure-Session.ps1` was
-written to stop paying elsewhere.
+**Format: constrained Markdown with a line grammar.** Rejected: **JSON**, which is
+dependency-free and schema-validatable natively in PowerShell, but escapes every multi-line
+claim into a single line and fails the read-it-unaided criterion outright — a criterion the
+brief states twice. **YAML**, which reads well and carries block scalars, but needs a module
+PowerShell Core does not ship, putting an `Install-Module` between a checkout and its own
+design state. **Front matter inside each unit file**, which has no drift between a unit and
+its record because they are the same file, but has no home for the invariant and document
+units, ships kit design state into eighteen targets, and puts a 12 KB command file inside its
+own 16 KB budget.
 
-**The batch as a session-level standing authorization.** Simplest to obey, and closest to
-what "minimum interaction" asks for. Rejected: a bot review fires on the push the batch
-authorized, so the threads that appear afterwards are precisely the ones nobody has read —
-and a standing permission would cover them. Fixing `ThreadIds` at grant time costs one
-extra ask in the case where new threads appear, and only in that case.
+**Staleness detection: regenerate and compare.** Rejected: **a digest of the source stored in
+the region marker**, which is cheaper and needs no generator at check time, but is a second
+copy of a fact and matches happily when both sides were edited together. And **convention
+alone** — the rule stated in `AGENTS.md` and nothing checking it — which is precisely the
+shape `design/90-decisions.md` (2026-08-10) records failing within a day of being written,
+where a repin claimed as done had reached one issue of seventeen.
 
-**Extend `/slice` to handle defects.** No new command, and `/slice` already branches,
-commits, pushes and opens a draft. Rejected: `/slice` selects work by reading `Done when`
-boxes off a tracker issue and implements against a contract signature. A defect has
-neither, so every one of those steps would need an "unless it is a bug" branch — and the
-2026-08-04 entry that gave `/slice` its branch-and-PR behaviour did so on the reasoning
-that one slice means one branch and one session, which a defect does not participate in.
+**Decisions: extract the standing claim, leave the entry.** Rejected: **pointers into the log
+with no extraction**, which duplicates nothing and is the purest reading of *Single
+ownership*, but makes the brief's first done criterion unsatisfiable by construction —
+resolving the pointer means opening the file the criterion forbids opening. And
+**restructuring the log into records**, which is the only option with genuinely one copy, and
+is a fenced non-goal.
 
-**Checkpoint before classification**, per the source specification's phase order.
-Rejected: it requests approval to resolve threads before any thread has been read, while
-the same specification reserves ambiguous threads for the human. The two cannot both hold.
-Moving classification ahead of the ask costs nothing — the threads are already fetched by
-then — and makes the approval name its own subject.
+**Work state: GitHub authoritative, with a committed mirror.** Rejected: **keeping the local
+document authoritative**, today's behaviour, which leaves the two-database duplication the
+brief measured. And **GitHub with no local mirror**, which is the cleanest single home and
+fails the offline criterion — a checkout could no longer say what the outstanding work is or
+in what order, and `/slices` and `/redteam` would lose the set view.
+
+**Blocking rule: evaluable from the checkout alone.** Rejected: **everything mechanical
+blocks**, which is stricter and simpler to state, but fails a build for `gh` being
+unauthenticated — an absent comparison reported as a divergence, which is the exact
+substitution *Verification* forbids. And **report everything, block nothing**, which collides
+with no freeze and has no teeth; a convention nothing checks is the failure this whole design
+is a response to.
+
+**Freeze behaviour: suppress findings, keep exit 2.** Rejected: **suppressing everything
+during a freeze**, which is the simpler rule and the more literal reading of the done line,
+but makes writing `design/FROZEN.md` a way to switch the gate off entirely — including for a
+broken checker, which has nothing to do with the staleness a freeze is meant to permit.
 
 ## Open questions
 
-All three original questions are answered and recorded as invariants in
-`design/20-contract.md`; they are kept here with their answers so the reasoning is not lost
-to a diff. Nothing in this design is currently blocked on information I do not have.
+1. **Is the standing corpus outside `design/` made of document units?** The brief enumerates
+   forty-nine units and `AGENTS.md`, `agent.md`, `.claude/COMPANIONS.md`, `INSTALL.md` and
+   `README.md` are not among them — yet `AGENTS.md` owns I3, I4, I9 and the marked-region
+   rule, and is the largest single carrier of design state in the repository at 34,899 bytes.
+   **Recommendation: yes.** An invariant whose owner is not a unit is a dangling edge in a
+   system whose central promise is that nothing dangles, and adding them uses the existing
+   `document` kind rather than inventing one. The cost is that the brief's count of five reads
+   as an enumeration of `design/`'s documents rather than of the kind, which is a wording
+   change to a checkable line and therefore yours.
 
-1. ~~What should the waiter do when a pull request has no checks configured?~~
-   **Answered: `NotEvaluated`** (I8). Zero checks is trivially "nothing pending", which
-   would have reported green and permitted resolution on a repository with no CI. Reporting
-   *unknown* blocks this path in every repository without workflows, and the kit installs
-   into repositories that have none — that narrowing was accepted, because the alternative
-   reports absence of failure as presence of success.
-2. ~~Should `/fix` open an issue for a defect that arrived as a description?~~
-   **Answered: yes, after reproducing** (I10, I11). The apparent conflict with "bugs are
-   filed by hand" dissolved on inspection: the reason `/track` does not open them is that a
-   bug has no upstream document to make the write idempotent, which is a fact about
-   `/track` and not a rule that bugs are sacred. The decisive argument was the other way
-   round — `.github/ISSUE_TEMPLATE/bug.md` states that a bug issue **is** the
-   specification, so a described defect that never becomes an issue has no authority
-   document, and `fix.md` would have to carry those constraints itself, duplicating a file
-   that declares itself their home. Filing after reproduction rather than before makes the
-   `Reproduce` section evidence instead of a claim; a defect that cannot be reproduced is a
-   diagnosis task and is never filed as a bug.
+2. **Does the closed class list live in `design/20-contract.md` or in `AGENTS.md`?** The brief
+   requires a single named document; it names `AGENTS.md` for the marked-region rule and leaves
+   this one open. **Recommendation: the contract document**, carrying the class ids and each
+   one's blocking status, with the checker declaring the detection and the two compared by a
+   blocking class of their own — the `Test-WriteSurface.ps1` pattern, where the script holds
+   the canonical list and the command file points at it. `AGENTS.md` is the alternative and it
+   is not unreasonable: what fails a build is policy. This sets a public contract, so it is
+   yours rather than mine.
 
-The residual cost of 2, accepted: an issue now enters the tracker without a human having
-first decided the defect is real. Reproduction is what stands in for that judgement, which
-is weaker than a person reading it, and it is the reason I11 exists.
-3. ~~Does the batch apply when the pull request belongs to someone else?~~
-   **Answered: unavailable** (I9). `AGENTS.md` already scopes every tracker carve-out to a
-   repository the user owns and that is the one boundary it does not relax; the batch is a
-   carve-out of the same kind, so it stops at the same line. Actions are requested
-   individually there, exactly as today — a foreign repository loses the compression, not
-   the capability.
+3. **Which workflow is the cost baseline?** The brief requires
+   `tools/Measure-Session.ps1` output for "a named, repeatable workflow" recorded before
+   anything lands, and re-run after. Which workflow decides whether the payoff number means
+   anything, and a model choosing its own benchmark is not a measurement. Two candidates worth
+   naming: a `/reconcile` pass, which is the cycle the brief indicts and therefore the most
+   favourable; or `/slice` on a real slice, which is the common case and the more honest one.
+   **Recommendation: `/slice`**, because a benchmark chosen to flatter the change is the
+   reporting failure *Verification* is about.
+
+4. **Do `templates/design/*.md` get records?** They are the seed shipped to targets — product
+   surface rather than this repository's design state, and `/install` already compares them.
+   **Recommendation: no**, treating them as payload; the cost is that a change to the seed then
+   has no design-state address, which is a real and small loss. Raised because it is a scope
+   line rather than a technical one.
