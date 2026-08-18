@@ -2,12 +2,12 @@
 
 > **Scope warning, read before treating this as authoritative.** This document describes
 > **one path through the kit**: taking a defect from report to a merge-ready pull request.
-> It is not a design of the AgentKit as a whole. `design/00-brief.md` has never been
-> written (recorded 2026-08-05), so there is no brief behind this and no whole-repository
-> design to sit inside. `/redteam`, `/contract` and `/reconcile` read this file as
-> authoritative — they should read it as authoritative **for this path only**, and treat
-> every other part of the kit as designed in `design/90-decisions.md`, which is where the
-> other sixteen commands were decided.
+> It is not a design of the AgentKit as a whole. `design/00-brief.md` was
+> written on 2026-08-19, but it states a different problem — making design state explicit —
+> so there is still no whole-repository design for this to sit inside. `/redteam`,
+> `/contract` and `/reconcile` read this file as authoritative — they should read it as
+> authoritative **for this path only**, and treat every other part of the kit as designed in
+> `design/90-decisions.md`, which is where every other command was decided.
 
 The path already exists in pieces. `/verify` runs the gates and reports what did not run,
 `/resolve` classifies and resolves review threads, `/pr` writes the description and defers
