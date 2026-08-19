@@ -5,9 +5,9 @@ Anchor: design/30-slices.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-11-documents-state-only-what-tree-cannot
 Archival:
-Questions:
+Questions: question/slices-authority-home
 Work:
 Evidence:
 

@@ -5,7 +5,7 @@ Anchor: design/state-index.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-19-state-index-md-added
 Archival:
 Questions:
 Work:

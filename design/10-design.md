@@ -349,7 +349,7 @@ could not run, and treating those the same would make the freeze a way to turn t
 
 ### Migrate — once, on this repository only
 
-The 54 log entries are read once and their live claims extracted; the entries are not touched.
+The 67 log entries are read once and their live claims extracted; the entries are not touched.
 Records are written for the units the tree already has. This runs exactly once here and
 **never in a target**, which is the whole of the brief's scope answer expressed as a flow.
 

@@ -5,7 +5,7 @@ Anchor: tools/Measure-Session.ps1
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-04-userpromptsubmit-hook-warns-on-session-size, decision/2026-08-04-sessionend-hook-writes-cost-log, decision/2026-08-04-cost-measured-by-script-taxonomy-is-policy, decision/2026-08-04-pester-tests-and-ci-gate-for-measure-session, decision/2026-08-04-measure-session-claude-code-only-errors-not-zero
 Archival:
 Questions:
 Work:

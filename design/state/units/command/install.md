@@ -5,7 +5,7 @@ Anchor: .claude/commands/install.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-02-installing-is-agent-executed-reconciliation
 Archival:
 Questions:
 Work:
