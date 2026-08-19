@@ -130,23 +130,8 @@ signatures cannot state:
 
 ### What the checker emits
 
-No code declares this yet. Scaffold, in the repository's established shape —
-`[pscustomobject]` from a factory function, the same reason `Read-DesignState.ps1` gives for
-its own three above.
-
-```powershell
-# tools/Test-DesignState.ps1
-function New-DesignFinding {
-    param(
-        [Parameter(Mandatory)][string] $Class,
-        [Parameter(Mandatory)][string] $Subject,
-        [Parameter(Mandatory)][string] $Detail,
-        [Parameter(Mandatory)][bool]   $Blocking
-    )
-}
-```
-
-What that signature cannot state:
+`New-DesignFinding` is declared in `tools/Test-DesignState.ps1`, not restated here (`AGENTS.md`,
+*Single ownership*). What that signature cannot state:
 
 - **`Failures` is never folded into `Findings` and the two never substitute for each other.**
   This is I12's rule at a second site, and it is the whole difference between "the design
@@ -587,20 +572,20 @@ rather than route around; none may substitute an adjacent action for a blocked o
 | **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
 | **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
 | **I17** | A derived edge is never written to a record. `Consumers`, `BoundBy`, `Decision.Affects` and `Question.Affects` appear only as projections; `Contract.Owner` is the sole written reverse edge and `OwnerMismatch` checks it | the reader | code | `tools/Read-DesignState.Tests.ps1` |
-| **I18** | No module of this mechanism writes outside a marked region: no source generated, no code edited, no divergence resolved, nothing written to git or the tracker | the checker, the projector | instruction | — (`tools/Test-DesignState.Tests.ps1`, `tools/Update-DesignProjection.Tests.ps1` when written) |
-| **I19** | An absent or empty state set yields *could not evaluate*, never *clean* | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
-| **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1 | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
-| **I21** | While `design/FROZEN.md` exists, no blocking class fails the build, and exit 2 still stands | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I18** | No module of this mechanism writes outside a marked region: no source generated, no code edited, no divergence resolved, nothing written to git or the tracker | the checker, the projector | code | `tools/Test-DesignState.Tests.ps1` — the checker's half only; the projector does not exist yet, so its half of this row is untested rather than violated |
+| **I19** | An absent or empty state set yields *could not evaluate*, never *clean* | the checker | code | `tools/Test-DesignState.Tests.ps1` |
+| **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1 | the checker | code | `tools/Test-DesignState.Tests.ps1` |
+| **I21** | While `design/FROZEN.md` exists, no blocking class fails the build, and exit 2 still stands | the checker | code | `tools/Test-DesignState.Tests.ps1` |
 | **I22** | Every class on the blocking list is evaluable from the checkout alone — no network, no tracker, no running service | `design/20-contract.md` | instruction | — |
-| **I23** | The orientation closure is exactly one hop, excludes `Archival`, and its ceiling is 16,384 bytes and never rises | the budget meter | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I23** | The orientation closure is exactly one hop, excludes `Archival`, and its ceiling is 16,384 bytes and never rises | the budget meter | code | `tools/Test-DesignState.Tests.ps1` |
 | **I24** | A line the record grammar does not recognise is reported verbatim and never skipped | the reader | code | `tools/Read-DesignState.Tests.ps1` |
 | **I25** | Regeneration is idempotent and order-independent: twice produces identical bytes, and one region's regeneration never changes another's output | the projector | instruction | — (`tools/Update-DesignProjection.Tests.ps1` when written) |
 | **I26** | No pre-existing entry in `design/90-decisions.md` is ever modified. Commits to that file are additions only | every command that writes the log | instruction | — |
 | **I27** | Every command and script this design touches degrades to today's behaviour when the state set is absent | each command | instruction | — |
 | **I28** | GitHub is the authority for a slice's acceptance criteria, completion and order. A `WorkRef` is a mirror, is stale by default, and is never cited as authority | `/track` | instruction | — |
 | **I29** | The projector never writes inside a declared region, and no id is both projected and declared | the projector | instruction | — (`tools/Update-DesignProjection.Tests.ps1` when written) |
-| **I30** | A record with `Status: retired` keeps its id resolvable, is excluded from every closure, and has its `Anchor` exempt from the tree check. Nothing else about it changes, and a live record naming it is not a finding | the validator, the budget meter | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
-| **I31** | A contract's `Owner` is the unique active unit whose `Exposes` names that contract. It is the only reverse edge written to a record, and it is written only because it is checked | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I30** | A record with `Status: retired` keeps its id resolvable, is excluded from every closure, and has its `Anchor` exempt from the tree check. Nothing else about it changes, and a live record naming it is not a finding | the validator, the budget meter | code | `tools/Test-DesignState.Tests.ps1` |
+| **I31** | A contract's `Owner` is the unique active unit whose `Exposes` names that contract. It is the only reverse edge written to a record, and it is written only because it is checked | the validator | code | `tools/Test-DesignState.Tests.ps1` |
 
 **Enforcement is a claim about the tree as it stands, not about the tree as designed.** The
 column states what is true today, so the `code` rows are the only ones a reader may trust
@@ -610,9 +595,11 @@ exist, and **the slice that writes one flips its row in the same commit**. Writi
 of the test is the claim `EnforcementUnevidenced` exists to reject, and a table that made it
 would be making it once for every such row.
 
-Only I2, I7, I8, I12, I13, I17 and I24 are `code` today, all against tests that exist. I17 and
-I24 are the second path's first two, both against `tools/Read-DesignState.Tests.ps1` — the
-number this note says a later run should expect to see rise.
+Only I2, I7, I8, I12, I13, I17, I18, I19, I20, I21, I23, I24, I30 and I31 are `code` today, all
+against tests that exist. I17 and I24 are against `tools/Read-DesignState.Tests.ps1`; I18
+through I31 (excluding I22, I25, I26, I27, I28, I29, which stay `instruction` for the reasons
+stated at each row) are against `tools/Test-DesignState.Tests.ps1`, written at S5 — the number
+this note says a later run should expect to see rise.
 
 I1 and I2 are the pair that matter for the first path. I14 is the pair's equivalent for the
 second: it is the acyclicity everything else rests on, it is the property most easily lost to a
