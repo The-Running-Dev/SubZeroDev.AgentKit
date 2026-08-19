@@ -231,18 +231,44 @@ never in a target.
 
 ### Marked regions
 
-A region is `<!-- <projection>:start -->`, a body, `<!-- <projection>:end -->`, inside any
-document. Identity is (document, projection id) and is unique within the document.
+**Two kinds, and the marker says which.** A **projected** region is rendered from records and
+is overwritten on every regeneration. A **declared** region is hand-authored, is fenced so that
+something else can check it is present and well-formed, and is **never written by the
+projector**. The distinction is carried in the marker rather than in a registry the projector
+holds, because a registry makes a mistyped id silently unchecked — the dropped-line failure I24
+exists to forbid, one level up.
 
-- **`<!-- agent:start -->` is already conforming**, with `agent` as its projection id. That is
-  not a coincidence to be preserved by care — it is why the marker carries the projection id and
-  nothing else. Requiring a `source=` attribute would make every existing issue block in this
-  repository and in eighteen targets non-conforming on the day the rule generalises.
-- **The marker does not name its source.** The projection id determines the source; the
-  projector holds that mapping. Repeating the source in every marker is the second copy
-  *Single ownership* forbids, at the one site where there are hundreds of copies.
+| Kind | Form | Identity |
+|---|---|---|
+| Projected | `<!-- <id>:start -->` … `<!-- <id>:end -->` | (document, id), unique within the document |
+| Declared | `<!-- <id>:declared:start -->` … `<!-- <id>:declared:end -->` | as above |
+
+- **The bare form means projected, and that asymmetry is bought rather than aesthetic.**
+  `<!-- agent:start -->` blocks live in issue bodies across eighteen repositories and cannot be
+  migrated in bulk — an issue `/track` has not touched since is unreachable. Companion blocks
+  live in kit-owned command files, which `INSTALL.md` phase 1 installs outright with no
+  reconciliation, so they migrate by being shipped. The form that changes is therefore the one
+  with a migration path. Reading the plain marker as "nobody regenerates this" is the better
+  English and the worse contract.
+- **`<!-- agent:start -->` is already conforming**, unchanged, as a projected region with `agent`
+  as its id. That is not a coincidence to be preserved by care — it is why the marker carries the
+  id and a fixed keyword and nothing else. Requiring a `source=` attribute would make every
+  existing issue block non-conforming on the day the rule generalises.
+- **`companion` is the only declared region today**, and migrating it is a closed set:
+  twenty-one files under `.claude/commands/`, the single regex in `tools/Test-Companion.ps1`,
+  its `MissingBlock` message and doc comment, and `tools/Test-Companion.Tests.ps1`.
+  `.claude/COMPANIONS.md` states the rule without naming the literal marker and needs no edit
+  for the form itself.
+- **The marker does not name its source.** The id determines the source; the projector holds
+  that mapping. Repeating the source in every marker is the second copy *Single ownership*
+  forbids, at the one site where there are hundreds of copies.
+- **A projected id and a declared id share one namespace.** The same id in both forms is an
+  `IdCollision`, not two regions — otherwise a rename that dropped `:declared:` would read as a
+  new region rather than as a region that changed kind.
 - **Nested and unbalanced markers are findings, not parse failures to route around.** A
-  projector that recovers from an unbalanced region writes into a span nobody delimited.
+  projector that recovers from an unbalanced region writes into a span nobody delimited. This
+  holds for both kinds; a declared region is checked for well-formedness exactly as a projected
+  one is, and only writing distinguishes them.
 
 ## Public surface
 
@@ -327,9 +353,11 @@ The projector.
 
 - **`-DryRun` renders to the success stream and writes nothing.** This is the checker's entry
   point, and it is the same `-DryRun` vocabulary `Sync-Kit.ps1` already established.
-- **Writes only between markers.** Never a byte outside a region, never a new region, never a
-  file that has no region in it (I18). A projector that could create a region could create one
-  around hand-written prose.
+- **Writes only between the markers of a projected region.** Never a byte outside a region,
+  never a new region, never a file that has no region in it, and **never inside a declared
+  region** (I18, I29). A projector that could create a region could create one around
+  hand-written prose; a projector that could write a declared one would overwrite a target's own
+  companion declaration on the next sync.
 - **Idempotent and order-independent** (I25). Regenerating twice produces identical bytes, and
   regenerating region A never changes what region B renders to. Without both, "regenerate then
   compare" answers differently on different runs and stops being a check.
@@ -423,8 +451,9 @@ Stated once here rather than enumerated per command, because the obligation is t
 
 | Document | Owns | What it may not do |
 |---|---|---|
-| `AGENTS.md` | The marked-region rule, generalised from the agent-fence rule it states today; the freeze rule; I3, I4, I9 | State the rule twice, or leave the agent-fence wording behind as a second copy. **Exactly one document states it** |
+| `AGENTS.md` | The marked-region rule — both kinds — generalised from the agent-fence rule it states today; the freeze rule; I3, I4, I9 | State the rule twice, or leave the agent-fence wording behind as a second copy. **Exactly one document states it**, and `.claude/COMPANIONS.md` names `companion` as declared without restating what declared means |
 | `design/20-contract.md` | The closed divergence-class list and each class's blocking status (below) | Decide blocking-ness per finding at the call site, or carry a class the checker does not declare |
+| `.claude/COMPANIONS.md` | The companion mechanism, and that `companion` is a **declared** region | Acquire a projection, or restate the marker form this document fixes |
 | `.claude/commands/resolve.md` | `ThreadClass` and its five values | — |
 | `.github/ISSUE_TEMPLATE/bug.md` | `/fix`'s stop conditions | — |
 
@@ -476,8 +505,8 @@ list.
 | `AnchorMissing` | A record's anchor names a path not in the tree | Both. **Which of the two is wrong is the user's call** |
 | `UnrecordedArtifact` | A tree artifact of a unit kind has no record | The unrecorded artifact |
 | `ProjectionStale` | A region differs from its regeneration, after line-ending normalisation | A diff of the region |
-| `RegionMalformed` | A marked region is unbalanced or nested | The document and the marker |
-| `IdCollision` | An id is duplicated, renumbered, or disagrees with its file path | Every file claiming it |
+| `RegionMalformed` | A marked region of either kind is unbalanced or nested | The document and the marker |
+| `IdCollision` | An id is duplicated, renumbered, disagrees with its file path, or appears in both the projected and the declared marker form | Every file claiming it |
 | `DecisionAnchorAmbiguous` | A decision anchor resolves to zero or two log headings | The anchor and the count |
 | `LogEntryUnrecorded` | A log heading has no decision record | The entry's heading |
 | `EnforcementUnevidenced` | An invariant with `Enforcement: code` has no `Evidence` | The invariant id |
@@ -555,6 +584,7 @@ rather than route around; none may substitute an adjacent action for a blocked o
 | **I26** | No pre-existing entry in `design/90-decisions.md` is ever modified. Commits to that file are additions only | every command that writes the log | instruction | — |
 | **I27** | Every command and script this design touches degrades to today's behaviour when the state set is absent | each command | instruction | — |
 | **I28** | GitHub is the authority for a slice's acceptance criteria, completion and order. A `WorkRef` is a mirror, is stale by default, and is never cited as authority | `/track` | instruction | — |
+| **I29** | The projector never writes inside a declared region, and no id is both projected and declared | the projector | code | `tools/Update-DesignProjection.Tests.ps1` |
 
 **Enforcement is a claim about the tree, and the `Evidence` column is what makes it checkable.**
 The `code` rows are the only ones a reader may trust without checking. Every `Evidence` path for
@@ -577,7 +607,7 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**Three items.** `/slice`'s "the contract does not contain a signature you need" stop condition
+**Two items.** `/slice`'s "the contract does not contain a signature you need" stop condition
 should fire on nothing else.
 
 ### Where a slice's criteria are rendered once GitHub is the authority
@@ -597,32 +627,6 @@ and to the retirement convention `design/30-slices.md` § *How this document is 
 Choosing between them here would be inventing a signature the design does not determine.
 
 A slice that reaches this stops. It does not resolve it in the implementing session.
-
-### What a marked region with no registered projection is
-
-`companion` is already a marked region and it is not a projection. Every one of the twenty-one
-files under `.claude/commands/` carries `<!-- companion:start -->` … `<!-- companion:end -->`;
-the block is hand-authored, `.claude/COMPANIONS.md` owns the rule, and `Test-Companion.ps1`
-enforces it in code with a `MissingBlock` finding. It is the most numerous existing instance of
-the marker syntax in this repository and in the eighteen targets, and § *Marked regions* above
-names only `agent`.
-
-Under the region definition this document states, `companion` is a region whose projection id is
-`companion` — for which the projector has no renderer and must never acquire one, because a
-regenerated companion block would overwrite the target's own declaration. `design/10-design.md`
-does not say what such a region is, and the two readings available are both defective: **every
-region is projected**, which puts twenty-one hand-authored blocks under `ProjectionStale` and
-gives the projector and `Test-Companion.ps1` the same fence; or **only a registered projection
-id is checked**, under which a mistyped id makes a region silently unchecked, which is the
-dropped-line failure I24 exists to forbid.
-
-A third reading — the marker declares whether it is generated, so `companion` is a *declared*
-region and `agent` a *projected* one — resolves both, and is rejected here rather than adopted
-because it changes the marker form, and § *Marked regions* already refuses a `source=` attribute
-on the ground that it makes every existing block non-conforming. Which of the three holds also
-decides whether `AGENTS.md` can carry the marked-region rule alone, since this document's
-§ *Documents that carry surface* requires exactly one document to state it while
-`.claude/COMPANIONS.md` states the companion half today.
 
 ### Whether a document that owns surface but ships as payload is a unit
 
