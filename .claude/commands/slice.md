@@ -41,6 +41,8 @@ Stop and ask rather than choosing when:
 
 Before writing code, read `design/20-contract.md` for every signature you will touch. The contract is authoritative — if what you need is not in it, stop.
 
+**Where this repository's own `design/state/` exists**, establishing what is currently true about a unit you are about to touch reads that unit's closure (`design/10-design.md` § *Orient*) rather than the corpus, and `design/90-decisions.md` is not opened to establish it. **Where it is absent** — every installed target, and this repository before the mechanism existed — behaviour is today's: read the files and the contract as this section already describes (I27).
+
 Sequence:
 
 1. **Branch.** `git status --short` must be clean and on the default branch before you touch anything; uncommitted work that is not this slice's is not yours to stash or discard (`AGENTS.md`, *Safe start*) — stop and say so instead. Create and check out `slice/S<n>` from the default branch's latest. **Refuse to implement on the default branch** — `/pr` refuses to open a PR from it, and the branch is one command away.
