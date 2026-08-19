@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+  issues: read
+
 jobs:
   powershell:
     runs-on: windows-latest
@@ -40,3 +44,24 @@ jobs:
       - name: Validate the core/companion split
         shell: pwsh
         run: ./tools/Test-Companion.ps1 | Out-Null
+
+      # Exit 2 (could not evaluate) fails this step exactly as exit 1 does. A gate that failed
+      # only on 1 would turn "the design state was never read" into a passing build - I19 and
+      # I20 defeated at the call site rather than by the script, which is the substitution
+      # design/20-contract.md § tools/Test-DesignState.ps1 puts on the caller.
+      #
+      # GH_TOKEN is what keeps TrackerUnavailable off that list: the checker probes gh
+      # unconditionally, an unauthenticated CLI is a contracted could-not-evaluate, and without
+      # a token this step would be red on every run for a reason that says nothing at all about
+      # the design state.
+      #
+      # The flag sits on the line immediately above `- name:`, which is where
+      # .claude/commands/verify.md says discovery looks for it.
+      # verification: true
+      - name: Check the design state against the tree
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./tools/Test-DesignState.ps1 | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
