@@ -146,8 +146,9 @@ signatures cannot state:
 
 ### What the checker emits
 
-`New-DesignFinding` is declared in `tools/Test-DesignState.ps1`, not restated here (`AGENTS.md`,
-*Single ownership*). What that signature cannot state:
+`New-DesignFinding`, `New-CouldNotEvaluate` and `New-DesignStateResult` are declared in
+`tools/Test-DesignState.ps1`, not restated here (`AGENTS.md`, *Single ownership*) — one factory per
+list, and the result object that carries all three. What those signatures cannot state:
 
 - **`Failures` is never folded into `Findings` and the two never substitute for each other.**
   This is I12's rule at a second site, and it is the whole difference between "the design
@@ -386,7 +387,8 @@ three-list report.
   Windows is the house platform. Any other normalisation would hide a real difference.
 - **Writes nothing** (I18) — not `design/`, not a record, not an issue, not git. Which side of
   a divergence is wrong is the user's call, and a checker that resolved one would be making it.
-- **`-Path` is optional and defaults to the repository root.** It has no `-Fix`, no `-Force`,
+- **`-Path` is optional and defaults to the current directory**, the same default `Test-Companion.ps1`'s
+  `-TargetRepo` carries. It has no `-Fix`, no `-Force`,
   and no flag that resolves anything; adding one is the change this contract exists to refuse.
 
 ### `tools/Update-DesignProjection.ps1`
@@ -457,10 +459,10 @@ no file behind it.
 | | |
 |---|---|
 | Invocation | `/fix <issue number>`, `/fix <description>`, or `/fix` with a failing test in context |
-| Reads | the defect source; **the bug issue's agent block**; the repository's gates via `/verify`; `AGENTS.md` |
+| Reads | the defect source; **the bug issue's agent block**; where `design/state/` exists, that unit's closure rather than the corpus (I27); `AGENTS.md` |
 | Writes | one branch, one or more commits, one pull request, and — only on the description path, only after reproducing — **one bug issue** |
-| Must output | the reproduction evidence; the issue number it is implementing against; `/verify`'s three lists; the batch request; the pushed SHA; the `WaitResult` |
-| Must not | edit `design/`, open a draft pull request, resolve a thread, merge, or open an issue for a defect it did not reproduce |
+| Must output | the reproduction evidence; the issue number it is implementing against; the branch and the pull request it opened, the latter carrying its real description from the moment it is opened. **The gates and the review threads are `/pr`'s** (`design/90-decisions.md`, 2026-08-08), so `/verify`'s three lists, the pushed SHA and the `WaitResult` are output there and not here |
+| Must not | edit `design/`, open a draft pull request, resolve a thread, merge, open an issue for a defect it did not reproduce, or widen the change to an adjacent defect noticed along the way |
 
 **Stop conditions are not enumerated here.** They are owned by the `<!-- agent:start -->`
 block in `.github/ISSUE_TEMPLATE/bug.md`, which states that a bug issue *is* the
