@@ -4,7 +4,7 @@ Status: active
 Anchor: tools/Read-DesignState.ps1
 Consumes:
 Exposes: contract/read-designstate
-Binds:
+Binds: I17, I24
 Live:
 Archival:
 Questions:

@@ -4,7 +4,7 @@
 > retired to the index under `## Landed` and its design body to
 > `git show dfd1cab:design/10-design.md`. The **explicit design-state mechanism**, designed in
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, is sliced under
-> `## Outstanding` as S4–S17.
+> `## Outstanding` as S4–S18.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -587,6 +587,52 @@ Acceptance:
 Out of scope: changing what any invariant says, adding one, or removing one — each is a contract
     amendment and stops the slice; promoting an `Enforcement` row to `code`; the contract kind and
     the `Consumes`/`Exposes` edges, which are S16's; CI wiring, which S12 already carries.
+
+---
+
+## S18 — A record that says a claim was replaced has to say what replaced it
+> **Contract-ahead-of-code, and this closes it.** `design/90-decisions.md`, 2026-08-19 —
+> *`EnforcementUnevidenced` widens to every conditionally-required field* — widened the class's
+> stated trigger without widening its detection, deliberately, because no landed slice owed the
+> work. `ClassListDisagreement` compares class ids and the id did not change, so nothing reports
+> the gap. The item staged under that log's `## Open` is this slice.
+
+Delivers: The state set can currently say a decision has been overtaken, or a question settled,
+without saying by what — and nothing notices. After this it does notice, using the same check
+that already catches a rule claiming to be enforced by code with nothing to point at. Anyone
+reading the state set can rely on a replaced claim leading somewhere rather than stopping dead.
+Touches: `tools/Test-DesignState.ps1`, `tools/Test-DesignState.Tests.ps1`
+Depends on: S5, S12, and the `EnforcementUnevidenced` amendment `design/90-decisions.md` records
+    at 2026-08-19
+Acceptance:
+  - S18.1 `EnforcementUnevidenced` fires on a `Decision` record whose `Status` is `superseded`
+    with no `SupersededBy`, and on a `Question` record whose `Status` is `answered` with no
+    `AnsweredBy`, in addition to the invariant case it fires on today.
+  - S18.2 The finding names the record, the absent field, and the value that required it — the
+    three things `design/20-contract.md` § *The divergence classes* says the caller sees. The
+    invariant case emits those same three, so one class does not carry two finding shapes.
+  - S18.3 Each of the two new conditions carries a real divergence that confirms the class fires
+    and a near-miss that confirms it does not — `Status: accepted` with no `SupersededBy`, and
+    `Status: open` with no `AnsweredBy`, being the near-misses. `EnforcementUnevidenced`'s S12.2
+    coverage rises from 1 fire and 1 near-miss to 3 and 3, with both counts stated.
+  - S18.4 The closed list keeps its current size: no class id is added, removed or renamed, no
+    class's blocking status changes, and `ClassListDisagreement` reports none.
+  - S18.5 On a clean checkout of this repository at the commit this slice lands,
+    `tools/Test-DesignState.ps1` exits 0. The widened detection fires nothing on the real state
+    set — the one superseded decision record carries its `SupersededBy`, and no question is
+    answered — which is the state the amendment predicted and is not a criterion satisfied by
+    the detection being absent.
+  - S18.6 With the `SupersededBy` line deleted from the superseded record in
+    `design/state/decisions/`, the check exits 1 naming that record and that field; with the line
+    restored it exits 0 again. Both runs are stated. This is the class rejecting something in this
+    repository's own state set rather than only in a fixture, and the tree is left as it was.
+Out of scope: adding, renaming or removing a divergence class, or changing any class's blocking
+    status — each is a contract amendment and stops the slice; the glob-table restatement
+    `design/20-contract.md` § *Artifacts of a unit kind* names as compared by nothing, which needs
+    a class that does not exist; a live unit naming a retired contract, the gap the retirement
+    decision records as uncovered, for the same reason; widening `UnresolvedId` to reach an absent
+    scalar, which the amendment made this class's job; and writing, superseding or answering any
+    record in order to give the class something to fire on.
 
 ## Landed
 

@@ -656,7 +656,10 @@ function Test-DecisionAnchors {
 }
 
 # ---------------------------------------------------------------------------------------------
-# EnforcementUnevidenced: an Invariant record with Enforcement 'code' and no Evidence.
+# EnforcementUnevidenced: a conditionally-required field absent on a record whose own Status or
+# Enforcement requires it - an Invariant with Enforcement 'code' and no Evidence, a Decision with
+# Status 'superseded' and no SupersededBy, or a Question with Status 'answered' and no AnsweredBy
+# (design/20-contract.md § "The divergence classes"; design/90-decisions.md, 2026-08-19).
 # ---------------------------------------------------------------------------------------------
 function Test-EnforcementUnevidenced {
     param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records)
@@ -666,7 +669,19 @@ function Test-EnforcementUnevidenced {
         if ($record.Scalars['Enforcement'] -ne 'code') { continue }
         $evidence = @(if ($record.Lists.ContainsKey('Evidence')) { @($record.Lists['Evidence'] | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) } else { @() })
         if ($evidence.Count -eq 0) {
-            $findings.Add((New-DesignFinding -Class 'EnforcementUnevidenced' -Subject $record.Id -Detail 'Enforcement is code but Evidence is empty' -Blocking $true))
+            $findings.Add((New-DesignFinding -Class 'EnforcementUnevidenced' -Subject $record.Id -Detail "field 'Evidence' is required because Enforcement is 'code', and is absent" -Blocking $true))
+        }
+    }
+    foreach ($record in @($Records | Where-Object { $_.Kind -eq 'Decision' })) {
+        if ($record.Scalars['Status'] -ne 'superseded') { continue }
+        if ([string]::IsNullOrWhiteSpace($record.Scalars['SupersededBy'])) {
+            $findings.Add((New-DesignFinding -Class 'EnforcementUnevidenced' -Subject $record.Id -Detail "field 'SupersededBy' is required because Status is 'superseded', and is absent" -Blocking $true))
+        }
+    }
+    foreach ($record in @($Records | Where-Object { $_.Kind -eq 'Question' })) {
+        if ($record.Scalars['Status'] -ne 'answered') { continue }
+        if ([string]::IsNullOrWhiteSpace($record.Scalars['AnsweredBy'])) {
+            $findings.Add((New-DesignFinding -Class 'EnforcementUnevidenced' -Subject $record.Id -Detail "field 'AnsweredBy' is required because Status is 'answered', and is absent" -Blocking $true))
         }
     }
     ,@($findings)
