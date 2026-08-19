@@ -61,7 +61,10 @@ Describe 'Invoke-DoneHousekeeping' {
             $result.Deleted | Should -Not -Contain 'feature/foo'
             $refusal = $result.Refused | Where-Object Branch -eq 'feature/foo'
             $refusal | Should -Not -BeNullOrEmpty
-            $refusal.Reason | Should -Match ([regex]::Escape($wt))
+            # git's own "used by worktree at '<path>'" output always uses forward slashes,
+            # even on Windows where $wt (built from $TestDrive) uses backslashes - normalise
+            # both sides before comparing rather than asserting on separator-sensitive text.
+            $refusal.Reason.Replace('\', '/') | Should -Match ([regex]::Escape($wt.Replace('\', '/')))
             $refusal.Reason | Should -Not -Match "Not in --merged"
         }
 
