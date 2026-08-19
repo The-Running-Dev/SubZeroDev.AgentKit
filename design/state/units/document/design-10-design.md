@@ -5,7 +5,7 @@ Anchor: design/10-design.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-05-design-filled-for-one-path-scoped-brief-unwritten, decision/2026-08-19-retirement-is-status-field, decision/2026-08-19-contract-owner-stays-written-other-edges-derived, decision/2026-08-19-four-open-questions-closed-unit-set-widens, decision/2026-08-19-record-ids-kind-prefixed-slugs, decision/2026-08-19-state-set-one-file-per-record-ps1-tooling, decision/2026-08-19-design-state-becomes-addressable-records
 Archival:
 Questions:
 Work:

@@ -5,7 +5,7 @@ Anchor: .claude/commands/contract.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-19-contract-becomes-repository-scoped
 Archival:
 Questions:
 Work:

@@ -99,8 +99,73 @@ means no record exists yet, not that nothing is true.
 <!-- decision-affects:start -->
 | Decision | In force for |
 |---|---|
+| decision/2026-08-02-design-dir-relocatable-at-install | `unit/document/install-md` |
+| decision/2026-08-02-design-docs-default-to-design-dir | `unit/document/install-md` |
+| decision/2026-08-02-house-convention-path-corrected | `unit/document/agents-md` |
+| decision/2026-08-02-import-only-project-independent-conventions | `unit/document/agents-md` |
+| decision/2026-08-02-installing-is-agent-executed-reconciliation | `unit/command/install`, `unit/document/install-md` |
+| decision/2026-08-02-lesson-capture-is-reconcile-output | `unit/command/reconcile` |
+| decision/2026-08-02-lessons-file-never-merged-into | `unit/document/install-md` |
+| decision/2026-08-02-lessons-live-in-agent-md | `unit/document/agent-md`, `unit/document/agents-md` |
+| decision/2026-08-02-target-wins-every-divergence | `unit/document/install-md` |
+| decision/2026-08-03-acceptance-criteria-copied-into-issue | `unit/command/track` |
+| decision/2026-08-03-agent-block-points-where-doc-governs-and-is-fenced | `unit/document/agents-md` |
+| decision/2026-08-03-install-decisions-get-a-home | `unit/document/install-md` |
+| decision/2026-08-03-issues-read-human-first-agent-detail-collapsed | `unit/document/agents-md`, `unit/document/issue-template-bug`, `unit/document/issue-template-story` |
+| decision/2026-08-03-kits-commit-is-its-version | `unit/document/install-md` |
+| decision/2026-08-03-make-human-docs-generated-drift-checked | `unit/command/make-human-docs` |
+| decision/2026-08-03-model-routing-names-families-lives-in-agents-md | `unit/document/agents-md` |
+| decision/2026-08-03-pr-defers-to-repository-merge-convention | `unit/command/pr` |
+| decision/2026-08-03-reconciliation-ends-in-decision-not-report | `unit/document/agents-md` |
+| decision/2026-08-03-redteam-pass-is-phase-gate-stopping-rule-in-command | `unit/command/redteam`, `unit/document/agents-md` |
+| decision/2026-08-03-resolve-classifies-in-bulk-asks-on-ambiguous | `unit/command/resolve` |
+| decision/2026-08-03-ticking-checkbox-is-the-users | — |
 | decision/2026-08-03-track-adds-to-existing-project | `unit/command/track` |
+| decision/2026-08-03-verify-discovers-gates-reports-what-did-not-run | `unit/command/verify` |
+| decision/2026-08-03-work-defers-to-github-track-owns-github-writes | `unit/command/track`, `unit/document/agents-md` |
+| decision/2026-08-04-cost-measured-by-script-taxonomy-is-policy | `unit/document/agents-md`, `unit/script/measure-session` |
+| decision/2026-08-04-github-writes-widely-carved-out | `unit/command/slice`, `unit/command/track`, `unit/document/agents-md` |
+| decision/2026-08-04-install-all-runs-unattended-never-resolves-fork | `unit/command/install-all` |
+| decision/2026-08-04-kit-help-holds-walkthrough-orients-before-reciting | `unit/command/kit-help` |
+| decision/2026-08-04-measure-session-claude-code-only-errors-not-zero | `unit/script/measure-session` |
+| decision/2026-08-04-pester-tests-and-ci-gate-for-measure-session | `unit/script/measure-session` |
+| decision/2026-08-04-refine-is-a-front-door-between-stages | `unit/command/refine` |
+| decision/2026-08-04-session-boundaries-are-policy-in-agents-md | `unit/document/agents-md` |
+| decision/2026-08-04-sessionend-hook-writes-cost-log | `unit/document/install-md`, `unit/script/measure-session` |
+| decision/2026-08-04-slice-creates-own-branch-and-pushes | `unit/command/slice` |
+| decision/2026-08-04-slice-takes-no-argument-reads-doneness-from-tracker | `unit/command/slice` |
+| decision/2026-08-04-userpromptsubmit-hook-warns-on-session-size | `unit/document/install-md`, `unit/script/measure-session` |
+| decision/2026-08-05-design-filled-for-one-path-scoped-brief-unwritten | `unit/document/design-10-design` |
+| decision/2026-08-05-fix-is-a-new-command-files-own-bug-issue | `unit/command/fix` |
+| decision/2026-08-05-resolve-asks-once-over-completed-classification | `unit/command/resolve`, `unit/document/agents-md` |
+| decision/2026-08-05-seed-moves-to-templates-design | `unit/document/install-md` |
+| decision/2026-08-05-sync-kit-mechanism-recorded | `unit/script/sync-kit` |
+| decision/2026-08-08-done-housekeeping-scripts-everything-before-ask | `unit/command/done`, `unit/script/invoke-donehousekeeping` |
+| decision/2026-08-08-kit-sync-new-command | `unit/command/kit-sync` |
+| decision/2026-08-08-pr-absorbs-gates-drafts-abolished | `unit/command/fix`, `unit/command/pr`, `unit/command/slice`, `unit/document/agents-md` |
+| decision/2026-08-08-sync-kit-built | `unit/document/install-md`, `unit/script/sync-kit` |
+| decision/2026-08-08-tier-mismatch-gates-symmetrically | `unit/document/agents-md` |
 | decision/2026-08-10-frozen-md-marker | `unit/document/agents-md` |
+| decision/2026-08-11-documents-state-only-what-tree-cannot | `unit/command/reconcile`, `unit/document/agents-md`, `unit/document/design-20-contract`, `unit/document/design-30-slices` |
+| decision/2026-08-12-codex-aliases-luna-and-codex-spark | `unit/document/agents-md` |
+| decision/2026-08-12-codex-vendor-alias-list-for-sol-terra | `unit/document/agents-md` |
+| decision/2026-08-12-commands-split-core-and-companion | `unit/document/companions-md`, `unit/script/test-companion` |
+| decision/2026-08-12-install-all-write-surface-guard | `unit/command/install-all`, `unit/script/test-writesurface` |
+| decision/2026-08-13-codex-alias-gpt-5-added | `unit/document/agents-md` |
+| decision/2026-08-13-gate-check-comparison-by-tier-not-literal-name | `unit/document/agents-md` |
+| decision/2026-08-19-brief-written-kit-owned-mechanism-proven-here-only | `unit/document/design-00-brief` |
+| decision/2026-08-19-contract-becomes-repository-scoped | `unit/command/contract`, `unit/document/design-20-contract` |
+| decision/2026-08-19-contract-owner-stays-written-other-edges-derived | `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-19-design-state-becomes-addressable-records | `unit/document/design-10-design` |
+| decision/2026-08-19-document-kind-reaches-shipped-payload | `unit/document/codex-profiles`, `unit/document/design-20-contract`, `unit/document/issue-template-bug` |
+| decision/2026-08-19-enforcement-states-tree-as-it-stands | `unit/document/design-20-contract` |
+| decision/2026-08-19-four-open-questions-closed-unit-set-widens | `unit/document/design-00-brief`, `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-19-marked-region-marker-declares-its-own-kind | `unit/document/agents-md`, `unit/document/design-20-contract` |
+| decision/2026-08-19-pr-real-description-at-open | `unit/command/fix`, `unit/command/pr`, `unit/command/slice` |
+| decision/2026-08-19-record-ids-kind-prefixed-slugs | `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-19-retirement-is-status-field | `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-19-state-index-md-added | `unit/document/design-20-contract`, `unit/document/design-state-index` |
+| decision/2026-08-19-state-set-one-file-per-record-ps1-tooling | `unit/document/design-10-design`, `unit/document/design-20-contract` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks
@@ -108,5 +173,5 @@ means no record exists yet, not that nothing is true.
 <!-- question-affects:start -->
 | Question | Blocks |
 |---|---|
-| _(no question records yet)_ | |
+| question/slices-authority-home | `unit/document/design-30-slices`, `unit/script/update-designprojection` |
 <!-- question-affects:end -->

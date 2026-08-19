@@ -5,7 +5,7 @@ Anchor: design/00-brief.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-19-four-open-questions-closed-unit-set-widens, decision/2026-08-19-brief-written-kit-owned-mechanism-proven-here-only
 Archival:
 Questions:
 Work:
