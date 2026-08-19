@@ -5,7 +5,6 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
-- **`.claude/commands/contract.md` § *Re-run* is wrong for a repository whose contract covers more than one path.** It says the command rewrites `design/20-contract.md` in full from `design/10-design.md`, which on 2026-08-19 would have deleted I1–I13 and the whole landed defect-to-merge contract. The 2026-08-19 entry records why the brief overrules it, but the rule will produce the same fork on every future `/contract` run. Not corrected in that run, because a command rewriting its own instructions mid-execution removes the only check on it.
 - **`INSTALL.md` phase 1 enumerates eight `tools/*.ps1` against ten in the tree.** Flagged 2026-08-19 by `/design` and left uncorrected; now consequential, because `design/20-contract.md` adds four more scripts to that directory.
 - **`tools/Test-Companion.ps1`'s marker regex, its `MissingBlock` message and doc comment, `tools/Test-Companion.Tests.ps1`, and the `<!-- companion:start -->` fence in all twenty-one files under `.claude/commands/` migrate to the declared form.** Decided 2026-08-19 by the entry below; not done there, because a contract run does not implement, and the change ships to eighteen targets on the next `/install` or `/kit-sync`.
 
