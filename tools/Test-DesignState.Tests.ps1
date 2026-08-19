@@ -239,6 +239,32 @@ Describe 'Test-DesignState: id resolution and record-level classes' {
         $findings = Test-EnforcementUnevidenced -Records @($withEvidence, $instruction)
         $findings.Count | Should -Be 0
     }
+
+    It 'S18.1: EnforcementUnevidenced fires for a superseded decision with no SupersededBy' -Tag 'Fires','EnforcementUnevidenced' {
+        $d = New-Record -Id 'decision/x' -Kind 'Decision' -Scalars @{ Status = 'superseded' }
+        $findings = Test-EnforcementUnevidenced -Records @($d)
+        $findings.Count | Should -Be 1
+        $findings[0].Detail | Should -Match "SupersededBy"
+    }
+
+    It 'S18.3: EnforcementUnevidenced does not fire for an accepted decision with no SupersededBy' -Tag 'NearMiss','EnforcementUnevidenced' {
+        $d = New-Record -Id 'decision/x' -Kind 'Decision' -Scalars @{ Status = 'accepted' }
+        $findings = Test-EnforcementUnevidenced -Records @($d)
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S18.1: EnforcementUnevidenced fires for an answered question with no AnsweredBy' -Tag 'Fires','EnforcementUnevidenced' {
+        $q = New-Record -Id 'question/x' -Kind 'Question' -Scalars @{ Status = 'answered' }
+        $findings = Test-EnforcementUnevidenced -Records @($q)
+        $findings.Count | Should -Be 1
+        $findings[0].Detail | Should -Match "AnsweredBy"
+    }
+
+    It 'S18.3: EnforcementUnevidenced does not fire for an open question with no AnsweredBy' -Tag 'NearMiss','EnforcementUnevidenced' {
+        $q = New-Record -Id 'question/x' -Kind 'Question' -Scalars @{ Status = 'open' }
+        $findings = Test-EnforcementUnevidenced -Records @($q)
+        $findings.Count | Should -Be 0
+    }
 }
 
 Describe 'Test-DesignState: IdCollision' {
@@ -948,6 +974,29 @@ Describe 'Test-DesignState against this repository''s own tree' {
         $recordedCount = (@($graph.Records | Where-Object { $_.Kind -eq 'Invariant' })).Count
         $parsed = Get-ContractInvariantIds -ContractPath $contractPath
         $parsed.Ids.Count | Should -Be $recordedCount
+    }
+
+    It 'S18.6: EnforcementUnevidenced rejects this repository''s own superseded decision once its SupersededBy line is removed, and clears once it is restored' {
+        $supersededPath = Join-Path $script:RepoRoot 'design/state/decisions/2026-08-03-ticking-checkbox-is-the-users.md'
+        $original = Get-Content -LiteralPath $supersededPath -Raw
+        $original | Should -Match '(?m)^SupersededBy:'
+        try {
+            $stripped = $original -replace '(?m)^SupersededBy:.*\r?\n', ''
+            Set-Content -LiteralPath $supersededPath -Value $stripped -Encoding utf8NoBOM -NoNewline
+
+            $strippedResult = Invoke-DesignStateCheck -RepoPath $script:RepoRoot
+            $strippedResult.ExitCode | Should -Be 1
+            $hit = @($strippedResult.Findings | Where-Object { $_.Class -eq 'EnforcementUnevidenced' -and $_.Subject -eq 'decision/2026-08-03-ticking-checkbox-is-the-users' })
+            $hit.Count | Should -Be 1
+            $hit[0].Detail | Should -Match 'SupersededBy'
+        } finally {
+            Set-Content -LiteralPath $supersededPath -Value $original -Encoding utf8NoBOM -NoNewline
+        }
+
+        $restoredResult = Invoke-DesignStateCheck -RepoPath $script:RepoRoot
+        (@($restoredResult.Findings | Where-Object { $_.Class -eq 'EnforcementUnevidenced' })).Count | Should -Be 0
+        $restoredResult.ExitCode | Should -Be 0
+        (& git -C $script:RepoRoot status --short) | Should -Be $script:StatusBefore
     }
 }
 
