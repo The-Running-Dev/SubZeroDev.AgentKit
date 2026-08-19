@@ -105,10 +105,12 @@ and are not copied here.** What that table cannot state:
 
 What the table cannot state:
 
-- **The invariant form is the one exception and it is deliberate.** `I1`–`I13` are cited by
-  bare number in `AGENTS.md`, in six command files and throughout the log. Prefixing them would
-  be the corpus-wide rename that permanent ids exist to prevent, which is the same argument
-  that makes every other id permanent.
+- **The invariant form is the one exception and it is deliberate.** Invariants are cited by
+  bare number throughout `design/90-decisions.md`, and in `AGENTS.md` wherever the prose needs
+  to point at one — today `I6` and `I9`, the set the checker's citation-based
+  `UnrecordedArtifact` difference is taken against. Prefixing them would be the corpus-wide
+  rename that permanent ids exist to prevent, which is the same argument that makes every
+  other id permanent.
 - **A slug is a name, not a location.** `unit/command/track` keeps its id after `/track` is
   renamed; the `Anchor` moves and the id does not. An id that reads as historical after a
   rename is a permanent id working correctly, not drift.
@@ -567,6 +569,7 @@ recorded in `design/90-decisions.md` § *Open* per `AGENTS.md`, *Tracking work*,
 |---|---|---|---|---|
 | **I3** | A batch authorizes exactly the thread ids enumerated when it was granted, and no others. | `unit/document/agents-md` | instruction | — |
 | **I4** | A batch does not outlive the response that acts on it. | `unit/document/agents-md` | instruction | — |
+| **I6** | `/fix` never writes to `design/`. | `unit/command/fix` | instruction | — |
 | **I9** | The batch is unavailable in a repository the user does not own. Every action in it is requested individually there, as today. | `unit/document/agents-md` | instruction | — |
 | **I28** | GitHub is the authority for a slice's acceptance criteria, completion and order. A `WorkRef` is a mirror, is stale by default, and is never cited as authority. | `unit/command/track` | instruction | — |
 <!-- invariants:end -->
@@ -576,7 +579,6 @@ recorded in `design/90-decisions.md` § *Open* per `AGENTS.md`, *Tracking work*,
 | **I1** | No thread is resolved unless its class is `Defect`, its fix is in a commit reachable from `HeadSha`, and the `WaitResult` for that SHA has `State = Passed` | `resolve.md` | instruction | — |
 | **I2** | `Wait-PullRequestCheck.ps1` never reports `Passed` or `Failed` for a SHA that was not the pull request's head at the moment it read the checks | the script | code | `tools/Wait-PullRequestCheck.Tests.ps1` |
 | **I5** | Every `reviewThreads` query paginates to exhaustion before any thread is classified | `resolve.md` | instruction | — |
-| **I6** | `/fix` never writes to `design/` | `fix.md` | instruction | — |
 | **I7** | An unrecognised check bucket yields `NotEvaluated`, never `Passed` — the script fails closed | the script | code | `tools/Wait-PullRequestCheck.Tests.ps1` |
 | **I8** | A pull request with zero checks configured yields `NotEvaluated`, never `Passed` | the script | code | `tools/Wait-PullRequestCheck.Tests.ps1` |
 | **I10** | `/fix` always implements against a bug issue's agent block — the one it was given, or the one it filed after reproducing. It never carries its own copy of those constraints | `fix.md` | instruction | — |
