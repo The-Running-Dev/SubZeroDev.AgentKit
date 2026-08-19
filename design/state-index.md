@@ -81,8 +81,6 @@ means no record exists yet, not that nothing is true.
 |---|---|
 | I1 | `unit/command/resolve` |
 | I2 | `unit/script/wait-pullrequestcheck` |
-| I3 | `unit/document/agents-md` |
-| I4 | `unit/document/agents-md` |
 | I5 | `unit/command/resolve` |
 | I6 | `unit/command/fix` |
 | I7 | `unit/script/wait-pullrequestcheck` |
@@ -170,7 +168,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-04-userpromptsubmit-hook-warns-on-session-size | `unit/document/install-md`, `unit/script/measure-session` |
 | decision/2026-08-05-design-filled-for-one-path-scoped-brief-unwritten | `unit/document/design-10-design` |
 | decision/2026-08-05-fix-is-a-new-command-files-own-bug-issue | `unit/command/fix` |
-| decision/2026-08-05-resolve-asks-once-over-completed-classification | `unit/command/resolve`, `unit/document/agents-md` |
+| decision/2026-08-05-resolve-asks-once-over-completed-classification | — |
 | decision/2026-08-05-seed-moves-to-templates-design | `unit/document/install-md` |
 | decision/2026-08-05-sync-kit-mechanism-recorded | `unit/script/sync-kit` |
 | decision/2026-08-08-done-housekeeping-scripts-everything-before-ask | `unit/command/done`, `unit/script/invoke-donehousekeeping` |
@@ -200,9 +198,11 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-19-marked-region-marker-declares-its-own-kind | `unit/document/agents-md`, `unit/document/design-20-contract` |
 | decision/2026-08-19-pr-real-description-at-open | `unit/command/fix`, `unit/command/pr`, `unit/command/slice` |
 | decision/2026-08-19-record-ids-kind-prefixed-slugs | `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-19-resolution-batch-replaced-by-standing-delegation | `unit/command/resolve`, `unit/document/agents-md` |
 | decision/2026-08-19-retirement-is-status-field | `unit/document/design-10-design`, `unit/document/design-20-contract` |
 | decision/2026-08-19-state-index-md-added | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 | decision/2026-08-19-state-set-one-file-per-record-ps1-tooling | `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-20-fix-picks-its-own-bug-when-given-nothing | `unit/command/fix` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks

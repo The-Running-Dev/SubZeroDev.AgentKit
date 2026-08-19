@@ -1,7 +1,8 @@
 # Contract
 
 > **Two paths are under contract here.** The **defect-to-merge path** (`/fix`,
-> `Wait-PullRequestCheck.ps1`, the authorization batch) landed as S1–S3; its design body is
+> `Wait-PullRequestCheck.ps1`, and the authorization batch S2 built and 2026-08-19 retired)
+> landed as S1–S3; its design body is
 > retired to `git show dfd1cab:design/10-design.md` and its contract stands below, unchanged.
 > The **explicit design-state mechanism** is designed in the current `design/10-design.md` and
 > is contracted below for the first time. Nothing in the first path is superseded by the
@@ -41,8 +42,10 @@ survives that pointer is everything in this document a grammar cannot state.
 is the divergence *Single ownership* forbids. Where this contract needs to refer to one it
 names the class in prose.
 
-`AuthorizationBatch` has no code representation. It is a conversational structure, and its
-invariants are I3 and I4 below.
+`AuthorizationBatch` is **retired.** There is no batch: `/resolve` resolves a `Defect`-class
+thread its pushed fix satisfies without asking first, under `AGENTS.md`, *Git and delivery*.
+I3 and I4 are retired with it and are absent from § *Invariants* below; their ids stay
+resolvable, which is what retirement is for (`design/90-decisions.md`, 2026-08-19).
 
 ### The state set
 
@@ -63,8 +66,11 @@ per-kind vocabulary, citing it. What neither can state:
   retired one and that is not a finding — keeping the id resolvable is the entire reason
   retirement exists rather than deletion (I16). What retirement changes is two things and only
   two: the record leaves every closure, and its `Anchor` stops being checked against the tree
-  (I30). A retired unit's artifact is gone by definition, so an `Anchor` check against it would
-  block on every run forever.
+  (I30), and a retired *invariant* additionally leaves § *Invariants* below, because that table is
+  the invariant unit set rather than a history — a retired row would keep the id in
+  `UnrecordedArtifact`'s difference and make the table grow monotonically. A retired unit's
+  artifact is gone by definition, so an `Anchor` check against it would block on every run
+  forever.
 - **`Archival` is excluded from the closure and from nothing else.** It is read when history
   is wanted; it is not read when orienting. A reader that folds it into `Live` makes the
   ceiling a countdown against a monotonic log (I23).
@@ -146,8 +152,9 @@ signatures cannot state:
 
 ### What the checker emits
 
-`New-DesignFinding` is declared in `tools/Test-DesignState.ps1`, not restated here (`AGENTS.md`,
-*Single ownership*). What that signature cannot state:
+`New-DesignFinding`, `New-CouldNotEvaluate` and `New-DesignStateResult` are declared in
+`tools/Test-DesignState.ps1`, not restated here (`AGENTS.md`, *Single ownership*) — one factory per
+list, and the result object that carries all three. What those signatures cannot state:
 
 - **`Failures` is never folded into `Findings` and the two never substitute for each other.**
   This is I12's rule at a second site, and it is the whole difference between "the design
@@ -386,7 +393,8 @@ three-list report.
   Windows is the house platform. Any other normalisation would hide a real difference.
 - **Writes nothing** (I18) — not `design/`, not a record, not an issue, not git. Which side of
   a divergence is wrong is the user's call, and a checker that resolved one would be making it.
-- **`-Path` is optional and defaults to the repository root.** It has no `-Fix`, no `-Force`,
+- **`-Path` is optional and defaults to the current directory**, the same default `Test-Companion.ps1`'s
+  `-TargetRepo` carries. It has no `-Fix`, no `-Force`,
   and no flag that resolves anything; adding one is the change this contract exists to refuse.
 
 ### `tools/Update-DesignProjection.ps1`
@@ -456,11 +464,18 @@ no file behind it.
 
 | | |
 |---|---|
-| Invocation | `/fix <issue number>`, `/fix <description>`, or `/fix` with a failing test in context |
-| Reads | the defect source; **the bug issue's agent block**; the repository's gates via `/verify`; `AGENTS.md` |
+| Invocation | `/fix <issue number>`, `/fix <description>`, `/fix` with a failing test in context, or `/fix` with none of those — which picks the highest-value open bug itself, by an explicit priority signal where one exists and the oldest open `bug` issue where none does |
+| Reads | the defect source; **the bug issue's agent block**; where `design/state/` exists, that unit's closure rather than the corpus (I27); `AGENTS.md` |
 | Writes | one branch, one or more commits, one pull request, and — only on the description path, only after reproducing — **one bug issue** |
-| Must output | the reproduction evidence; the issue number it is implementing against; `/verify`'s three lists; the batch request; the pushed SHA; the `WaitResult` |
-| Must not | edit `design/`, open a draft pull request, resolve a thread, merge, or open an issue for a defect it did not reproduce |
+| Must output | the reproduction evidence; the issue number it is implementing against; the branch and the pull request it opened, the latter carrying its real description from the moment it is opened. **The gates and the review threads are `/pr`'s** (`design/90-decisions.md`, 2026-08-08), so `/verify`'s three lists, the pushed SHA and the `WaitResult` are output there and not here |
+| Must not | edit `design/`, open a draft pull request, resolve a thread, merge, open an issue for a defect it did not reproduce, or widen the change to an adjacent defect noticed along the way |
+
+**The fourth form is the one path that reaches the tracker before it has a defect.** The other
+three are handed their subject; this one ranks the open issues to choose it, so an unreachable
+`gh` stops it where the others are unaffected until they file or push. It is not exempt from
+reproducing first, and **it does not fall through**: an issue it picked and could not reproduce
+is reported as picked-and-unreproducible, never silently replaced by the next-ranked one, which
+would make the command's choice of subject unobservable.
 
 **Stop conditions are not enumerated here.** They are owned by the `<!-- agent:start -->`
 block in `.github/ISSUE_TEMPLATE/bug.md`, which states that a bug issue *is* the
@@ -484,9 +499,9 @@ The existing contract stands. Three changes:
 
 | | |
 |---|---|
-| Ordering | Classification completes **before** the batch is requested |
+| Ordering | Classification completes over the full thread table **before** any thread is acted on |
 | Delegation | "Confirm the checks are green on the new head SHA" is discharged by `Wait-PullRequestCheck.ps1`, not by reading `gh pr checks` by eye |
-| Authorization | Cites the `AGENTS.md` batch rule rather than asking per action |
+| Authorization | Cites `AGENTS.md`, *Git and delivery* — a `Defect`-class thread the pushed fix satisfies is resolved without asking first; `Ambiguous` threads are still brought individually, and in a repository the account does not own every action reverts to an individual ask (I9) |
 
 Everything else — the GraphQL query, the five classes, the fixed order, the report shape,
 the `Never` list — is unchanged and stays owned by that file.
@@ -523,7 +538,7 @@ Stated once here rather than enumerated per command, because the obligation is t
 
 | Document | Owns | What it may not do |
 |---|---|---|
-| `AGENTS.md` | The marked-region rule — both kinds — generalised from the agent-fence rule it states today; the freeze rule; I3, I4, I9 | State the rule twice, or leave the agent-fence wording behind as a second copy. **Exactly one document states it**, and `.claude/COMPANIONS.md` names `companion` as declared without restating what declared means |
+| `AGENTS.md` | The marked-region rule — both kinds — generalised from the agent-fence rule it states today; the freeze rule; the review-thread delegation; I9 | State the rule twice, or leave the agent-fence wording behind as a second copy. **Exactly one document states it**, and `.claude/COMPANIONS.md` names `companion` as declared without restating what declared means |
 | `design/20-contract.md` | The closed divergence-class list and each class's blocking status (below) | Decide blocking-ness per finding at the call site, or carry a class the checker does not declare |
 | `.claude/COMPANIONS.md` | The companion mechanism, and that `companion` is a **declared** region | Acquire a projection, or restate the marker form this document fixes |
 | `.claude/commands/resolve.md` | `ThreadClass` and its five values | — |
@@ -714,13 +729,11 @@ wait in.
 |---|---|---|---|---|
 | **I1** | No thread is resolved unless its class is `Defect`, its fix is in a commit reachable from `HeadSha`, and the `WaitResult` for that SHA has `State = Passed`. | `unit/command/resolve` | instruction | — |
 | **I2** | `Wait-PullRequestCheck.ps1` never reports `Passed` or `Failed` for a SHA that was not the pull request's head at the moment it read the checks. | `unit/script/wait-pullrequestcheck` | code | tools/Wait-PullRequestCheck.Tests.ps1 |
-| **I3** | A batch authorizes exactly the thread ids enumerated when it was granted, and no others. | `unit/document/agents-md` | instruction | — |
-| **I4** | A batch does not outlive the response that acts on it. | `unit/document/agents-md` | instruction | — |
 | **I5** | Every `reviewThreads` query paginates to exhaustion before any thread is classified. | `unit/command/resolve` | instruction | — |
 | **I6** | `/fix` never writes to `design/`. | `unit/command/fix` | instruction | — |
 | **I7** | An unrecognised check bucket yields `NotEvaluated`, never `Passed` — the script fails closed. | `unit/script/wait-pullrequestcheck` | code | tools/Wait-PullRequestCheck.Tests.ps1 |
 | **I8** | A pull request with zero checks configured yields `NotEvaluated`, never `Passed`. | `unit/script/wait-pullrequestcheck` | code | tools/Wait-PullRequestCheck.Tests.ps1 |
-| **I9** | The batch is unavailable in a repository the user does not own. Every action in it is requested individually there, as today. | `unit/document/agents-md` | instruction | — |
+| **I9** | The delegation is unavailable in a repository the user does not own. Every action it covers is requested individually there, as today. | `unit/document/agents-md` | instruction | — |
 | **I10** | `/fix` always implements against a bug issue's agent block — the one it was given, or the one it filed after reproducing. It never carries its own copy of those constraints. | `unit/command/fix` | instruction | — |
 | **I11** | `/fix` never opens an issue for a defect it could not reproduce. That is a diagnosis report to the user, not a bug. | `unit/command/fix` | instruction | — |
 | **I12** | `Test-DesignDrift.ps1` never reports a clean run for a comparison it could not complete — an unreadable tracker, an unparseable criterion id, or an unresolvable pin yields *could not evaluate*, never *no drift*. | `unit/script/test-designdrift` | code | tools/Test-DesignDrift.Tests.ps1 |

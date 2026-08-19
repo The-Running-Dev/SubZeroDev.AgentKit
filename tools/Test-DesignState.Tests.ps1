@@ -984,7 +984,9 @@ Describe 'Test-DesignState against this repository''s own tree' {
         ([regex]::Matches($after, $rowPattern)).Count | Should -Be 0
 
         $graph = Read-DesignStateGraph -Path $script:RepoRoot
-        $recordedCount = (@($graph.Records | Where-Object { $_.Kind -eq 'Invariant' })).Count
+        # Active only: a retired invariant leaves the rendered table, which is the invariant unit
+        # set rather than a history (design/20-contract.md, "The state set", I30).
+        $recordedCount = (@($graph.Records | Where-Object { $_.Kind -eq 'Invariant' -and $_.Scalars['Status'] -eq 'active' })).Count
         $parsed = Get-ContractInvariantIds -ContractPath $contractPath
         $parsed.Ids.Count | Should -Be $recordedCount
     }

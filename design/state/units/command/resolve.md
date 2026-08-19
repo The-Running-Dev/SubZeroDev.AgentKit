@@ -5,8 +5,8 @@ Anchor: .claude/commands/resolve.md
 Consumes: contract/wait-pullrequestcheck
 Exposes: contract/resolve
 Binds: I1, I5
-Live: decision/2026-08-03-resolve-classifies-in-bulk-asks-on-ambiguous, decision/2026-08-05-resolve-asks-once-over-completed-classification
-Archival:
+Live: decision/2026-08-03-resolve-classifies-in-bulk-asks-on-ambiguous, decision/2026-08-19-resolution-batch-replaced-by-standing-delegation
+Archival: decision/2026-08-05-resolve-asks-once-over-completed-classification
 Questions:
 Work:
 Evidence:
