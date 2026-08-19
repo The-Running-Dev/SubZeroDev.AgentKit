@@ -39,7 +39,39 @@ means no record exists yet, not that nothing is true.
 | `unit/command/track` | command | `.claude/commands/track.md` |
 | `unit/command/unfreeze` | command | `.claude/commands/unfreeze.md` |
 | `unit/command/verify` | command | `.claude/commands/verify.md` |
+| `unit/document/agent-md` | document | `agent.md` |
 | `unit/document/agents-md` | document | `AGENTS.md` |
+| `unit/document/codex-profiles` | document | `codex/PROFILES.md` |
+| `unit/document/companions-md` | document | `.claude/COMPANIONS.md` |
+| `unit/document/design-00-brief` | document | `design/00-brief.md` |
+| `unit/document/design-10-design` | document | `design/10-design.md` |
+| `unit/document/design-20-contract` | document | `design/20-contract.md` |
+| `unit/document/design-30-slices` | document | `design/30-slices.md` |
+| `unit/document/design-90-decisions` | document | `design/90-decisions.md` |
+| `unit/document/design-cost` | document | `design/cost.md` |
+| `unit/document/design-state-index` | document | `design/state-index.md` |
+| `unit/document/install-md` | document | `INSTALL.md` |
+| `unit/document/issue-template-bug` | document | `.github/ISSUE_TEMPLATE/bug.md` |
+| `unit/document/issue-template-story` | document | `.github/ISSUE_TEMPLATE/story.md` |
+| `unit/document/readme-md` | document | `README.md` |
+| `unit/document/template-00-brief` | document | `templates/design/00-brief.md` |
+| `unit/document/template-10-design` | document | `templates/design/10-design.md` |
+| `unit/document/template-20-contract` | document | `templates/design/20-contract.md` |
+| `unit/document/template-30-slices` | document | `templates/design/30-slices.md` |
+| `unit/document/template-90-decisions` | document | `templates/design/90-decisions.md` |
+| `unit/script/invoke-donehousekeeping` | script | `tools/Invoke-DoneHousekeeping.ps1` |
+| `unit/script/measure-session` | script | `tools/Measure-Session.ps1` |
+| `unit/script/new-designdocs` | script | `tools/New-DesignDocs.ps1` |
+| `unit/script/read-designstate` | script | `tools/Read-DesignState.ps1` |
+| `unit/script/sync-kit` | script | `tools/Sync-Kit.ps1` |
+| `unit/script/test-companion` | script | `tools/Test-Companion.ps1` |
+| `unit/script/test-designdrift` | script | `tools/Test-DesignDrift.ps1` |
+| `unit/script/test-designstate` | script | `tools/Test-DesignState.ps1` |
+| `unit/script/test-gatescache` | script | `tools/Test-GatesCache.ps1` |
+| `unit/script/test-verifyreport` | script | `tools/Test-VerifyReport.ps1` |
+| `unit/script/test-writesurface` | script | `tools/Test-WriteSurface.ps1` |
+| `unit/script/update-designprojection` | script | `tools/Update-DesignProjection.ps1` |
+| `unit/script/wait-pullrequestcheck` | script | `tools/Wait-PullRequestCheck.ps1` |
 <!-- units:end -->
 
 ## Invariants — bound by
