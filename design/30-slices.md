@@ -4,7 +4,7 @@
 > retired to the index under `## Landed` and its design body to
 > `git show dfd1cab:design/10-design.md`. The **explicit design-state mechanism**, designed in
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, is sliced under
-> `## Outstanding` as S4–S16.
+> `## Outstanding` as S4–S17.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -44,9 +44,10 @@ issue (`design/10-design.md`, § *WorkRef*).
 
 ## Contract questions
 
-**Three outstanding.** One is already an item in `design/20-contract.md` § *Unresolved*; the
-other two were found by this re-run and are **not there yet** — writing them is `/contract`'s,
-at `opus`/`high`, and neither is resolved here.
+**Two outstanding and one answered.** The first is already an item in `design/20-contract.md`
+§ *Unresolved*; the second was found by this re-run and is **not there yet**. A third was found
+and **answered in the same session**, and what it obliges is recorded below rather than acted on
+— writing all of it is `/contract`'s, at `opus`/`high`.
 
 **Where the `outstanding` projection renders.** `design/20-contract.md` § *Unresolved* — *Where
 a slice's criteria are rendered once GitHub is the authority* — does not determine which
@@ -55,20 +56,29 @@ document hosts it. That projection is in the projector's minimum set (`design/20
 slices name it and stop at it rather than choosing; neither adds a new item, because the item
 is already there.
 
-**What the invariant unit set is.** § *Artifacts of a unit kind* takes the difference against
-`I<n>` **citations in `AGENTS.md` and the command files**; § *Invariants* says a row moves into
-the generated region the commit its record is written, and the brief names an invariant as a
-unit whose state must be obtainable. The two readings do not pick out the same set, and they
-differ in whether work remains: under the first the set is the cited ids and the surplus
-records are a defect, under the second the uncited rows are outstanding records. **No slice is
-written for it here**, because which reading holds decides whether the slice exists at all.
+**What the invariant unit set is — answered.** § *Artifacts of a unit kind* took the difference
+against `I<n>` **citations in `AGENTS.md` and the command files**, which picks out two ids;
+§ *Invariants* says a row moves into the generated region the commit its record is written, and
+the brief names an invariant as a unit whose state must be obtainable, which points at the whole
+table. **The table holds** — decided 2026-08-19, on the ground that an invariant nothing happens
+to quote is still a rule the kit binds itself to, and a set defined by citation makes the kind
+nearly empty and splits § *Invariants* permanently.
+
+The amendment is `/contract`'s and the log entry belongs in the same commit as it, so that no
+window exists in which the log describes a contract that does not say it. Two things change
+together: the `invariant` row of § *Artifacts of a unit kind*, and the citation scan in
+`tools/Test-DesignState.ps1` that implements it. **S17** below is what the answer obliges, and
+until it lands the checker reports the unwritten records rather than the three surplus ones it
+reports today — the same interim state § *Interim findings are expected* describes, except that
+CI is wired now and the build is red for the duration.
 
 **Which class resolves a tree pointer that is not a unit's `Anchor`.** `AnchorMissing` is
 scoped to `Unit` records by both this contract and the checker. `Contract.Declaration` and the
 `Evidence` field on a unit or an invariant record are tree pointers, and no blocking class
-resolves any of them — which is the unchecked restatement **I15** forbids. It reaches
-**S16**, which cannot write a `Declaration` until it is answered, and it is already live in
-the tree, where `Evidence` pointers stand unresolved by anything standing.
+resolves any of them — which is the unchecked restatement **I15** forbids. It reaches **S16**,
+which cannot write a `Declaration` until it is answered, and **S17**, which writes an `Evidence`
+pointer for every invariant the contract holds by code. It is already live in the tree, where
+unit records carry `Evidence` pointers that nothing standing resolves.
 
 A slice that discovers something *else* undetermined stops and adds it to § *Unresolved*. It
 does not resolve it in the implementing session.
@@ -527,6 +537,46 @@ Acceptance:
 Out of scope: `WorkRef` records and the `outstanding` projection, which are S14's; the invariant
     backlog, whose size § *Contract questions* does not determine; widening any class or adding
     one — that is a contract amendment and stops the slice; CI wiring, which S12 already carries.
+
+---
+
+## S17 — Every rule the kit binds itself to becomes a file
+> **Blocked, on two things.** `/contract` has not yet made the amendment § *Contract questions*
+> records as answered, so § *Artifacts of a unit kind* still defines the invariant set by
+> citation. And S17.3 writes an `Evidence` pointer, which is the tree pointer no blocking class
+> resolves — the second open question there.
+
+Delivers: Every rule the kit holds itself to becomes a file you can open — not just the handful
+that happen to be quoted in the agent contract. Each says what it requires, who is answerable
+for it, whether it is held up by code or only by instruction, and what you can go read to check
+that claim. The contract's table stops being half generated and half kept by hand.
+Touches: `design/state/invariants/`, `design/state/units/`,
+         `design/20-contract.md` (§ *Invariants*), the projected regions
+Depends on: S10, S12, and the amendment § *Contract questions* records as answered
+Acceptance:
+  - S17.1 Every `I<n>` row in `design/20-contract.md` § *Invariants* has exactly one record, and
+    `UnrecordedArtifact` reports none for the invariant kind in either direction.
+  - S17.2 § *Invariants* is a single projected region with no hand-authored tail of rows left
+    below it; a hand edit inside it is gone after one regeneration, and the section's surrounding
+    prose survives.
+  - S17.3 Each record's `Enforcement` reproduces the row it came from and **no row's value
+    changes in this slice** — a row promotes only in the slice that writes its evidencing test.
+    Every record whose `Enforcement` is `code` carries an `Evidence` pointer that resolves;
+    `EnforcementUnevidenced` reports none.
+  - S17.4 Every unit an invariant record names as `Owner` carries that id in its `Binds`, and
+    `UnresolvedId` reports none among the records this slice writes.
+  - S17.5 No sentence of the prose standing below § *Invariants* today is lost: each is either
+    carried into a record's `Statement` or left as prose outside the region, and the slice states
+    which, per note. The notes on I15 and I16 naming no test, on I26's row, and on where I12 and
+    I13 live are named individually in that account.
+  - S17.6 `tools/Test-DesignState.ps1` exits 0 on a clean checkout of this repository at the
+    commit this slice lands, which closes the window S12 opened by wiring CI over a partial
+    migration.
+  - S17.7 The largest closure across the whole state set is named with its size and its largest
+    contributor. Over budget stops the project and reports, per the brief's abandonment line.
+Out of scope: changing what any invariant says, adding one, or removing one — each is a contract
+    amendment and stops the slice; promoting an `Enforcement` row to `code`; the contract kind and
+    the `Consumes`/`Exposes` edges, which are S16's; CI wiring, which S12 already carries.
 
 ## Landed
 
