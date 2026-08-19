@@ -197,6 +197,12 @@ Keys, and what the mapping cannot state:
 - **There is no index file, no manifest, and no `.json` beside it.** Enumeration is a directory
   walk. Anything caching the enumeration is the index the brief's *no round-trip* non-goal
   excludes, and it is also a second copy that can be current-looking and wrong.
+- **There is no lock, no lease, and no coordination file either, and that is the same kind of
+  deliberate absence.** Nothing here is concurrent, and **git is the whole of the arbitration**:
+  two sessions writing state on divergent branches produce a merge conflict, which is the
+  intended and sufficient behaviour, and per-record files are what keep that conflict localised
+  to the units both sessions touched. A lock would be a second answer to a question the branch
+  already answers, and one that can be held after the session holding it is gone.
 
 **Grammar.** Declared in `tools/Read-DesignState.ps1`, not restated here (`AGENTS.md`, *Single
 ownership*). What the declaration cannot say: the grammar has no permissive fallback for a line
@@ -329,6 +335,10 @@ three-list report.
   only on 1 turns *could not evaluate* into a pass at the call site, which is I19 and I20
   defeated by the consumer rather than by the script — and the brief's *fail CI* line is about
   what the build does, not about what the exit code was.
+- **Measures a closure as the sum of whole record files** (I23), never as the bytes of the fields
+  a reader actually consulted. A meter that counted only what it looked at would satisfy the
+  ceiling while understating the load, which is the single property one-file-per-record was chosen
+  over a grouped document to make impossible.
 - **Always names the largest closure and the unit it belongs to, on a clean run as well as a
   failing one.** `ClosureOverBudget` fires only once the ceiling is passed; the brief requires
   the largest unit named in the report regardless. Headroom nobody is shown is a ceiling nobody
@@ -462,6 +472,13 @@ Stated once here rather than enumerated per command, because the obligation is t
   Steps 4 and 5 in that order, never the reverse.
 - **Never cite a `WorkRef` as authority** (I28). A mirror is quoted as a mirror, with its
   `MirroredAt`, or the tracker is read.
+- **A slice has no acceptance criteria until it has an issue**, and authority transfers at the
+  moment the issue is created (`design/10-design.md` § *WorkRef*). Before that point
+  `design/30-slices.md` carries a *proposal* and is cited as one; after it, the issue is the
+  authority and the document is a mirror of it (I28). Nothing enforces the sequencing but
+  `/slices` running before `/track`. **This is settled and is not the § *Unresolved* item** —
+  what stays undetermined there is where criteria are rendered once the transfer has happened,
+  not when it happens.
 - **Never read a generated region as an input** (I14).
 - **Orienting on a unit reads its closure, and `design/90-decisions.md` is not opened**
   (`design/10-design.md` § *Orient*, step 3). The log is opened when relitigating a choice —
@@ -605,10 +622,12 @@ alone (I22) are identical in all three cases, and a second class would have spli
 two ids for nothing. **The name reading narrower than what it checks is the price, paid
 deliberately and for the second time in this list.**
 
-**This widening is contract-ahead-of-code, and `ClassListDisagreement` will not say so.** That
-class compares class *ids*, and the id is unchanged, so the checker stays green while its
-detection still reads only the invariant case. It is the same silent divergence § *Artifacts of a
-unit kind* names for its glob table, and it closes when the slice that widens the detection lands.
+**A widened class definition is invisible to `ClassListDisagreement`, and that gap outlives the
+widening that exposed it.** That class compares class *ids*, and an id does not change when what
+it detects does, so a contract widened ahead of its detection stays green until the slice lands —
+as this one did at S18, which is why the three cases above read as one rule rather than as one
+rule and two intentions. It is the same silent divergence § *Artifacts of a unit kind* names for
+its glob table, and nothing on the closed list closes it.
 
 **Reported, never blocking.** Each fails in exactly the environment where the failure means
 nothing, which is why none of them is on the list above.
@@ -682,7 +701,7 @@ wait in.
 | **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 | **I21** | While `design/FROZEN.md` exists, no blocking class fails the build, and exit 2 still stands. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 | **I22** | Every class on the blocking list is evaluable from the checkout alone — no network, no tracker, no running service. | `unit/document/design-20-contract` | instruction | — |
-| **I23** | The orientation closure is exactly one hop, excludes `Archival`, and its ceiling is 16,384 bytes and never rises. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
+| **I23** | The orientation closure is exactly one hop, excludes `Archival`, and its ceiling is 16,384 bytes and never rises. It is measured as the sum of whole record files, never as the bytes of the fields a reader consulted. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 | **I24** | A line the record grammar does not recognise is reported verbatim and never skipped. | `unit/script/read-designstate` | code | tools/Read-DesignState.Tests.ps1 |
 | **I25** | Regeneration is idempotent and order-independent: twice produces identical bytes, and one region's regeneration never changes another's output. | `unit/script/update-designprojection` | code | tools/Update-DesignProjection.Tests.ps1 |
 | **I26** | No pre-existing entry in `design/90-decisions.md` is ever modified. Commits to that file are additions only. | `unit/document/design-90-decisions` | instruction | — |
