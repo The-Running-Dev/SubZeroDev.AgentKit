@@ -81,6 +81,7 @@ means no record exists yet, not that nothing is true.
 |---|---|
 | I3 | `unit/document/agents-md` |
 | I4 | `unit/document/agents-md` |
+| I6 | `unit/command/fix` |
 | I9 | `unit/document/agents-md` |
 | I28 | `unit/command/track` |
 <!-- bound-by:end -->
