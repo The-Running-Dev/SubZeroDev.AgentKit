@@ -217,9 +217,9 @@ wrong by the next commit. Records are written for artifacts that already exist;
 no artifact is created to give a record something to point at. This runs on this repository and
 never in a target.
 
-That population **advances by slice and is not finished.** `units/`, `invariants/`, `decisions/`
-and `questions/` carry records; no `contract/…` or `work/…` record has been written, so
-`contracts/` and `work/` do not exist yet. A kind with no records is zero records of that kind and nothing
+That population **advances by slice and is not finished.** `units/`, `invariants/`, `decisions/`,
+`questions/` and `contracts/` carry records; no `work/…` record has been written, so `work/` does
+not exist yet. A kind with no records is zero records of that kind and nothing
 more — `StateSetAbsent` is taken over `design/state/` as a whole, not per kind, so an absent
 subdirectory is neither a finding nor a could-not-evaluate.
 
@@ -267,6 +267,22 @@ exists to forbid, one level up.
   one is, and only writing distinguishes them.
 
 ## Public surface
+
+**This section is the canonical copy for every `Contract` record.** `design/30-slices.md` S16.1
+fixed the correspondence in both directions — a record exists for every surface named below and
+for nothing else, each carrying `Owner`, `Declaration` and `Semantics` — so a record's
+`Semantics` is a restatement of the prose here, and this is the copy that governs.
+`tools/Update-WorkMirror.ps1` is the one surface deliberately without a record (S16.6), because a
+`Declaration` pointing at an absent file is the shape `AnchorMissing` exists to reject.
+
+**No class compares the two, and this is the second such gap in this document** — § *Artifacts of
+a unit kind* names the first. `OwnerMismatch` checks a record's `Owner` against the units and
+`AnchorMissing` checks its `Declaration` against the tree, but nothing checks that the *set* of
+records matches the set of surfaces here, and the exemption above means the difference is not
+even a clean one to take. The `Semantics` half is further out of reach: prose against prose is a
+model judging a claim, which is `SemanticDisagreement`'s permanently reported territory. S16.1
+asserted the correspondence once at the slice; nothing holds it after, and closing the set half
+is a class this list does not yet carry.
 
 ### `tools/Wait-PullRequestCheck.ps1`
 
@@ -557,7 +573,8 @@ is adding a record; the row follows.
 exception *Single ownership* allows for a repeated fact: the canonical copy is named, and named
 from both ends.
 
-**It is also the one restatement in this document that no class compares.** The divergence-class
+**It is also one of the two restatements in this document that no class compares**, the other
+being § *Public surface* against the `Contract` records. The divergence-class
 list has `ClassListDisagreement`; the id-to-path mapping has `IdCollision`; the projections have
 `ProjectionStale`. A glob widened in the script and not here, or here and not in the script,
 diverges silently and `UnrecordedArtifact` goes on agreeing with whichever side the run read. The
@@ -742,7 +759,7 @@ I18 through I31 (excluding I24, just named, and I22, I26, I27, I28, which stay `
 the reasons stated at each row) are against `tools/Test-DesignState.Tests.ps1`, written at S5, or
 `tools/Update-DesignProjection.Tests.ps1`, written at S7 — I25 and I29 flip to it there, since
 they bind the projector rather than the checker. I18 binds both and cites both files. The
-number this note says a later run should expect to see rise.
+number this note names is one a later run should expect to see rise.
 
 **I15 and I16 name no test, and they are not waiting for one.** I15 is a rule about which classes
 may exist at all — it is discharged by every blocking class being a resolution check, and a test
