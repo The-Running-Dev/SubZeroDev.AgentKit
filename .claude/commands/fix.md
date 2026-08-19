@@ -38,7 +38,7 @@ Derive `fix/<issue>-<slug>` from the issue number and title, **after the issue e
 
 Implement against the issue's agent block. When it is satisfied:
 
-- **Push, then open the pull request. Never as a draft.** Carved out of the authorization rule the same as pushing the branch (`AGENTS.md`, *Git and delivery*).
+- **Push, then open the pull request. Never as a draft.** Carved out of the authorization rule the same as pushing the branch (`AGENTS.md`, *Git and delivery*). **Write the real description as you open it**, in the shape `.claude/commands/pr.md` § *Phase 1* fixes; a body deferring to a later `/pr` run leaves a reviewer who arrives first with nothing to read. `Verified` is the one section that says the gates have not run yet, and `/pr` replaces it verbatim.
 - **`/pr`** — same session. Writes the real description, runs this repository's gates and writes their three lists into the `Verified` section verbatim, and works the review threads once review lands. Fixing and resolving are delegated there — no ask required.
 
 This command does not carry a second copy of `/pr`'s rules, or of the gate and thread procedures it delegates to — it references them by name and hands off.
