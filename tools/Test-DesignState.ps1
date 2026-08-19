@@ -195,6 +195,39 @@ function Get-ContractClassIds {
     }
 }
 
+<#
+    design/20-contract.md's own Invariants table, parsed so UnrecordedArtifact's invariant half
+    has a set to take a difference against. The section is the invariant unit set per
+    § "Artifacts of a unit kind"; a citation scan is deliberately not what defines membership.
+    An unreadable section is ContractListUnreadable - the caller reports the invariant half as
+    uncomputed rather than as an empty difference, which would be a clean run over a table
+    nobody could read.
+#>
+function Get-ContractInvariantIds {
+    param([Parameter(Mandatory)][string] $ContractPath)
+
+    if (-not (Test-Path -LiteralPath $ContractPath)) {
+        return [pscustomobject]@{ Ids = $null; Failure = 'ContractPathMissing' }
+    }
+
+    $text = Get-Content -LiteralPath $ContractPath -Raw
+    $start = $text.IndexOf("`n## Invariants")
+    if ($start -lt 0) {
+        return [pscustomobject]@{ Ids = $null; Failure = 'InvariantsSectionNotFound' }
+    }
+    $rest = $text.Substring($start + 1)
+    $end = $rest.IndexOf("`n## ", 1)
+    $section = if ($end -lt 0) { $rest } else { $rest.Substring(0, $end) }
+
+    $ids = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in ($section -split "`n")) {
+        if ($line -match '^\|\s*\*\*(I\d+)\*\*\s*\|') { $ids.Add($Matches[1]) }
+    }
+
+
+    [pscustomobject]@{ Ids = @($ids | Sort-Object -Unique); Failure = $null }
+}
+
 function Test-ClassListAgreement {
     param([Parameter(Mandatory)][string] $ContractPath)
 
@@ -271,22 +304,48 @@ function Test-UnresolvedId {
 }
 
 # ---------------------------------------------------------------------------------------------
-# AnchorMissing. Applies only to graph-kind 'Unit' records that are active - an Invariant's
-# Anchor is the invariant number itself and its resolution is well-formedness and uniqueness,
-# never Test-Path (design/20-contract.md § Types, "A unit of kind invariant is one record").
+# AnchorMissing. Every tree-pointer field an active record carries, not only a unit's Anchor:
+# a Contract's Declaration and the Evidence list on a Unit or an Invariant are restatements of
+# a tree path in exactly the same way (design/20-contract.md § The divergence classes). Three
+# exemptions, each of which would otherwise block forever: a retired record (I30); an
+# Invariant's Anchor, which is the invariant number and resolves by well-formedness and
+# uniqueness rather than Test-Path; and a Contract Declaration of the literal `prose`, which is
+# the field's documented second value for a Markdown command surface with nothing to point at.
 # ---------------------------------------------------------------------------------------------
 function Test-AnchorMissing {
     param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records, [Parameter(Mandatory)][string] $RepoPath)
 
     $findings = [System.Collections.Generic.List[object]]::new()
     foreach ($record in $Records) {
-        if ($record.Kind -ne 'Unit') { continue }
+        if ($record.Kind -notin @('Unit', 'Invariant', 'Contract')) { continue }
         if ($record.Scalars['Status'] -ne 'active') { continue }
-        $anchor = $record.Scalars['Anchor']
-        if ([string]::IsNullOrWhiteSpace($anchor)) { continue }
-        $full = Join-Path $RepoPath $anchor
-        if (-not (Test-Path -LiteralPath $full)) {
-            $findings.Add((New-DesignFinding -Class 'AnchorMissing' -Subject $record.Id -Detail "Anchor '$anchor' does not exist in the tree" -Blocking $true))
+
+        $pointers = [System.Collections.Generic.List[object]]::new()
+
+        if ($record.Kind -eq 'Unit') {
+            $anchor = $record.Scalars['Anchor']
+            if (-not [string]::IsNullOrWhiteSpace($anchor)) {
+                $pointers.Add([pscustomobject]@{ Field = 'Anchor'; Value = $anchor })
+            }
+        }
+        if ($record.Kind -eq 'Contract') {
+            $declaration = $record.Scalars['Declaration']
+            if (-not [string]::IsNullOrWhiteSpace($declaration) -and $declaration -ne 'prose') {
+                $pointers.Add([pscustomobject]@{ Field = 'Declaration'; Value = $declaration })
+            }
+        }
+        if ($record.Lists.ContainsKey('Evidence')) {
+            foreach ($entry in $record.Lists['Evidence']) {
+                if ([string]::IsNullOrWhiteSpace($entry)) { continue }
+                $pointers.Add([pscustomobject]@{ Field = 'Evidence'; Value = $entry })
+            }
+        }
+
+        foreach ($pointer in $pointers) {
+            $full = Join-Path $RepoPath $pointer.Value
+            if (-not (Test-Path -LiteralPath $full)) {
+                $findings.Add((New-DesignFinding -Class 'AnchorMissing' -Subject $record.Id -Detail "$($pointer.Field) '$($pointer.Value)' does not exist in the tree" -Blocking $true))
+            }
         }
     }
     ,@($findings)
@@ -390,7 +449,11 @@ function Get-ScriptGlobFiles {
 }
 
 function Test-UnrecordedArtifact {
-    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records, [Parameter(Mandatory)][string] $RepoPath)
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records,
+        [Parameter(Mandatory)][string] $RepoPath,
+        [AllowNull()][string[]] $InvariantIds
+    )
 
     $findings = [System.Collections.Generic.List[object]]::new()
     $units = @($Records | Where-Object { $_.Kind -eq 'Unit' -and $_.Scalars['Status'] -eq 'active' })
@@ -424,34 +487,25 @@ function Test-UnrecordedArtifact {
         }
     }
 
-    # Invariant kind: "not a tree path" - the difference is taken against I<n> citations in
-    # AGENTS.md and every command file (design/20-contract.md § "Artifacts of a unit kind").
-    $citationFiles = [System.Collections.Generic.List[string]]::new()
-    $agentsPath = Join-Path $RepoPath 'AGENTS.md'
-    if (Test-Path -LiteralPath $agentsPath) { $citationFiles.Add($agentsPath) }
-    foreach ($f in (Get-CommandGlobFiles -RepoPath $RepoPath)) { $citationFiles.Add((Join-Path $RepoPath $f)) }
+    # Invariant kind: "not a tree path" - the set is every I<n> row in design/20-contract.md
+    # § Invariants (design/20-contract.md § "Artifacts of a unit kind"). $InvariantIds is $null
+    # when that section could not be read; the caller has already recorded ContractListUnreadable
+    # and this half stays uncomputed rather than reporting an empty difference as agreement.
+    if ($null -ne $InvariantIds) {
+        $declaredIds = @($InvariantIds)
+        $invariantRecords = @($Records | Where-Object { $_.Kind -eq 'Invariant' })
+        $recordedIds = @($invariantRecords | ForEach-Object { $_.Id })
 
-    $cited = [System.Collections.Generic.SortedSet[string]]::new()
-    foreach ($f in $citationFiles) {
-        $text = Get-Content -LiteralPath $f -Raw -ErrorAction SilentlyContinue
-        if (-not $text) { continue }
-        foreach ($m in [regex]::Matches($text, '(?<![A-Za-z0-9_])I(\d+)(?![A-Za-z0-9_])')) {
-            [void]$cited.Add("I$($m.Groups[1].Value)")
+        foreach ($id in $declaredIds) {
+            if ($id -notin $recordedIds) {
+                $findings.Add((New-DesignFinding -Class 'UnrecordedArtifact' -Subject $id -Detail "a row in design/20-contract.md - Invariants, with no invariant record" -Blocking $true))
+            }
         }
-    }
-
-    $invariantRecords = @($Records | Where-Object { $_.Kind -eq 'Invariant' })
-    $recordedIds = @($invariantRecords | ForEach-Object { $_.Id })
-
-    foreach ($id in $cited) {
-        if ($id -notin $recordedIds) {
-            $findings.Add((New-DesignFinding -Class 'UnrecordedArtifact' -Subject $id -Detail "cited in AGENTS.md or a command file but has no invariant record" -Blocking $true))
-        }
-    }
-    foreach ($record in $invariantRecords) {
-        if ($record.Scalars['Status'] -ne 'active') { continue }
-        if ($record.Id -notin $cited) {
-            $findings.Add((New-DesignFinding -Class 'UnrecordedArtifact' -Subject $record.Id -Detail "invariant record exists but is never cited in AGENTS.md or a command file" -Blocking $true))
+        foreach ($record in $invariantRecords) {
+            if ($record.Scalars['Status'] -ne 'active') { continue }
+            if ($record.Id -notin $declaredIds) {
+                $findings.Add((New-DesignFinding -Class 'UnrecordedArtifact' -Subject $record.Id -Detail "invariant record exists but is no row in design/20-contract.md - Invariants" -Blocking $true))
+            }
         }
     }
 
@@ -920,11 +974,15 @@ function Invoke-DesignStateCheck {
 
     $contractPath = Join-Path $RepoPath 'design/20-contract.md'
     $classListResult = Test-ClassListAgreement -ContractPath $contractPath
+    $invariantSet = Get-ContractInvariantIds -ContractPath $contractPath
 
     $graph = Read-DesignStateGraph -Path $RepoPath
 
     $couldNotEvaluate = [System.Collections.Generic.List[object]]::new()
     if ($classListResult.CouldNotEvaluate) { $couldNotEvaluate.Add($classListResult.CouldNotEvaluate) }
+    if ($invariantSet.Failure) {
+        $couldNotEvaluate.Add((New-CouldNotEvaluate -Reason 'ContractListUnreadable' -Detail "$($invariantSet.Failure): $contractPath; UnrecordedArtifact's invariant half is uncomputed, not clean"))
+    }
 
     $blockingFindings = [System.Collections.Generic.List[object]]::new()
     if ($classListResult.Finding) { $blockingFindings.Add($classListResult.Finding) }
@@ -949,7 +1007,7 @@ function Invoke-DesignStateCheck {
     $blockingFindings.AddRange((Test-UnresolvedId -ById $byId -Records $records))
     $blockingFindings.AddRange((Test-AnchorMissing -Records $records -RepoPath $RepoPath))
     $blockingFindings.AddRange((Test-OwnerMismatch -Records $records))
-    $blockingFindings.AddRange((Test-UnrecordedArtifact -Records $records -RepoPath $RepoPath))
+    $blockingFindings.AddRange((Test-UnrecordedArtifact -Records $records -RepoPath $RepoPath -InvariantIds $invariantSet.Ids))
     $blockingFindings.AddRange((Test-RecordIdCollision -Records $records))
     $blockingFindings.AddRange((Test-DecisionAnchors -Records $records -LogPath (Join-Path $RepoPath 'design/90-decisions.md')))
     $blockingFindings.AddRange((Test-EnforcementUnevidenced -Records $records))

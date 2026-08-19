@@ -45,10 +45,11 @@ issue (`design/10-design.md`, § *WorkRef*).
 ## Contract questions
 
 **One outstanding and two answered.** The outstanding one is already an item in
-`design/20-contract.md` § *Unresolved*. The other two were found by this re-run and **answered
-in the same session**; what each obliges is recorded below rather than acted on, because both
-amendments and both log entries are `/contract`'s, at `opus`/`high`. Nothing below has been
-written into `design/20-contract.md` or `design/90-decisions.md` yet.
+`design/20-contract.md` § *Unresolved*. The other two were found by a re-run of this document
+and **answered in the same session**; both amendments and both log entries were `/contract`'s,
+at `opus`/`high`, and **both have since landed** — `design/20-contract.md` and
+`design/90-decisions.md` now say what the two sections below record. What is left of each is
+the account of what was decided and why, which is why neither has been deleted.
 
 **Where the `outstanding` projection renders.** `design/20-contract.md` § *Unresolved* — *Where
 a slice's criteria are rendered once GitHub is the authority* — does not determine which
@@ -65,13 +66,13 @@ table. **The table holds** — decided 2026-08-19, on the ground that an invaria
 to quote is still a rule the kit binds itself to, and a set defined by citation makes the kind
 nearly empty and splits § *Invariants* permanently.
 
-The amendment is `/contract`'s and the log entry belongs in the same commit as it, so that no
-window exists in which the log describes a contract that does not say it. Two things change
-together: the `invariant` row of § *Artifacts of a unit kind*, and the citation scan in
-`tools/Test-DesignState.ps1` that implements it. **S17** below is what the answer obliges, and
-until it lands the checker reports the unwritten records rather than the three surplus ones it
-reports today — the same interim state § *Interim findings are expected* describes, except that
-CI is wired now and the build is red for the duration.
+The amendment and its log entry landed in one commit, so that no window existed in which the
+log described a contract that did not say it. Two things moved together: the `invariant` row of
+§ *Artifacts of a unit kind*, and the citation scan in `tools/Test-DesignState.ps1`, now
+`Get-ContractInvariantIds`. **S17** below is what the answer obliges, and until it lands the
+checker reports the 26 unwritten records rather than the three surplus ones it reported before
+— the same interim state § *Interim findings are expected* describes, except that CI is wired
+now and the build is red for the duration.
 
 **Which class resolves a tree pointer that is not a unit's `Anchor` — answered.**
 `AnchorMissing` was scoped to `Unit.Anchor` by both this contract and the checker, leaving
@@ -82,12 +83,13 @@ trigger becomes any tree-pointer field a record carries, keeping the `Status: ac
 I30 requires; the check, the remedy and the reason it is evaluable from the checkout alone are
 the same in every case.
 
-The closed list keeps its current size, so no `ClassListDisagreement` window opens between the
+The closed list keeps its current size, so no `ClassListDisagreement` window opened between the
 document and the checker. What is bought is that the class name reads narrower than what it
 checks, and it is bought deliberately: renaming it later is expensive, because S12.2's tests and
-the closed list both cite it by name. The amendment touches this document's class table and
-`Test-AnchorMissing` in `tools/Test-DesignState.ps1`, and S12.2 owes the widened trigger a real
-divergence and a near-miss on each new field.
+the closed list both cite it by name. The amendment touched `design/20-contract.md`'s class
+table and `Test-AnchorMissing` in `tools/Test-DesignState.ps1`, and it carried the real
+divergence and near-miss S12.2 owed on each new field — `AnchorMissing`'s coverage is 3 fires
+and 3 near-misses where it was 1 and 1.
 
 A slice that discovers something *else* undetermined stops and adds it to § *Unresolved*. It
 does not resolve it in the implementing session.
@@ -506,10 +508,9 @@ Out of scope: migrating any target's design state — the brief fences this perm
 ---
 
 ## S16 — Every part says what it offers and what it leans on
-> **Blocked on an answered question, not an open one.** § *Contract questions* above records
-> that `AnchorMissing` widens to cover a `Contract` record's `Declaration`. Until `/contract`
-> makes that amendment, S16.1 writes the tree pointer I15 forbids writing unchecked, so the
-> slice waits on the amendment rather than on a decision.
+> **Unblocked.** § *Contract questions* above records that `AnchorMissing` widens to cover a
+> `Contract` record's `Declaration`; that amendment has landed, so S16.1's tree pointer is
+> checked rather than being the unchecked restatement I15 forbids.
 
 Delivers: For any part of the kit you can already see what it is responsible for. Now you can
 also see which surfaces it offers to everything else and which ones it leans on — so "what
@@ -550,10 +551,10 @@ Out of scope: `WorkRef` records and the `outstanding` projection, which are S14'
 ---
 
 ## S17 — Every rule the kit binds itself to becomes a file
-> **Blocked on two amendments, both decided.** § *Contract questions* above records that the
-> invariant set is the whole § *Invariants* table rather than the cited ids, and that
-> `AnchorMissing` widens to cover the `Evidence` pointer S17.3 writes. Neither is written into
-> `design/20-contract.md` yet, and this slice waits on both.
+> **Unblocked, and now urgent.** § *Contract questions* above records that the invariant set is
+> the whole § *Invariants* table rather than the cited ids, and that `AnchorMissing` widens to
+> cover the `Evidence` pointer S17.3 writes. Both amendments have landed, which is what turns
+> the 26 rows with no record into blocking findings — CI is red until this slice closes them.
 
 Delivers: Every rule the kit holds itself to becomes a file you can open — not just the handful
 that happen to be quoted in the agent contract. Each says what it requires, who is answerable
