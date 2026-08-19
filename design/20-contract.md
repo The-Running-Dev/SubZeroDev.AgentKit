@@ -284,6 +284,22 @@ cannot state:
 - A criterion id it cannot parse is reported as unparseable, never silently dropped. A
   dropped id is an id that appears to match.
 
+### `tools/Test-Companion.ps1`
+
+**The parameter list is the script's own `param` block and is not copied here.** What it
+cannot state:
+
+- **The category vocabulary is read out of `.claude/COMPANIONS.md`'s own table, never
+  duplicated here.** A second list in this script would be the copy that rots invisibly,
+  since both would still parse.
+- **A companion that is missing, empty, or frontmatter-only is *absent* — counted, never a
+  finding.** Treating any of the three as an override of nothing is the bug
+  `.claude/COMPANIONS.md`'s *Absence* rule exists to prevent.
+- Exit codes: 0 `Valid`, 1 `Invalid`, 2 `NotEvaluated` — a target with no
+  `.claude/commands/` or no `.claude/COMPANIONS.md` is could-not-evaluate, never a pass.
+- **`-TargetRepo` defaults to the current directory.** `-Quiet` suppresses the printed
+  report only; the result object and exit code are unchanged either way.
+
 ### `tools/Read-DesignState.ps1`
 
 The record reader. **Its `param` block and its per-kind field vocabulary (`$script:FieldTables`)

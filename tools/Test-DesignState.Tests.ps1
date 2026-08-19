@@ -924,6 +924,19 @@ Describe 'Test-DesignState against this repository''s own tree' {
         $script:RealResult.CouldNotEvaluate | Where-Object { $_.Reason -eq 'ProjectorFailed' } | Should -BeNullOrEmpty
         (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'ProjectionStale' })).Count | Should -Be 0
     }
+
+    It 'S16.1/S16.2: this repository has one Contract record per design/20-contract.md Public-surface entry (less Update-WorkMirror.ps1, S16.6), and OwnerMismatch reports none' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $contracts = @($graph.Records | Where-Object { $_.Kind -eq 'Contract' })
+        $contracts.Count | Should -Be 8
+        (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'OwnerMismatch' })).Count | Should -Be 0
+    }
+
+    It 'S16.5: design/state-index.md''s consumers region lists real consumers, not the empty-set placeholder' {
+        $text = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'design/state-index.md') -Raw
+        $text | Should -Not -Match '_\(no contract records yet\)_'
+        $text | Should -Match 'unit/command/pr'
+    }
 }
 
 # =================================================================================================

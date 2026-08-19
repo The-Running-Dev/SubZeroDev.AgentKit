@@ -2,8 +2,8 @@
 Kind: script
 Status: active
 Anchor: tools/Test-DesignState.ps1
-Consumes:
-Exposes:
+Consumes: contract/read-designstate, contract/update-designprojection
+Exposes: contract/test-designstate
 Binds:
 Live: decision/2026-08-19-anchormissing-widens-to-every-tree-pointer, decision/2026-08-19-invariant-set-is-the-contract-table
 Archival:
