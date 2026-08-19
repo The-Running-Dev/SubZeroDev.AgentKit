@@ -5,7 +5,7 @@ Anchor: design/20-contract.md
 Consumes:
 Exposes:
 Binds:
-Live: decision/2026-08-11-documents-state-only-what-tree-cannot, decision/2026-08-19-state-index-md-added, decision/2026-08-19-retirement-is-status-field, decision/2026-08-19-contract-owner-stays-written-other-edges-derived, decision/2026-08-19-document-kind-reaches-shipped-payload, decision/2026-08-19-enforcement-states-tree-as-it-stands, decision/2026-08-19-marked-region-marker-declares-its-own-kind, decision/2026-08-19-contract-becomes-repository-scoped, decision/2026-08-19-four-open-questions-closed-unit-set-widens, decision/2026-08-19-record-ids-kind-prefixed-slugs, decision/2026-08-19-state-set-one-file-per-record-ps1-tooling
+Live: decision/2026-08-11-documents-state-only-what-tree-cannot, decision/2026-08-19-state-index-md-added, decision/2026-08-19-retirement-is-status-field, decision/2026-08-19-contract-owner-stays-written-other-edges-derived, decision/2026-08-19-document-kind-reaches-shipped-payload, decision/2026-08-19-enforcement-states-tree-as-it-stands, decision/2026-08-19-marked-region-marker-declares-its-own-kind, decision/2026-08-19-contract-becomes-repository-scoped, decision/2026-08-19-four-open-questions-closed-unit-set-widens, decision/2026-08-19-record-ids-kind-prefixed-slugs, decision/2026-08-19-state-set-one-file-per-record-ps1-tooling, decision/2026-08-19-anchormissing-widens-to-every-tree-pointer, decision/2026-08-19-invariant-set-is-the-contract-table
 Archival:
 Questions:
 Work:

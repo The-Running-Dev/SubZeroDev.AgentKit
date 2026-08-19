@@ -5,7 +5,7 @@ Anchor: tools/Test-DesignState.ps1
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-19-anchormissing-widens-to-every-tree-pointer, decision/2026-08-19-invariant-set-is-the-contract-table
 Archival:
 Questions:
 Work:

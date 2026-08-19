@@ -102,6 +102,13 @@ BeforeAll {
 | `ContractListUnreadable` | x | x |
 
 ### The freeze
+
+## Invariants
+
+| | Statement | Owner | Enforcement | Evidence |
+|---|---|---|---|---|
+
+## Unresolved
 '@
 }
 
@@ -155,6 +162,46 @@ Describe 'Test-DesignState: id resolution and record-level classes' {
         New-TreeFile -RelativePath '.claude/commands/real.md' -Content 'hi'
         $active = New-Record -Id 'unit/command/a' -Scalars @{ Status = 'active'; Kind = 'command'; Anchor = '.claude/commands/real.md' }
         $findings = Test-AnchorMissing -Records @($active) -RepoPath $TestDrive
+        $findings.Count | Should -Be 0
+    }
+
+    It 'AnchorMissing fires for a Contract Declaration that is not in the tree' -Tag 'Fires','AnchorMissing' {
+        $c = New-Record -Id 'contract/x' -Kind 'Contract' -Scalars @{ Status = 'active'; Owner = 'unit/script/a'; Declaration = 'tools/Absent.ps1' }
+        $findings = Test-AnchorMissing -Records @($c) -RepoPath $TestDrive
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'contract/x'
+        $findings[0].Detail | Should -Match 'Declaration'
+    }
+
+    It 'AnchorMissing does not fire for a Contract Declaration of the literal prose, or one that resolves' -Tag 'NearMiss','AnchorMissing' {
+        New-TreeFile -RelativePath 'tools/Present.ps1' -Content 'x'
+        $prose = New-Record -Id 'contract/p' -Kind 'Contract' -Scalars @{ Status = 'active'; Owner = 'unit/command/a'; Declaration = 'prose' }
+        $real = New-Record -Id 'contract/r' -Kind 'Contract' -Scalars @{ Status = 'active'; Owner = 'unit/script/a'; Declaration = 'tools/Present.ps1' }
+        $retired = New-Record -Id 'contract/g' -Kind 'Contract' -Scalars @{ Status = 'retired'; Owner = 'unit/script/a'; Declaration = 'tools/Gone.ps1' }
+        $findings = Test-AnchorMissing -Records @($prose, $real, $retired) -RepoPath $TestDrive
+        $findings.Count | Should -Be 0
+    }
+
+    It 'AnchorMissing fires for an Evidence entry that is not in the tree, on a Unit and on an Invariant' -Tag 'Fires','AnchorMissing' {
+        New-TreeFile -RelativePath '.claude/commands/anchored.md' -Content 'x'
+        $unit = New-Record -Id 'unit/command/e' -Scalars @{ Status = 'active'; Kind = 'command'; Anchor = '.claude/commands/anchored.md' } -Lists @{ Evidence = @('tools/Nothing.Tests.ps1') }
+        $inv = New-Record -Id 'I2' -Kind 'Invariant' -Scalars @{ Status = 'active'; Anchor = 'I2'; Kind = 'invariant'; Enforcement = 'code' } -Lists @{ Evidence = @('tools/AlsoNothing.Tests.ps1') }
+
+        $findings = Test-AnchorMissing -Records @($unit, $inv) -RepoPath $TestDrive
+
+        $findings.Count | Should -Be 2
+        @($findings | ForEach-Object { $_.Subject }) | Should -Contain 'unit/command/e'
+        @($findings | ForEach-Object { $_.Subject }) | Should -Contain 'I2'
+        @($findings | ForEach-Object { $_.Detail }) | Should -Not -Contain $null
+        $findings[0].Detail | Should -Match 'Evidence'
+    }
+
+    It 'AnchorMissing does not fire for an Evidence entry that resolves, or an empty Evidence list' -Tag 'NearMiss','AnchorMissing' {
+        New-TreeFile -RelativePath '.claude/commands/anchored2.md' -Content 'x'
+        New-TreeFile -RelativePath 'tools/Something.Tests.ps1' -Content 'x'
+        $withEvidence = New-Record -Id 'unit/command/f' -Scalars @{ Status = 'active'; Kind = 'command'; Anchor = '.claude/commands/anchored2.md' } -Lists @{ Evidence = @('tools/Something.Tests.ps1') }
+        $empty = New-Record -Id 'unit/command/g' -Scalars @{ Status = 'active'; Kind = 'command'; Anchor = '.claude/commands/anchored2.md' } -Lists @{ Evidence = @() }
+        $findings = Test-AnchorMissing -Records @($withEvidence, $empty) -RepoPath $TestDrive
         $findings.Count | Should -Be 0
     }
 
@@ -373,21 +420,73 @@ Describe 'Test-DesignState: UnrecordedArtifact' {
         (@($findings | Where-Object { $_.Subject -eq 'unit/command/ghost' })).Count | Should -Be 1
     }
 
-    It 'invariant kind: fires for a cited invariant number with no record, and for a record never cited' -Tag 'Fires','UnrecordedArtifact' {
-        New-TreeFile -RelativePath 'AGENTS.md' -Content 'This project relies on I7 throughout.'
+    It 'invariant kind: fires for a contract row with no record, and for a record that is no row' -Tag 'Fires','UnrecordedArtifact' {
         $recorded = New-Record -Id 'I8' -Kind 'Invariant' -Scalars @{ Status = 'active' }
-        $findings = Test-UnrecordedArtifact -Records @($recorded) -RepoPath $TestDrive
+        $findings = Test-UnrecordedArtifact -Records @($recorded) -RepoPath $TestDrive -InvariantIds @('I7')
 
         $subjects = @($findings | ForEach-Object { $_.Subject })
         $subjects | Should -Contain 'I7'
         $subjects | Should -Contain 'I8'
     }
 
-    It 'invariant kind: raises nothing when citation and record agree' -Tag 'NearMiss','UnrecordedArtifact' {
-        New-TreeFile -RelativePath 'AGENTS.md' -Content 'This project relies on I7 throughout.'
+    It 'invariant kind: raises nothing when the contract table and the records agree' -Tag 'NearMiss','UnrecordedArtifact' {
         $recorded = New-Record -Id 'I7' -Kind 'Invariant' -Scalars @{ Status = 'active' }
-        $findings = Test-UnrecordedArtifact -Records @($recorded) -RepoPath $TestDrive
-        (@($findings | Where-Object { $_.Subject -in @('I7') -or ($_.Detail -match 'invariant') })).Count | Should -Be 0
+        $findings = Test-UnrecordedArtifact -Records @($recorded) -RepoPath $TestDrive -InvariantIds @('I7')
+        (@($findings | Where-Object { $_.Subject -eq 'I7' })).Count | Should -Be 0
+    }
+
+    It 'invariant kind: a citation nothing records is not a finding - membership is the table, not the quote' -Tag 'NearMiss','UnrecordedArtifact' {
+        New-TreeFile -RelativePath 'AGENTS.md' -Content 'This project relies on I7 throughout.'
+        $findings = Test-UnrecordedArtifact -Records @() -RepoPath $TestDrive -InvariantIds @()
+        (@($findings | Where-Object { $_.Subject -eq 'I7' })).Count | Should -Be 0
+    }
+
+    It 'invariant kind: an unreadable table leaves the half uncomputed rather than clean' -Tag 'NearMiss','UnrecordedArtifact' {
+        $recorded = New-Record -Id 'I8' -Kind 'Invariant' -Scalars @{ Status = 'active' }
+        $findings = Test-UnrecordedArtifact -Records @($recorded) -RepoPath $TestDrive -InvariantIds $null
+        (@($findings | Where-Object { $_.Subject -eq 'I8' })).Count | Should -Be 0
+    }
+}
+
+Describe 'Test-DesignState: Get-ContractInvariantIds' {
+
+    It 'reads every invariant row of the Invariants section and stops at the next section' {
+        $path = New-TreeFile -RelativePath 'design/20-contract.md' -Content @'
+# Contract
+
+## Invariants
+
+<!-- invariants:start -->
+| | Statement | Owner | Enforcement | Evidence |
+|---|---|---|---|---|
+| **I3** | x | y | instruction | - |
+<!-- invariants:end -->
+
+| | Statement | Owner | Enforcement | Evidence |
+|---|---|---|---|---|
+| **I1** | x | y | code | z |
+| **I2** | x | y | code | z |
+
+## Unresolved
+
+| **I99** | not an invariant row - it is past the section |
+'@
+        $parsed = Get-ContractInvariantIds -ContractPath $path
+        $parsed.Failure | Should -BeNullOrEmpty
+        $parsed.Ids | Should -Be @('I1', 'I2', 'I3')
+    }
+
+    It 'reports ContractPathMissing rather than an empty set when the document is absent' {
+        $parsed = Get-ContractInvariantIds -ContractPath (Join-Path $TestDrive 'design/absent.md')
+        $parsed.Ids | Should -BeNullOrEmpty
+        $parsed.Failure | Should -Be 'ContractPathMissing'
+    }
+
+    It 'reports InvariantsSectionNotFound rather than an empty set when the section is absent' {
+        $path = New-TreeFile -RelativePath 'design/no-invariants.md' -Content "# Contract`n`n## Types`n`nnothing here`n"
+        $parsed = Get-ContractInvariantIds -ContractPath $path
+        $parsed.Ids | Should -BeNullOrEmpty
+        $parsed.Failure | Should -Be 'InvariantsSectionNotFound'
     }
 }
 
