@@ -67,15 +67,23 @@ and are not copied here.** What that table cannot state:
   table's own allowance, and is the one anchor whose resolution check is well-formedness and
   uniqueness rather than `Test-Path`. The load-bearing pointers on such a record are `Owner`
   and `Evidence`.
-- **`Owns`, `Semantics`, `Statement`, `Claim` and `Text` carry no per-field length limit.**
+- **`Owns`, `Semantics`, `Statement`, `Claim` and `Text` carry no per-field *length* limit.**
   The closure ceiling is the only budget, and it is enforced at the closure, not the field. A
-  per-field cap invented here would be a number nothing derived and everything had to obey.
+  per-field cap invented here would be a number nothing derived and everything had to obey. The
+  *form* constraints the design's own table states — `Owns` is one sentence, `Claim` is a claim
+  rather than a summary — stand unchanged and are enforced by nobody. No class reads them, and
+  inventing one would be a model judging prose, which is `SemanticDisagreement`'s permanently
+  reported territory.
 - **`Evidence` is optional on a unit and required on an invariant whose `Enforcement` is
   `code`.** Absence in the second case is a finding, because an invariant claimed to be
   mechanically enforced with nothing pointing at the mechanism is a claim about the tree that
   the tree does not make.
 - **`MirroredAt` is the mirror's honesty and is never omitted.** A `WorkRef` with no
   `MirroredAt` asserts currency it cannot have.
+- **`Rank` is never absent either.** Its source degrades rather than failing, and that rule binds
+  the writer, so it is stated under `Update-WorkMirror.ps1` below. A `WorkRef` with no `Rank`
+  asserts the outstanding work has no order, which is the brief's offline criterion silently
+  unmet rather than reported.
 
 ### Ids
 
@@ -194,9 +202,9 @@ Keys, and what the mapping cannot state:
   an `IdCollision` finding. Two records claiming one id is the failure this key exists to make
   impossible, and a filesystem gives it for nothing.
 - **`design/state/` sits inside `design/` for one reason: the kit's own `design/` is never
-  installed into a target.** `INSTALL.md`, phase 1, enumerates what is: `AGENTS.md`,
-  `CLAUDE.md`, `agent.md`, `.claude/commands/*.md`, `.claude/COMPANIONS.md`, `tools/*.ps1`,
-  `templates/design/*.md`, `.github/ISSUE_TEMPLATE/*.md` and `codex/PROFILES.md`. A target's
+  installed into a target.** `INSTALL.md`, phase 1, holds the artifact list and is not copied
+  here; the load-bearing fact is that **nothing under the kit's `design/` is on it**, while
+  `templates/design/*.md` is. A target's
   `design/` therefore *does* exist — seeded from `templates/design/*.md` — and what is absent
   there is this repository's state set, because nothing under the kit's `design/` is on that
   list. That is what makes the checker's shipping to eighteen repositories with no state set a
@@ -224,8 +232,10 @@ Keys, and what the mapping cannot state:
   the I12 precedent exists for.
 
 **Migration story.** The state set does not exist, so there is no existing data to migrate to.
-The one-time population is `design/10-design.md` § *Migrate*, and its constraint is I26: the 54
-log entries are read and **not touched**. Records are written for artifacts that already exist;
+The one-time population is `design/10-design.md` § *Migrate*, and its constraint is I26: **every**
+entry in `design/90-decisions.md` is read and **not touched** — every entry as the log then
+stands, not a count fixed here, because the log is append-only and any number written down is
+wrong by the next commit. Records are written for artifacts that already exist;
 no artifact is created to give a record something to point at. This runs on this repository and
 never in a target.
 
@@ -333,7 +343,15 @@ three-list report.
   three**, including when one is empty. An omitted empty list reads as an absent category
   rather than an empty one, which is the substitution `/verify` exists to prevent.
 - Exit codes: 0 clean, 1 findings, 2 could not evaluate, and **2 takes precedence over 1**
-  (I20).
+  (I20). **A caller running it as a gate treats 1 and 2 alike as failure.** A gate that fails
+  only on 1 turns *could not evaluate* into a pass at the call site, which is I19 and I20
+  defeated by the consumer rather than by the script — and the brief's *fail CI* line is about
+  what the build does, not about what the exit code was.
+- **Always names the largest closure and the unit it belongs to, on a clean run as well as a
+  failing one.** `ClosureOverBudget` fires only once the ceiling is passed; the brief requires
+  the largest unit named in the report regardless. Headroom nobody is shown is a ceiling nobody
+  can see being approached, and the first anyone would learn of it is the run that blocks. It
+  is a report line, never a finding.
 - **Never clean on an absent or empty state set** (I19). Zero records is I8's shape: absence of
   a finding is not a finding of absence, and a target must never be told its design state
   agrees with anything.
@@ -388,6 +406,13 @@ The mirror generator.
 - **Writes `WorkRef` records and nothing else.** Never an issue, never a label, never a
   milestone — those are `/track`'s own carved-out writes and stay in the command.
 - **Stamps `MirroredAt` on every write**, including a write that changed nothing.
+- **`Rank` degrades rather than failing: a project field where a project exists, otherwise
+  milestone, otherwise issue number.** `/track` "adds issues to an existing project, and never
+  creates one" (`design/90-decisions.md`, 2026-08-03), so a repository with no project is the
+  ordinary case rather than the broken one. Every step of the degradation is silent by design and
+  **falling through to issue number is not a finding** — but an emitted `WorkRef` never lacks a
+  `Rank`, because an order that quietly disappeared would fail the brief's offline criterion
+  without anything saying so.
 - **`gh` absent or unauthenticated is could-not-evaluate, not an empty mirror.** An empty
   mirror written on an unreachable tracker asserts there is no outstanding work.
 - **Never runs while `design/FROZEN.md` exists**, because `/track` does not (`AGENTS.md`,
@@ -446,6 +471,12 @@ Stated once here rather than enumerated per command, because the obligation is t
 - **Never cite a `WorkRef` as authority** (I28). A mirror is quoted as a mirror, with its
   `MirroredAt`, or the tracker is read.
 - **Never read a generated region as an input** (I14).
+- **Orienting on a unit reads its closure, and `design/90-decisions.md` is not opened**
+  (`design/10-design.md` § *Orient*, step 3). The log is opened when relitigating a choice —
+  which is what its rejected alternatives are for (`AGENTS.md`, *Decision logging*) — never to
+  establish what is currently true. Nothing enforces this and nothing can: no artifact records
+  what a session read. It is stated because the brief's first done criterion is otherwise
+  defeated by habit rather than by any decision anyone made.
 
 ### Documents that carry surface
 
@@ -622,7 +653,7 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**One item.** `/slice`'s "the contract does not contain a signature you need" stop condition
+**Three items.** `/slice`'s "the contract does not contain a signature you need" stop condition
 should fire on nothing else.
 
 ### Where a slice's criteria are rendered once GitHub is the authority
@@ -642,6 +673,58 @@ and to the retirement convention `design/30-slices.md` § *How this document is 
 Choosing between them here would be inventing a signature the design does not determine.
 
 A slice that reaches this stops. It does not resolve it in the implementing session.
+
+### How a unit or contract record is retired
+
+`design/10-design.md` § *Unit* requires a record to be **retired, never deleted**, and says
+retirement "keeps the id resolvable and marks it inactive". **No field carries that mark.**
+`Status` exists on `Decision` (`accepted | superseded`) and on `Question` (`open | answered`);
+`Unit` and `Contract` have neither a status field nor any other representation of inactivity, and
+the grammar has no production for one.
+
+The consequence is not cosmetic. A unit is retired *because its artifact was deleted*, so its
+`Anchor` then names a path that is not in the tree — which is `AnchorMissing`, blocking, on every
+run from that day on. Retirement as designed therefore cannot be performed without either adding a
+field or accepting a permanent blocking finding, and I16 requires that it be performable.
+
+Two shapes are available and the design determines neither: a `Status` field on `Unit` and
+`Contract`, mirroring the one `Decision` already carries; or a `Retired` date field, which records
+when as well as whether. They differ in what `AnchorMissing` and `UnrecordedArtifact` must then
+exclude, and in whether a retired unit still counts toward another unit's closure — both of which
+are terms this document would have to carry.
+
+A slice that reaches this stops. Resolving it is `/design`'s, at deep-reasoning tier.
+
+### Which end of a two-ended edge is written, and what checks the two agree
+
+`design/10-design.md` § *Derived* states the rule — reverse edges are "derived and never written"
+— and names three: which units an invariant binds, which units consume a contract, and "which
+units a decision affects in the other direction". The first two have field names, and both tables
+mark them **Derived. Never written**: `Invariant.BoundBy` and `Contract.Consumers`. The third does
+not, and § *Data model* lists `Decision.Affects` as an ordinary written field.
+
+Three edges are consequently written from both ends, with nothing on the closed class list
+comparing the two copies:
+
+| Edge | Written on the unit | Written on the other record |
+|---|---|---|
+| the unit exposes a contract | `Exposes` | `Contract.Owner` |
+| a decision is in force here | `Live`, `Archival` | `Decision.Affects` |
+| a question affects this unit | `Questions` | `Question.Affects` |
+
+Both readings survive the document. Under **the field tables**, all three are written — and the
+design's own argument against reverse edges, that "writing them would create the second copy that
+rots", then applies to three edges it did not exclude. Under **§ *Derived***, `Decision.Affects`
+is the reverse of `Live`/`Archival` and is not written at all, which makes the `Decision` table
+wrong and changes what a decision record contains.
+
+The unit's end is not in question either way: the closure is one hop from the unit record, so
+`Exposes`, `Live`, `Archival` and `Questions` must be written for the brief's first done criterion
+to hold at all. What is undetermined is the far end — and, for whichever edges keep both ends,
+which class checks that the two agree. A class does not exist unless this document lists it, so
+adding one is a contract amendment rather than something this run may settle on its own.
+
+A slice that reaches this stops. Resolving it is `/design`'s, at deep-reasoning tier.
 
 Anything else a slice discovers to be undetermined belongs here as a new item, under the same
 rule.
