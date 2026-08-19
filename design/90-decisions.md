@@ -6,7 +6,6 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
 - **`INSTALL.md` phase 1 enumerates eight `tools/*.ps1` against ten in the tree.** Flagged 2026-08-19 by `/design` and left uncorrected; now consequential, because `design/20-contract.md` adds four more scripts to that directory.
-- **`tools/Test-Companion.ps1`'s marker regex, its `MissingBlock` message and doc comment, `tools/Test-Companion.Tests.ps1`, and the `<!-- companion:start -->` fence in all twenty-one files under `.claude/commands/` migrate to the declared form.** Decided 2026-08-19 by the entry below; not done there, because a contract run does not implement, and the change ships to eighteen targets on the next `/install` or `/kit-sync`.
 
 ---
 
