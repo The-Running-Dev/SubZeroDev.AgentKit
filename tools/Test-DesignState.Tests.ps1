@@ -556,6 +556,61 @@ Describe 'Test-DesignState: the projector seam (S5.10)' {
         $result = Invoke-Projector -RepoPath $TestDrive
         $result.Ran | Should -BeTrue
     }
+
+    It 'S7.9: captures the projector''s -DryRun regions as structured objects, not just the exit code' {
+        New-TreeFile -RelativePath 'tools/Update-DesignProjection.ps1' -Content @'
+param([string]$Path,[switch]$DryRun)
+[pscustomobject]@{ Document = 'x.md'; Id = 'units'; Content = 'rendered' } | ConvertTo-Json
+exit 0
+'@
+        $result = Invoke-Projector -RepoPath $TestDrive
+        $result.Ran | Should -BeTrue
+        $result.Regions.Count | Should -Be 1
+        $result.Regions[0].Id | Should -Be 'units'
+    }
+}
+
+Describe 'Test-DesignState: ProjectionStale (S7.9)' {
+
+    It 'fires when the tree''s region body differs from the projector''s rendering' {
+        New-TreeFile -RelativePath 'x.md' -Content @'
+# X
+
+<!-- units:start -->
+old content
+<!-- units:end -->
+'@
+        $regions = @([pscustomobject]@{ Document = 'x.md'; Id = 'units'; Content = 'new content' })
+        $findings = Test-ProjectionStale -Regions $regions -RepoPath $TestDrive
+        $findings.Count | Should -Be 1
+        $findings[0].Class | Should -Be 'ProjectionStale'
+    }
+
+    It 'does not fire when the tree''s region body matches the projector''s rendering exactly' {
+        New-TreeFile -RelativePath 'x.md' -Content @'
+# X
+
+<!-- units:start -->
+same content
+<!-- units:end -->
+'@
+        $regions = @([pscustomobject]@{ Document = 'x.md'; Id = 'units'; Content = 'same content' })
+        $findings = Test-ProjectionStale -Regions $regions -RepoPath $TestDrive
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S7.9: does not fire when the only difference is CRLF against LF' {
+        New-TreeFile -RelativePath 'x.md' -Content "# X`r`n`r`n<!-- units:start -->`r`nline one`r`nline two`r`n<!-- units:end -->`r`n"
+        $regions = @([pscustomobject]@{ Document = 'x.md'; Id = 'units'; Content = "line one`nline two" })
+        $findings = Test-ProjectionStale -Regions $regions -RepoPath $TestDrive
+        $findings.Count | Should -Be 0
+    }
+
+    It 'skips a region with no Document (the agent projection - no tree region to compare against)' {
+        $regions = @([pscustomobject]@{ Document = $null; Id = 'agent'; Content = 'anything' })
+        $findings = Test-ProjectionStale -Regions $regions -RepoPath $TestDrive
+        $findings.Count | Should -Be 0
+    }
 }
 
 Describe 'Test-DesignState: the tracker classes (S5.11)' {
@@ -745,7 +800,12 @@ Describe 'Test-DesignState against this repository''s own tree' {
         (@($result.Findings | Where-Object { $_.Subject -eq 'unit/document/agents-md' })).Count | Should -Be 0
     }
 
-    It 'S5.4: never clean (exit 0) against this repository - a working state set still lacks a projector today' {
+    It 'S5.4: never clean (exit 0) against this repository - most commands, scripts and documents have no unit record yet' {
         $script:RealResult.ExitCode | Should -Not -Be 0
+    }
+
+    It 'S7.9: the projector runs against this repository and ProjectionStale does not fire - the committed regions match their regeneration' {
+        $script:RealResult.CouldNotEvaluate | Where-Object { $_.Reason -eq 'ProjectorFailed' } | Should -BeNullOrEmpty
+        (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'ProjectionStale' })).Count | Should -Be 0
     }
 }

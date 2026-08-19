@@ -1,0 +1,8 @@
+# AGENTS.md, House conventions: "UTF-8, LF endings." Without this, a Windows checkout
+# (core.autocrlf=true, the default on windows-latest CI runners and common on Windows
+# developer machines) converts every text file to CRLF on disk while the committed blob
+# stays LF - agent.md already records the false-failure class this produces for
+# prettier --check, and tools/Update-DesignProjection.ps1's LF-only region writes hit the
+# same thing: a real run leaves git status non-empty on Windows even though nothing of
+# substance changed.
+* text=auto eol=lf
