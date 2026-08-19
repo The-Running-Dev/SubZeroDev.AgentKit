@@ -20,12 +20,9 @@ point at, so its surface is stated here in full — invocation, what it reads an
 what it must output, what it must not do — which is what gives `/reconcile` something to
 compare a command file against.
 
-**The state set is constrained Markdown with a line grammar, and no code declares it yet.**
-Its grammar is therefore written here as a scaffold, in full. The slice that materialises
-the reader **replaces the grammar block below with a pointer to the reader in the same
-commit** — descriptive drift corrected where it is found (`AGENTS.md`, *Hard rules*), not a
-contract amendment, and it needs no approval. What survives that replacement is everything
-in this document that a grammar cannot state.
+**The state set is constrained Markdown with a line grammar, declared in
+`tools/Read-DesignState.ps1`** (`AGENTS.md`, *Single ownership*), not restated here. What
+survives that pointer is everything in this document a grammar cannot state.
 
 ## Types
 
@@ -121,41 +118,24 @@ What the table cannot state:
 
 ### What the reader emits
 
-No code declares these yet. Scaffold, in the repository's established shape — `[pscustomobject]`
-from a factory function, because a PowerShell `class` does not cross a script boundary and this
-repository already answered that question with `New-WaitResult`, `New-CheckRunResult` and
-`New-DriftResult`.
+`New-DesignRecord`, `New-DesignStateGraph` and `New-DesignStateFailure` are declared in
+`tools/Read-DesignState.ps1`, not restated here (`AGENTS.md`, *Single ownership*). What those
+signatures cannot state:
+
+- **`New-DesignStateFailure` carries `Text` verbatim.** The offending line is reproduced, not
+  described. A summarised parse failure is one nobody can locate (I24).
+- **`Root` may be the empty string**, and that is the absent-state-set case rather than an
+  error. It reaches the caller as a graph with zero records, which the checker turns into
+  could-not-evaluate (I19).
+
+### What the checker emits
+
+No code declares this yet. Scaffold, in the repository's established shape —
+`[pscustomobject]` from a factory function, the same reason `Read-DesignState.ps1` gives for
+its own three above.
 
 ```powershell
-# tools/Read-DesignState.ps1
-function New-DesignRecord {
-    param(
-        [Parameter(Mandatory)][string]   $Id,
-        [Parameter(Mandatory)][string]   $Kind,
-        [Parameter(Mandatory)][string]   $Path,
-        [Parameter(Mandatory)][hashtable] $Scalars,
-        [Parameter(Mandatory)][hashtable] $Lists,
-        [Parameter(Mandatory)][hashtable] $Prose
-    )
-}
-
-function New-DesignStateGraph {
-    param(
-        [Parameter(Mandatory)][AllowEmptyString()][string]     $Root,
-        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records,
-        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Failures
-    )
-}
-
-function New-DesignStateFailure {
-    param(
-        [Parameter(Mandatory)][string] $Reason,
-        [Parameter(Mandatory)][string] $Path,
-        [int]    $Line,
-        [string] $Text
-    )
-}
-
+# tools/Test-DesignState.ps1
 function New-DesignFinding {
     param(
         [Parameter(Mandatory)][string] $Class,
@@ -166,19 +146,14 @@ function New-DesignFinding {
 }
 ```
 
-What those signatures cannot state:
+What that signature cannot state:
 
 - **`Failures` is never folded into `Findings` and the two never substitute for each other.**
   This is I12's rule at a second site, and it is the whole difference between "the design
   disagrees with the tree" and "the design was not read".
-- **`New-DesignStateFailure` carries `Text` verbatim.** The offending line is reproduced, not
-  described. A summarised parse failure is one nobody can locate (I24).
 - **`Blocking` is set from the class list in this document, never decided per finding.** A
   finding does not get to argue about its own severity; if the two disagree, that is the
   `ClassListDisagreement` finding, not a judgement call at the call site.
-- **`Root` may be the empty string**, and that is the absent-state-set case rather than an
-  error. It reaches the caller as a graph with zero records, which the checker turns into
-  could-not-evaluate (I19).
 
 ## Persisted schemas
 
@@ -222,22 +197,10 @@ Keys, and what the mapping cannot state:
   walk. Anything caching the enumeration is the index the brief's *no round-trip* non-goal
   excludes, and it is also a second copy that can be current-looking and wrong.
 
-**Grammar.** Scaffold — replaced by a pointer to `tools/Read-DesignState.ps1` when it exists.
-
-```
-# <id>                          ← H1, exactly one, first non-blank line, must equal the id the path implies
-<Field>: <value>                ← scalar; one per line; value may be empty
-<Field>: <id>, <id>, <id>       ← list; comma-separated; may be empty after the colon
-                                ← blank lines permitted between field lines
-## <Field>                      ← prose field; body runs to the next `##` or EOF
-<free Markdown>
-```
-
-- Field lines precede the first `##`. A field line after one is unparseable, not a late field.
-- A field name appears at most once per record.
-- Anything matching neither production is **unparseable and reported verbatim** (I24). The
-  grammar has no permissive fallback, and adding one would reintroduce the silently dropped id
-  the I12 precedent exists for.
+**Grammar.** Declared in `tools/Read-DesignState.ps1`, not restated here (`AGENTS.md`, *Single
+ownership*). What the declaration cannot say: the grammar has no permissive fallback for a line
+matching neither production, and adding one would reintroduce the silently dropped id the I12
+precedent exists for.
 
 **Migration story.** The state set does not exist, so there is no existing data to migrate to.
 The one-time population is `design/10-design.md` § *Migrate*, and its constraint is I26: **every**
@@ -623,14 +586,14 @@ rather than route around; none may substitute an adjacent action for a blocked o
 | **I14** | No generated region is ever an input. Nothing reads a rendered projection back, and no record derives a field from one | the projector | instruction | — |
 | **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
 | **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
-| **I17** | A derived edge is never written to a record. `Consumers`, `BoundBy`, `Decision.Affects` and `Question.Affects` appear only as projections; `Contract.Owner` is the sole written reverse edge and `OwnerMismatch` checks it | the reader | instruction | — (`tools/Read-DesignState.Tests.ps1` when written) |
+| **I17** | A derived edge is never written to a record. `Consumers`, `BoundBy`, `Decision.Affects` and `Question.Affects` appear only as projections; `Contract.Owner` is the sole written reverse edge and `OwnerMismatch` checks it | the reader | code | `tools/Read-DesignState.Tests.ps1` |
 | **I18** | No module of this mechanism writes outside a marked region: no source generated, no code edited, no divergence resolved, nothing written to git or the tracker | the checker, the projector | instruction | — (`tools/Test-DesignState.Tests.ps1`, `tools/Update-DesignProjection.Tests.ps1` when written) |
 | **I19** | An absent or empty state set yields *could not evaluate*, never *clean* | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
 | **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1 | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
 | **I21** | While `design/FROZEN.md` exists, no blocking class fails the build, and exit 2 still stands | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
 | **I22** | Every class on the blocking list is evaluable from the checkout alone — no network, no tracker, no running service | `design/20-contract.md` | instruction | — |
 | **I23** | The orientation closure is exactly one hop, excludes `Archival`, and its ceiling is 16,384 bytes and never rises | the budget meter | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
-| **I24** | A line the record grammar does not recognise is reported verbatim and never skipped | the reader | instruction | — (`tools/Read-DesignState.Tests.ps1` when written) |
+| **I24** | A line the record grammar does not recognise is reported verbatim and never skipped | the reader | code | `tools/Read-DesignState.Tests.ps1` |
 | **I25** | Regeneration is idempotent and order-independent: twice produces identical bytes, and one region's regeneration never changes another's output | the projector | instruction | — (`tools/Update-DesignProjection.Tests.ps1` when written) |
 | **I26** | No pre-existing entry in `design/90-decisions.md` is ever modified. Commits to that file are additions only | every command that writes the log | instruction | — |
 | **I27** | Every command and script this design touches degrades to today's behaviour when the state set is absent | each command | instruction | — |
@@ -647,9 +610,9 @@ exist, and **the slice that writes one flips its row in the same commit**. Writi
 of the test is the claim `EnforcementUnevidenced` exists to reject, and a table that made it
 would be making it once for every such row.
 
-Only I2, I7, I8, I12 and I13 are `code` today, all against tests that exist. That the second
-path contributes none of them is the honest reading of where this project is, and it is the
-number a later run should expect to see rise.
+Only I2, I7, I8, I12, I13, I17 and I24 are `code` today, all against tests that exist. I17 and
+I24 are the second path's first two, both against `tools/Read-DesignState.Tests.ps1` — the
+number this note says a later run should expect to see rise.
 
 I1 and I2 are the pair that matter for the first path. I14 is the pair's equivalent for the
 second: it is the acyclicity everything else rests on, it is the property most easily lost to a
