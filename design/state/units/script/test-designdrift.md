@@ -4,7 +4,7 @@ Status: active
 Anchor: tools/Test-DesignDrift.ps1
 Consumes:
 Exposes: contract/test-designdrift
-Binds:
+Binds: I12, I13
 Live:
 Archival:
 Questions:

@@ -349,7 +349,7 @@ could not run, and treating those the same would make the freeze a way to turn t
 
 ### Migrate — once, on this repository only
 
-The 67 log entries are read once and their live claims extracted; the entries are not touched.
+Every log entry is read once and its live claim extracted; the entries are not touched.
 Records are written for the units the tree already has. This runs exactly once here and
 **never in a target**, which is the whole of the brief's scope answer expressed as a flow.
 
@@ -473,36 +473,31 @@ broken checker, which has nothing to do with the staleness a freeze is meant to 
 
 ## Open questions
 
-1. **Is the standing corpus outside `design/` made of document units?** The brief enumerates
-   forty-nine units and `AGENTS.md`, `agent.md`, `.claude/COMPANIONS.md`, `INSTALL.md` and
-   `README.md` are not among them — yet `AGENTS.md` owns I3, I4, I9 and the marked-region
-   rule, and is the largest single carrier of design state in the repository at 34,899 bytes.
-   **Recommendation: yes.** An invariant whose owner is not a unit is a dangling edge in a
-   system whose central promise is that nothing dangles, and adding them uses the existing
-   `document` kind rather than inventing one. The cost is that the brief's count of five reads
-   as an enumeration of `design/`'s documents rather than of the kind, which is a wording
-   change to a checkable line and therefore yours.
+**All four are closed**, by `design/90-decisions.md`, *2026-08-19 — The four open questions in
+`design/10-design.md` are closed; the unit set is 59, not 49*. They are kept rather than deleted
+because one was decided against its recommendation and one narrowed the brief, and a question
+that disappears is one the next session asks again. The answers are recorded here; the reasoning
+and the rejected alternatives stay in the log entry.
 
-2. **Does the closed class list live in `design/20-contract.md` or in `AGENTS.md`?** The brief
-   requires a single named document; it names `AGENTS.md` for the marked-region rule and leaves
-   this one open. **Recommendation: the contract document**, carrying the class ids and each
-   one's blocking status, with the checker declaring the detection and the two compared by a
-   blocking class of their own — the `Test-WriteSurface.ps1` pattern, where the script holds
-   the canonical list and the command file points at it. `AGENTS.md` is the alternative and it
-   is not unreasonable: what fails a build is policy. This sets a public contract, so it is
-   yours rather than mine.
+1. **Is the standing corpus outside `design/` made of document units?** **Closed: yes.**
+   `AGENTS.md`, `agent.md`, `.claude/COMPANIONS.md`, `INSTALL.md` and `README.md` are `document`
+   units, on the argument that an invariant whose owner is not a unit is a dangling edge in a
+   system whose central promise is that nothing dangles. The unit set widened again afterwards,
+   to shipped payload — `design/20-contract.md` § *Artifacts of a unit kind* carries the glob and
+   its exclusions, and no number is written down anywhere, because the project kept invalidating
+   the ones that were.
 
-3. **Which workflow is the cost baseline?** The brief requires
-   `tools/Measure-Session.ps1` output for "a named, repeatable workflow" recorded before
-   anything lands, and re-run after. Which workflow decides whether the payoff number means
-   anything, and a model choosing its own benchmark is not a measurement. Two candidates worth
-   naming: a `/reconcile` pass, which is the cycle the brief indicts and therefore the most
-   favourable; or `/slice` on a real slice, which is the common case and the more honest one.
-   **Recommendation: `/slice`**, because a benchmark chosen to flatter the change is the
-   reporting failure *Verification* is about.
+2. **Does the closed class list live in `design/20-contract.md` or in `AGENTS.md`?** **Closed:
+   the contract document**, carrying the class ids and each one's blocking status, with
+   `tools/Test-DesignState.ps1` declaring the detection and `ClassListDisagreement` comparing the
+   two — the `Test-WriteSurface.ps1` pattern.
 
-4. **Do `templates/design/*.md` get records?** They are the seed shipped to targets — product
-   surface rather than this repository's design state, and `/install` already compares them.
-   **Recommendation: no**, treating them as payload; the cost is that a change to the seed then
-   has no design-state address, which is a real and small loss. Raised because it is a scope
-   line rather than a technical one.
+3. **Which workflow is the cost baseline?** **Closed: `/slice` on a real slice**, over
+   `/reconcile`, because a benchmark chosen to flatter the change is the reporting failure
+   *Verification* is about. Both halves are measured in `design/cost.md`.
+
+4. **Do `templates/design/*.md` get records?** **Closed: yes — against the recommendation**,
+   which was to treat the seed as payload. They are `document` units, so a change to the seed has
+   a design-state address. Retained as a declined recommendation rather than dropped: the cost it
+   named was the opposite one, that records for shipped payload put product surface inside this
+   repository's design state, and that cost is now paid rather than avoided.

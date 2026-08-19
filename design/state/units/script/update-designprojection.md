@@ -4,7 +4,7 @@ Status: active
 Anchor: tools/Update-DesignProjection.ps1
 Consumes: contract/read-designstate
 Exposes: contract/update-designprojection
-Binds:
+Binds: I14, I25, I29
 Live:
 Archival:
 Questions: question/slices-authority-home
