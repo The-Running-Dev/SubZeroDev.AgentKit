@@ -5,7 +5,7 @@ Anchor: design/90-decisions.md
 Consumes:
 Exposes:
 Binds: I26
-Live:
+Live: decision/2026-08-20-claim-excludes-rejections-question-writer-open
 Archival:
 Questions:
 Work:
