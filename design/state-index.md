@@ -91,7 +91,14 @@ means no record exists yet, not that nothing is true.
 <!-- consumers:start -->
 | Contract | Consumers |
 |---|---|
-| _(no contract records yet)_ | |
+| contract/fix | — |
+| contract/read-designstate | `unit/script/test-designstate`, `unit/script/update-designprojection` |
+| contract/resolve | `unit/command/pr` |
+| contract/test-companion | `unit/command/install-all`, `unit/command/verify`, `unit/script/sync-kit` |
+| contract/test-designdrift | `unit/command/track` |
+| contract/test-designstate | `unit/command/verify` |
+| contract/update-designprojection | `unit/script/test-designstate` |
+| contract/wait-pullrequestcheck | `unit/command/pr`, `unit/command/resolve` |
 <!-- consumers:end -->
 
 ## Decisions — in force for

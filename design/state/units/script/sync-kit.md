@@ -2,7 +2,7 @@
 Kind: script
 Status: active
 Anchor: tools/Sync-Kit.ps1
-Consumes:
+Consumes: contract/test-companion
 Exposes:
 Binds:
 Live: decision/2026-08-05-sync-kit-mechanism-recorded, decision/2026-08-08-sync-kit-built

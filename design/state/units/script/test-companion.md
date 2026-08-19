@@ -3,7 +3,7 @@ Kind: script
 Status: active
 Anchor: tools/Test-Companion.ps1
 Consumes:
-Exposes:
+Exposes: contract/test-companion
 Binds:
 Live: decision/2026-08-12-commands-split-core-and-companion
 Archival:
