@@ -47,7 +47,8 @@ invariants are I3 and I4 below.
 ### The state set
 
 **The six entity kinds and their fields are declared in `design/10-design.md` § Data model
-and are not copied here.** What that table cannot state:
+and are not copied here**, and the reader's `$script:FieldTables` is that table as a closed
+per-kind vocabulary, citing it. What neither can state:
 
 - **Every list-valued field is present on every record, empty where it has no members.** An
   omitted line and an empty line are different facts and must never be read as the same one —
@@ -115,8 +116,9 @@ What the table cannot state:
   renamed; the `Anchor` moves and the id does not. An id that reads as historical after a
   rename is a permanent id working correctly, not drift.
 - **The id determines the record's own file path, and only its own.** The mapping is stated
-  under *Persisted schemas*. This is the one restatement in the system checked by construction
-  rather than by a class: a record in the wrong file cannot be addressed at all.
+  under *Persisted schemas*, and it is not an unchecked restatement: `IdCollision` fires when a
+  record's own id disagrees with the id its path implies, and a file outside the six named
+  directories has no kind to be parsed under and is a parse failure rather than a guess.
 
 ### What the reader emits
 
@@ -189,13 +191,19 @@ ownership*). What the declaration cannot say: the grammar has no permissive fall
 matching neither production, and adding one would reintroduce the silently dropped id the I12
 precedent exists for.
 
-**Migration story.** The state set does not exist, so there is no existing data to migrate to.
+**Migration story.** Nothing preceded the state set, so there is no prior data to migrate from.
 The one-time population is `design/10-design.md` § *Migrate*, and its constraint is I26: **every**
 entry in `design/90-decisions.md` is read and **not touched** — every entry as the log then
 stands, not a count fixed here, because the log is append-only and any number written down is
 wrong by the next commit. Records are written for artifacts that already exist;
 no artifact is created to give a record something to point at. This runs on this repository and
 never in a target.
+
+That population **advances by slice and is not finished.** `units/`, `invariants/`, `decisions/`
+and `questions/` carry records; no `contract/…` or `work/…` record has been written, so
+`contracts/` and `work/` do not exist yet. A kind with no records is zero records of that kind and nothing
+more — `StateSetAbsent` is taken over `design/state/` as a whole, not per kind, so an absent
+subdirectory is neither a finding nor a could-not-evaluate.
 
 ### Marked regions
 
@@ -222,11 +230,13 @@ exists to forbid, one level up.
   as its id. That is not a coincidence to be preserved by care — it is why the marker carries the
   id and a fixed keyword and nothing else. Requiring a `source=` attribute would make every
   existing issue block non-conforming on the day the rule generalises.
-- **`companion` is the only declared region today**, and migrating it is a closed set:
-  twenty-one files under `.claude/commands/`, the single regex in `tools/Test-Companion.ps1`,
-  its `MissingBlock` message and doc comment, and `tools/Test-Companion.Tests.ps1`.
-  `.claude/COMPANIONS.md` states the rule without naming the literal marker and needs no edit
-  for the form itself.
+- **`companion` is the only declared region today**, and its migration to the declared form has
+  landed: every core under `.claude/commands/` carries the declared marker, and
+  `tools/Test-Companion.ps1` matches that form and no other — a core carrying the bare form is
+  nonconforming there. `.claude/COMPANIONS.md` states the rule without naming the literal marker
+  and needed no edit for the form itself. That the set was closed is why it could move in one
+  commit, which is the property the issue blocks do not have and the reason the bare form means
+  projected.
 - **The marker does not name its source.** The id determines the source; the projector holds
   that mapping. Repeating the source in every marker is the second copy *Single ownership*
   forbids, at the one site where there are hundreds of copies.
@@ -274,8 +284,10 @@ cannot state:
 
 ### `tools/Read-DesignState.ps1`
 
-Does not exist. Contracted before it is written, which is what makes it safe to implement
-with a cheaper model.
+The record reader. **Its `param` block and its per-kind field vocabulary (`$script:FieldTables`)
+are declared there and are not copied here** (`AGENTS.md`, *Single ownership*); `Get-DesignPathInfo`
+implements the id-to-path mapping this document fixes under *Persisted schemas*. What those
+declarations cannot state:
 
 - **Emits the graph on the success stream and never throws for a malformed state set.** A
   parse failure is data (`Failures`), not an exception. A caller that gets an exception loses
@@ -365,7 +377,9 @@ this mechanism writes there (S7.10). `outstanding` is not delivered — see § *
 
 ### `tools/Update-WorkMirror.ps1`
 
-The mirror generator.
+The mirror generator. **Not written yet** — contracted ahead of the slice that writes it, which is
+what makes it safe to implement with a cheaper model. It is the only surface in this section with
+no file behind it.
 
 - **`/track`'s alone.** No other command invokes it, and no other command writes a `WorkRef`.
   Two writers of a mirror is two answers to "when was this current".
@@ -474,6 +488,18 @@ today, and the glob is a rule a reader can check rather than one they have to kn
 | document | `design/*.md`, `templates/design/*.md`, `*.md` at the repository root, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md` — transient by design; `CLAUDE.md` — a loader that imports `AGENTS.md` and states nothing of its own |
 | invariant | not a tree path | The set is the `I<n>` records themselves; the difference is taken against citations in `AGENTS.md` and the command files |
 
+**This table is the canonical copy and `tools/Test-DesignState.ps1` implements it** —
+`Get-DocumentGlobFiles`, `Get-CommandGlobFiles`, `Get-ScriptGlobFiles`, and the citation scan for
+the invariant kind — citing this section by name. That is the exception *Single ownership* allows
+for a repeated fact: the canonical copy is named, and named from both ends.
+
+**It is also the one restatement in this document that no class compares.** The divergence-class
+list has `ClassListDisagreement`; the id-to-path mapping has `IdCollision`; the projections have
+`ProjectionStale`. A glob widened in the script and not here, or here and not in the script,
+diverges silently and `UnrecordedArtifact` goes on agreeing with whichever side the run read. The
+gap is stated rather than left to be discovered, and closing it is a class this list does not yet
+carry.
+
 ## Error semantics
 
 ### `Wait-PullRequestCheck.ps1`
@@ -559,7 +585,7 @@ rather than route around; none may substitute an adjacent action for a blocked o
 ## Invariants
 
 **The rows below the marked region are the canonical copy** — they have no `design/state/`
-record yet, so nothing can render them. The four rows inside the region are the opposite: they
+record yet, so nothing can render them. The rows inside the region are the opposite: they
 are **generated** from `design/state/invariants/*.md` and are regenerated, not edited (S7). A
 row moves up into the region, never edited in place, the same commit its record is written —
 recorded in `design/90-decisions.md` § *Open* per `AGENTS.md`, *Tracking work*, not here.
@@ -586,8 +612,8 @@ recorded in `design/90-decisions.md` § *Open* per `AGENTS.md`, *Tracking work*,
 | **I12** | `Test-DesignDrift.ps1` never reports a clean run for a comparison it could not complete — an unreadable tracker, an unparseable criterion id, or an unresolvable pin yields *could not evaluate*, never *no drift* | the script | code | `tools/Test-DesignDrift.Tests.ps1` |
 | **I13** | `Test-DesignDrift.ps1` writes nothing: not `design/`, not an issue, not git. It establishes that two sides disagree and stops there | the script | code | `tools/Test-DesignDrift.Tests.ps1` |
 | **I14** | No generated region is ever an input. Nothing reads a rendered projection back, and no record derives a field from one | the projector | instruction | — |
-| **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
-| **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden | the validator | instruction | — |
+| **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted | the validator | instruction | — |
 | **I17** | A derived edge is never written to a record. `Consumers`, `BoundBy`, `Decision.Affects` and `Question.Affects` appear only as projections; `Contract.Owner` is the sole written reverse edge and `OwnerMismatch` checks it | the reader | code | `tools/Read-DesignState.Tests.ps1` |
 | **I18** | No module of this mechanism writes outside a marked region: no source generated, no code edited, no divergence resolved, nothing written to git or the tracker | the checker, the projector | code | `tools/Test-DesignState.Tests.ps1`, `tools/Update-DesignProjection.Tests.ps1` |
 | **I19** | An absent or empty state set yields *could not evaluate*, never *clean* | the checker | code | `tools/Test-DesignState.Tests.ps1` |
@@ -605,11 +631,11 @@ recorded in `design/90-decisions.md` § *Open* per `AGENTS.md`, *Tracking work*,
 
 **Enforcement is a claim about the tree as it stands, not about the tree as designed.** The
 column states what is true today, so the `code` rows are the only ones a reader may trust
-without checking and there is no caveat to read first. Every invariant this project adds is
-`instruction`, with the test that would evidence it named in parentheses: those files do not
-exist, and **the slice that writes one flips its row in the same commit**. Writing `code` ahead
-of the test is the claim `EnforcementUnevidenced` exists to reject, and a table that made it
-would be making it once for every such row.
+without checking and there is no caveat to read first. Every invariant this project added
+arrived `instruction`, because **the slice that writes the evidencing test flips the row in the
+same commit** and no test preceded its invariant. Writing `code` ahead of the test is the claim
+`EnforcementUnevidenced` exists to reject, and a table that made it would be making it once for
+every such row.
 
 Only I2, I7, I8, I12, I13, I17, I18, I19, I20, I21, I23, I24, I25, I29, I30 and I31 are `code`
 today, all against tests that exist. I17 and I24 are against `tools/Read-DesignState.Tests.ps1`;
@@ -618,6 +644,15 @@ at each row) are against `tools/Test-DesignState.Tests.ps1`, written at S5, or
 `tools/Update-DesignProjection.Tests.ps1`, written at S7 — I25 and I29 flip to it there, since
 they bind the projector rather than the checker. I18 binds both and cites both files. The
 number this note says a later run should expect to see rise.
+
+**I15 and I16 name no test, and they are not waiting for one.** I15 is a rule about which classes
+may exist at all — it is discharged by every blocking class being a resolution check, and a test
+of it would be asserting the class list is complete, which nothing in a checkout can. I16's
+checkable half is already `IdCollision`'s: an id duplicated, or disagreeing with its file path,
+within one checkout. Its other half — never reused and never renumbered *across time* — is a
+property of the repository's history, and `PinAncestry` is already this document's record of what
+history-dependent checking costs on a shallow clone. Both therefore stay `instruction` against no
+named file, which is a different and weaker claim than a test not yet written.
 
 I1 and I2 are the pair that matter for the first path. I14 is the pair's equivalent for the
 second: it is the acyclicity everything else rests on, it is the property most easily lost to a
