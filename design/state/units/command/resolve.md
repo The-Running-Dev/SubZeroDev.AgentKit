@@ -4,7 +4,7 @@ Status: active
 Anchor: .claude/commands/resolve.md
 Consumes:
 Exposes:
-Binds:
+Binds: I1, I5
 Live: decision/2026-08-03-resolve-classifies-in-bulk-asks-on-ambiguous, decision/2026-08-05-resolve-asks-once-over-completed-classification
 Archival:
 Questions:

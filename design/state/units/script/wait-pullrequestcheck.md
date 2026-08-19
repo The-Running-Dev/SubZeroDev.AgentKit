@@ -4,7 +4,7 @@ Status: active
 Anchor: tools/Wait-PullRequestCheck.ps1
 Consumes:
 Exposes:
-Binds:
+Binds: I2, I7, I8
 Live:
 Archival:
 Questions:
