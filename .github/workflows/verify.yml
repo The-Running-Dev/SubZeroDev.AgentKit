@@ -30,9 +30,16 @@ jobs:
           }
           if ($failed) { exit 1 }
 
+      # S12.5 calls the real, gh-calling design-state check against this repository and
+      # expects exit 0 - the same reason the later "Check the design state against the
+      # tree" step below carries GH_TOKEN. Without it here, an unauthenticated gh makes
+      # that one test a could-not-evaluate (TrackerUnavailable) rather than a check of
+      # anything this step is meant to gate (#79).
       # verification: true
       - name: Run Pester tests
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           Import-Module Pester -MinimumVersion 5.0
           $result = Invoke-Pester -Path tools -Output Detailed -PassThru
