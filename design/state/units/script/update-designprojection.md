@@ -2,8 +2,8 @@
 Kind: script
 Status: active
 Anchor: tools/Update-DesignProjection.ps1
-Consumes:
-Exposes:
+Consumes: contract/read-designstate
+Exposes: contract/update-designprojection
 Binds: I14, I25, I29
 Live:
 Archival:

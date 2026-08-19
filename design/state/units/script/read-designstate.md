@@ -3,7 +3,7 @@ Kind: script
 Status: active
 Anchor: tools/Read-DesignState.ps1
 Consumes:
-Exposes:
+Exposes: contract/read-designstate
 Binds: I17, I24
 Live:
 Archival:

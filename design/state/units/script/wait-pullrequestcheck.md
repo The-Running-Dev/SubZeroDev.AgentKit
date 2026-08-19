@@ -3,7 +3,7 @@ Kind: script
 Status: active
 Anchor: tools/Wait-PullRequestCheck.ps1
 Consumes:
-Exposes:
+Exposes: contract/wait-pullrequestcheck
 Binds: I2, I7, I8
 Live:
 Archival:
