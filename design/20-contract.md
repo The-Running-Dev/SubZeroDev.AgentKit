@@ -109,10 +109,10 @@ per-kind vocabulary, citing it. What neither can state:
 
 | Kind | Form | Example |
 |---|---|---|
-| Unit | `unit/<kind>/<slug>` | `unit/command/track`, `unit/script/test-design-drift`, `unit/document/design-00-brief`, `unit/document/template-00-brief` |
+| Unit | `unit/<kind>/<slug>` | `unit/command/track`, `unit/script/test-designdrift`, `unit/document/design-00-brief`, `unit/document/template-00-brief` |
 | Invariant | `I<n>` | `I3` |
-| Contract | `contract/<slug>` | `contract/wait-result` |
-| Decision | `decision/<YYYY-MM-DD>-<slug>` | `decision/2026-08-08-pr-absorbs-gates` |
+| Contract | `contract/<slug>` | `contract/wait-pullrequestcheck` |
+| Decision | `decision/<YYYY-MM-DD>-<slug>` | `decision/2026-08-08-pr-absorbs-gates-drafts-abolished` |
 | Question | `question/<slug>` | `question/slices-authority-home` |
 | WorkRef | `work/<issue>` | `work/42` |
 
