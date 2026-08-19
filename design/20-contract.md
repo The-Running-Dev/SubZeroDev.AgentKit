@@ -86,6 +86,17 @@ per-kind vocabulary, citing it. What neither can state:
   the tree does not make. **Presence and resolution are two different checks**: absence is
   `EnforcementUnevidenced`, and every entry that is present must name a path that exists, which
   is `AnchorMissing`'s. A pointer to nothing satisfies the first and defeats what it is for.
+- **A scalar field is omitted when it has no value, which is the opposite of the list rule
+  above.** The asymmetry is the grammar's and is not restated here; what follows from it is that
+  a *conditional* scalar's absence carries no signal at all. `SupersededBy` is required when a
+  decision's `Status` is `superseded`, and `AnsweredBy` when a question's is `answered` — both
+  conditional exactly as an invariant's `Evidence` is, and neither with a class behind it.
+  `UnresolvedId` reaches them only once they are present, so a superseded record naming nothing
+  parses, validates, and passes: the state set says a claim was replaced and cannot say what
+  replaced it, which is the dangling edge permanent ids and retirement exist to prevent.
+  `design/30-slices.md` S11.2 asserted it once at migration and nothing holds it after. **The
+  obligation is stated with its enforcement gap named**, because a gap invisible from the class
+  list is one nobody knows to close.
 - **`MirroredAt` is the mirror's honesty and is never omitted.** A `WorkRef` with no
   `MirroredAt` asserts currency it cannot have.
 - **`Rank` is never absent either.** Its source degrades rather than failing, and that rule binds
@@ -680,8 +691,8 @@ every such row.
 
 Only I2, I7, I8, I12, I13, I17, I18, I19, I20, I21, I23, I24, I25, I29, I30 and I31 are `code`
 today, all against tests that exist. I17 and I24 are against `tools/Read-DesignState.Tests.ps1`;
-I18 through I31 (excluding I22, I26, I27, I28, which stay `instruction` for the reasons stated
-at each row) are against `tools/Test-DesignState.Tests.ps1`, written at S5, or
+I18 through I31 (excluding I24, just named, and I22, I26, I27, I28, which stay `instruction` for
+the reasons stated at each row) are against `tools/Test-DesignState.Tests.ps1`, written at S5, or
 `tools/Update-DesignProjection.Tests.ps1`, written at S7 — I25 and I29 flip to it there, since
 they bind the projector rather than the checker. I18 binds both and cites both files. The
 number this note says a later run should expect to see rise.
