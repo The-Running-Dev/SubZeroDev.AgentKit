@@ -1,0 +1,16 @@
+# unit/script/read-designstate
+Kind: script
+Status: active
+Anchor: tools/Read-DesignState.ps1
+Consumes:
+Exposes:
+Binds:
+Live:
+Archival:
+Questions:
+Work:
+Evidence: tools/Read-DesignState.Tests.ps1
+
+## Owns
+Reads `design/state/` into a graph. Never throws, never writes, and never silently skips a
+line the record grammar does not recognise.
