@@ -5,8 +5,6 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
-- **Widen `Test-EnforcementUnevidenced` to the trigger the contract now states.** `design/20-contract.md` § *The divergence classes* fires the class on a decision with `Status: superseded` and no `SupersededBy` and on a question with `Status: answered` and no `AnsweredBy`; `tools/Test-DesignState.ps1` still reads only the invariant case. `ClassListDisagreement` compares class ids and cannot see it. Needs the detection, and a fire plus a near-miss for each of the two new conditions in `tools/Test-DesignState.Tests.ps1`.
-
 ---
 
 ### 2026-08-19 — `EnforcementUnevidenced` widens to every conditionally-required field, rather than a second class being added
