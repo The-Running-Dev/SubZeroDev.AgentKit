@@ -461,11 +461,20 @@ Stated once here rather than enumerated per command, because the obligation is t
 exclusion list, not an enumeration: an enumeration cannot notice a new document, and a bare
 glob sweeps up files that are not units.
 
+**The `document` kind reaches shipped payload, not only this repository's standing corpus.**
+`.github/ISSUE_TEMPLATE/bug.md` owns `/fix`'s stop conditions in the table above and I10 binds
+`/fix` to its agent block, so a glob that did not reach it would leave a named owner with no
+record, no id, and no closure — and `UnrecordedArtifact` would never say so, because the
+difference is taken against the glob. That is the dangling edge this system exists to make
+impossible, and the same argument that made `AGENTS.md` a unit. `codex/PROFILES.md` is added on
+the narrower ground that it is a standing document `INSTALL.md` installs; it owns no surface
+today, and the glob is a rule a reader can check rather than one they have to know.
+
 | Kind | Glob | Excluded, and why |
 |---|---|---|
 | command | `.claude/commands/*.md` | `*-local.md` — a companion is the target's, and this repository ships none |
 | script | `tools/*.ps1` | `*.Tests.ps1` — a test is `Evidence`, not a unit |
-| document | `design/*.md`, `templates/design/*.md`, `*.md` at the repository root, `.claude/COMPANIONS.md` | `design/FROZEN.md` — transient by design; `CLAUDE.md` — a loader that imports `AGENTS.md` and states nothing of its own |
+| document | `design/*.md`, `templates/design/*.md`, `*.md` at the repository root, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md` — transient by design; `CLAUDE.md` — a loader that imports `AGENTS.md` and states nothing of its own |
 | invariant | not a tree path | The set is the `I<n>` records themselves; the difference is taken against citations in `AGENTS.md` and the command files |
 
 ## Error semantics
@@ -613,7 +622,7 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**Two items.** `/slice`'s "the contract does not contain a signature you need" stop condition
+**One item.** `/slice`'s "the contract does not contain a signature you need" stop condition
 should fire on nothing else.
 
 ### Where a slice's criteria are rendered once GitHub is the authority
@@ -633,25 +642,6 @@ and to the retirement convention `design/30-slices.md` § *How this document is 
 Choosing between them here would be inventing a signature the design does not determine.
 
 A slice that reaches this stops. It does not resolve it in the implementing session.
-
-### Whether a document that owns surface but ships as payload is a unit
-
-§ *Documents that carry surface* names `.github/ISSUE_TEMPLATE/bug.md` as the owner of `/fix`'s
-stop conditions, and I10 binds `/fix` to obeying its agent block. § *Artifacts of a unit kind*'s
-`document` glob does not reach it: `design/*.md`, `templates/design/*.md`, `*.md` at the
-repository root and `.claude/COMPANIONS.md` exclude both `.github/ISSUE_TEMPLATE/*.md` and
-`codex/PROFILES.md`, which `INSTALL.md` phase 1 also installs.
-
-So a document this contract names as an owner has no record, no id, and no closure — and
-`UnrecordedArtifact` will never say so, because the glob it takes its difference against does
-not include the path. That is the dangling edge the 2026-08-19 unit-set entry closed in the
-other direction for `AGENTS.md`, arriving at a different answer for the same reason, and the
-difference between the two cases is that these two are shipped payload rather than this
-repository's own standing corpus.
-
-The unit set is a permanent public contract — ids are assigned once and never reused (I16), and
-a record is retired rather than deleted — so widening it is expensive to reverse and is not the
-implementing session's to decide.
 
 Anything else a slice discovers to be undetermined belongs here as a new item, under the same
 rule.
