@@ -5,7 +5,7 @@ Anchor: tools/Test-DesignState.ps1
 Consumes:
 Exposes:
 Binds: I15, I16, I18, I19, I20, I21, I23, I30, I31
-Live: decision/2026-08-19-anchormissing-widens-to-every-tree-pointer, decision/2026-08-19-invariant-set-is-the-contract-table
+Live: decision/2026-08-19-anchormissing-widens-to-every-tree-pointer, decision/2026-08-19-invariant-set-is-the-contract-table, decision/2026-08-19-enforcementunevidenced-widens-to-conditional-fields
 Archival:
 Questions:
 Work:
