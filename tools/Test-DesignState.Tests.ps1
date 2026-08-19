@@ -558,6 +558,70 @@ Describe 'Test-DesignState: the projector seam (S5.10)' {
     }
 }
 
+Describe 'Test-DesignState: the tracker classes (S5.11)' {
+
+    It 'S5.11: gh unavailable yields TrackerUnavailable, names WorkStateDivergence as not compared, and MirrorStale still runs' {
+        Mock -CommandName Test-TrackerAvailable -MockWith { $false }
+
+        $ref = New-Record -Id 'work/42' -Kind 'WorkRef' -Scalars @{ Issue = '42'; State = 'open'; MirroredAt = 'deadbeef' }
+        $result = Test-TrackerClasses -Records @($ref) -RepoPath $TestDrive -Repository 'x/y'
+
+        ($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'TrackerUnavailable' }).Count | Should -Be 1
+        $result.CouldNotEvaluate[0].Detail | Should -Match 'WorkStateDivergence not compared'
+    }
+
+    It 'MirrorStale fires when a WorkRef''s MirroredAt is not the current commit' {
+        Mock -CommandName Test-TrackerAvailable -MockWith { $false }
+        Mock -CommandName Get-CurrentCommitSha -MockWith { 'currentsha' }
+
+        $ref = New-Record -Id 'work/42' -Kind 'WorkRef' -Scalars @{ Issue = '42'; MirroredAt = 'stalesha' }
+        $result = Test-TrackerClasses -Records @($ref) -RepoPath $TestDrive -Repository 'x/y'
+
+        (@($result.Reported | Where-Object { $_.Class -eq 'MirrorStale' })).Count | Should -Be 1
+    }
+
+    It 'MirrorStale does not fire when MirroredAt matches the current commit' {
+        Mock -CommandName Test-TrackerAvailable -MockWith { $false }
+        Mock -CommandName Get-CurrentCommitSha -MockWith { 'currentsha' }
+        Mock -CommandName Test-CommitIsAncestor -MockWith { 'Ancestor' }
+
+        $ref = New-Record -Id 'work/42' -Kind 'WorkRef' -Scalars @{ Issue = '42'; MirroredAt = 'currentsha' }
+        $result = Test-TrackerClasses -Records @($ref) -RepoPath $TestDrive -Repository 'x/y'
+
+        (@($result.Reported | Where-Object { $_.Class -eq 'MirrorStale' })).Count | Should -Be 0
+    }
+
+    It 'PinAncestry fires when MirroredAt is not an ancestor of HEAD, and does not need gh' {
+        Mock -CommandName Test-TrackerAvailable -MockWith { $false }
+        Mock -CommandName Get-CurrentCommitSha -MockWith { 'currentsha' }
+        Mock -CommandName Test-CommitIsAncestor -MockWith { 'NotAncestor' }
+
+        $ref = New-Record -Id 'work/42' -Kind 'WorkRef' -Scalars @{ Issue = '42'; MirroredAt = 'orphaned' }
+        $result = Test-TrackerClasses -Records @($ref) -RepoPath $TestDrive -Repository 'x/y'
+
+        (@($result.Reported | Where-Object { $_.Class -eq 'PinAncestry' })).Count | Should -Be 1
+    }
+
+    It 'ShallowCheckout is could-not-evaluate, and never a pass, when ancestry cannot be resolved' {
+        Mock -CommandName Test-TrackerAvailable -MockWith { $false }
+        Mock -CommandName Get-CurrentCommitSha -MockWith { 'currentsha' }
+        Mock -CommandName Test-CommitIsAncestor -MockWith { 'Unresolvable' }
+
+        $ref = New-Record -Id 'work/42' -Kind 'WorkRef' -Scalars @{ Issue = '42'; MirroredAt = 'orphaned' }
+        $result = Test-TrackerClasses -Records @($ref) -RepoPath $TestDrive -Repository 'x/y'
+
+        ($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'ShallowCheckout' }).Count | Should -Be 1
+        (@($result.Reported | Where-Object { $_.Class -eq 'PinAncestry' })).Count | Should -Be 0
+    }
+
+    It 'no WorkRef records: every tracker class runs to completion with nothing to report' {
+        Mock -CommandName Test-TrackerAvailable -MockWith { $true }
+        $result = Test-TrackerClasses -Records @() -RepoPath $TestDrive -Repository 'x/y'
+        $result.Reported.Count | Should -Be 0
+        $result.CouldNotEvaluate.Count | Should -Be 0
+    }
+}
+
 Describe 'Test-DesignState: end-to-end (S5.2, S5.3, S5.4, S5.9)' {
 
     BeforeEach {
