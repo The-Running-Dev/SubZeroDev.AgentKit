@@ -700,25 +700,89 @@ function Test-ClosureBudget {
 }
 
 # ---------------------------------------------------------------------------------------------
-# The projector. Does not exist until S7. Its absence is a contracted case (ProjectorFailed),
-# not a gap to work around (S5's own Out of scope line).
+# The projector (S7). Its absence, or a non-zero exit, is a contracted case (ProjectorFailed) -
+# S5's own Out of scope line, unchanged now that S7 has written it. -DryRun's output is the
+# projector's own JSON rendering of every region it would write (design/20-contract.md §
+# tools/Update-DesignProjection.ps1); a caller comparing region content, not just the exit code,
+# is what makes ProjectionStale (S7.9) computable rather than permanently uncomputed.
 # ---------------------------------------------------------------------------------------------
 function Invoke-Projector {
     param([Parameter(Mandatory)][string] $RepoPath)
 
     $projectorPath = Join-Path $RepoPath 'tools/Update-DesignProjection.ps1'
     if (-not (Test-Path -LiteralPath $projectorPath)) {
-        return [pscustomobject]@{ Ran = $false; Detail = 'tools/Update-DesignProjection.ps1 does not exist' }
+        return [pscustomobject]@{ Ran = $false; Detail = 'tools/Update-DesignProjection.ps1 does not exist'; Regions = @() }
     }
     try {
-        & pwsh -NoProfile -File $projectorPath -Path $RepoPath -DryRun 2>$null | Out-Null
+        $raw = & pwsh -NoProfile -File $projectorPath -Path $RepoPath -DryRun 2>$null
         if ($LASTEXITCODE -ne 0) {
-            return [pscustomobject]@{ Ran = $false; Detail = "exited $LASTEXITCODE" }
+            return [pscustomobject]@{ Ran = $false; Detail = "exited $LASTEXITCODE"; Regions = @() }
         }
     } catch {
-        return [pscustomobject]@{ Ran = $false; Detail = $_.Exception.Message }
+        return [pscustomobject]@{ Ran = $false; Detail = $_.Exception.Message; Regions = @() }
     }
-    [pscustomobject]@{ Ran = $true; Detail = $null }
+
+    $regions = @()
+    try {
+        if ($raw) {
+            $regions = @(($raw -join "`n") | ConvertFrom-Json)
+        }
+    } catch {
+        return [pscustomobject]@{ Ran = $false; Detail = "unparseable projector output: $($_.Exception.Message)"; Regions = @() }
+    }
+
+    [pscustomobject]@{ Ran = $true; Detail = $null; Regions = $regions }
+}
+
+# ---------------------------------------------------------------------------------------------
+# ProjectionStale (S7.9). A region the projector rendered but has no document (the `agent`
+# projection - it targets GitHub, not the tree) is not comparable here and is skipped; every
+# other region is compared, CRLF-normalised, against the tree's own copy of that region's body.
+# ---------------------------------------------------------------------------------------------
+function Get-RegionBody {
+    param([Parameter(Mandatory)][AllowEmptyCollection()][AllowEmptyString()][string[]] $Lines, [Parameter(Mandatory)][string] $Id)
+
+    $startPattern = "<!-- $Id`:start -->"
+    $endPattern = "<!-- $Id`:end -->"
+    $startIndex = -1
+    $endIndex = -1
+    for ($i = 0; $i -lt $Lines.Count; $i++) {
+        $t = $Lines[$i].Trim()
+        if ($startIndex -lt 0 -and $t -eq $startPattern) { $startIndex = $i; continue }
+        if ($startIndex -ge 0 -and $endIndex -lt 0 -and $t -eq $endPattern) { $endIndex = $i; continue }
+    }
+    if ($startIndex -lt 0 -or $endIndex -lt 0 -or $endIndex -le $startIndex) { return $null }
+    if ($endIndex -eq $startIndex + 1) { return '' }
+    ,@($Lines[($startIndex + 1)..($endIndex - 1)])
+}
+
+function ConvertTo-NormalisedNewlines {
+    param([string] $Text)
+    ($Text -replace "`r`n", "`n") -replace "`r", "`n"
+}
+
+function Test-ProjectionStale {
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Regions, [Parameter(Mandatory)][string] $RepoPath)
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+    foreach ($region in $Regions) {
+        if (-not $region.Document) { continue } # e.g. `agent` - no tree region to compare against
+        $full = Join-Path $RepoPath $region.Document
+        if (-not (Test-Path -LiteralPath $full)) {
+            $findings.Add((New-DesignFinding -Class 'ProjectionStale' -Subject "$($region.Document)#$($region.Id)" -Detail 'document named by the projector does not exist in the tree' -Blocking $true))
+            continue
+        }
+        $lines = @(Get-Content -LiteralPath $full)
+        $body = Get-RegionBody -Lines $lines -Id $region.Id
+        if ($null -eq $body) { continue } # a missing/malformed region is RegionMissing/RegionMalformed's territory, not this one's
+
+        $current = (ConvertTo-NormalisedNewlines -Text (($body -join "`n"))).Trim("`n")
+        $rendered = (ConvertTo-NormalisedNewlines -Text $region.Content).Trim("`n")
+        if ($current -ne $rendered) {
+            $findings.Add((New-DesignFinding -Class 'ProjectionStale' -Subject "$($region.Document)#$($region.Id)" -Detail 'the tree''s copy of this region differs from its regeneration' -Blocking $true))
+        }
+    }
+    ,@($findings)
 }
 
 # ---------------------------------------------------------------------------------------------
@@ -898,11 +962,13 @@ function Invoke-DesignStateCheck {
     $projector = Invoke-Projector -RepoPath $RepoPath
     if (-not $projector.Ran) {
         $couldNotEvaluate.Add((New-CouldNotEvaluate -Reason 'ProjectorFailed' -Detail "$($projector.Detail); ProjectionStale is uncomputed, not clean"))
+    } else {
+        # S7.9. A working projector's -DryRun regions are compared, CRLF-normalised, against the
+        # tree's own copy of each region. Reporting clean here would be the I19/I20 pass this
+        # design forbids only when the projector itself could not run; once it can, "regenerate
+        # and compare" is exactly what this class exists to do.
+        $blockingFindings.AddRange((Test-ProjectionStale -Regions $projector.Regions -RepoPath $RepoPath))
     }
-    # ProjectionStale itself is not raised here: without a working projector there is nothing
-    # to regenerate and compare, and reporting it as clean would be exactly the pass I19/I20
-    # forbid. Its absence from $blockingFindings while $couldNotEvaluate carries ProjectorFailed
-    # is that contract, not an omission.
 
     $budget = Test-ClosureBudget -Records $records -ById $byId -RepoPath $RepoPath
     $blockingFindings.AddRange($budget.Findings)
