@@ -570,27 +570,33 @@ rather than route around; none may substitute an adjacent action for a blocked o
 | **I12** | `Test-DesignDrift.ps1` never reports a clean run for a comparison it could not complete — an unreadable tracker, an unparseable criterion id, or an unresolvable pin yields *could not evaluate*, never *no drift* | the script | code | `tools/Test-DesignDrift.Tests.ps1` |
 | **I13** | `Test-DesignDrift.ps1` writes nothing: not `design/`, not an issue, not git. It establishes that two sides disagree and stops there | the script | code | `tools/Test-DesignDrift.Tests.ps1` |
 | **I14** | No generated region is ever an input. Nothing reads a rendered projection back, and no record derives a field from one | the projector | instruction | — |
-| **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden | the validator | code | `tools/Test-DesignState.Tests.ps1` |
-| **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted | the validator | code | `tools/Test-DesignState.Tests.ps1` |
-| **I17** | A derived edge is never written to a record. Reverse edges appear only as projections | the reader | code | `tools/Read-DesignState.Tests.ps1` |
-| **I18** | No module of this mechanism writes outside a marked region: no source generated, no code edited, no divergence resolved, nothing written to git or the tracker | the checker, the projector | code | `tools/Test-DesignState.Tests.ps1`, `tools/Update-DesignProjection.Tests.ps1` |
-| **I19** | An absent or empty state set yields *could not evaluate*, never *clean* | the checker | code | `tools/Test-DesignState.Tests.ps1` |
-| **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1 | the checker | code | `tools/Test-DesignState.Tests.ps1` |
-| **I21** | While `design/FROZEN.md` exists, no blocking class fails the build, and exit 2 still stands | the checker | code | `tools/Test-DesignState.Tests.ps1` |
+| **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I17** | A derived edge is never written to a record. Reverse edges appear only as projections | the reader | instruction | — (`tools/Read-DesignState.Tests.ps1` when written) |
+| **I18** | No module of this mechanism writes outside a marked region: no source generated, no code edited, no divergence resolved, nothing written to git or the tracker | the checker, the projector | instruction | — (`tools/Test-DesignState.Tests.ps1`, `tools/Update-DesignProjection.Tests.ps1` when written) |
+| **I19** | An absent or empty state set yields *could not evaluate*, never *clean* | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1 | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I21** | While `design/FROZEN.md` exists, no blocking class fails the build, and exit 2 still stands | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
 | **I22** | Every class on the blocking list is evaluable from the checkout alone — no network, no tracker, no running service | `design/20-contract.md` | instruction | — |
-| **I23** | The orientation closure is exactly one hop, excludes `Archival`, and its ceiling is 16,384 bytes and never rises | the budget meter | code | `tools/Test-DesignState.Tests.ps1` |
-| **I24** | A line the record grammar does not recognise is reported verbatim and never skipped | the reader | code | `tools/Read-DesignState.Tests.ps1` |
-| **I25** | Regeneration is idempotent and order-independent: twice produces identical bytes, and one region's regeneration never changes another's output | the projector | code | `tools/Update-DesignProjection.Tests.ps1` |
+| **I23** | The orientation closure is exactly one hop, excludes `Archival`, and its ceiling is 16,384 bytes and never rises | the budget meter | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I24** | A line the record grammar does not recognise is reported verbatim and never skipped | the reader | instruction | — (`tools/Read-DesignState.Tests.ps1` when written) |
+| **I25** | Regeneration is idempotent and order-independent: twice produces identical bytes, and one region's regeneration never changes another's output | the projector | instruction | — (`tools/Update-DesignProjection.Tests.ps1` when written) |
 | **I26** | No pre-existing entry in `design/90-decisions.md` is ever modified. Commits to that file are additions only | every command that writes the log | instruction | — |
 | **I27** | Every command and script this design touches degrades to today's behaviour when the state set is absent | each command | instruction | — |
 | **I28** | GitHub is the authority for a slice's acceptance criteria, completion and order. A `WorkRef` is a mirror, is stale by default, and is never cited as authority | `/track` | instruction | — |
-| **I29** | The projector never writes inside a declared region, and no id is both projected and declared | the projector | code | `tools/Update-DesignProjection.Tests.ps1` |
+| **I29** | The projector never writes inside a declared region, and no id is both projected and declared | the projector | instruction | — (`tools/Update-DesignProjection.Tests.ps1` when written) |
 
-**Enforcement is a claim about the tree, and the `Evidence` column is what makes it checkable.**
-The `code` rows are the only ones a reader may trust without checking. Every `Evidence` path for
-I15 onward names a test file **that does not exist yet** — those invariants are `instruction`
-until it does, and the slice that writes the test is the slice that may flip the column. Writing
-`code` first is the claim `EnforcementUnevidenced` exists to reject.
+**Enforcement is a claim about the tree as it stands, not about the tree as designed.** The
+column states what is true today, so the `code` rows are the only ones a reader may trust
+without checking and there is no caveat to read first. Every invariant this project adds is
+`instruction`, with the test that would evidence it named in parentheses: those files do not
+exist, and **the slice that writes one flips its row in the same commit**. Writing `code` ahead
+of the test is the claim `EnforcementUnevidenced` exists to reject, and a table that made it
+would be making it eleven times.
+
+Only I2, I7, I8, I12 and I13 are `code` today, all against tests that exist. That the second
+path contributes none of them is the honest reading of where this project is, and it is the
+number a later run should expect to see rise.
 
 I1 and I2 are the pair that matter for the first path. I14 is the pair's equivalent for the
 second: it is the acyclicity everything else rests on, it is the property most easily lost to a
