@@ -924,6 +924,31 @@ Describe 'Test-DesignState against this repository''s own tree' {
         $script:RealResult.CouldNotEvaluate | Where-Object { $_.Reason -eq 'ProjectorFailed' } | Should -BeNullOrEmpty
         (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'ProjectionStale' })).Count | Should -Be 0
     }
+
+    It 'S17.2: every invariant row in the real Invariants section sits inside the single invariants region, none below it' {
+        $contractPath = Join-Path $script:RepoRoot 'design/20-contract.md'
+        $text = Get-Content -LiteralPath $contractPath -Raw
+        $start = $text.IndexOf("`n## Invariants")
+        $rest = $text.Substring($start + 1)
+        $end = $rest.IndexOf("`n## ", 1)
+        $section = if ($end -lt 0) { $rest } else { $rest.Substring(0, $end) }
+
+        $regionStart = $section.IndexOf('<!-- invariants:start -->')
+        $regionEnd = $section.IndexOf('<!-- invariants:end -->')
+        $regionStart | Should -BeGreaterThan -1
+        $regionEnd | Should -BeGreaterThan $regionStart
+
+        $before = $section.Substring(0, $regionStart)
+        $after = $section.Substring($regionEnd + '<!-- invariants:end -->'.Length)
+        $rowPattern = '(?m)^\|\s*\*\*I\d+\*\*\s*\|'
+        ([regex]::Matches($before, $rowPattern)).Count | Should -Be 0
+        ([regex]::Matches($after, $rowPattern)).Count | Should -Be 0
+
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $recordedCount = (@($graph.Records | Where-Object { $_.Kind -eq 'Invariant' })).Count
+        $parsed = Get-ContractInvariantIds -ContractPath $contractPath
+        $parsed.Ids.Count | Should -Be $recordedCount
+    }
 }
 
 # =================================================================================================

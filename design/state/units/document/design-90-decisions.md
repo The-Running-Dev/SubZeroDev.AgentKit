@@ -4,7 +4,7 @@ Status: active
 Anchor: design/90-decisions.md
 Consumes:
 Exposes:
-Binds:
+Binds: I26
 Live:
 Archival:
 Questions:
