@@ -183,6 +183,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-19-brief-written-kit-owned-mechanism-proven-here-only | `unit/document/design-00-brief` |
 | decision/2026-08-19-contract-becomes-repository-scoped | `unit/command/contract`, `unit/document/design-20-contract` |
 | decision/2026-08-19-contract-owner-stays-written-other-edges-derived | `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-19-contract-picks-up-three-derived-terms | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-08-19-design-state-becomes-addressable-records | `unit/document/design-10-design` |
 | decision/2026-08-19-document-kind-reaches-shipped-payload | `unit/document/codex-profiles`, `unit/document/design-20-contract`, `unit/document/issue-template-bug` |
 | decision/2026-08-19-enforcement-states-tree-as-it-stands | `unit/document/design-20-contract` |
