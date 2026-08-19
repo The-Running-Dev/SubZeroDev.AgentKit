@@ -155,6 +155,7 @@ function Get-ContractClassIds {
     }
 
     $text = Get-Content -LiteralPath $ContractPath -Raw
+    if ($null -eq $text) { $text = '' }
     $start = $text.IndexOf('### The divergence classes')
     $end = $text.IndexOf('### The freeze')
     if ($start -lt 0 -or $end -lt 0 -or $end -le $start) {
@@ -211,6 +212,7 @@ function Get-ContractInvariantIds {
     }
 
     $text = Get-Content -LiteralPath $ContractPath -Raw
+    if ($null -eq $text) { $text = '' }
     $start = $text.IndexOf("`n## Invariants")
     if ($start -lt 0) {
         return [pscustomobject]@{ Ids = $null; Failure = 'InvariantsSectionNotFound' }
