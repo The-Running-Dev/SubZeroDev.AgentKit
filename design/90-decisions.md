@@ -5,8 +5,6 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
-- **Correct the stale projector note in `tools/Test-DesignState.ps1`'s help block.** It says "The projector does not exist yet (it is S7's), so every run today reports `ProjectorFailed` and names `ProjectionStale` as uncomputed rather than clean (S5.10)". S7 landed: `tools/Update-DesignProjection.ps1` exists, the checker invokes it with `-DryRun`, and `ProjectionStale` is computed on every run. The `.SYNOPSIS` is the first thing a reader of the checker sees and it describes a state the tree left behind. No class covers a comment, so nothing will report it. Found by `/contract` re-deriving `design/20-contract.md` against `design/10-design.md`.
-
 ---
 
 ### 2026-08-19 — The contract picks up three terms `design/10-design.md` determines: whole-file closure measurement, when work authority transfers, and no lock
