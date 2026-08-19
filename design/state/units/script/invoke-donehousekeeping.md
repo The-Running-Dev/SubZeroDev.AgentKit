@@ -5,7 +5,7 @@ Anchor: tools/Invoke-DoneHousekeeping.ps1
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-08-done-housekeeping-scripts-everything-before-ask
 Archival:
 Questions:
 Work:

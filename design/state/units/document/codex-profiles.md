@@ -5,7 +5,7 @@ Anchor: codex/PROFILES.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-19-document-kind-reaches-shipped-payload
 Archival:
 Questions:
 Work:

@@ -5,7 +5,7 @@ Anchor: tools/Test-Companion.ps1
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-12-commands-split-core-and-companion
 Archival:
 Questions:
 Work:

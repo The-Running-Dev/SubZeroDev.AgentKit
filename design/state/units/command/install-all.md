@@ -5,7 +5,7 @@ Anchor: .claude/commands/install-all.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-04-install-all-runs-unattended-never-resolves-fork, decision/2026-08-12-install-all-write-surface-guard
 Archival:
 Questions:
 Work:
