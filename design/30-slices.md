@@ -4,7 +4,7 @@
 > retired to the index under `## Landed` and its design body to
 > `git show dfd1cab:design/10-design.md`. The **explicit design-state mechanism**, designed in
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, is sliced under
-> `## Outstanding` as S4–S15.
+> `## Outstanding` as S4–S16.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -44,14 +44,31 @@ issue (`design/10-design.md`, § *WorkRef*).
 
 ## Contract questions
 
-**One outstanding**, and it blocks two of the slices below.
+**Three outstanding.** One is already an item in `design/20-contract.md` § *Unresolved*; the
+other two were found by this re-run and are **not there yet** — writing them is `/contract`'s,
+at `opus`/`high`, and neither is resolved here.
 
-`design/20-contract.md` § *Unresolved* — *Where a slice's criteria are rendered once GitHub is
-the authority* — does not determine which document hosts the `outstanding` projection. That
-projection is in the projector's minimum set (`design/20-contract.md` §
-`tools/Update-DesignProjection.ps1`), so the gap reaches **S7** as well as **S14**. Both slices
-name it and stop at it rather than choosing; neither adds a new item, because the item is
-already there.
+**Where the `outstanding` projection renders.** `design/20-contract.md` § *Unresolved* — *Where
+a slice's criteria are rendered once GitHub is the authority* — does not determine which
+document hosts it. That projection is in the projector's minimum set (`design/20-contract.md`
+§ `tools/Update-DesignProjection.ps1`), so the gap reaches **S7** as well as **S14**. Both
+slices name it and stop at it rather than choosing; neither adds a new item, because the item
+is already there.
+
+**What the invariant unit set is.** § *Artifacts of a unit kind* takes the difference against
+`I<n>` **citations in `AGENTS.md` and the command files**; § *Invariants* says a row moves into
+the generated region the commit its record is written, and the brief names an invariant as a
+unit whose state must be obtainable. The two readings do not pick out the same set, and they
+differ in whether work remains: under the first the set is the cited ids and the surplus
+records are a defect, under the second the uncited rows are outstanding records. **No slice is
+written for it here**, because which reading holds decides whether the slice exists at all.
+
+**Which class resolves a tree pointer that is not a unit's `Anchor`.** `AnchorMissing` is
+scoped to `Unit` records by both this contract and the checker. `Contract.Declaration` and the
+`Evidence` field on a unit or an invariant record are tree pointers, and no blocking class
+resolves any of them — which is the unchecked restatement **I15** forbids. It reaches
+**S16**, which cannot write a `Declaration` until it is answered, and it is already live in
+the tree, where `Evidence` pointers stand unresolved by anything standing.
 
 A slice that discovers something *else* undetermined stops and adds it to § *Unresolved*. It
 does not resolve it in the implementing session.
@@ -466,6 +483,50 @@ Acceptance:
 Out of scope: migrating any target's design state — the brief fences this permanently; changing
     `/install`, `/install-all`, `/kit-sync` or `tools/Sync-Kit.ps1` beyond what the compatibility
     promise requires; re-running the baseline, which was taken once and is not re-taken.
+
+---
+
+## S16 — Every part says what it offers and what it leans on
+> **Blocked.** § *Contract questions* above — no blocking class resolves a tree pointer that is
+> not a unit's `Anchor`, and a `Contract` record's `Declaration` is one. Writing one would be
+> the unchecked restatement I15 forbids. This slice cannot be started until `/contract` answers
+> it, and S16.1 below is written against a check that does not yet exist.
+
+Delivers: For any part of the kit you can already see what it is responsible for. Now you can
+also see which surfaces it offers to everything else and which ones it leans on — so "what
+breaks if I change this" is a list you read rather than a search you run. And where two parts
+claim the same surface, or none does, the check says so instead of letting it through.
+Touches: `design/state/contracts/`, `design/state/units/`, `design/state-index.md`
+         (the `consumers` region)
+Depends on: S7, S8, S9, and the resolution of § *Contract questions*
+Acceptance:
+  - S16.1 A `Contract` record exists for every surface `design/20-contract.md` § *Public
+    surface* names and for nothing else, each carrying `Owner`, `Declaration` and `Semantics`.
+    `Declaration` is a path in the tree, or the literal `prose` for a Markdown command surface
+    that has no declaration to point at.
+  - S16.2 `OwnerMismatch` reports none across the real state set — the first run in which that
+    class has records to compare, rather than only the synthetic pair S12.2 built for it.
+  - S16.3 Every unit that names another unit's surface carries it in `Consumes`, and every unit
+    that offers one carries it in `Exposes`. Checked by set difference against the tree in both
+    directions with both counts stated, not by reading: `tools/Sync-Kit.ps1` naming
+    `tools/Test-Companion.ps1`, and `tools/Test-DesignState.ps1` naming
+    `tools/Read-DesignState.ps1` and `tools/Update-DesignProjection.ps1`, are among the edges it
+    must recover.
+  - S16.4 `UnresolvedId` reports none among the records this slice writes, and no record
+    acquires a `Consumers` field — that edge is derived and is never written (I17).
+  - S16.5 `design/state-index.md`'s `consumers` region renders one row per contract naming its
+    consuming units, in place of the empty-set row it renders today, and `ProjectionStale`
+    reports none after regeneration in the same commit.
+  - S16.6 No record is written for a surface with no file behind it. `tools/Update-WorkMirror.ps1`
+    is contracted and unwritten and gets none here, because a `Declaration` pointing at an absent
+    file is the shape `AnchorMissing` exists to reject.
+  - S16.7 The largest closure across the whole state set is named with its size and its largest
+    contributor. This slice adds edges to the closures that are already the largest in the set,
+    so **over budget stops the project and reports**, per the brief's abandonment line. It does
+    not raise the ceiling, and it does not drop a contract record to get back under it.
+Out of scope: `WorkRef` records and the `outstanding` projection, which are S14's; the invariant
+    backlog, whose size § *Contract questions* does not determine; widening any class or adding
+    one — that is a contract amendment and stops the slice; CI wiring, which S12 already carries.
 
 ## Landed
 
