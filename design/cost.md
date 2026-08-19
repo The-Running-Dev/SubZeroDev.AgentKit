@@ -47,3 +47,20 @@ $ ./tools/Measure-Session.ps1 -SessionId 963e6aed -Detail
 33 calls, 192,263 cache-creation tokens, 3,320,165 cache-read tokens, 8,850 output tokens, over
 103 seconds of active time — reached before `design/state/` was written, orienting on this
 slice by reading `design/10-design.md` and `design/20-contract.md` directly.
+
+## Closure sizes, over the records that exist (S5.12)
+
+`tools/Test-DesignState.ps1` names the largest closure on every run — clean or failing — never
+predicted, always measured:
+
+```
+$ ./tools/Test-DesignState.ps1 -Quiet
+Largest closure: unit/document/agents-md, 1671 bytes (ceiling 16384), largest contributor
+decision/2026-08-10-frozen-md-marker
+```
+
+1,671 bytes against the 16,384-byte ceiling — 10% of the budget, with eight records in the
+state set (`unit/command/track`, `unit/document/agents-md`, `I3`, `I4`, `I9`, `I28`, and two
+decision records). Neither closure S4.6 wrote (`unit/command/track`'s or
+`unit/document/agents-md`'s) exceeds the ceiling, so this slice proceeds rather than stopping
+per the brief's abandonment line.
