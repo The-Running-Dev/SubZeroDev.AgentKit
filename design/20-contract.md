@@ -464,11 +464,18 @@ no file behind it.
 
 | | |
 |---|---|
-| Invocation | `/fix <issue number>`, `/fix <description>`, or `/fix` with a failing test in context |
+| Invocation | `/fix <issue number>`, `/fix <description>`, `/fix` with a failing test in context, or `/fix` with none of those — which picks the highest-value open bug itself, by an explicit priority signal where one exists and the oldest open `bug` issue where none does |
 | Reads | the defect source; **the bug issue's agent block**; where `design/state/` exists, that unit's closure rather than the corpus (I27); `AGENTS.md` |
 | Writes | one branch, one or more commits, one pull request, and — only on the description path, only after reproducing — **one bug issue** |
 | Must output | the reproduction evidence; the issue number it is implementing against; the branch and the pull request it opened, the latter carrying its real description from the moment it is opened. **The gates and the review threads are `/pr`'s** (`design/90-decisions.md`, 2026-08-08), so `/verify`'s three lists, the pushed SHA and the `WaitResult` are output there and not here |
 | Must not | edit `design/`, open a draft pull request, resolve a thread, merge, open an issue for a defect it did not reproduce, or widen the change to an adjacent defect noticed along the way |
+
+**The fourth form is the one path that reaches the tracker before it has a defect.** The other
+three are handed their subject; this one ranks the open issues to choose it, so an unreachable
+`gh` stops it where the others are unaffected until they file or push. It is not exempt from
+reproducing first, and **it does not fall through**: an issue it picked and could not reproduce
+is reported as picked-and-unreproducible, never silently replaced by the next-ranked one, which
+would make the command's choice of subject unobservable.
 
 **Stop conditions are not enumerated here.** They are owned by the `<!-- agent:start -->`
 block in `.github/ISSUE_TEMPLATE/bug.md`, which states that a bug issue *is* the

@@ -4,8 +4,11 @@ Owner: unit/command/fix
 Declaration: prose
 
 ## Semantics
-Invocation: `/fix <issue number>`, `/fix <description>`, or `/fix` with a failing test in
-context. Reads the defect source, the bug issue's agent block, that unit's closure rather than
+Invocation: `/fix <issue number>`, `/fix <description>`, `/fix` with a failing test in context,
+or `/fix` with none of those — which picks the highest-value open bug itself, by an explicit
+priority signal where one exists and the oldest open `bug` issue where none does. That fourth
+form is the only one that reaches the tracker before it has a defect, and it never falls through
+from an issue it picked and could not reproduce. Reads the defect source, the bug issue's agent block, that unit's closure rather than
 the corpus where `design/state/` exists (I27), and `AGENTS.md`. Writes one branch, one or more
 commits, one pull request carrying its real description from the moment it is opened, and — only
 on the description path, only after reproducing — one bug issue. Must output the reproduction
