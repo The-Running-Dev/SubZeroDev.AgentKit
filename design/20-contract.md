@@ -193,11 +193,15 @@ Keys, and what the mapping cannot state:
 - **The file path is the primary key and the `Id` line inside it must agree.** Disagreement is
   an `IdCollision` finding. Two records claiming one id is the failure this key exists to make
   impossible, and a filesystem gives it for nothing.
-- **`design/state/` sits inside `design/` for one reason: `design/` is never installed into a
-  target** (`INSTALL.md`, phase 1, which ships `.claude/commands/*.md`, `.claude/COMPANIONS.md`
-  and `tools/*.ps1` and nothing else). That is what makes the checker's shipping to eighteen
-  repositories with no state set a designed case rather than an accident, and it is why the
-  location is a contract term rather than a filing preference.
+- **`design/state/` sits inside `design/` for one reason: the kit's own `design/` is never
+  installed into a target.** `INSTALL.md`, phase 1, enumerates what is: `AGENTS.md`,
+  `CLAUDE.md`, `agent.md`, `.claude/commands/*.md`, `.claude/COMPANIONS.md`, `tools/*.ps1`,
+  `templates/design/*.md`, `.github/ISSUE_TEMPLATE/*.md` and `codex/PROFILES.md`. A target's
+  `design/` therefore *does* exist — seeded from `templates/design/*.md` — and what is absent
+  there is this repository's state set, because nothing under the kit's `design/` is on that
+  list. That is what makes the checker's shipping to eighteen repositories with no state set a
+  designed case rather than an accident, and it is why the location is a contract term rather
+  than a filing preference.
 - **There is no index file, no manifest, and no `.json` beside it.** Enumeration is a directory
   walk. Anything caching the enumeration is the index the brief's *no round-trip* non-goal
   excludes, and it is also a second copy that can be current-looking and wrong.
@@ -573,7 +577,7 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**One item.** `/slice`'s "the contract does not contain a signature you need" stop condition
+**Three items.** `/slice`'s "the contract does not contain a signature you need" stop condition
 should fire on nothing else.
 
 ### Where a slice's criteria are rendered once GitHub is the authority
@@ -593,6 +597,51 @@ and to the retirement convention `design/30-slices.md` § *How this document is 
 Choosing between them here would be inventing a signature the design does not determine.
 
 A slice that reaches this stops. It does not resolve it in the implementing session.
+
+### What a marked region with no registered projection is
+
+`companion` is already a marked region and it is not a projection. Every one of the twenty-one
+files under `.claude/commands/` carries `<!-- companion:start -->` … `<!-- companion:end -->`;
+the block is hand-authored, `.claude/COMPANIONS.md` owns the rule, and `Test-Companion.ps1`
+enforces it in code with a `MissingBlock` finding. It is the most numerous existing instance of
+the marker syntax in this repository and in the eighteen targets, and § *Marked regions* above
+names only `agent`.
+
+Under the region definition this document states, `companion` is a region whose projection id is
+`companion` — for which the projector has no renderer and must never acquire one, because a
+regenerated companion block would overwrite the target's own declaration. `design/10-design.md`
+does not say what such a region is, and the two readings available are both defective: **every
+region is projected**, which puts twenty-one hand-authored blocks under `ProjectionStale` and
+gives the projector and `Test-Companion.ps1` the same fence; or **only a registered projection
+id is checked**, under which a mistyped id makes a region silently unchecked, which is the
+dropped-line failure I24 exists to forbid.
+
+A third reading — the marker declares whether it is generated, so `companion` is a *declared*
+region and `agent` a *projected* one — resolves both, and is rejected here rather than adopted
+because it changes the marker form, and § *Marked regions* already refuses a `source=` attribute
+on the ground that it makes every existing block non-conforming. Which of the three holds also
+decides whether `AGENTS.md` can carry the marked-region rule alone, since this document's
+§ *Documents that carry surface* requires exactly one document to state it while
+`.claude/COMPANIONS.md` states the companion half today.
+
+### Whether a document that owns surface but ships as payload is a unit
+
+§ *Documents that carry surface* names `.github/ISSUE_TEMPLATE/bug.md` as the owner of `/fix`'s
+stop conditions, and I10 binds `/fix` to obeying its agent block. § *Artifacts of a unit kind*'s
+`document` glob does not reach it: `design/*.md`, `templates/design/*.md`, `*.md` at the
+repository root and `.claude/COMPANIONS.md` exclude both `.github/ISSUE_TEMPLATE/*.md` and
+`codex/PROFILES.md`, which `INSTALL.md` phase 1 also installs.
+
+So a document this contract names as an owner has no record, no id, and no closure — and
+`UnrecordedArtifact` will never say so, because the glob it takes its difference against does
+not include the path. That is the dangling edge the 2026-08-19 unit-set entry closed in the
+other direction for `AGENTS.md`, arriving at a different answer for the same reason, and the
+difference between the two cases is that these two are shipped payload rather than this
+repository's own standing corpus.
+
+The unit set is a permanent public contract — ids are assigned once and never reused (I16), and
+a record is retired rather than deleted — so widening it is expensive to reverse and is not the
+implementing session's to decide.
 
 Anything else a slice discovers to be undetermined belongs here as a new item, under the same
 rule.
