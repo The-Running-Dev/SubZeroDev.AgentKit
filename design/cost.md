@@ -64,3 +64,58 @@ state set (`unit/command/track`, `unit/document/agents-md`, `I3`, `I4`, `I9`, `I
 decision records). Neither closure S4.6 wrote (`unit/command/track`'s or
 `unit/document/agents-md`'s) exceeds the ceiling, so this slice proceeds rather than stopping
 per the brief's abandonment line.
+
+## After: a `/slice` session with `design/state/` present (S15.5)
+
+Session `e5bc7d5d`, this repository, `/slice S15` — measured near the end of that slice, with
+`design/state/` fully populated by S4 through S13.
+
+```
+$ ./tools/Measure-Session.ps1 -SessionId e5bc7d5d -Detail
+{
+  "idleThresholdMinutes": 5,
+  "sessions": [
+    {
+      "id": "e5bc7d5d",
+      "started": "2026-08-19T16:33:35",
+      "spanSeconds": 1093.0,
+      "activeSeconds": 1093.0,
+      "models": ["claude-sonnet-5"],
+      "total": {
+        "calls": 136,
+        "input": 272,
+        "cacheCreate": 898151,
+        "cacheRead": 20411553,
+        "output": 613639
+      },
+      "segments": [
+        {
+          "label": "/slice",
+          "calls": 136,
+          "input": 272,
+          "cacheCreate": 898151,
+          "cacheRead": 20411553,
+          "output": 613639
+        }
+      ]
+    }
+  ]
+}
+```
+
+136 calls, 898,151 cache-creation tokens, 20,411,553 cache-read tokens, 613,639 output tokens,
+over 1,093 seconds of active time.
+
+**Not a clean before/after comparison.** S4 was a small, sequential slice; S15 fanned out 15
+background subagents to run `/install-all` across every sibling repository (S15.2), which drives
+cache-read far above what orienting on the design state alone costs — most of this session's
+token volume is the fan-out, not the orientation this measurement exists to isolate. Read the
+before/after pair as bracketing the true before/after, not as it. The comparison this measurement
+was meant to settle — orienting from `design/state/` versus orienting by reading
+`design/10-design.md` and `design/20-contract.md` directly — is better read from the *rate* of
+growth per call than the totals: before, cache-read grew from a corpus with no state set at all;
+after, the same orientation step draws on `design/state-index.md` and per-unit closures instead,
+which is what `design/10-design.md` § *Orient* claims makes it cheaper.
+
+Covers Claude Code only — Codex writes a different transcript schema this has no reader for, and
+Copilot records no token usage at all, so neither is measured here.
