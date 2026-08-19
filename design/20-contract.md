@@ -90,13 +90,12 @@ per-kind vocabulary, citing it. What neither can state:
   above.** The asymmetry is the grammar's and is not restated here; what follows from it is that
   a *conditional* scalar's absence carries no signal at all. `SupersededBy` is required when a
   decision's `Status` is `superseded`, and `AnsweredBy` when a question's is `answered` — both
-  conditional exactly as an invariant's `Evidence` is, and neither with a class behind it.
-  `UnresolvedId` reaches them only once they are present, so a superseded record naming nothing
-  parses, validates, and passes: the state set says a claim was replaced and cannot say what
-  replaced it, which is the dangling edge permanent ids and retirement exist to prevent.
-  `design/30-slices.md` S11.2 asserted it once at migration and nothing holds it after. **The
-  obligation is stated with its enforcement gap named**, because a gap invisible from the class
-  list is one nobody knows to close.
+  conditional exactly as an invariant's `Evidence` is, and all three are
+  `EnforcementUnevidenced`'s. `UnresolvedId` reaches such a field only once it is present, so
+  without that class a superseded record naming nothing would parse, validate, and pass — the
+  state set saying a claim was replaced and unable to say what replaced it, which is the dangling
+  edge permanent ids and retirement exist to prevent. `design/30-slices.md` S11.2 asserted it
+  once at migration; the class is what holds it after.
 - **`MirroredAt` is the mirror's honesty and is never omitted.** A `WorkRef` with no
   `MirroredAt` asserts currency it cannot have.
 - **`Rank` is never absent either.** Its source degrades rather than failing, and that rule binds
@@ -574,7 +573,7 @@ list.
 | `IdCollision` | An id is duplicated, renumbered, disagrees with its file path, or appears in both the projected and the declared marker form | Every file claiming it |
 | `DecisionAnchorAmbiguous` | A decision anchor resolves to zero or two log headings | The anchor and the count |
 | `LogEntryUnrecorded` | A log heading has no decision record | The entry's heading |
-| `EnforcementUnevidenced` | An invariant with `Enforcement: code` has no `Evidence` | The invariant id |
+| `EnforcementUnevidenced` | A conditionally-required field is absent on a record whose own `Status` or `Enforcement` requires it — an invariant with `Enforcement: code` and no `Evidence`, a decision with `Status: superseded` and no `SupersededBy`, or a question with `Status: answered` and no `AnsweredBy` | The record, the absent field, and the value that required it |
 | `ClosureOverBudget` | A closure exceeds 16,384 bytes | The unit, its size, and its largest contributor |
 | `ClassListDisagreement` | The checker's declared class ids differ from this document's list | Both sets, and the difference in each direction |
 
@@ -597,6 +596,19 @@ Three exemptions, each of which would otherwise block forever:
 - **A contract's `Declaration` of the literal `prose` resolves to nothing on purpose.** A
   Markdown command surface has no declaration to point at, and that is the field's documented
   second value rather than an absent path.
+
+**`EnforcementUnevidenced` is named for the invariant case and covers all three conditional
+requirements**, on the reasoning that widened `AnchorMissing` rather than splitting it. A scalar
+is omitted when it has no value, so a conditional scalar's absence is indistinguishable from a
+field nobody filled in; the check, the remedy, and the reason each is evaluable from the checkout
+alone (I22) are identical in all three cases, and a second class would have split one rule across
+two ids for nothing. **The name reading narrower than what it checks is the price, paid
+deliberately and for the second time in this list.**
+
+**This widening is contract-ahead-of-code, and `ClassListDisagreement` will not say so.** That
+class compares class *ids*, and the id is unchanged, so the checker stays green while its
+detection still reads only the invariant case. It is the same silent divergence § *Artifacts of a
+unit kind* names for its glob table, and it closes when the slice that widens the detection lands.
 
 **Reported, never blocking.** Each fails in exactly the environment where the failure means
 nothing, which is why none of them is on the list above.
