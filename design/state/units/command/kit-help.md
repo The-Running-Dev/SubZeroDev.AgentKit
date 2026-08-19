@@ -5,7 +5,7 @@ Anchor: .claude/commands/kit-help.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-04-kit-help-holds-walkthrough-orients-before-reciting
 Archival:
 Questions:
 Work:

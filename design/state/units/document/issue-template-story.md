@@ -5,7 +5,7 @@ Anchor: .github/ISSUE_TEMPLATE/story.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-03-issues-read-human-first-agent-detail-collapsed
 Archival:
 Questions:
 Work:

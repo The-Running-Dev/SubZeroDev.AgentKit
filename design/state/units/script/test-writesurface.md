@@ -5,7 +5,7 @@ Anchor: tools/Test-WriteSurface.ps1
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-12-install-all-write-surface-guard
 Archival:
 Questions:
 Work:

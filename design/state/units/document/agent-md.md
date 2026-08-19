@@ -5,7 +5,7 @@ Anchor: agent.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-02-lessons-live-in-agent-md
 Archival:
 Questions:
 Work:

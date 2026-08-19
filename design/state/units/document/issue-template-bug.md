@@ -5,7 +5,7 @@ Anchor: .github/ISSUE_TEMPLATE/bug.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-03-issues-read-human-first-agent-detail-collapsed, decision/2026-08-19-document-kind-reaches-shipped-payload
 Archival:
 Questions:
 Work:

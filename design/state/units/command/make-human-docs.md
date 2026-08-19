@@ -5,7 +5,7 @@ Anchor: .claude/commands/make-human-docs.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-03-make-human-docs-generated-drift-checked
 Archival:
 Questions:
 Work:
