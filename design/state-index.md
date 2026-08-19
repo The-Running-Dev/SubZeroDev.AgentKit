@@ -18,7 +18,27 @@ means no record exists yet, not that nothing is true.
 <!-- units:start -->
 | Id | Kind | Anchor |
 |---|---|---|
+| `unit/command/brief-check` | command | `.claude/commands/brief-check.md` |
+| `unit/command/contract` | command | `.claude/commands/contract.md` |
+| `unit/command/design` | command | `.claude/commands/design.md` |
+| `unit/command/done` | command | `.claude/commands/done.md` |
+| `unit/command/fix` | command | `.claude/commands/fix.md` |
+| `unit/command/freeze` | command | `.claude/commands/freeze.md` |
+| `unit/command/install` | command | `.claude/commands/install.md` |
+| `unit/command/install-all` | command | `.claude/commands/install-all.md` |
+| `unit/command/kit-help` | command | `.claude/commands/kit-help.md` |
+| `unit/command/kit-sync` | command | `.claude/commands/kit-sync.md` |
+| `unit/command/make-human-docs` | command | `.claude/commands/make-human-docs.md` |
+| `unit/command/pr` | command | `.claude/commands/pr.md` |
+| `unit/command/reconcile` | command | `.claude/commands/reconcile.md` |
+| `unit/command/redteam` | command | `.claude/commands/redteam.md` |
+| `unit/command/refine` | command | `.claude/commands/refine.md` |
+| `unit/command/resolve` | command | `.claude/commands/resolve.md` |
+| `unit/command/slice` | command | `.claude/commands/slice.md` |
+| `unit/command/slices` | command | `.claude/commands/slices.md` |
 | `unit/command/track` | command | `.claude/commands/track.md` |
+| `unit/command/unfreeze` | command | `.claude/commands/unfreeze.md` |
+| `unit/command/verify` | command | `.claude/commands/verify.md` |
 | `unit/document/agents-md` | document | `AGENTS.md` |
 <!-- units:end -->
 
