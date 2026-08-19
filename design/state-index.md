@@ -153,6 +153,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-12-install-all-write-surface-guard | `unit/command/install-all`, `unit/script/test-writesurface` |
 | decision/2026-08-13-codex-alias-gpt-5-added | `unit/document/agents-md` |
 | decision/2026-08-13-gate-check-comparison-by-tier-not-literal-name | `unit/document/agents-md` |
+| decision/2026-08-19-anchormissing-widens-to-every-tree-pointer | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-08-19-brief-written-kit-owned-mechanism-proven-here-only | `unit/document/design-00-brief` |
 | decision/2026-08-19-contract-becomes-repository-scoped | `unit/command/contract`, `unit/document/design-20-contract` |
 | decision/2026-08-19-contract-owner-stays-written-other-edges-derived | `unit/document/design-10-design`, `unit/document/design-20-contract` |
@@ -160,6 +161,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-19-document-kind-reaches-shipped-payload | `unit/document/codex-profiles`, `unit/document/design-20-contract`, `unit/document/issue-template-bug` |
 | decision/2026-08-19-enforcement-states-tree-as-it-stands | `unit/document/design-20-contract` |
 | decision/2026-08-19-four-open-questions-closed-unit-set-widens | `unit/document/design-00-brief`, `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-19-invariant-set-is-the-contract-table | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-08-19-marked-region-marker-declares-its-own-kind | `unit/document/agents-md`, `unit/document/design-20-contract` |
 | decision/2026-08-19-pr-real-description-at-open | `unit/command/fix`, `unit/command/pr`, `unit/command/slice` |
 | decision/2026-08-19-record-ids-kind-prefixed-slugs | `unit/document/design-10-design`, `unit/document/design-20-contract` |

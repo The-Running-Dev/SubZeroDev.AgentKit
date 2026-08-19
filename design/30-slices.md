@@ -4,7 +4,7 @@
 > retired to the index under `## Landed` and its design body to
 > `git show dfd1cab:design/10-design.md`. The **explicit design-state mechanism**, designed in
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, is sliced under
-> `## Outstanding` as S4–S15.
+> `## Outstanding` as S4–S17.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -44,14 +44,52 @@ issue (`design/10-design.md`, § *WorkRef*).
 
 ## Contract questions
 
-**One outstanding**, and it blocks two of the slices below.
+**One outstanding and two answered.** The outstanding one is already an item in
+`design/20-contract.md` § *Unresolved*. The other two were found by a re-run of this document
+and **answered in the same session**; both amendments and both log entries were `/contract`'s,
+at `opus`/`high`, and **both have since landed** — `design/20-contract.md` and
+`design/90-decisions.md` now say what the two sections below record. What is left of each is
+the account of what was decided and why, which is why neither has been deleted.
 
-`design/20-contract.md` § *Unresolved* — *Where a slice's criteria are rendered once GitHub is
-the authority* — does not determine which document hosts the `outstanding` projection. That
-projection is in the projector's minimum set (`design/20-contract.md` §
-`tools/Update-DesignProjection.ps1`), so the gap reaches **S7** as well as **S14**. Both slices
-name it and stop at it rather than choosing; neither adds a new item, because the item is
-already there.
+**Where the `outstanding` projection renders.** `design/20-contract.md` § *Unresolved* — *Where
+a slice's criteria are rendered once GitHub is the authority* — does not determine which
+document hosts it. That projection is in the projector's minimum set (`design/20-contract.md`
+§ `tools/Update-DesignProjection.ps1`), so the gap reaches **S7** as well as **S14**. Both
+slices name it and stop at it rather than choosing; neither adds a new item, because the item
+is already there.
+
+**What the invariant unit set is — answered.** § *Artifacts of a unit kind* took the difference
+against `I<n>` **citations in `AGENTS.md` and the command files**, which picks out two ids;
+§ *Invariants* says a row moves into the generated region the commit its record is written, and
+the brief names an invariant as a unit whose state must be obtainable, which points at the whole
+table. **The table holds** — decided 2026-08-19, on the ground that an invariant nothing happens
+to quote is still a rule the kit binds itself to, and a set defined by citation makes the kind
+nearly empty and splits § *Invariants* permanently.
+
+The amendment and its log entry landed in one commit, so that no window existed in which the
+log described a contract that did not say it. Two things moved together: the `invariant` row of
+§ *Artifacts of a unit kind*, and the citation scan in `tools/Test-DesignState.ps1`, now
+`Get-ContractInvariantIds`. **S17** below is what the answer obliges, and until it lands the
+checker reports the 26 unwritten records rather than the three surplus ones it reported before
+— the same interim state § *Interim findings are expected* describes, except that CI is wired
+now and the build is red for the duration.
+
+**Which class resolves a tree pointer that is not a unit's `Anchor` — answered.**
+`AnchorMissing` was scoped to `Unit.Anchor` by both this contract and the checker, leaving
+`Contract.Declaration` and the `Evidence` field on a unit or an invariant record as tree paths
+nothing standing resolves — the unchecked restatement **I15** forbids, and already live, since
+unit records carry `Evidence` today. **`AnchorMissing` widens** — decided 2026-08-19. Its stated
+trigger becomes any tree-pointer field a record carries, keeping the `Status: active` exemption
+I30 requires; the check, the remedy and the reason it is evaluable from the checkout alone are
+the same in every case.
+
+The closed list keeps its current size, so no `ClassListDisagreement` window opened between the
+document and the checker. What is bought is that the class name reads narrower than what it
+checks, and it is bought deliberately: renaming it later is expensive, because S12.2's tests and
+the closed list both cite it by name. The amendment touched `design/20-contract.md`'s class
+table and `Test-AnchorMissing` in `tools/Test-DesignState.ps1`, and it carried the real
+divergence and near-miss S12.2 owed on each new field — `AnchorMissing`'s coverage is 3 fires
+and 3 near-misses where it was 1 and 1.
 
 A slice that discovers something *else* undetermined stops and adds it to § *Unresolved*. It
 does not resolve it in the implementing session.
@@ -466,6 +504,89 @@ Acceptance:
 Out of scope: migrating any target's design state — the brief fences this permanently; changing
     `/install`, `/install-all`, `/kit-sync` or `tools/Sync-Kit.ps1` beyond what the compatibility
     promise requires; re-running the baseline, which was taken once and is not re-taken.
+
+---
+
+## S16 — Every part says what it offers and what it leans on
+> **Unblocked.** § *Contract questions* above records that `AnchorMissing` widens to cover a
+> `Contract` record's `Declaration`; that amendment has landed, so S16.1's tree pointer is
+> checked rather than being the unchecked restatement I15 forbids.
+
+Delivers: For any part of the kit you can already see what it is responsible for. Now you can
+also see which surfaces it offers to everything else and which ones it leans on — so "what
+breaks if I change this" is a list you read rather than a search you run. And where two parts
+claim the same surface, or none does, the check says so instead of letting it through.
+Touches: `design/state/contracts/`, `design/state/units/`, `design/state-index.md`
+         (the `consumers` region)
+Depends on: S7, S8, S9, and the `AnchorMissing` amendment § *Contract questions* records
+Acceptance:
+  - S16.1 A `Contract` record exists for every surface `design/20-contract.md` § *Public
+    surface* names and for nothing else, each carrying `Owner`, `Declaration` and `Semantics`.
+    `Declaration` is a path in the tree, or the literal `prose` for a Markdown command surface
+    that has no declaration to point at.
+  - S16.2 `OwnerMismatch` reports none across the real state set — the first run in which that
+    class has records to compare, rather than only the synthetic pair S12.2 built for it.
+  - S16.3 Every unit that names another unit's surface carries it in `Consumes`, and every unit
+    that offers one carries it in `Exposes`. Checked by set difference against the tree in both
+    directions with both counts stated, not by reading: `tools/Sync-Kit.ps1` naming
+    `tools/Test-Companion.ps1`, and `tools/Test-DesignState.ps1` naming
+    `tools/Read-DesignState.ps1` and `tools/Update-DesignProjection.ps1`, are among the edges it
+    must recover.
+  - S16.4 `UnresolvedId` reports none among the records this slice writes, and no record
+    acquires a `Consumers` field — that edge is derived and is never written (I17).
+  - S16.5 `design/state-index.md`'s `consumers` region renders one row per contract naming its
+    consuming units, in place of the empty-set row it renders today, and `ProjectionStale`
+    reports none after regeneration in the same commit.
+  - S16.6 No record is written for a surface with no file behind it. `tools/Update-WorkMirror.ps1`
+    is contracted and unwritten and gets none here, because a `Declaration` pointing at an absent
+    file is the shape `AnchorMissing` exists to reject.
+  - S16.7 The largest closure across the whole state set is named with its size and its largest
+    contributor. This slice adds edges to the closures that are already the largest in the set,
+    so **over budget stops the project and reports**, per the brief's abandonment line. It does
+    not raise the ceiling, and it does not drop a contract record to get back under it.
+Out of scope: `WorkRef` records and the `outstanding` projection, which are S14's; the invariant
+    backlog, whose size § *Contract questions* does not determine; widening any class or adding
+    one — that is a contract amendment and stops the slice; CI wiring, which S12 already carries.
+
+---
+
+## S17 — Every rule the kit binds itself to becomes a file
+> **Unblocked, and now urgent.** § *Contract questions* above records that the invariant set is
+> the whole § *Invariants* table rather than the cited ids, and that `AnchorMissing` widens to
+> cover the `Evidence` pointer S17.3 writes. Both amendments have landed, which is what turns
+> the 26 rows with no record into blocking findings — CI is red until this slice closes them.
+
+Delivers: Every rule the kit holds itself to becomes a file you can open — not just the handful
+that happen to be quoted in the agent contract. Each says what it requires, who is answerable
+for it, whether it is held up by code or only by instruction, and what you can go read to check
+that claim. The contract's table stops being half generated and half kept by hand.
+Touches: `design/state/invariants/`, `design/state/units/`,
+         `design/20-contract.md` (§ *Invariants*), the projected regions
+Depends on: S10, S12, and both amendments § *Contract questions* records
+Acceptance:
+  - S17.1 Every `I<n>` row in `design/20-contract.md` § *Invariants* has exactly one record, and
+    `UnrecordedArtifact` reports none for the invariant kind in either direction.
+  - S17.2 § *Invariants* is a single projected region with no hand-authored tail of rows left
+    below it; a hand edit inside it is gone after one regeneration, and the section's surrounding
+    prose survives.
+  - S17.3 Each record's `Enforcement` reproduces the row it came from and **no row's value
+    changes in this slice** — a row promotes only in the slice that writes its evidencing test.
+    Every record whose `Enforcement` is `code` carries an `Evidence` pointer that resolves;
+    `EnforcementUnevidenced` reports none.
+  - S17.4 Every unit an invariant record names as `Owner` carries that id in its `Binds`, and
+    `UnresolvedId` reports none among the records this slice writes.
+  - S17.5 No sentence of the prose standing below § *Invariants* today is lost: each is either
+    carried into a record's `Statement` or left as prose outside the region, and the slice states
+    which, per note. The notes on I15 and I16 naming no test, on I26's row, and on where I12 and
+    I13 live are named individually in that account.
+  - S17.6 `tools/Test-DesignState.ps1` exits 0 on a clean checkout of this repository at the
+    commit this slice lands, which closes the window S12 opened by wiring CI over a partial
+    migration.
+  - S17.7 The largest closure across the whole state set is named with its size and its largest
+    contributor. Over budget stops the project and reports, per the brief's abandonment line.
+Out of scope: changing what any invariant says, adding one, or removing one — each is a contract
+    amendment and stops the slice; promoting an `Enforcement` row to `code`; the contract kind and
+    the `Consumes`/`Exposes` edges, which are S16's; CI wiring, which S12 already carries.
 
 ## Landed
 

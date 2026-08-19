@@ -47,7 +47,8 @@ invariants are I3 and I4 below.
 ### The state set
 
 **The six entity kinds and their fields are declared in `design/10-design.md` § Data model
-and are not copied here.** What that table cannot state:
+and are not copied here**, and the reader's `$script:FieldTables` is that table as a closed
+per-kind vocabulary, citing it. What neither can state:
 
 - **Every list-valued field is present on every record, empty where it has no members.** An
   omitted line and an empty line are different facts and must never be read as the same one —
@@ -82,7 +83,9 @@ and are not copied here.** What that table cannot state:
 - **`Evidence` is optional on a unit and required on an invariant whose `Enforcement` is
   `code`.** Absence in the second case is a finding, because an invariant claimed to be
   mechanically enforced with nothing pointing at the mechanism is a claim about the tree that
-  the tree does not make.
+  the tree does not make. **Presence and resolution are two different checks**: absence is
+  `EnforcementUnevidenced`, and every entry that is present must name a path that exists, which
+  is `AnchorMissing`'s. A pointer to nothing satisfies the first and defeats what it is for.
 - **`MirroredAt` is the mirror's honesty and is never omitted.** A `WorkRef` with no
   `MirroredAt` asserts currency it cannot have.
 - **`Rank` is never absent either.** Its source degrades rather than failing, and that rule binds
@@ -107,16 +110,17 @@ What the table cannot state:
 
 - **The invariant form is the one exception and it is deliberate.** Invariants are cited by
   bare number throughout `design/90-decisions.md`, and in `AGENTS.md` wherever the prose needs
-  to point at one — today `I6` and `I9`, the set the checker's citation-based
-  `UnrecordedArtifact` difference is taken against. Prefixing them would be the corpus-wide
-  rename that permanent ids exist to prevent, which is the same argument that makes every
-  other id permanent.
+  to point at one. Prefixing them would be the corpus-wide rename that permanent ids exist to
+  prevent, which is the same argument that makes every other id permanent. **A citation is not
+  membership**: the invariant unit set is § *Invariants* below, not the ids some document
+  happens to quote — see *Artifacts of a unit kind*.
 - **A slug is a name, not a location.** `unit/command/track` keeps its id after `/track` is
   renamed; the `Anchor` moves and the id does not. An id that reads as historical after a
   rename is a permanent id working correctly, not drift.
 - **The id determines the record's own file path, and only its own.** The mapping is stated
-  under *Persisted schemas*. This is the one restatement in the system checked by construction
-  rather than by a class: a record in the wrong file cannot be addressed at all.
+  under *Persisted schemas*, and it is not an unchecked restatement: `IdCollision` fires when a
+  record's own id disagrees with the id its path implies, and a file outside the six named
+  directories has no kind to be parsed under and is a parse failure rather than a guess.
 
 ### What the reader emits
 
@@ -189,13 +193,19 @@ ownership*). What the declaration cannot say: the grammar has no permissive fall
 matching neither production, and adding one would reintroduce the silently dropped id the I12
 precedent exists for.
 
-**Migration story.** The state set does not exist, so there is no existing data to migrate to.
+**Migration story.** Nothing preceded the state set, so there is no prior data to migrate from.
 The one-time population is `design/10-design.md` § *Migrate*, and its constraint is I26: **every**
 entry in `design/90-decisions.md` is read and **not touched** — every entry as the log then
 stands, not a count fixed here, because the log is append-only and any number written down is
 wrong by the next commit. Records are written for artifacts that already exist;
 no artifact is created to give a record something to point at. This runs on this repository and
 never in a target.
+
+That population **advances by slice and is not finished.** `units/`, `invariants/`, `decisions/`
+and `questions/` carry records; no `contract/…` or `work/…` record has been written, so
+`contracts/` and `work/` do not exist yet. A kind with no records is zero records of that kind and nothing
+more — `StateSetAbsent` is taken over `design/state/` as a whole, not per kind, so an absent
+subdirectory is neither a finding nor a could-not-evaluate.
 
 ### Marked regions
 
@@ -222,11 +232,13 @@ exists to forbid, one level up.
   as its id. That is not a coincidence to be preserved by care — it is why the marker carries the
   id and a fixed keyword and nothing else. Requiring a `source=` attribute would make every
   existing issue block non-conforming on the day the rule generalises.
-- **`companion` is the only declared region today**, and migrating it is a closed set:
-  twenty-one files under `.claude/commands/`, the single regex in `tools/Test-Companion.ps1`,
-  its `MissingBlock` message and doc comment, and `tools/Test-Companion.Tests.ps1`.
-  `.claude/COMPANIONS.md` states the rule without naming the literal marker and needs no edit
-  for the form itself.
+- **`companion` is the only declared region today**, and its migration to the declared form has
+  landed: every core under `.claude/commands/` carries the declared marker, and
+  `tools/Test-Companion.ps1` matches that form and no other — a core carrying the bare form is
+  nonconforming there. `.claude/COMPANIONS.md` states the rule without naming the literal marker
+  and needed no edit for the form itself. That the set was closed is why it could move in one
+  commit, which is the property the issue blocks do not have and the reason the bare form means
+  projected.
 - **The marker does not name its source.** The id determines the source; the projector holds
   that mapping. Repeating the source in every marker is the second copy *Single ownership*
   forbids, at the one site where there are hundreds of copies.
@@ -274,8 +286,10 @@ cannot state:
 
 ### `tools/Read-DesignState.ps1`
 
-Does not exist. Contracted before it is written, which is what makes it safe to implement
-with a cheaper model.
+The record reader. **Its `param` block and its per-kind field vocabulary (`$script:FieldTables`)
+are declared there and are not copied here** (`AGENTS.md`, *Single ownership*); `Get-DesignPathInfo`
+implements the id-to-path mapping this document fixes under *Persisted schemas*. What those
+declarations cannot state:
 
 - **Emits the graph on the success stream and never throws for a malformed state set.** A
   parse failure is data (`Failures`), not an exception. A caller that gets an exception loses
@@ -365,7 +379,9 @@ this mechanism writes there (S7.10). `outstanding` is not delivered — see § *
 
 ### `tools/Update-WorkMirror.ps1`
 
-The mirror generator.
+The mirror generator. **Not written yet** — contracted ahead of the slice that writes it, which is
+what makes it safe to implement with a cheaper model. It is the only surface in this section with
+no file behind it.
 
 - **`/track`'s alone.** No other command invokes it, and no other command writes a `WorkRef`.
   Two writers of a mirror is two answers to "when was this current".
@@ -472,7 +488,39 @@ today, and the glob is a rule a reader can check rather than one they have to kn
 | command | `.claude/commands/*.md` | `*-local.md` — a companion is the target's, and this repository ships none |
 | script | `tools/*.ps1` | `*.Tests.ps1` — a test is `Evidence`, not a unit |
 | document | `design/*.md`, `templates/design/*.md`, `*.md` at the repository root, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md` — transient by design; `CLAUDE.md` — a loader that imports `AGENTS.md` and states nothing of its own |
-| invariant | not a tree path | The set is the `I<n>` records themselves; the difference is taken against citations in `AGENTS.md` and the command files |
+| invariant | not a tree path | The set is **every `I<n>` row in § *Invariants* below**. Nothing is excluded: a rule the kit binds itself to is a unit whether or not any document quotes it |
+
+**The invariant kind has no glob because it has no artifact, and § *Invariants* is what stands
+in for one.** Every row there is a rule the kit binds itself to, and a rule is a unit whether or
+not any document happens to quote its number — a set taken against citations picks out the two
+ids `AGENTS.md` currently needs to point at, which would make the kind nearly empty and leave
+§ *Invariants* split into a generated head and a hand-kept tail permanently. The section is
+therefore a **parsed source**, the second one this document carries after the class list below,
+and `ContractListUnreadable` covers both: a section that cannot be read leaves
+`UnrecordedArtifact`'s invariant half uncomputed rather than empty, because an empty difference
+read off an unreadable table is the I8 shape one level up.
+
+**What that costs is stated rather than left to be found.** While § *Invariants* has a
+hand-authored tail the difference is a real one, taken between rows nobody generated and the
+records. Once S17 makes the section a single projected region there is no hand-authored tail
+left, the two sides are rendered from the same records, and the invariant half of
+`UnrecordedArtifact` becomes a self-consistency check that `ProjectionStale` already covers. It
+is not made an I14 violation by that — comparing a region is what the checker does, and no
+record derives a field from one — but its independent teeth end there, and nothing replaces
+them. Adding an invariant will then be adding a record; the row follows.
+
+**This table is the canonical copy and `tools/Test-DesignState.ps1` implements it** —
+`Get-DocumentGlobFiles`, `Get-CommandGlobFiles`, `Get-ScriptGlobFiles`, and
+`Get-ContractInvariantIds` for the invariant kind — citing this section by name. That is the
+exception *Single ownership* allows for a repeated fact: the canonical copy is named, and named
+from both ends.
+
+**It is also the one restatement in this document that no class compares.** The divergence-class
+list has `ClassListDisagreement`; the id-to-path mapping has `IdCollision`; the projections have
+`ProjectionStale`. A glob widened in the script and not here, or here and not in the script,
+diverges silently and `UnrecordedArtifact` goes on agreeing with whichever side the run read. The
+gap is stated rather than left to be discovered, and closing it is a class this list does not yet
+carry.
 
 ## Error semantics
 
@@ -508,7 +556,7 @@ list.
 | Class | Raised when | Caller sees |
 |---|---|---|
 | `UnresolvedId` | A record names an id with no record | The referring record and the missing id |
-| `AnchorMissing` | A record's anchor names a path not in the tree, **and the record's `Status` is `active`** | Both. **Which of the two is wrong is the user's call** |
+| `AnchorMissing` | An **active** record carries a tree-pointer field naming a path not in the tree — a unit's `Anchor`, a contract's `Declaration`, or any entry of an `Evidence` list | The record, the field, and the path. **Which of the two sides is wrong is the user's call** |
 | `OwnerMismatch` | A contract's `Owner` is not the unique active unit whose `Exposes` names that contract — nobody exposes it, or two units do | The contract, its `Owner`, and every unit exposing it |
 | `UnrecordedArtifact` | A tree artifact of a unit kind has no record | The unrecorded artifact |
 | `ProjectionStale` | A region differs from its regeneration, after line-ending normalisation | A diff of the region |
@@ -519,6 +567,26 @@ list.
 | `EnforcementUnevidenced` | An invariant with `Enforcement: code` has no `Evidence` | The invariant id |
 | `ClosureOverBudget` | A closure exceeds 16,384 bytes | The unit, its size, and its largest contributor |
 | `ClassListDisagreement` | The checker's declared class ids differ from this document's list | Both sets, and the difference in each direction |
+
+**`AnchorMissing` is named for a unit's `Anchor` and checks every tree pointer a record
+carries.** `Contract.Declaration` and the `Evidence` list on a unit or an invariant record are
+restatements of a tree path exactly as `Anchor` is, so leaving them unresolved is the unchecked
+restatement I15 forbids — and it was already live, because unit records carry `Evidence` today.
+One class covers all three because the check, the remedy, and the reason each is evaluable from
+the checkout alone (I22) are the same in every case; a second class would have split one rule
+across two ids and widened the closed list for nothing. **The name reading narrower than what
+it checks is the price, and it is paid deliberately** — renaming it costs the closed list, the
+checker's declared ids, and the tests that cite it by name.
+
+Three exemptions, each of which would otherwise block forever:
+
+- **A retired record is exempt entirely** (I30). Its artifact is gone by definition, which is
+  why it was retired.
+- **An invariant record's `Anchor` is the invariant number, not a path.** Its resolution check
+  is well-formedness and uniqueness, and it is `IdCollision`'s, never `Test-Path`'s.
+- **A contract's `Declaration` of the literal `prose` resolves to nothing on purpose.** A
+  Markdown command surface has no declaration to point at, and that is the field's documented
+  second value rather than an absent path.
 
 **Reported, never blocking.** Each fails in exactly the environment where the failure means
 nothing, which is why none of them is on the list above.
@@ -539,7 +607,7 @@ nothing, which is why none of them is on the list above.
 | `TrackerUnavailable` | `gh` missing or unauthenticated | Report the tracker classes as not compared; the rest of the run completes |
 | `ShallowCheckout` | No history for `merge-base` | Report that ancestry was not checked, and why. Never a pass |
 | `ProjectorFailed` | `Update-DesignProjection.ps1 -DryRun` non-zero or absent | Report `ProjectionStale` as uncomputed, not as clean |
-| `ContractListUnreadable` | This document's class list cannot be read or parsed | Report `ClassListDisagreement` as uncomputed. **Read-and-disagrees is a finding; cannot-read is not** |
+| `ContractListUnreadable` | A list this document is canonical for cannot be read or parsed — the divergence classes above, or § *Invariants* | Report the class it feeds as uncomputed: `ClassListDisagreement` for the first, `UnrecordedArtifact`'s invariant half for the second. **Read-and-disagrees is a finding; cannot-read is not** |
 
 ### The freeze
 
@@ -558,8 +626,13 @@ rather than route around; none may substitute an adjacent action for a blocked o
 
 ## Invariants
 
+**This table is the invariant unit set** — every row is a unit, per § *Artifacts of a unit
+kind*, and the checker parses the section to take that difference. A row with no record is an
+`UnrecordedArtifact` finding rather than a row awaiting attention, which is the state this
+repository is in until S17 lands and is why CI is red for the duration.
+
 **The rows below the marked region are the canonical copy** — they have no `design/state/`
-record yet, so nothing can render them. The four rows inside the region are the opposite: they
+record yet, so nothing can render them. The rows inside the region are the opposite: they
 are **generated** from `design/state/invariants/*.md` and are regenerated, not edited (S7). A
 row moves up into the region, never edited in place, the same commit its record is written —
 recorded in `design/90-decisions.md` § *Open* per `AGENTS.md`, *Tracking work*, not here.
@@ -586,8 +659,8 @@ recorded in `design/90-decisions.md` § *Open* per `AGENTS.md`, *Tracking work*,
 | **I12** | `Test-DesignDrift.ps1` never reports a clean run for a comparison it could not complete — an unreadable tracker, an unparseable criterion id, or an unresolvable pin yields *could not evaluate*, never *no drift* | the script | code | `tools/Test-DesignDrift.Tests.ps1` |
 | **I13** | `Test-DesignDrift.ps1` writes nothing: not `design/`, not an issue, not git. It establishes that two sides disagree and stops there | the script | code | `tools/Test-DesignDrift.Tests.ps1` |
 | **I14** | No generated region is ever an input. Nothing reads a rendered projection back, and no record derives a field from one | the projector | instruction | — |
-| **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
-| **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden | the validator | instruction | — |
+| **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted | the validator | instruction | — |
 | **I17** | A derived edge is never written to a record. `Consumers`, `BoundBy`, `Decision.Affects` and `Question.Affects` appear only as projections; `Contract.Owner` is the sole written reverse edge and `OwnerMismatch` checks it | the reader | code | `tools/Read-DesignState.Tests.ps1` |
 | **I18** | No module of this mechanism writes outside a marked region: no source generated, no code edited, no divergence resolved, nothing written to git or the tracker | the checker, the projector | code | `tools/Test-DesignState.Tests.ps1`, `tools/Update-DesignProjection.Tests.ps1` |
 | **I19** | An absent or empty state set yields *could not evaluate*, never *clean* | the checker | code | `tools/Test-DesignState.Tests.ps1` |
@@ -605,11 +678,11 @@ recorded in `design/90-decisions.md` § *Open* per `AGENTS.md`, *Tracking work*,
 
 **Enforcement is a claim about the tree as it stands, not about the tree as designed.** The
 column states what is true today, so the `code` rows are the only ones a reader may trust
-without checking and there is no caveat to read first. Every invariant this project adds is
-`instruction`, with the test that would evidence it named in parentheses: those files do not
-exist, and **the slice that writes one flips its row in the same commit**. Writing `code` ahead
-of the test is the claim `EnforcementUnevidenced` exists to reject, and a table that made it
-would be making it once for every such row.
+without checking and there is no caveat to read first. Every invariant this project added
+arrived `instruction`, because **the slice that writes the evidencing test flips the row in the
+same commit** and no test preceded its invariant. Writing `code` ahead of the test is the claim
+`EnforcementUnevidenced` exists to reject, and a table that made it would be making it once for
+every such row.
 
 Only I2, I7, I8, I12, I13, I17, I18, I19, I20, I21, I23, I24, I25, I29, I30 and I31 are `code`
 today, all against tests that exist. I17 and I24 are against `tools/Read-DesignState.Tests.ps1`;
@@ -618,6 +691,15 @@ at each row) are against `tools/Test-DesignState.Tests.ps1`, written at S5, or
 `tools/Update-DesignProjection.Tests.ps1`, written at S7 — I25 and I29 flip to it there, since
 they bind the projector rather than the checker. I18 binds both and cites both files. The
 number this note says a later run should expect to see rise.
+
+**I15 and I16 name no test, and they are not waiting for one.** I15 is a rule about which classes
+may exist at all — it is discharged by every blocking class being a resolution check, and a test
+of it would be asserting the class list is complete, which nothing in a checkout can. I16's
+checkable half is already `IdCollision`'s: an id duplicated, or disagreeing with its file path,
+within one checkout. Its other half — never reused and never renumbered *across time* — is a
+property of the repository's history, and `PinAncestry` is already this document's record of what
+history-dependent checking costs on a shallow clone. Both therefore stay `instruction` against no
+named file, which is a different and weaker claim than a test not yet written.
 
 I1 and I2 are the pair that matter for the first path. I14 is the pair's equivalent for the
 second: it is the acyclicity everything else rests on, it is the property most easily lost to a
