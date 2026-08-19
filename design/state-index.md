@@ -186,6 +186,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-19-design-state-becomes-addressable-records | `unit/document/design-10-design` |
 | decision/2026-08-19-document-kind-reaches-shipped-payload | `unit/document/codex-profiles`, `unit/document/design-20-contract`, `unit/document/issue-template-bug` |
 | decision/2026-08-19-enforcement-states-tree-as-it-stands | `unit/document/design-20-contract` |
+| decision/2026-08-19-enforcementunevidenced-widens-to-conditional-fields | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-08-19-four-open-questions-closed-unit-set-widens | `unit/document/design-00-brief`, `unit/document/design-10-design`, `unit/document/design-20-contract` |
 | decision/2026-08-19-invariant-set-is-the-contract-table | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-08-19-marked-region-marker-declares-its-own-kind | `unit/document/agents-md`, `unit/document/design-20-contract` |
