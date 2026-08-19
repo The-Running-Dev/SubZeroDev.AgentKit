@@ -56,9 +56,17 @@ and are not copied here.** What that table cannot state:
   omitted line and an empty line are different facts and must never be read as the same one —
   omission is how "nobody filled this in" becomes indistinguishable from "there are none",
   which is the shape I12 exists to reject one level down.
-- **`Consumers` and `BoundBy` must never appear in a file.** They are derived. A file
-  carrying either is a parse finding, not a value to be believed (I17). The grammar has no
-  production for them, which is what makes the check free rather than a rule someone remembers.
+- **`Consumers`, `BoundBy`, `Decision.Affects` and `Question.Affects` must never appear in a
+  file.** All four are derived. A file carrying any of them is a parse finding, not a value to be
+  believed (I17). The grammar has no production for them, which is what makes the check free
+  rather than a rule someone remembers. **`Contract.Owner` is the one reverse edge that is
+  written**, and `OwnerMismatch` is what makes it a binding rather than a second copy.
+- **`Status` is retirement, and a retired record is still resolvable.** A live record may name a
+  retired one and that is not a finding — keeping the id resolvable is the entire reason
+  retirement exists rather than deletion (I16). What retirement changes is two things and only
+  two: the record leaves every closure, and its `Anchor` stops being checked against the tree
+  (I30). A retired unit's artifact is gone by definition, so an `Anchor` check against it would
+  block on every run forever.
 - **`Archival` is excluded from the closure and from nothing else.** It is read when history
   is wanted; it is not read when orienting. A reader that folds it into `Live` makes the
   ceiling a countdown against a monotonic log (I23).
@@ -394,6 +402,8 @@ in the projector and may grow, but may not shrink below this:
 | `units` | The unit index: id, kind, anchor | *Offline and unaided* — the id scheme is readable, the corpus still needs a table of contents |
 | `bound-by` | Per invariant, the units that bind it | *Explicit current state* — a derived edge with no other legal home |
 | `consumers` | Per contract, the units that consume it | as above |
+| `decision-affects` | Per decision, the units it is in force for | as above |
+| `question-affects` | Per question, the units it blocks | as above |
 | `outstanding` | The outstanding work list, its order, and each item's criteria, from the `WorkRef` mirrors | *Work state* — "from a checkout with no network" |
 | `invariants` | This document's § Invariants, from the invariant records | *Single ownership* — otherwise the statements live here and in the records both |
 
@@ -542,7 +552,8 @@ list.
 | Class | Raised when | Caller sees |
 |---|---|---|
 | `UnresolvedId` | A record names an id with no record | The referring record and the missing id |
-| `AnchorMissing` | A record's anchor names a path not in the tree | Both. **Which of the two is wrong is the user's call** |
+| `AnchorMissing` | A record's anchor names a path not in the tree, **and the record's `Status` is `active`** | Both. **Which of the two is wrong is the user's call** |
+| `OwnerMismatch` | A contract's `Owner` is not the unique active unit whose `Exposes` names that contract — nobody exposes it, or two units do | The contract, its `Owner`, and every unit exposing it |
 | `UnrecordedArtifact` | A tree artifact of a unit kind has no record | The unrecorded artifact |
 | `ProjectionStale` | A region differs from its regeneration, after line-ending normalisation | A diff of the region |
 | `RegionMalformed` | A marked region of either kind is unbalanced or nested | The document and the marker |
@@ -612,7 +623,7 @@ rather than route around; none may substitute an adjacent action for a blocked o
 | **I14** | No generated region is ever an input. Nothing reads a rendered projection back, and no record derives a field from one | the projector | instruction | — |
 | **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
 | **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
-| **I17** | A derived edge is never written to a record. Reverse edges appear only as projections | the reader | instruction | — (`tools/Read-DesignState.Tests.ps1` when written) |
+| **I17** | A derived edge is never written to a record. `Consumers`, `BoundBy`, `Decision.Affects` and `Question.Affects` appear only as projections; `Contract.Owner` is the sole written reverse edge and `OwnerMismatch` checks it | the reader | instruction | — (`tools/Read-DesignState.Tests.ps1` when written) |
 | **I18** | No module of this mechanism writes outside a marked region: no source generated, no code edited, no divergence resolved, nothing written to git or the tracker | the checker, the projector | instruction | — (`tools/Test-DesignState.Tests.ps1`, `tools/Update-DesignProjection.Tests.ps1` when written) |
 | **I19** | An absent or empty state set yields *could not evaluate*, never *clean* | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
 | **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1 | the checker | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
@@ -625,6 +636,8 @@ rather than route around; none may substitute an adjacent action for a blocked o
 | **I27** | Every command and script this design touches degrades to today's behaviour when the state set is absent | each command | instruction | — |
 | **I28** | GitHub is the authority for a slice's acceptance criteria, completion and order. A `WorkRef` is a mirror, is stale by default, and is never cited as authority | `/track` | instruction | — |
 | **I29** | The projector never writes inside a declared region, and no id is both projected and declared | the projector | instruction | — (`tools/Update-DesignProjection.Tests.ps1` when written) |
+| **I30** | A record with `Status: retired` keeps its id resolvable, is excluded from every closure, and has its `Anchor` exempt from the tree check. Nothing else about it changes, and a live record naming it is not a finding | the validator, the budget meter | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
+| **I31** | A contract's `Owner` is the unique active unit whose `Exposes` names that contract. It is the only reverse edge written to a record, and it is written only because it is checked | the validator | instruction | — (`tools/Test-DesignState.Tests.ps1` when written) |
 
 **Enforcement is a claim about the tree as it stands, not about the tree as designed.** The
 column states what is true today, so the `code` rows are the only ones a reader may trust
@@ -632,7 +645,7 @@ without checking and there is no caveat to read first. Every invariant this proj
 `instruction`, with the test that would evidence it named in parentheses: those files do not
 exist, and **the slice that writes one flips its row in the same commit**. Writing `code` ahead
 of the test is the claim `EnforcementUnevidenced` exists to reject, and a table that made it
-would be making it eleven times.
+would be making it once for every such row.
 
 Only I2, I7, I8, I12 and I13 are `code` today, all against tests that exist. That the second
 path contributes none of them is the honest reading of where this project is, and it is the
@@ -653,7 +666,7 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**Three items.** `/slice`'s "the contract does not contain a signature you need" stop condition
+**One item.** `/slice`'s "the contract does not contain a signature you need" stop condition
 should fire on nothing else.
 
 ### Where a slice's criteria are rendered once GitHub is the authority
@@ -673,58 +686,6 @@ and to the retirement convention `design/30-slices.md` § *How this document is 
 Choosing between them here would be inventing a signature the design does not determine.
 
 A slice that reaches this stops. It does not resolve it in the implementing session.
-
-### How a unit or contract record is retired
-
-`design/10-design.md` § *Unit* requires a record to be **retired, never deleted**, and says
-retirement "keeps the id resolvable and marks it inactive". **No field carries that mark.**
-`Status` exists on `Decision` (`accepted | superseded`) and on `Question` (`open | answered`);
-`Unit` and `Contract` have neither a status field nor any other representation of inactivity, and
-the grammar has no production for one.
-
-The consequence is not cosmetic. A unit is retired *because its artifact was deleted*, so its
-`Anchor` then names a path that is not in the tree — which is `AnchorMissing`, blocking, on every
-run from that day on. Retirement as designed therefore cannot be performed without either adding a
-field or accepting a permanent blocking finding, and I16 requires that it be performable.
-
-Two shapes are available and the design determines neither: a `Status` field on `Unit` and
-`Contract`, mirroring the one `Decision` already carries; or a `Retired` date field, which records
-when as well as whether. They differ in what `AnchorMissing` and `UnrecordedArtifact` must then
-exclude, and in whether a retired unit still counts toward another unit's closure — both of which
-are terms this document would have to carry.
-
-A slice that reaches this stops. Resolving it is `/design`'s, at deep-reasoning tier.
-
-### Which end of a two-ended edge is written, and what checks the two agree
-
-`design/10-design.md` § *Derived* states the rule — reverse edges are "derived and never written"
-— and names three: which units an invariant binds, which units consume a contract, and "which
-units a decision affects in the other direction". The first two have field names, and both tables
-mark them **Derived. Never written**: `Invariant.BoundBy` and `Contract.Consumers`. The third does
-not, and § *Data model* lists `Decision.Affects` as an ordinary written field.
-
-Three edges are consequently written from both ends, with nothing on the closed class list
-comparing the two copies:
-
-| Edge | Written on the unit | Written on the other record |
-|---|---|---|
-| the unit exposes a contract | `Exposes` | `Contract.Owner` |
-| a decision is in force here | `Live`, `Archival` | `Decision.Affects` |
-| a question affects this unit | `Questions` | `Question.Affects` |
-
-Both readings survive the document. Under **the field tables**, all three are written — and the
-design's own argument against reverse edges, that "writing them would create the second copy that
-rots", then applies to three edges it did not exclude. Under **§ *Derived***, `Decision.Affects`
-is the reverse of `Live`/`Archival` and is not written at all, which makes the `Decision` table
-wrong and changes what a decision record contains.
-
-The unit's end is not in question either way: the closure is one hop from the unit record, so
-`Exposes`, `Live`, `Archival` and `Questions` must be written for the brief's first done criterion
-to hold at all. What is undetermined is the far end — and, for whichever edges keep both ends,
-which class checks that the two agree. A class does not exist unless this document lists it, so
-adding one is a contract amendment rather than something this run may settle on its own.
-
-A slice that reaches this stops. Resolving it is `/design`'s, at deep-reasoning tier.
 
 Anything else a slice discovers to be undetermined belongs here as a new item, under the same
 rule.

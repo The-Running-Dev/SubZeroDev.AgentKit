@@ -39,6 +39,7 @@ already has: **command**, **script**, **document**, **invariant**. No new decomp
 |---|---|---|
 | `Id` | stable string | Assigned once. **Never reused, never renumbered** — the criterion-id precedent in `AGENTS.md` (*Tracking work*) applies to every id in this system |
 | `Kind` | command \| script \| document \| invariant | |
+| `Status` | `active` \| `retired` | Retirement's representation. A retired record keeps its id resolvable, leaves every closure, and stops having its `Anchor` checked against the tree |
 | `Anchor` | tree path, or an invariant number | A **checked** restatement, not a copy — see *Every restatement is either forbidden or checked* below |
 | `Owns` | one sentence | What this unit is responsible for. The only free prose in the record and deliberately capped |
 | `Consumes`, `Exposes` | contract ids | |
@@ -51,8 +52,11 @@ already has: **command**, **script**, **document**, **invariant**. No new decomp
 
 **Lifecycle.** A record is created when its artifact appears and is **retired, never deleted**
 — a deleted command whose record vanished would leave every decision that cited it dangling,
-and dangling is the one thing this system is built to make impossible. Retirement keeps the
-id resolvable and marks it inactive.
+and dangling is the one thing this system is built to make impossible. `Status` is what marks
+it inactive, and it is the same field shape `Decision` and `Question` already carry rather than
+a third way of saying the same thing. The *date* of retirement is deliberately not a field: it
+is recoverable from the record's own file history, and storing it would be the second copy
+*Single ownership* forbids.
 
 **Identity is the `Id`, not the path.** A renamed command keeps its record; the `Anchor`
 moves. This is the difference between an address and a name, and getting it the other way
@@ -65,7 +69,8 @@ A named surface one unit exposes and others consume.
 | Field | Type | Notes |
 |---|---|---|
 | `Id` | stable string | |
-| `Owner` | unit id | Exactly one. A contract with two owners is a defect in the split, not a feature |
+| `Status` | `active` \| `retired` | As on `Unit`, and for the same reason |
+| `Owner` | unit id | Exactly one. A contract with two owners is a defect in the split, not a feature. **The one reverse edge that stays written** — see *Derived* below, which also says what checks it |
 | `Declaration` | tree pointer, or `prose` | Where the *shape* is declared. `prose` only for a Markdown command surface, which has no declaration to point at |
 | `Semantics` | prose | **What the declaration cannot say** — when a field is meaningful, what must never be normalised, which parameter must not acquire a default. `AGENTS.md`, *Single ownership*, unchanged and now mechanically addressable |
 | `Consumers` | — | **Derived.** Never written |
@@ -103,7 +108,7 @@ fact and its history, not two copies of one fact — which is why extraction doe
 | `Status` | `accepted` \| `superseded` | |
 | `SupersededBy` | decision id | Required when `Status` is `superseded`. The log's existing `Amends:` line is the prose ancestor of this field |
 | `Claim` | short prose | The standing claim, and **the only thing a session reads instead of the entry**. Capped by the orientation budget, which is what keeps it a claim rather than a summary |
-| `Affects` | unit ids | |
+| `Affects` | — | **Derived** from the units whose `Live` or `Archival` names this decision. Never written |
 
 **The rejected alternatives stay in the log and are not extracted.** They are the reason the
 log exists (`AGENTS.md`, *Decision logging*) and they are read when relitigating a choice, not
@@ -117,7 +122,7 @@ half of the corpus back inside the per-unit budget.
 | `Id`, `Text` | | |
 | `Status` | `open` \| `answered` | |
 | `AnsweredBy` | decision or invariant id | Required when `answered` |
-| `Affects` | unit ids | |
+| `Affects` | — | **Derived** from the units whose `Questions` names this question. Never written |
 
 The `## Open` staging area in `design/90-decisions.md` keeps its existing job — a to-do bound
 for the tracker. A *question* is the other thing that section currently absorbs: something
@@ -150,8 +155,12 @@ without saying so.
 
 ### Marked region
 
-Not a record — a structure inside a prose document. An opening marker naming **which
-projection of which source** it renders, a body, a closing marker.
+Not a record — a structure inside a prose document. An opening marker naming **which projection**
+it renders and **whether the projector writes it**, a body, a closing marker. The marker does not
+name its source: the id determines the projection and the projection determines the source, so a
+source named in the marker would be a second copy at the one site with hundreds of copies.
+`design/20-contract.md` § *Marked regions* fixes the two marker forms and says why the bare one
+means projected.
 
 This **generalises the existing agent-fence rule** rather than replacing it. `AGENTS.md`
 (*Tracking work*) already says an issue's `<!-- agent:start -->` block is regenerable and
@@ -164,9 +173,19 @@ Nested or unbalanced markers are a finding, not a parse failure to route around.
 
 ### Derived, and where derived facts may appear
 
-Reverse edges are **derived and never written**: which units an invariant binds, which units
-consume a contract, which units a decision affects in the other direction. Writing them would
-create the second copy that rots.
+Reverse edges are **derived and never written**: which units an invariant binds
+(`Invariant.BoundBy`), which units consume a contract (`Contract.Consumers`), which units a
+decision is in force for (`Decision.Affects`), and which units a question blocks
+(`Question.Affects`). Writing them would create the second copy that rots. The unit's end of each
+of those edges *is* written, because the closure is one hop from the unit record and a derived
+field is not in a record to be hopped from.
+
+**`Contract.Owner` is the one reverse edge that stays written.** A contract record read alone must
+still say who owns it, which is the offline criterion, and "exactly one owner" is a statement
+about the contract rather than about the units. It is therefore the second copy, so it is the
+*checked* kind rather than the forbidden kind: a blocking class compares it against the unique
+unit whose `Exposes` names that contract. That check is also the only mechanical enforcement
+"exactly one" has ever had.
 
 They still have to be *readable* — "which units does I3 bind" is a question a human offline
 must be able to answer. So they appear exactly one way: as a **projection into a marked
@@ -191,7 +210,7 @@ The brief's 16,384-byte ceiling is only checkable if "the state loaded to begin 
 *defined set*. It is:
 
 > **closure(U) = record(U), plus the record of every id `record(U)` names directly, excluding
-> `Archival`.** One hop. Not transitive.
+> `Archival` and excluding any record whose `Status` is `retired`.** One hop. Not transitive.
 
 Three consequences, all load-bearing:
 
