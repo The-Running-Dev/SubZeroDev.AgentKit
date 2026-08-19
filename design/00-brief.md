@@ -118,8 +118,9 @@ checked is not finished being written.
 
 **Explicit current state**
 
-- For any named unit — one of the 21 command files, ten `tools/` scripts, five `design/`
-  documents, or thirteen invariants — the current design state about it is obtainable
+- For any named unit — a command file, a `tools/` script, a document, or an invariant, with the
+  set fixed by `design/20-contract.md` § *Artifacts of a unit kind* — the current design state
+  about it is obtainable
   **without opening `design/90-decisions.md`**: contracts it consumes, contracts it exposes,
   invariants that apply to it, accepted decisions, superseded decisions, unresolved questions
   affecting it, dependent GitHub work, and implementation evidence.

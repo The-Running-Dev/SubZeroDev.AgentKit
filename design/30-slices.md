@@ -1,7 +1,9 @@
 # Slices — the defect-to-merge path
 
-> Scoped to `design/10-design.md` and `design/20-contract.md`, which cover one path and not
-> the whole kit. Read the scope warning in the design doc first.
+> Scoped to the defect-to-merge path, whose design body is retired to
+> `git show dfd1cab:design/10-design.md` and whose contract stands in `design/20-contract.md`.
+> Every slice cut for it has landed. The explicit design-state mechanism in the current
+> `design/10-design.md` has no slices yet.
 
 Three slices were cut for this path. The riskiest assumption in the design was that a check
 result can be tied to a named head SHA reliably enough to gate an irreversible action on it
