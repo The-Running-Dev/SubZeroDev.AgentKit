@@ -500,14 +500,13 @@ and `ContractListUnreadable` covers both: a section that cannot be read leaves
 `UnrecordedArtifact`'s invariant half uncomputed rather than empty, because an empty difference
 read off an unreadable table is the I8 shape one level up.
 
-**What that costs is stated rather than left to be found.** While § *Invariants* has a
-hand-authored tail the difference is a real one, taken between rows nobody generated and the
-records. Once S17 makes the section a single projected region there is no hand-authored tail
-left, the two sides are rendered from the same records, and the invariant half of
-`UnrecordedArtifact` becomes a self-consistency check that `ProjectionStale` already covers. It
-is not made an I14 violation by that — comparing a region is what the checker does, and no
-record derives a field from one — but its independent teeth end there, and nothing replaces
-them. Adding an invariant will then be adding a record; the row follows.
+**What that costs is stated rather than left to be found.** § *Invariants* has no hand-authored
+tail — it is a single projected region, and both sides of the difference render from the same
+records — so the invariant half of `UnrecordedArtifact` is a self-consistency check that
+`ProjectionStale` already covers rather than an independent one. That is not an I14 violation —
+comparing a region is what the checker does, and no record derives a field from one — but the
+independent teeth this half once had end there, and nothing replaces them. Adding an invariant
+is adding a record; the row follows.
 
 **This table is the canonical copy and `tools/Test-DesignState.ps1` implements it** —
 `Get-DocumentGlobFiles`, `Get-CommandGlobFiles`, `Get-ScriptGlobFiles`, and
@@ -628,53 +627,48 @@ rather than route around; none may substitute an adjacent action for a blocked o
 
 **This table is the invariant unit set** — every row is a unit, per § *Artifacts of a unit
 kind*, and the checker parses the section to take that difference. A row with no record is an
-`UnrecordedArtifact` finding rather than a row awaiting attention, which is the state this
-repository is in until S17 lands and is why CI is red for the duration.
+`UnrecordedArtifact` finding rather than a row awaiting attention.
 
-**The rows below the marked region are the canonical copy** — they have no `design/state/`
-record yet, so nothing can render them. The rows inside the region are the opposite: they
-are **generated** from `design/state/invariants/*.md` and are regenerated, not edited (S7). A
-row moves up into the region, never edited in place, the same commit its record is written —
-recorded in `design/90-decisions.md` § *Open* per `AGENTS.md`, *Tracking work*, not here.
+**Every row is generated** from `design/state/invariants/*.md` (S7) — the table below is the
+whole section, a single projected region, and it is regenerated, never hand-edited. Adding an
+invariant means writing its record first; there is no canonical-copy area left for a row to
+wait in.
 
 <!-- invariants:start -->
 | | Statement | Owner | Enforcement | Evidence |
 |---|---|---|---|---|
+| **I1** | No thread is resolved unless its class is `Defect`, its fix is in a commit reachable from `HeadSha`, and the `WaitResult` for that SHA has `State = Passed`. | `unit/command/resolve` | instruction | — |
+| **I2** | `Wait-PullRequestCheck.ps1` never reports `Passed` or `Failed` for a SHA that was not the pull request's head at the moment it read the checks. | `unit/script/wait-pullrequestcheck` | code | tools/Wait-PullRequestCheck.Tests.ps1 |
 | **I3** | A batch authorizes exactly the thread ids enumerated when it was granted, and no others. | `unit/document/agents-md` | instruction | — |
 | **I4** | A batch does not outlive the response that acts on it. | `unit/document/agents-md` | instruction | — |
+| **I5** | Every `reviewThreads` query paginates to exhaustion before any thread is classified. | `unit/command/resolve` | instruction | — |
 | **I6** | `/fix` never writes to `design/`. | `unit/command/fix` | instruction | — |
+| **I7** | An unrecognised check bucket yields `NotEvaluated`, never `Passed` — the script fails closed. | `unit/script/wait-pullrequestcheck` | code | tools/Wait-PullRequestCheck.Tests.ps1 |
+| **I8** | A pull request with zero checks configured yields `NotEvaluated`, never `Passed`. | `unit/script/wait-pullrequestcheck` | code | tools/Wait-PullRequestCheck.Tests.ps1 |
 | **I9** | The batch is unavailable in a repository the user does not own. Every action in it is requested individually there, as today. | `unit/document/agents-md` | instruction | — |
+| **I10** | `/fix` always implements against a bug issue's agent block — the one it was given, or the one it filed after reproducing. It never carries its own copy of those constraints. | `unit/command/fix` | instruction | — |
+| **I11** | `/fix` never opens an issue for a defect it could not reproduce. That is a diagnosis report to the user, not a bug. | `unit/command/fix` | instruction | — |
+| **I12** | `Test-DesignDrift.ps1` never reports a clean run for a comparison it could not complete — an unreadable tracker, an unparseable criterion id, or an unresolvable pin yields *could not evaluate*, never *no drift*. | `unit/script/test-designdrift` | code | tools/Test-DesignDrift.Tests.ps1 |
+| **I13** | `Test-DesignDrift.ps1` writes nothing: not `design/`, not an issue, not git. It establishes that two sides disagree and stops there. | `unit/script/test-designdrift` | code | tools/Test-DesignDrift.Tests.ps1 |
+| **I14** | No generated region is ever an input. Nothing reads a rendered projection back, and no record derives a field from one. | `unit/script/update-designprojection` | instruction | — |
+| **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden. | `unit/script/test-designstate` | instruction | — |
+| **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted. | `unit/script/test-designstate` | instruction | — |
+| **I17** | A derived edge is never written to a record. `Consumers`, `BoundBy`, `Decision.Affects` and `Question.Affects` appear only as projections; `Contract.Owner` is the sole written reverse edge and `OwnerMismatch` checks it. | `unit/script/read-designstate` | code | tools/Read-DesignState.Tests.ps1 |
+| **I18** | No module of this mechanism writes outside a marked region: no source generated, no code edited, no divergence resolved, nothing written to git or the tracker. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1, tools/Update-DesignProjection.Tests.ps1 |
+| **I19** | An absent or empty state set yields *could not evaluate*, never *clean*. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
+| **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
+| **I21** | While `design/FROZEN.md` exists, no blocking class fails the build, and exit 2 still stands. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
+| **I22** | Every class on the blocking list is evaluable from the checkout alone — no network, no tracker, no running service. | `unit/document/design-20-contract` | instruction | — |
+| **I23** | The orientation closure is exactly one hop, excludes `Archival`, and its ceiling is 16,384 bytes and never rises. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
+| **I24** | A line the record grammar does not recognise is reported verbatim and never skipped. | `unit/script/read-designstate` | code | tools/Read-DesignState.Tests.ps1 |
+| **I25** | Regeneration is idempotent and order-independent: twice produces identical bytes, and one region's regeneration never changes another's output. | `unit/script/update-designprojection` | code | tools/Update-DesignProjection.Tests.ps1 |
+| **I26** | No pre-existing entry in `design/90-decisions.md` is ever modified. Commits to that file are additions only. | `unit/document/design-90-decisions` | instruction | — |
+| **I27** | Every command and script this design touches degrades to today's behaviour when the state set is absent. | `unit/document/design-10-design` | instruction | — |
 | **I28** | GitHub is the authority for a slice's acceptance criteria, completion and order. A `WorkRef` is a mirror, is stale by default, and is never cited as authority. | `unit/command/track` | instruction | — |
+| **I29** | The projector never writes inside a declared region, and no id is both projected and declared. | `unit/script/update-designprojection` | code | tools/Update-DesignProjection.Tests.ps1 |
+| **I30** | A record with `Status: retired` keeps its id resolvable, is excluded from every closure, and has its `Anchor` exempt from the tree check. Nothing else about it changes, and a live record naming it is not a finding. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
+| **I31** | A contract's `Owner` is the unique active unit whose `Exposes` names that contract. It is the only reverse edge written to a record, and it is written only because it is checked. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 <!-- invariants:end -->
-
-| | Statement | Owner | Enforcement | Evidence |
-|---|---|---|---|---|
-| **I1** | No thread is resolved unless its class is `Defect`, its fix is in a commit reachable from `HeadSha`, and the `WaitResult` for that SHA has `State = Passed` | `resolve.md` | instruction | — |
-| **I2** | `Wait-PullRequestCheck.ps1` never reports `Passed` or `Failed` for a SHA that was not the pull request's head at the moment it read the checks | the script | code | `tools/Wait-PullRequestCheck.Tests.ps1` |
-| **I5** | Every `reviewThreads` query paginates to exhaustion before any thread is classified | `resolve.md` | instruction | — |
-| **I7** | An unrecognised check bucket yields `NotEvaluated`, never `Passed` — the script fails closed | the script | code | `tools/Wait-PullRequestCheck.Tests.ps1` |
-| **I8** | A pull request with zero checks configured yields `NotEvaluated`, never `Passed` | the script | code | `tools/Wait-PullRequestCheck.Tests.ps1` |
-| **I10** | `/fix` always implements against a bug issue's agent block — the one it was given, or the one it filed after reproducing. It never carries its own copy of those constraints | `fix.md` | instruction | — |
-| **I11** | `/fix` never opens an issue for a defect it could not reproduce. That is a diagnosis report to the user, not a bug | `fix.md` | instruction | — |
-| **I12** | `Test-DesignDrift.ps1` never reports a clean run for a comparison it could not complete — an unreadable tracker, an unparseable criterion id, or an unresolvable pin yields *could not evaluate*, never *no drift* | the script | code | `tools/Test-DesignDrift.Tests.ps1` |
-| **I13** | `Test-DesignDrift.ps1` writes nothing: not `design/`, not an issue, not git. It establishes that two sides disagree and stops there | the script | code | `tools/Test-DesignDrift.Tests.ps1` |
-| **I14** | No generated region is ever an input. Nothing reads a rendered projection back, and no record derives a field from one | the projector | instruction | — |
-| **I15** | Every restatement a record carries of a tree or log fact is mechanically resolvable, and a blocking class checks it. A restatement with no check is forbidden | the validator | instruction | — |
-| **I16** | An id is assigned once, never reused and never renumbered. A record is retired, never deleted | the validator | instruction | — |
-| **I17** | A derived edge is never written to a record. `Consumers`, `BoundBy`, `Decision.Affects` and `Question.Affects` appear only as projections; `Contract.Owner` is the sole written reverse edge and `OwnerMismatch` checks it | the reader | code | `tools/Read-DesignState.Tests.ps1` |
-| **I18** | No module of this mechanism writes outside a marked region: no source generated, no code edited, no divergence resolved, nothing written to git or the tracker | the checker, the projector | code | `tools/Test-DesignState.Tests.ps1`, `tools/Update-DesignProjection.Tests.ps1` |
-| **I19** | An absent or empty state set yields *could not evaluate*, never *clean* | the checker | code | `tools/Test-DesignState.Tests.ps1` |
-| **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1 | the checker | code | `tools/Test-DesignState.Tests.ps1` |
-| **I21** | While `design/FROZEN.md` exists, no blocking class fails the build, and exit 2 still stands | the checker | code | `tools/Test-DesignState.Tests.ps1` |
-| **I22** | Every class on the blocking list is evaluable from the checkout alone — no network, no tracker, no running service | `design/20-contract.md` | instruction | — |
-| **I23** | The orientation closure is exactly one hop, excludes `Archival`, and its ceiling is 16,384 bytes and never rises | the budget meter | code | `tools/Test-DesignState.Tests.ps1` |
-| **I24** | A line the record grammar does not recognise is reported verbatim and never skipped | the reader | code | `tools/Read-DesignState.Tests.ps1` |
-| **I25** | Regeneration is idempotent and order-independent: twice produces identical bytes, and one region's regeneration never changes another's output | the projector | code | `tools/Update-DesignProjection.Tests.ps1` |
-| **I26** | No pre-existing entry in `design/90-decisions.md` is ever modified. Commits to that file are additions only | every command that writes the log | instruction | — |
-| **I27** | Every command and script this design touches degrades to today's behaviour when the state set is absent | each command | instruction | — |
-| **I29** | The projector never writes inside a declared region, and no id is both projected and declared | the projector | code | `tools/Update-DesignProjection.Tests.ps1` |
-| **I30** | A record with `Status: retired` keeps its id resolvable, is excluded from every closure, and has its `Anchor` exempt from the tree check. Nothing else about it changes, and a live record naming it is not a finding | the validator, the budget meter | code | `tools/Test-DesignState.Tests.ps1` |
-| **I31** | A contract's `Owner` is the unique active unit whose `Exposes` names that contract. It is the only reverse edge written to a record, and it is written only because it is checked | the validator | code | `tools/Test-DesignState.Tests.ps1` |
 
 **Enforcement is a claim about the tree as it stands, not about the tree as designed.** The
 column states what is true today, so the `code` rows are the only ones a reader may trust

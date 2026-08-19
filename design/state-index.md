@@ -79,11 +79,37 @@ means no record exists yet, not that nothing is true.
 <!-- bound-by:start -->
 | Invariant | Bound by |
 |---|---|
+| I1 | `unit/command/resolve` |
+| I2 | `unit/script/wait-pullrequestcheck` |
 | I3 | `unit/document/agents-md` |
 | I4 | `unit/document/agents-md` |
+| I5 | `unit/command/resolve` |
 | I6 | `unit/command/fix` |
+| I7 | `unit/script/wait-pullrequestcheck` |
+| I8 | `unit/script/wait-pullrequestcheck` |
 | I9 | `unit/document/agents-md` |
+| I10 | `unit/command/fix` |
+| I11 | `unit/command/fix` |
+| I12 | `unit/script/test-designdrift` |
+| I13 | `unit/script/test-designdrift` |
+| I14 | `unit/script/update-designprojection` |
+| I15 | `unit/script/test-designstate` |
+| I16 | `unit/script/test-designstate` |
+| I17 | `unit/script/read-designstate` |
+| I18 | `unit/script/test-designstate` |
+| I19 | `unit/script/test-designstate` |
+| I20 | `unit/script/test-designstate` |
+| I21 | `unit/script/test-designstate` |
+| I22 | `unit/document/design-20-contract` |
+| I23 | `unit/script/test-designstate` |
+| I24 | `unit/script/read-designstate` |
+| I25 | `unit/script/update-designprojection` |
+| I26 | `unit/document/design-90-decisions` |
+| I27 | `unit/document/design-10-design` |
 | I28 | `unit/command/track` |
+| I29 | `unit/script/update-designprojection` |
+| I30 | `unit/script/test-designstate` |
+| I31 | `unit/script/test-designstate` |
 <!-- bound-by:end -->
 
 ## Contracts — consumers
