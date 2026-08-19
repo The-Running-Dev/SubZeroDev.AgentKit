@@ -5,9 +5,6 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
-- **`INSTALL.md` phase 1 enumerates eight `tools/*.ps1` against ten in the tree.** Flagged 2026-08-19 by `/design` and left uncorrected; now consequential, because `design/20-contract.md` adds four more scripts to that directory.
-- **The unit-kind glob table in `design/20-contract.md` is the one restatement no class compares.** Flagged 2026-08-19 by `/contract`. `Get-DocumentGlobFiles`, `Get-CommandGlobFiles` and `Get-ScriptGlobFiles` in `tools/Test-DesignState.ps1` implement it and cite it, but nothing checks the two agree — so a glob widened on one side only diverges silently, and `UnrecordedArtifact` keeps agreeing with whichever side the run read. The class list has `ClassListDisagreement` for exactly this shape; the globs have no equivalent.
-
 ---
 
 ### 2026-08-19 — `AnchorMissing` widens to every tree pointer a record carries, rather than a second class being added
