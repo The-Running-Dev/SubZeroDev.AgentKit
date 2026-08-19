@@ -28,6 +28,10 @@ Before filing anything, branching, or editing: **reproduce the defect.** Write o
 
 Filing happens **after** reproducing, never before — filing first would put an unreproduced report into the tracker as a bug.
 
+## Orienting on the code you're fixing
+
+**Where this repository's own `design/state/` exists**, establishing what is currently true about the command or script the defect lives in reads that unit's closure (`design/10-design.md` § *Orient*) rather than the corpus, and `design/90-decisions.md` is not opened to establish it. Reading a closure is not writing to `design/`, so this does not relax the *Never* list below (I6). **Where `design/state/` is absent**, behaviour is today's: read the source directly (I27).
+
 ## Branch
 
 Derive `fix/<issue>-<slug>` from the issue number and title, **after the issue exists** — never before, since the branch name needs a real number.
