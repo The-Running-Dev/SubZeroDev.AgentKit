@@ -202,6 +202,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-19-retirement-is-status-field | `unit/document/design-10-design`, `unit/document/design-20-contract` |
 | decision/2026-08-19-state-index-md-added | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 | decision/2026-08-19-state-set-one-file-per-record-ps1-tooling | `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-20-claim-excludes-rejections-question-writer-open | `unit/document/design-20-contract`, `unit/document/design-90-decisions` |
 | decision/2026-08-20-fix-picks-its-own-bug-when-given-nothing | `unit/command/fix` |
 <!-- decision-affects:end -->
 
@@ -210,5 +211,6 @@ means no record exists yet, not that nothing is true.
 <!-- question-affects:start -->
 | Question | Blocks |
 |---|---|
+| question/question-record-writer | `unit/command/slice`, `unit/command/track` |
 | question/slices-authority-home | `unit/document/design-30-slices`, `unit/script/update-designprojection` |
 <!-- question-affects:end -->

@@ -85,7 +85,14 @@ per-kind vocabulary, citing it. What neither can state:
   *form* constraints the design's own table states — `Owns` is one sentence, `Claim` is a claim
   rather than a summary — stand unchanged and are enforced by nobody. No class reads them, and
   inventing one would be a model judging prose, which is `SemanticDisagreement`'s permanently
-  reported territory.
+  reported territory. **One exclusion is named rather than left to that form rule: a decision's
+  `Claim` never carries the rejected alternatives.** They stay in the log, which is what it
+  exists for (`AGENTS.md`, *Decision logging*), and they are read when relitigating a choice
+  rather than when orienting. This is the one content rule the length rule above does not
+  already imply — a terse list of rejections is not a summary and would pass "a claim rather
+  than a summary" — and it is the rule I23's ceiling rests on, because extracting the largest
+  and least-consulted half of the corpus puts it back inside the per-unit budget the closure is
+  measured against. Nothing checks it either.
 - **`Evidence` is optional on a unit and required on an invariant whose `Enforcement` is
   `code`.** Absence in the second case is a finding, because an invariant claimed to be
   mechanically enforced with nothing pointing at the mechanism is a claim about the tree that
@@ -517,6 +524,15 @@ Stated once here rather than enumerated per command, because the obligation is t
 - **A decision writes a record.** `design/10-design.md` § *Record* is the sequence: append the
   log entry unchanged, write the decision record, update the affected units, regenerate, check.
   Steps 4 and 5 in that order, never the reverse.
+- **An `## Open` item and a question record are different things, and becoming an issue does
+  not discharge a question.** `AGENTS.md`, *Tracking work*, owns `## Open` as a staging area
+  bound for the tracker; a *question* is the other thing that section currently absorbs —
+  something undecided that blocks reasoning about a unit (`design/10-design.md` § *Question*).
+  Separating them is what makes "unresolved questions affecting this unit" answerable at all,
+  and a question filed as a to-do is answerable only by whoever remembers the issue. **What
+  is settled is the distinction; who writes the record is not** — that is the second item in
+  § *Unresolved* and a slice reaching it stops.
+
 - **Never cite a `WorkRef` as authority** (I28). A mirror is quoted as a mirror, with its
   `MirroredAt`, or the tracker is read.
 - **A slice has no acceptance criteria until it has an issue**, and authority transfers at the
@@ -798,7 +814,7 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**One item.** `/slice`'s "the contract does not contain a signature you need" stop condition
+**Two items.** `/slice`'s "the contract does not contain a signature you need" stop condition
 should fire on nothing else.
 
 ### Where a slice's criteria are rendered once GitHub is the authority
@@ -818,6 +834,31 @@ and to the retirement convention `design/30-slices.md` § *How this document is 
 Choosing between them here would be inventing a signature the design does not determine.
 
 A slice that reaches this stops. It does not resolve it in the implementing session.
+
+### Which command writes a question record, and when
+
+§ *Cross-cutting obligations on commands* states the half the design settles: an `## Open` item
+and a question record are different things. `design/10-design.md` does not say who separates
+them.
+
+§ *Record* gives a five-step flow for a decision — append the entry, write the decision record,
+update the affected units, regenerate, check — and there is no question equivalent anywhere in
+the design. The one question record this repository has was written by hand at S11, during a
+migration that runs once and never in a target, so nothing about the steady state can be read
+off it.
+
+The candidates each imply a different command's surface. `/track` already reads `## Open` and
+already distinguishes a question from a task (`.claude/commands/track.md`), which makes it the
+obvious writer — and it is also the one command `AGENTS.md` says owns every GitHub write it can
+make idempotent, so giving it a `design/state/` write crosses a boundary that was drawn
+deliberately. The session that *notices* the question is the other candidate, on the same
+argument that makes a decision's record the writing session's; that has no single command to
+name and therefore no surface to contract. A third reading is that a question record is written
+only where a unit's `Questions` field needs a referent, which makes it `/slice`'s and leaves
+questions nobody is blocked on unrecorded.
+
+Choosing between them here would be inventing a signature the design does not determine, and
+each choice changes a different command file.
 
 Anything else a slice discovers to be undetermined belongs here as a new item, under the same
 rule.
