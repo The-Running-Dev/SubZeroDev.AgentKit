@@ -19,10 +19,11 @@
     installed target, where design/state/ does not exist by design (INSTALL.md phase 1 never
     ships the kit's own design/).
 
-    Regenerates before comparing, by invoking the projector with -DryRun if it exists. The
-    projector does not exist yet (it is S7's), so every run today reports ProjectorFailed and
-    names ProjectionStale as uncomputed rather than clean (S5.10) - a contracted case, not a
-    gap.
+    Regenerates before comparing, by invoking the projector with -DryRun if it exists.
+    tools/Update-DesignProjection.ps1 (S7) exists and is invoked this way, so ProjectionStale
+    is computed on every run today. Where the projector is absent or exits non-zero, that run
+    instead reports ProjectorFailed and names ProjectionStale as uncomputed rather than clean
+    (S5.10): a contracted case, not a gap.
 
     Writes nothing, ever (I18): not design/, not a record, not an issue, not git.
 
