@@ -71,6 +71,7 @@ means no record exists yet, not that nothing is true.
 | `unit/script/test-verifyreport` | script | `tools/Test-VerifyReport.ps1` |
 | `unit/script/test-writesurface` | script | `tools/Test-WriteSurface.ps1` |
 | `unit/script/update-designprojection` | script | `tools/Update-DesignProjection.ps1` |
+| `unit/script/update-workmirror` | script | `tools/Update-WorkMirror.ps1` |
 | `unit/script/wait-pullrequestcheck` | script | `tools/Wait-PullRequestCheck.ps1` |
 <!-- units:end -->
 
@@ -122,6 +123,7 @@ means no record exists yet, not that nothing is true.
 | contract/test-designdrift | `unit/command/track` |
 | contract/test-designstate | `unit/command/verify` |
 | contract/update-designprojection | `unit/script/test-designstate` |
+| contract/update-workmirror | `unit/command/track` |
 | contract/wait-pullrequestcheck | `unit/command/pr`, `unit/command/resolve` |
 <!-- consumers:end -->
 
@@ -216,3 +218,18 @@ means no record exists yet, not that nothing is true.
 | question/question-record-writer | `unit/command/slice`, `unit/command/track` |
 | question/slices-authority-home | `unit/document/design-30-slices`, `unit/script/update-designprojection` |
 <!-- question-affects:end -->
+
+## Outstanding
+
+From a checkout with no network: the outstanding work, its order, and each item's criteria,
+mirrored from GitHub by `tools/Update-WorkMirror.ps1` into `WorkRef` records
+(`design/10-design.md` § *WorkRef*). **GitHub stays the authority** — this table is a mirror,
+stale by default, and never cited as the reason work is or is not done (I28). `Mirrored at`
+names the commit the mirror was taken at; check it against `git log` before trusting an entry
+that looks old.
+
+<!-- outstanding:start -->
+| Rank | Issue | Title | Criteria | Mirrored at |
+|---|---|---|---|---|
+| _(no outstanding WorkRef records yet)_ | | | | |
+<!-- outstanding:end -->

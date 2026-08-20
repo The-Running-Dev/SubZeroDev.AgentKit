@@ -286,8 +286,10 @@ exists to forbid, one level up.
 fixed the correspondence in both directions — a record exists for every surface named below and
 for nothing else, each carrying `Owner`, `Declaration` and `Semantics` — so a record's
 `Semantics` is a restatement of the prose here, and this is the copy that governs.
-`tools/Update-WorkMirror.ps1` is the one surface deliberately without a record (S16.6), because a
-`Declaration` pointing at an absent file is the shape `AnchorMissing` exists to reject.
+`tools/Update-WorkMirror.ps1` went without a record at S16 (`design/30-slices.md` S16.6), on the
+ground that a `Declaration` pointing at an absent file is the shape `AnchorMissing` exists to
+reject; S14 writes the file and `contract/update-workmirror` with it, so that ground no longer
+applies.
 
 **No class compares the two, and this is the second such gap in this document** — § *Artifacts of
 a unit kind* names the first. `OwnerMismatch` checks a record's `Owner` against the units and
@@ -450,15 +452,12 @@ transfer draws.
 
 `invariants` renders into this document's own § *Invariants*, below. `agent` has no document
 region: GitHub is where an issue's agent block lives, and no module of this mechanism writes
-there (S7.10). **`outstanding` is contracted here and not yet rendered** — the region, its
-registry entry, and `tools/Update-WorkMirror.ps1` land together at S14, which is what makes the
-host document a contract term rather than that slice's choice.
+there (S7.10).
 
 ### `tools/Update-WorkMirror.ps1`
 
-The mirror generator. **Not written yet** — contracted ahead of the slice that writes it, which is
-what makes it safe to implement with a cheaper model. It is the only surface in this section with
-no file behind it.
+**The parameter list is the script's own `param` block and is not copied here.** The mirror
+generator. What that block cannot state:
 
 - **`/track`'s alone.** No other command invokes it, and no other command writes a `WorkRef`.
   Two writers of a mirror is two answers to "when was this current".
