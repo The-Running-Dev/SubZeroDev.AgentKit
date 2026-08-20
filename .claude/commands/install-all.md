@@ -26,7 +26,10 @@ resolved Git root.
 
 - Drop the kit itself.
 - **Resolve every candidate's real root** with `git -C <candidate> rev-parse --show-toplevel` before adding it to the list. Two paths resolving to the same root — a junction, a symlink, a Dropbox-synced duplicate — are one repository; keep the first, report the rest as skipped duplicates. A stray `SubZeroDev.Platform;C` sitting next to `SubZeroDev.Platform` is exactly this case: check before assuming two candidates differ.
-- **Not a git repository** — report and skip it. Do not stop the run for one bad candidate.
+- **Not a git repository** — report and skip it. Do not stop the run for one bad candidate, and **do not
+  initialize one here.** `INSTALL.md` phase 4 creates an absent repository under a sign-off this command
+  never collects; unattended, across a directory of candidates, that turns a stray or mistyped sibling into
+  a repository holding a copy of the kit. Attended `/install` is where an absent repository is created.
 - Order: the explicit list in `$1` if given, else alphabetical.
 
 ## Phase 1 — Per target, run `INSTALL.md` phases 0 through 2 unmodified
