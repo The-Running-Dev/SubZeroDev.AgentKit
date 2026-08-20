@@ -24,7 +24,18 @@ git -C <target> log -5 --oneline
 
 - **Resolve the real repository root.** `git rev-parse --show-toplevel` is authoritative, not the path you were given. A junction, a symlink, or a Dropbox-synced duplicate means two paths address one repository — install once, at the resolved root, and say in your report which path that was. Installing "both" writes the same files twice and reports success twice.
 - **Do not require a clean worktree.** Record what is dirty and leave it alone. Uncommitted work is the thing most likely to be destroyed by an install, and refusing to run is a worse answer than working around it.
-- **If the target is not a git repository**, say so and stop. Almost everything the kit asserts — decision logs, slices, staged commits — assumes version control.
+- **If the target is not a git repository, record that it will be initialized** and carry on classifying.
+  Almost everything the kit asserts — decision logs, slices, staged commits — assumes version control,
+  and stopping at a condition one command resolves is how this procedure's own artifacts end up written
+  into an unversioned directory anyway. Phase 4 runs `git init -b main` at the resolved path as its first
+  step; there is no separate prompt for it, because phase 3 already waits for sign-off on the whole install.
+  Nothing is written here — phases 0–2 still write nothing at all.
+- **Two conditions still stop the run outright**, because initializing under either does something you were not asked to do:
+  - **The path does not exist.** Do not create it. A tree conjured from a mistyped path is a new repository
+    somewhere nobody will look for it, holding a copy of the kit.
+  - **A parent directory is already a git repository** — `git -C <target> rev-parse --show-toplevel` resolves to
+    a root that is not `<target>` itself. Whether that means the real target is the parent, or the intent was a
+    submodule, or the path is simply wrong, is a decision and not an install detail. Report the root it resolved to.
 
 ## Phase 1 — Classify
 
@@ -165,6 +176,7 @@ Produce this, and **stop**:
 ```
 ## Installing <kit-root> → <resolved target root>
 
+Not a repository:         will run git init -b main at <resolved target root>, nothing committed
 Absent (will create):     <paths>
 Identical (skipping):     <paths>
 Divergent (proposed):     <path> — <what differs, what I propose, why>
@@ -185,9 +197,14 @@ Present the decisions **one at a time**. Do not batch them, and do not proceed o
 
 Only after sign-off.
 
-1. **Re-check the target's state first.** Phase 0's snapshot is stale by now — a long reconciliation gives the user time to commit, branch, or edit the very file you are about to move. Re-run `git status --short --branch` and diff your source-of-truth for any moved content against `HEAD`, not against what you read in phase 0.
-2. Write the approved files. Preserve UTF-8 and LF. **On a re-install, apply `.claude/commands/*.md`, `.claude/COMPANIONS.md` and `tools/*.ps1` by re-running `tools/Sync-Kit.ps1 -TargetRepo <target> -KitRoot <kit-root>` — the same call as phase 1, without `-DryRun`.** It applies every `Added`/`Updated`/`Superseded` file, advances the target's `syncedCommit`, and leaves every `Divergent-Skipped`/`Collision-Skipped`/`Unmigrated-Blocked` file untouched by design; write those by hand only where phase 3's sign-off approved it. Pass `-Force` only if a `RemovedUpstream` row was approved for deletion. **Never write a `-local.md` companion** — a companion is the target's, and an installer that authors one has written the repository's policy for it.
-3. **Record every fork that had a real alternative** — the relocation, the `AGENTS.md`/`CLAUDE.md` direction, anything the target overrode, anything skipped. **Rejected alternatives included**; without them the next install relitigates the same choices, and the commonest question a re-install faces is "why is it set up this way here?"
+1. **Initialize the repository first, if phase 0 recorded it absent.** `git -C <target> init -b main`.
+   No prompt — phase 3's sign-off covers it — and no commit: § *What installing must not do* binds this
+   step like every other, so `.git/` is all that appears and staging stays the user's. `main` matches the
+   default branch every other tool in this kit assumes. Say in the closing report that you created it.
+
+2. **Re-check the target's state first.** Phase 0's snapshot is stale by now — a long reconciliation gives the user time to commit, branch, or edit the very file you are about to move. Re-run `git status --short --branch` and diff your source-of-truth for any moved content against `HEAD`, not against what you read in phase 0.
+3. Write the approved files. Preserve UTF-8 and LF. **On a re-install, apply `.claude/commands/*.md`, `.claude/COMPANIONS.md` and `tools/*.ps1` by re-running `tools/Sync-Kit.ps1 -TargetRepo <target> -KitRoot <kit-root>` — the same call as phase 1, without `-DryRun`.** It applies every `Added`/`Updated`/`Superseded` file, advances the target's `syncedCommit`, and leaves every `Divergent-Skipped`/`Collision-Skipped`/`Unmigrated-Blocked` file untouched by design; write those by hand only where phase 3's sign-off approved it. Pass `-Force` only if a `RemovedUpstream` row was approved for deletion. **Never write a `-local.md` companion** — a companion is the target's, and an installer that authors one has written the repository's policy for it.
+4. **Record every fork that had a real alternative** — the relocation, the `AGENTS.md`/`CLAUDE.md` direction, anything the target overrode, anything skipped. **Rejected alternatives included**; without them the next install relitigates the same choices, and the commonest question a re-install faces is "why is it set up this way here?"
 
    The log's home, in this order — the first that applies:
 
@@ -198,14 +215,14 @@ Only after sign-off.
    **Never put install decisions into an architecture ADR set.** Different audience, different lifetime, and ADR numbers are usually cited across repositories — tooling setup does not belong among them.
 
    **Skipping `design/` does not skip this.** A repository that already has the design chain under other names is exactly the one where the reasoning is least obvious later, because the mapping is invisible from the file tree.
-4. **Verify, with commands, not by recollection:**
+5. **Verify, with commands, not by recollection:**
    - **Nothing was lost in a move.** Every non-blank line of the file you moved content out of must appear in the file you moved it into. Diff it mechanically; do not eyeball it. Expect exactly the lines you deliberately changed, and be able to name each one.
    - **No rule appears twice.** Search the target for the distinctive phrase of each rule you added — not for the rule's topic. You are looking for your own duplicates, and you will have made some: this install's own verification caught two that careful authoring did not.
    - **No stale paths.** If you relocated anything, search for the old path. Hits in the decision log are correct; hits anywhere else are not.
    - **The core/companion split holds.** `pwsh <kit-root>/tools/Test-Companion.ps1 -TargetRepo <target>`, exit 0. A companion the target wrote during this install to resolve an `Unmigrated-Blocked` row is exactly what this catches when it overrides a category its core does not allow.
-5. **Write `.claude/kit.json`**'s `commit` field with the kit's current HEAD sha and today's date — now, after the work succeeded, not before it. This is the whole-kit reconciliation marker and stays this phase's to write. If step 2 ran `Sync-Kit.ps1`, it has already written `syncedCommit` itself, scoped to what it actually synced — a separate field, not a second copy of this one.
-6. `git -C <target> status --short` and `git diff --check`.
-7. **Stage nothing and commit nothing.** Show what changed and let the user commit. The kit's own contract requires named-path staging, and an installer that commits for you is an installer that has staged something you did not read.
+6. **Write `.claude/kit.json`**'s `commit` field with the kit's current HEAD sha and today's date — now, after the work succeeded, not before it. This is the whole-kit reconciliation marker and stays this phase's to write. If step 3 ran `Sync-Kit.ps1`, it has already written `syncedCommit` itself, scoped to what it actually synced — a separate field, not a second copy of this one.
+7. `git -C <target> status --short` and `git diff --check`.
+8. **Stage nothing and commit nothing.** Show what changed and let the user commit. The kit's own contract requires named-path staging, and an installer that commits for you is an installer that has staged something you did not read.
 
 Report what was created, what was reconciled and how, and what remains for the user to decide.
 
