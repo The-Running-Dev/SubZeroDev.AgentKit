@@ -36,11 +36,13 @@ the same rule from either end.
 retired id — criterion ids are cited by closed issues and are expensive to withdraw
 (`design/90-decisions.md`, 2026-08-03).
 
-**This convention is itself under review.** `design/20-contract.md` § *Unresolved* holds an open
-item on what `## Outstanding` becomes once GitHub is the authority for acceptance criteria
-(I28). Until it is resolved, this document behaves exactly as it does today and the slices
-below are **proposals** rather than criteria — authority transfers when `/track` creates each
-issue (`design/10-design.md`, § *WorkRef*).
+**What `## Outstanding` becomes under I28 is settled, and it is this.** `design/20-contract.md`
+§ *Public surface* places the `outstanding` projection in `design/state-index.md`, not here, so
+this document keeps its hand-authored body and acquires no marked region. The slices below are
+**proposals** rather than criteria — authority transfers when `/track` creates each issue
+(`design/10-design.md`, § *WorkRef*) — and after that the issue is the authority and the
+mirrored criteria are read from the projection, never from here
+(`design/90-decisions.md`, 2026-08-20).
 
 ## Contract questions
 
@@ -446,17 +448,15 @@ Out of scope: changing what any command does beyond stating these obligations; m
 ---
 
 ## S14 — Work state: a mirror that says when it was taken
-> **Blocked.** `design/20-contract.md` § *Unresolved* does not determine where the `outstanding`
-> projection renders. This slice cannot be started until that item is resolved by `/contract`,
-> and S14.8 below is written against a host document that does not yet exist.
-
 Delivers: From a checkout with no network you can still see what work is outstanding, in what
 order, and what each item asks for — presented as a mirror stamped with when it was taken, never
 as the authority. GitHub stays the authority for whether the work is done.
 Touches: `tools/Update-WorkMirror.ps1`, `tools/Update-WorkMirror.Tests.ps1`,
          `design/state/work/`, `.claude/commands/track.md`,
          `tools/Update-DesignProjection.ps1`
-Depends on: S7, S12, and the resolution of `design/20-contract.md` § *Unresolved*
+Depends on: S7, S12. The `outstanding` placement this slice needed from
+         `design/20-contract.md` § *Unresolved* was resolved on 2026-08-20; the one item still
+         open there is the question-record writer, which this slice does not touch.
 Acceptance:
   - S14.1 `Update-WorkMirror.ps1` writes `WorkRef` records and nothing else — never an issue,
     never a label, never a milestone, never git.
