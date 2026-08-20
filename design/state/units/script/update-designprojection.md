@@ -7,7 +7,7 @@ Exposes: contract/update-designprojection
 Binds: I14, I25, I29
 Live:
 Archival:
-Questions: question/slices-authority-home
+Questions: question/slices-authority-home, question/answered-question-unit-edge
 Work:
 Evidence: tools/Update-DesignProjection.Tests.ps1
 

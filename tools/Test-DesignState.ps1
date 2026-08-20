@@ -71,7 +71,7 @@ $PSNativeCommandUseErrorActionPreference = $false
 $script:BlockingClasses = @(
     'UnresolvedId', 'AnchorMissing', 'OwnerMismatch', 'UnrecordedArtifact', 'ProjectionStale',
     'RegionMalformed', 'IdCollision', 'DecisionAnchorAmbiguous', 'LogEntryUnrecorded',
-    'EnforcementUnevidenced', 'ClosureOverBudget', 'ClassListDisagreement'
+    'EnforcementUnevidenced', 'ClosureOverBudget', 'ClassListDisagreement', 'GlobDisagreement'
 )
 $script:ReportedClasses = @(
     'MirrorStale', 'WorkStateDivergence', 'PinAncestry', 'SemanticDisagreement'
@@ -449,6 +449,167 @@ function Get-ScriptGlobFiles {
             ForEach-Object { ([IO.Path]::GetRelativePath($RepoPath, $_.FullName)) -replace '\\', '/' } |
             Sort-Object
     )
+}
+
+<#
+    design/20-contract.md § "Artifacts of a unit kind"'s own glob table, parsed so
+    GlobDisagreement has something to expand and compare against the three Get-*GlobFiles
+    enumerations. The third parsed source this document carries, after the class list and
+    § Invariants; ContractListUnreadable covers all three.
+
+    Both cells carry patterns and nothing else, which is what makes this parse a token scan
+    rather than a prose reader. The invariant row has no pattern in either cell and drops out
+    for that reason, not by being named here.
+#>
+function Get-ContractGlobPatterns {
+    param([Parameter(Mandatory)][string] $ContractPath)
+
+    if (-not (Test-Path -LiteralPath $ContractPath)) {
+        return [pscustomobject]@{ Kinds = $null; Failure = 'ContractPathMissing' }
+    }
+
+    $text = Get-Content -LiteralPath $ContractPath -Raw
+    if ($null -eq $text) { $text = '' }
+    $start = $text.IndexOf('| Kind | Glob | Excluded |')
+    if ($start -lt 0) {
+        return [pscustomobject]@{ Kinds = $null; Failure = 'GlobTableNotFound' }
+    }
+    $rest = $text.Substring($start)
+    $end = $rest.IndexOf("`n`n")
+    $table = if ($end -lt 0) { $rest } else { $rest.Substring(0, $end) }
+
+    $kinds = @{}
+    foreach ($line in ($table -split "`n")) {
+        if ($line -notmatch '^\|\s*([a-z]+)\s*\|(.*)\|(.*)\|\s*$') { continue }
+        $kind = $Matches[1]
+        $globCell = $Matches[2]
+        $excludedCell = $Matches[3]
+        $globs = @([regex]::Matches($globCell, '`([^`]+)`') | ForEach-Object { $_.Groups[1].Value })
+        if ($globs.Count -eq 0) { continue }
+        $kinds[$kind] = [pscustomobject]@{
+            Glob     = $globs
+            Excluded = @([regex]::Matches($excludedCell, '`([^`]+)`') | ForEach-Object { $_.Groups[1].Value })
+        }
+    }
+
+    if ($kinds.Count -eq 0) {
+        return [pscustomobject]@{ Kinds = $null; Failure = 'GlobTableHasNoPatterns' }
+    }
+    [pscustomobject]@{ Kinds = $kinds; Failure = $null }
+}
+
+<#
+    Expands one parsed pattern against the checkout. A pattern is repository-relative and
+    wildcards only its final segment, so the directory half is literal and the file half is a
+    -Filter. This is deliberately not a general glob engine: the table's own rule is the whole
+    grammar, and anything outside it should fail to resolve rather than be guessed at.
+#>
+function Expand-ContractGlobPattern {
+    param(
+        [Parameter(Mandatory)][string] $RepoPath,
+        [Parameter(Mandatory)][string] $Pattern
+    )
+
+    $normalised = $Pattern -replace '\\', '/'
+    $dir = [IO.Path]::GetDirectoryName($normalised) -replace '\\', '/'
+    $leaf = [IO.Path]::GetFileName($normalised)
+    $searchRoot = if ([string]::IsNullOrEmpty($dir)) { $RepoPath } else { Join-Path $RepoPath $dir }
+    if (-not (Test-Path -LiteralPath $searchRoot)) { return ,@() }
+
+    if ($leaf -notmatch '[*?]') {
+        $full = Join-Path $searchRoot $leaf
+        if (-not (Test-Path -LiteralPath $full -PathType Leaf)) { return ,@() }
+        return ,@($normalised)
+    }
+
+    ,@(
+        Get-ChildItem -LiteralPath $searchRoot -Filter $leaf -File -ErrorAction SilentlyContinue |
+            ForEach-Object { ([IO.Path]::GetRelativePath($RepoPath, $_.FullName)) -replace '\\', '/' }
+    )
+}
+
+<#
+    GlobDisagreement. design/20-contract.md § "The divergence classes" - the file set the
+    contract's patterns resolve to, against the set the checker's own enumeration returns, per
+    globbed kind and in both directions.
+
+    File sets, never pattern text: an exclusion applied at the wrong level or a directory quietly
+    skipped diverges semantically while the tokens still match, and that is the case this class
+    exists for. The parsed patterns only ever compare - UnrecordedArtifact keeps reading the
+    Get-*GlobFiles enumerations - so a mis-parse can report a disagreement or report
+    ContractListUnreadable, and can never narrow the world being checked.
+#>
+function Test-GlobDisagreement {
+    param(
+        [Parameter(Mandatory)][string] $RepoPath,
+        [Parameter(Mandatory)][string] $ContractPath
+    )
+
+    $parsed = Get-ContractGlobPatterns -ContractPath $ContractPath
+    if ($parsed.Failure) {
+        return [pscustomobject]@{
+            CouldNotEvaluate = (New-CouldNotEvaluate -Reason 'ContractListUnreadable' -Detail "$($parsed.Failure): $ContractPath; GlobDisagreement is uncomputed, not clean")
+            Findings         = @()
+        }
+    }
+
+    $enumerators = @{
+        command  = { Get-CommandGlobFiles  -RepoPath $RepoPath }
+        script   = { Get-ScriptGlobFiles   -RepoPath $RepoPath }
+        document = { Get-DocumentGlobFiles -RepoPath $RepoPath }
+    }
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+    foreach ($kind in @($enumerators.Keys | Sort-Object)) {
+        if (-not $parsed.Kinds.ContainsKey($kind)) {
+            $findings.Add((New-DesignFinding -Class 'GlobDisagreement' -Subject $kind `
+                -Detail "the checker enumerates the $kind kind and design/20-contract.md § Artifacts of a unit kind carries no patterns for it" -Blocking $true))
+            continue
+        }
+        $spec = $parsed.Kinds[$kind]
+
+        $resolved = [System.Collections.Generic.SortedSet[string]]::new()
+        foreach ($pattern in $spec.Glob) {
+            # Expand-ContractGlobPattern and the Get-*GlobFiles enumerations all emit `,@(...)`,
+            # a single object that *is* an array. Both sides are cast flat before comparing;
+            # without it the set difference compares arrays and reports every path as divergent.
+            [string[]] $hits = Expand-ContractGlobPattern -RepoPath $RepoPath -Pattern $pattern
+            foreach ($hit in $hits) { [void]$resolved.Add($hit) }
+        }
+        # An exclusion carrying a wildcard is matched against the basename; one without is a
+        # repository-relative path. That is the table's own stated grammar, and matching it
+        # exactly is the point - a matcher looser than the enumeration would report a
+        # disagreement of its own making rather than the one in the tree.
+        $contractSide = @($resolved | Where-Object {
+            $path = $_
+            $leaf = [IO.Path]::GetFileName($path)
+            -not (@($spec.Excluded) | Where-Object {
+                if ($_ -match '[*?]') { $leaf -like $_ } else { $path -eq $_ }
+            })
+        })
+
+        [string[]] $checkerSide = & $enumerators[$kind]
+
+        [string[]] $onlyContract = @($contractSide | Where-Object { $_ -notin $checkerSide })
+        [string[]] $onlyChecker  = @($checkerSide  | Where-Object { $_ -notin $contractSide })
+        if ($onlyContract.Count -gt 0) {
+            $findings.Add((New-DesignFinding -Class 'GlobDisagreement' -Subject $kind `
+                -Detail "the contract's patterns reach $($onlyContract.Count) path(s) the checker does not enumerate: $($onlyContract -join ', ')" -Blocking $true))
+        }
+        if ($onlyChecker.Count -gt 0) {
+            $findings.Add((New-DesignFinding -Class 'GlobDisagreement' -Subject $kind `
+                -Detail "the checker enumerates $($onlyChecker.Count) path(s) the contract's patterns do not reach: $($onlyChecker -join ', ')" -Blocking $true))
+        }
+    }
+
+    foreach ($kind in @($parsed.Kinds.Keys | Sort-Object)) {
+        if (-not $enumerators.ContainsKey($kind)) {
+            $findings.Add((New-DesignFinding -Class 'GlobDisagreement' -Subject $kind `
+                -Detail "design/20-contract.md § Artifacts of a unit kind carries patterns for the $kind kind and the checker enumerates no such kind" -Blocking $true))
+        }
+    }
+
+    [pscustomobject]@{ CouldNotEvaluate = $null; Findings = @($findings) }
 }
 
 function Test-UnrecordedArtifact {
@@ -1029,6 +1190,10 @@ function Invoke-DesignStateCheck {
     $blockingFindings.AddRange((Test-RecordIdCollision -Records $records))
     $blockingFindings.AddRange((Test-DecisionAnchors -Records $records -LogPath (Join-Path $RepoPath 'design/90-decisions.md')))
     $blockingFindings.AddRange((Test-EnforcementUnevidenced -Records $records))
+
+    $globResult = Test-GlobDisagreement -RepoPath $RepoPath -ContractPath $contractPath
+    if ($globResult.CouldNotEvaluate) { $couldNotEvaluate.Add($globResult.CouldNotEvaluate) }
+    $blockingFindings.AddRange($globResult.Findings)
 
     $regionFiles = @((Get-DocumentGlobFiles -RepoPath $RepoPath) + (Get-CommandGlobFiles -RepoPath $RepoPath) | Sort-Object -Unique)
     $regionResult = Get-MarkedRegions -RepoPath $RepoPath -Files $regionFiles
