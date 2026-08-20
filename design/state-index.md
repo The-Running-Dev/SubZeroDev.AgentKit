@@ -200,11 +200,12 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-19-record-ids-kind-prefixed-slugs | `unit/document/design-10-design`, `unit/document/design-20-contract` |
 | decision/2026-08-19-resolution-batch-replaced-by-standing-delegation | `unit/command/resolve`, `unit/document/agents-md` |
 | decision/2026-08-19-retirement-is-status-field | `unit/document/design-10-design`, `unit/document/design-20-contract` |
-| decision/2026-08-19-state-index-md-added | `unit/document/design-20-contract`, `unit/document/design-state-index` |
+| decision/2026-08-19-state-index-md-added | — |
 | decision/2026-08-19-state-set-one-file-per-record-ps1-tooling | `unit/document/design-10-design`, `unit/document/design-20-contract` |
 | decision/2026-08-20-claim-excludes-rejections-question-writer-open | `unit/document/design-20-contract`, `unit/document/design-90-decisions` |
 | decision/2026-08-20-fix-picks-its-own-bug-when-given-nothing | `unit/command/fix` |
 | decision/2026-08-20-invariant-enforcement-not-enumerated-in-prose | `unit/document/design-20-contract` |
+| decision/2026-08-20-state-index-hosts-outstanding-projection | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks

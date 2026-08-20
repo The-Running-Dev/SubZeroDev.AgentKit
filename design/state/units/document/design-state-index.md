@@ -5,12 +5,13 @@ Anchor: design/state-index.md
 Consumes:
 Exposes:
 Binds:
-Live: decision/2026-08-19-state-index-md-added
-Archival:
+Live: decision/2026-08-20-state-index-hosts-outstanding-projection
+Archival: decision/2026-08-19-state-index-md-added
 Questions:
 Work:
 Evidence:
 
 ## Owns
-Holds the corpus-wide facts no single record can state alone: the unit table of contents and
-the four derived reverse edges, each rendered as a projected marked region.
+Holds the corpus-wide facts no single record can state alone: the unit table of contents, the
+four derived reverse edges, and the outstanding work mirrored from the tracker, each rendered
+as a projected marked region.
