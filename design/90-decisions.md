@@ -13,8 +13,8 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
   design change.
 
 - **`unit/document/design-20-contract` is one decision away from `ClosureOverBudget`.**
-  Its closure is 15,749 bytes against I23's 16,384 — 635 bytes of headroom, with seventeen
-  `Live` decisions whose records run 590 to 1,241 bytes. The smallest of them is larger than
+  Its closure is 16,167 bytes against I23's 16,384 — 217 bytes of headroom, with seventeen
+  `Live` decisions whose records run 590 to 1,241 bytes. The smallest of them is several times
   the headroom, so the next decision recorded against this unit blocks the checker. The
   design's only closure-shrinking mechanism is archival, and `Archival` is defined as
   *superseded*, which needs a later decision to replace an earlier one. Decisions about a
@@ -23,12 +23,30 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
   is a different archival trigger, a per-unit decision cap, or splitting the unit is
   `design/10-design.md`'s call, not this document's. A design question, not a todo.
 
-  **Exercised once, 2026-08-20, and the exercise is evidence for the item rather than against
-  it.** Recording the `outstanding` placement was only possible by superseding
+  **Exercised twice, both on 2026-08-20, and both exercises are evidence for the item rather
+  than against it.** Recording the `outstanding` placement was only possible by superseding
   `decision/2026-08-19-state-index-md-added`, whose `Claim` carried a genuinely dead half; the
-  swap cost four bytes net and left the headroom where it was. That worked because a dead claim
-  happened to be available. Nothing guarantees one next time, and a supersession manufactured to
-  free bytes would be the log lying about why a decision was replaced.
+  swap cost four bytes net and left the headroom where it was. Recording `GlobDisagreement` was
+  only possible because the class *falsified* a live claim — the superseded record asserted the
+  count of unchecked restatements was exactly two — so the supersession was compelled by the
+  change rather than found to fit. That one still cost 418 bytes net, taking the headroom from
+  635 to 217, because the replacement record is larger than what it retired.
+
+  **Both worked because a claim happened to be available, and the second one narrowed the margin
+  anyway.** The other sixteen `Live` records were read before the second exercise and none
+  carries a dead half. Nothing guarantees a candidate next time, and a supersession manufactured
+  to free bytes would be the log lying about why a decision was replaced.
+
+---
+
+### 2026-08-20 — `GlobDisagreement` checks the glob table by resolved file set, leaving one unchecked restatement
+Amends: 2026-08-20 — § *Invariants*' prose enumeration of the `code` rows is deleted rather than checked or assigned a keeper. That entry counted the restatements no class compares at exactly two and named them; closing one of the two falsifies the count, so the claim is replaced rather than added to.
+Context: Issue #74. `design/20-contract.md` § *Artifacts of a unit kind* is the canonical copy of the per-kind glob, and `tools/Test-DesignState.ps1` implements it three times over as imperative enumeration — `Get-DocumentGlobFiles`, `Get-CommandGlobFiles`, `Get-ScriptGlobFiles` — with **no pattern string stored as a value on either side**. Nothing compared them. The document had already written the gap down twice and closed it neither time. **I15 is not violated on its letter** — it binds a *record*'s restatements, and this one is a document's — but the table is `UnrecordedArtifact`'s input, and that class answers "is there a unit here nobody recorded?", so a glob silently narrowed on one side does not produce a wrong answer: it produces a **clean run over a smaller world**. That is the I8 shape one level up, in the one place the state set exists to prevent it.
+Chosen: **`GlobDisagreement`**, blocking, comparing **resolved file sets**. The parsed patterns are expanded against the checkout and differenced in both directions against the enumerations, so an exclusion applied at the wrong level or a directory quietly skipped is caught even where every token matches. **The parsed patterns only ever compare and never feed `UnrecordedArtifact`** — the script stays the enumerator, the document stays the policy, and the worst a mis-parse can do is report a spurious disagreement or an honest `ContractListUnreadable`. Expansion needs the checkout and nothing else, so the class earns the blocking list under I22 on the rule's own terms. Both cells of the table become patterns and nothing else, with every reason moved to a bullet list beneath it, and the pattern grammar is stated: repository-relative, wildcarding only the final segment, an exclusion matching the basename when it carries a wildcard and a path when it does not. The `invariant` row falls out of the comparison for having no pattern in either cell rather than by being named in the checker. Tests carry four `Fires` and four `NearMiss`, including the case token comparison could not have caught — an exclusion changing scope while the row still names exactly two.
+Rejected: **Comparing token lists** — cheaper and needing no expansion, rejected because it compares names, which is the id-level weakness this same section already complains about two paragraphs down where a widened class *definition* stays invisible to `ClassListDisagreement`; a third id-level check in a document that has noticed the limitation twice is buying the appearance of coverage. **Accepting the gap as known and retained**, sharpening the prose beside its two siblings — defensible, and arguably the padding *Budget discipline* warns about for a four-row table one person edits; rejected because of the three accepted gaps this is the only one whose failure is invisible rather than merely uncompared. **Deriving the globs from the table and deleting the code's copy** — full *Single ownership*, and the logical end of `Get-ContractInvariantIds`' precedent; rejected because that precedent parses a *projected* region with a machine-written row shape, while this table is hand-authored prose, and making a prose parser the authority for which files exist means a mis-parse narrows the checked world — strictly worse than a divergence, since the enumerator at least has tests.
+Also recorded: **the closure was paid for by the change rather than by a supersession found to fit.** `unit/document/design-20-contract` had 635 bytes against I23's 16,384 and its smallest `Live` record is 590, so § *Open* predicted this decision would fire `ClosureOverBudget`. It does not, because the superseded record's `Claim` asserts the count of unchecked restatements is exactly two — a fact this decision falsifies. The other sixteen `Live` records were read first and none carries a dead half; `four-open-questions-closed-unit-set-widens` looked like one only because its *anchor* names a unit count its `Claim` deliberately avoids. **§ *Open*'s item stands unanswered**: the next decision against this unit has no supersession waiting for it, and whether the remedy is a different archival trigger, a per-unit cap, or splitting the unit is still `design/10-design.md`'s call.
+Also corrected, as descriptive drift: **`question/slices-authority-home` was still `Status: open`** with no `AnsweredBy`, three documents and a decision record after it was answered, so `design/state-index.md`'s projected question table named two units as blocked on a closed question. The checker cannot see this — an `open` question is well-formed either way — which is why it survived.
+Reversibility: expensive-ish. A class id on the closed list is cited by `design/20-contract.md`, `$script:BlockingClasses`, and the tests, so removing it is a second amendment; the table's restructuring is cheap to undo and would only cost the check its input.
 
 ---
 

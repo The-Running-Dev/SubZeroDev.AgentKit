@@ -291,8 +291,9 @@ ground that a `Declaration` pointing at an absent file is the shape `AnchorMissi
 reject; S14 writes the file and `contract/update-workmirror` with it, so that ground no longer
 applies.
 
-**No class compares the two, and this is the second such gap in this document** — § *Artifacts of
-a unit kind* names the first. `OwnerMismatch` checks a record's `Owner` against the units and
+**No class compares the two, and this is now the only such gap in this document** — § *Artifacts
+of a unit kind* carried the other until `GlobDisagreement` closed it.
+`OwnerMismatch` checks a record's `Owner` against the units and
 `AnchorMissing` checks its `Declaration` against the tree, but nothing checks that the *set* of
 records matches the set of surfaces here, and the exemption above means the difference is not
 even a clean one to take. The `Semantics` half is further out of reach: prose against prose is a
@@ -400,6 +401,11 @@ three-list report.
 - **Normalises line endings before comparing and normalises nothing else.** `agent.md` records
   `prettier --check` failing every file on a Windows working tree for exactly this reason, and
   Windows is the house platform. Any other normalisation would hide a real difference.
+- **Parses this document's glob table only to compare, never to enumerate.** The three
+  `Get-*GlobFiles` functions stay the authority for which artifacts `UnrecordedArtifact` checks;
+  `GlobDisagreement` expands the parsed patterns separately and compares the two file sets. That
+  ordering is the whole safety argument — a mis-parse can report a disagreement or report
+  `ContractListUnreadable`, and can never narrow the world being checked.
 - **Writes nothing** (I18) — not `design/`, not a record, not an issue, not git. Which side of
   a divergence is wrong is the user's call, and a checker that resolved one would be making it.
 - **`-Path` is optional and defaults to the current directory**, the same default `Test-Companion.ps1`'s
@@ -582,22 +588,38 @@ impossible, and the same argument that made `AGENTS.md` a unit. `codex/PROFILES.
 the narrower ground that it is a standing document `INSTALL.md` installs; it owns no surface
 today, and the glob is a rule a reader can check rather than one they have to know.
 
-| Kind | Glob | Excluded, and why |
+| Kind | Glob | Excluded |
 |---|---|---|
-| command | `.claude/commands/*.md` | `*-local.md` — a companion is the target's, and this repository ships none |
-| script | `tools/*.ps1` | `*.Tests.ps1` — a test is `Evidence`, not a unit |
-| document | `design/*.md`, `templates/design/*.md`, `*.md` at the repository root, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md` — transient by design; `CLAUDE.md` — a loader that imports `AGENTS.md` and states nothing of its own |
-| invariant | not a tree path | The set is **every `I<n>` row in § *Invariants* below**. Nothing is excluded: a rule the kit binds itself to is a unit whether or not any document quotes it |
+| command | `.claude/commands/*.md` | `*-local.md` |
+| script | `tools/*.ps1` | `*.Tests.ps1` |
+| document | `design/*.md`, `templates/design/*.md`, `*.md`, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md`, `CLAUDE.md` |
+| invariant | not a tree path | — |
+
+**Both cells carry patterns and nothing else, because `GlobDisagreement` reads them.** A pattern
+is repository-relative and wildcards only the final segment, so `*.md` is the repository root and
+needs no phrase saying so; an exclusion is either a repository-relative path or a bare filename
+pattern matched against the basename. Every reason a cell used to carry is below, where prose
+cannot cost a check its input:
+
+- **`*-local.md`** — a companion is the target's, and this repository ships none.
+- **`*.Tests.ps1`** — a test is `Evidence`, not a unit.
+- **`design/FROZEN.md`** — transient by design.
+- **`CLAUDE.md`** — a loader that imports `AGENTS.md` and states nothing of its own.
+- **The `invariant` row has no pattern in either cell**, which is what excludes it from the
+  comparison. Its set is **every `I<n>` row in § *Invariants* below**, and nothing is excluded from
+  it: a rule the kit binds itself to is a unit whether or not any document quotes it.
 
 **The invariant kind has no glob because it has no artifact, and § *Invariants* is what stands
 in for one.** Every row there is a rule the kit binds itself to, and a rule is a unit whether or
 not any document happens to quote its number — a set taken against citations picks out the two
 ids `AGENTS.md` currently needs to point at, which would make the kind nearly empty and leave
 § *Invariants* split into a generated head and a hand-kept tail permanently. The section is
-therefore a **parsed source**, the second one this document carries after the class list below,
-and `ContractListUnreadable` covers both: a section that cannot be read leaves
-`UnrecordedArtifact`'s invariant half uncomputed rather than empty, because an empty difference
-read off an unreadable table is the I8 shape one level up.
+therefore a **parsed source**, one of three this document carries — the class list below, this
+one, and the glob table above — and `ContractListUnreadable` covers all three: a section that
+cannot be read leaves the half that depends on it uncomputed rather than empty, because an empty
+difference read off an unreadable table is the I8 shape one level up. **A parsed source is the
+one place prose costs something**, which is why the glob table's reasons sit under it rather than
+in its cells.
 
 **What that costs is stated rather than left to be found.** § *Invariants* has no hand-authored
 tail — it is a single projected region, and both sides of the difference render from the same
@@ -613,13 +635,23 @@ is adding a record; the row follows.
 exception *Single ownership* allows for a repeated fact: the canonical copy is named, and named
 from both ends.
 
-**It is also one of the two restatements in this document that no class compares**, the other
-being § *Public surface* against the `Contract` records. The divergence-class
-list has `ClassListDisagreement`; the id-to-path mapping has `IdCollision`; the projections have
-`ProjectionStale`. A glob widened in the script and not here, or here and not in the script,
-diverges silently and `UnrecordedArtifact` goes on agreeing with whichever side the run read. The
-gap is stated rather than left to be discovered, and closing it is a class this list does not yet
-carry.
+**`GlobDisagreement` is what makes this table's canonical claim true rather than asserted.** A
+glob widened in the script and not here, or here and not in the script, would otherwise diverge
+silently while `UnrecordedArtifact` went on agreeing with whichever side the run read — a clean
+run over a smaller world, which is the I8 shape one level up and the reason this restatement
+could not stay merely written down. **The comparison is of resolved file sets, never of pattern
+text**: the parsed patterns are expanded against the checkout and compared with what the three
+`Get-*GlobFiles` functions return, so an exclusion applied at the wrong level or a directory
+quietly skipped is caught even where the tokens match.
+
+**The parsed patterns only ever compare. They never feed `UnrecordedArtifact`.** The script stays
+the enumerator and this document stays the policy — the same division § *The divergence classes*
+draws for the class list, and the reason a mis-parse cannot narrow the checked world. Its worst
+outcome is a spurious disagreement or an honest `ContractListUnreadable`, and never a clean run.
+
+**That leaves one restatement in this document that no class compares** — § *Public surface*
+against the `Contract` records. The divergence-class list has `ClassListDisagreement`; the
+id-to-path mapping has `IdCollision`; the projections have `ProjectionStale`.
 
 ## Error semantics
 
@@ -666,6 +698,23 @@ list.
 | `EnforcementUnevidenced` | A conditionally-required field is absent on a record whose own `Status` or `Enforcement` requires it — an invariant with `Enforcement: code` and no `Evidence`, a decision with `Status: superseded` and no `SupersededBy`, or a question with `Status: answered` and no `AnsweredBy` | The record, the absent field, and the value that required it |
 | `ClosureOverBudget` | A closure exceeds 16,384 bytes | The unit, its size, and its largest contributor |
 | `ClassListDisagreement` | The checker's declared class ids differ from this document's list | Both sets, and the difference in each direction |
+| `GlobDisagreement` | For a globbed unit kind, the file set § *Artifacts of a unit kind*'s patterns resolve to differs from the set the checker's enumeration returns | The kind, the direction, and the paths |
+
+**`GlobDisagreement` compares file sets, not tokens, and only in that direction.** Comparing the
+patterns as text would be a third id-level check in a document that already knows id-level checks
+miss definition drift — the very complaint two paragraphs below. Resolving both sides against the
+checkout instead means the table is checked for what it *means*, and it is what qualifies the
+class as blocking under I22 on the rule's own terms: expansion needs the checkout and nothing
+else. The `invariant` kind is outside the comparison because it has no pattern in either cell,
+which is a fact about the table rather than an exemption the checker carries.
+
+**What a set comparison cannot see, stated rather than left to be found: an exclusion that
+excludes nothing in this checkout.** `*-local.md` is the standing example — the cell's own reason
+is that this repository ships no companion — so removing it from the table changes no resolved
+set here and the class stays silent. That is the comparison working as specified, not a hole in
+it, and the exposure is bounded by the same fact that causes it: a divergence invisible here is
+invisible because it has no artifact here to be wrong about. It becomes visible in the first
+checkout that has one.
 
 **`AnchorMissing` is named for a unit's `Anchor` and checks every tree pointer a record
 carries.** `Contract.Declaration` and the `Evidence` list on a unit or an invariant record are
@@ -699,8 +748,11 @@ deliberately and for the second time in this list.**
 widening that exposed it.** That class compares class *ids*, and an id does not change when what
 it detects does, so a contract widened ahead of its detection stays green until the slice lands —
 as this one did at S18, which is why the three cases above read as one rule rather than as one
-rule and two intentions. It is the same silent divergence § *Artifacts of a unit kind* names for
-its glob table, and nothing on the closed list closes it.
+rule and two intentions. **`GlobDisagreement` is the counter-example that fixes the shape of the
+remedy rather than an exception to it**: the glob table used to be named here as the same silent
+divergence, and what closed it was resolving both sides against the checkout instead of comparing
+their names. A definition has no checkout to resolve against, so that remedy does not carry, and
+nothing on the closed list closes this one.
 
 **Reported, never blocking.** Each fails in exactly the environment where the failure means
 nothing, which is why none of them is on the list above.
@@ -821,7 +873,7 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**One item.** `/slice`'s "the contract does not contain a signature you need" stop condition
+**Two items.** `/slice`'s "the contract does not contain a signature you need" stop condition
 should fire on nothing else.
 
 Where a slice's criteria are rendered was the second item and is **resolved**: `outstanding`
@@ -831,6 +883,28 @@ derivation rather than by preference — a projected § *Outstanding* has no rec
 proposal from and erases one on the next regeneration, and a proposal area that empties at issue
 creation leaves a checkout with criteria for none of the outstanding work — which left a
 placement rather than a mechanism to choose (`design/90-decisions.md`, 2026-08-20).
+
+### Whether a unit's `Questions` edge survives the question being answered
+
+`design/10-design.md` § *Question* derives `Affects` from the units whose `Questions` names it and
+is silent on status, so an answered question keeps rendering under `design/state-index.md`'s
+`Questions — blocks` heading for units nothing blocks. **The first answered question this
+repository has had is what exposed it**, the same way the first retirement exposed the projector's
+disagreement with its own test — a latent contradiction rather than a regression.
+
+The decision case is settled and settled by a *field*: superseding one moves the id from a unit's
+`Live` to its `Archival`, `decision-affects` renders `—`, and the id stays resolvable. A question
+has one edge field and no archival half, so nothing carries that answer across.
+
+Three readings, each landing somewhere different. **The answering session drops the id from each
+unit** — cheapest, and it loses the resolvable edge retirement exists to keep. **The projector
+filters on `Status`** — it widens a shipped projection's render, and what a region renders is this
+document's to state, so it is an amendment here rather than a slice's call. **`Questions` gains an
+archival half** — the only reading that matches the decision precedent exactly, and a change to
+`design/10-design.md`'s data model rather than to this document.
+
+Choosing between them here would be inventing the third case's field, which the design does not
+determine.
 
 ### Which command writes a question record, and when
 
