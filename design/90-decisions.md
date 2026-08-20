@@ -12,6 +12,25 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
   the delegation `AGENTS.md`, *Git and delivery* states. A defect in two command files, not a
   design change.
 
+- **`unit/document/design-20-contract` is one decision away from `ClosureOverBudget`.**
+  Its closure is 15,745 bytes against I23's 16,384 — 639 bytes of headroom, with seventeen
+  `Live` decisions whose records run 590 to 1,241 bytes. The smallest of them is larger than
+  the headroom, so the next decision recorded against this unit blocks the checker. The
+  design's only closure-shrinking mechanism is archival, and `Archival` is defined as
+  *superseded*, which needs a later decision to replace an earlier one. Decisions about a
+  document's own rules mostly do not supersede each other — each settles a different clause —
+  so they accumulate at roughly one per `/contract` run with no path out. Whether the remedy
+  is a different archival trigger, a per-unit decision cap, or splitting the unit is
+  `design/10-design.md`'s call, not this document's. A design question, not a todo.
+
+---
+
+### 2026-08-20 — § *Invariants*' prose enumeration of the `code` rows is deleted rather than checked or assigned a keeper
+Context: `/contract` re-derived `design/20-contract.md` against the current `design/10-design.md`. Every tree-facing claim verified: the cited declarations across five scripts, the three class lists against `$script:BlockingClasses`, `$script:ReportedClasses` and `$script:CouldNotEvaluateClasses`, the six `param` blocks, the projector's six-entry registry, 21/21 declared companion markers with zero bare ones, the five `design/state-index.md` regions, and the continued absence of `tools/Update-WorkMirror.ps1`, `design/state/work/` and the `outstanding` projection. `Test-DesignState.ps1` exits 0 with three empty lists. No section derived differently and neither § *Unresolved* item is determined by the design, so neither resolves. One internal inconsistency surfaced. The document states twice that it carries exactly **two** restatements no class compares — § *Public surface* against the `Contract` records, and the glob table against the checker's three glob functions — while the prose paragraph below the `<!-- invariants -->` region was a third: it enumerated the sixteen `code` ids and grouped them by evidencing test file, every fact of which is a copy of the region's own `Enforcement` and `Evidence` columns six lines above. It was accurate today, checked mechanically against the region rather than by eye. Nothing checks it — `ProjectionStale` regenerates and compares the region and stops at the closing marker — and its own closing sentence anticipated going stale, "the number this note names is one a later run should expect to see rise", with nothing to notice when it did.
+Chosen: The enumeration is deleted rather than checked or kept. A pointer replaces it: which rows are `code`, and against which test, is the region's own two columns and is not enumerated here, with the reason stated — a prose list beside a generated table is the copy that rots, and `ProjectionStale` stops at the closing marker. The paragraph above it is untouched, because the rule it carries — every invariant arrives `instruction`, since the slice writing the evidencing test flips the row in the same commit — is one the region cannot state. **The count of two therefore stays correct with neither sentence edited**, because the third restatement stops existing rather than being counted or held by instruction.
+Rejected: **Keep the enumeration and name a keeper** — a line making the slice that flips a row responsible for updating the note in the same commit; the smallest edit, and it preserves an at-a-glance summary. Rejected because it answers an unchecked restatement with an instruction, which is the shape *Every restatement is either forbidden or checked* exists to refuse and the shape the 2026-08-10 entry records failing within a day of being written. **Correct the count to three** — honest about the exposure, and the more defensible of the two on its own terms, since the note's id list is parseable and checkout-only and a future class could genuinely close it, unlike the prose-against-prose half of § *Public surface*. Rejected because it costs rewriting both "the two restatements" sentences and their surrounding reasoning in order to keep a summary carrying nothing the column six lines above does not, and because widening the phrase to cover an intra-document self-summary blurs the category that makes the other two worth naming.
+Reversibility: cheap. One paragraph in `design/20-contract.md`, recoverable from this commit.
+
 ---
 
 ### 2026-08-20 — A decision's `Claim` excludes the rejected alternatives; the question/to-do separation is stated and its writer is not

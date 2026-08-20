@@ -782,13 +782,11 @@ same commit** and no test preceded its invariant. Writing `code` ahead of the te
 `EnforcementUnevidenced` exists to reject, and a table that made it would be making it once for
 every such row.
 
-Only I2, I7, I8, I12, I13, I17, I18, I19, I20, I21, I23, I24, I25, I29, I30 and I31 are `code`
-today, all against tests that exist. I17 and I24 are against `tools/Read-DesignState.Tests.ps1`;
-I18 through I31 (excluding I24, just named, and I22, I26, I27, I28, which stay `instruction` for
-the reasons stated at each row) are against `tools/Test-DesignState.Tests.ps1`, written at S5, or
-`tools/Update-DesignProjection.Tests.ps1`, written at S7 — I25 and I29 flip to it there, since
-they bind the projector rather than the checker. I18 binds both and cites both files. The
-number this note names is one a later run should expect to see rise.
+**Which rows are `code`, and against which test, is the region's own `Enforcement` and
+`Evidence` columns and is not enumerated here.** The set rises as slices land, and a prose list
+beside a generated table is the copy that rots — with nothing to notice when it does, because
+`ProjectionStale` stops at the closing marker. The region is the canonical copy and the only
+one.
 
 **I15 and I16 name no test, and they are not waiting for one.** I15 is a rule about which classes
 may exist at all — it is discharged by every blocking class being a resolution check, and a test
