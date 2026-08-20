@@ -34,10 +34,14 @@ A thread is resolved without asking only if **all four** named gates pass. Uncer
 `gh pr view --json reviewRequests,latestReviews` **does not show conversation threads.** An automated reviewer can leave threads that block merge and appear nowhere in that listing — this has cost real time, and it is why the query is written out here:
 
 ```bash
+OWNER="$(gh repo view --json owner --jq .owner.login)"
+REPO="$(gh repo view --json name --jq .name)"
+PR_NUMBER="${1:-$(gh pr view --json number --jq .number)}"
+
 gh api graphql --paginate -f query='
-query($endCursor: String) {
-  repository(owner:"OWNER", name:"REPO") {
-    pullRequest(number:N) {
+query($endCursor: String, $owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
       reviewThreads(first:100, after:$endCursor) {
         pageInfo { hasNextPage endCursor }
         nodes {
@@ -47,7 +51,7 @@ query($endCursor: String) {
       }
     }
   }
-}'
+}' -f owner="$OWNER" -f repo="$REPO" -F number="$PR_NUMBER"
 ```
 
 `--paginate` walks `reviewThreads`' own `pageInfo` to exhaustion — a PR with more than 100 threads is not silently truncated. Each thread's nested `comments` connection paginates separately and `--paginate` does not reach it: if a thread's `comments.pageInfo.hasNextPage` comes back `true`, its first 10 comments are not the whole conversation, and it needs its own follow-up query, looped on that thread's `comments.pageInfo.endCursor` until `hasNextPage` is `false`, before it can be classified:
