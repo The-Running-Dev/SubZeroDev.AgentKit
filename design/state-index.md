@@ -59,6 +59,7 @@ means no record exists yet, not that nothing is true.
 | `unit/document/template-20-contract` | document | `templates/design/20-contract.md` |
 | `unit/document/template-30-slices` | document | `templates/design/30-slices.md` |
 | `unit/document/template-90-decisions` | document | `templates/design/90-decisions.md` |
+| `unit/script/invoke-codexcommand` | script | `tools/Invoke-CodexCommand.ps1` |
 | `unit/script/invoke-donehousekeeping` | script | `tools/Invoke-DoneHousekeeping.ps1` |
 | `unit/script/measure-session` | script | `tools/Measure-Session.ps1` |
 | `unit/script/new-designdocs` | script | `tools/New-DesignDocs.ps1` |

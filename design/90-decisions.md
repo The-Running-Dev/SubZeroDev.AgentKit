@@ -5,6 +5,15 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
+- **Codex profile selection was manual and repeatedly mismatched a command's required tier.**
+  `codex/PROFILES.md` defines `architect`/`builder`/`quick` but nothing picked one from a
+  command name, so a Codex session kept launching commands (e.g. `/kit-help`, which needs
+  `quick`) on whatever profile the shell already had open (`builder`), tripping the tier
+  gate in `AGENTS.md` § *Model, effort, and review budget* every time. Added
+  [`tools/Invoke-CodexCommand.ps1`](../tools/Invoke-CodexCommand.ps1), which maps a command
+  name to its profile per `AGENTS.md`'s *Command routing* table and execs
+  `codex --profile <profile>`. A 🔴 Definitely-avoidable mechanical gap, not a design change.
+
 - **Two command files still point at the retired authorization batch.**
   `.claude/commands/fix.md` § *Never* says a thread is resolved "under the batch `AGENTS.md`
   defines", and `.claude/commands/resolve.md` § *Classify every thread* says "the batch below
