@@ -26,6 +26,7 @@ means no record exists yet, not that nothing is true.
 | `unit/command/freeze` | command | `.claude/commands/freeze.md` |
 | `unit/command/install` | command | `.claude/commands/install.md` |
 | `unit/command/install-all` | command | `.claude/commands/install-all.md` |
+| `unit/command/install-code-review-agent` | command | `.claude/commands/install-code-review-agent.md` |
 | `unit/command/kit-help` | command | `.claude/commands/kit-help.md` |
 | `unit/command/kit-sync` | command | `.claude/commands/kit-sync.md` |
 | `unit/command/make-human-docs` | command | `.claude/commands/make-human-docs.md` |
@@ -211,6 +212,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-20-install-initializes-an-absent-repository | `unit/command/install-all`, `unit/document/install-md` |
 | decision/2026-08-20-invariant-enforcement-not-enumerated-in-prose | — |
 | decision/2026-08-20-state-index-hosts-outstanding-projection | `unit/document/design-20-contract`, `unit/document/design-state-index` |
+| decision/2026-08-21-install-code-review-agent-writes-the-workflow-file-only | `unit/command/install-code-review-agent` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks
