@@ -12,6 +12,17 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
   the delegation `AGENTS.md`, *Git and delivery* states. A defect in two command files, not a
   design change.
 
+- **`unit/document/design-20-contract` is one decision away from `ClosureOverBudget`.**
+  Its closure is 15,745 bytes against I23's 16,384 — 639 bytes of headroom, with seventeen
+  `Live` decisions whose records run 590 to 1,241 bytes. The smallest of them is larger than
+  the headroom, so the next decision recorded against this unit blocks the checker. The
+  design's only closure-shrinking mechanism is archival, and `Archival` is defined as
+  *superseded*, which needs a later decision to replace an earlier one. Decisions about a
+  document's own rules mostly do not supersede each other — each settles a different clause —
+  so they accumulate at roughly one per `/contract` run with no path out. Whether the remedy
+  is a different archival trigger, a per-unit decision cap, or splitting the unit is
+  `design/10-design.md`'s call, not this document's. A design question, not a todo.
+
 ---
 
 ### 2026-08-20 — § *Invariants*' prose enumeration of the `code` rows is deleted rather than checked or assigned a keeper
