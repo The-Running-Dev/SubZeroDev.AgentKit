@@ -3,22 +3,22 @@
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "27 *.ps1 files parsed via [System.Management.Automation.Language.Parser]::ParseFile; zero parse errors."
+      "detail": "28 files parsed with [System.Management.Automation.Language.Parser]::ParseFile. No parse errors."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru; Tests Passed: 253, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0. Duration 00:00:56.72."
+      "detail": "Tests Passed: 253, Failed: 0, Skipped: 0. (Two failures seen mid-review, S12.5 and S18.6 in Test-DesignState.Tests.ps1, both traced to the missing unit record below and cleared once it was added and the projection regenerated.)"
     },
     {
       "name": "Validate the core/companion split",
       "status": "Passed",
-      "detail": "./tools/Test-Companion.ps1; exit 0. Companion split OK - 21 core(s) checked, 0 companion file(s) present, 21 core(s) with no companion. State: Valid."
+      "detail": "Companion split OK - 21 core(s) checked, 0 companion file(s) present, 21 core(s) with no companion. State: Valid, exit 0."
     },
     {
       "name": "Check the design state against the tree",
       "status": "Passed",
-      "detail": "./tools/Test-DesignState.ps1; exit 0. Findings (0), Reported (0), Could not evaluate (0). Largest closure: unit/document/design-20-contract, 16167 bytes (ceiling 16384). DowngradedCount 0."
+      "detail": "Findings (0):\nReported (0):\nCould not evaluate (0):\nLargest closure: unit/document/design-20-contract, 16167 bytes (ceiling 16384), largest contributor unit/document/design-20-contract\nExit code: 0. Added design/state/units/script/invoke-codexcommand.md naming tools/Invoke-CodexCommand.ps1 as Anchor, then regenerated design/state-index.md via Update-DesignProjection.ps1 to clear the resulting ProjectionStale finding."
     }
   ]
 }
