@@ -951,10 +951,13 @@ Describe 'Test-DesignState against this repository''s own tree' {
         (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'ProjectionStale' })).Count | Should -Be 0
     }
 
-    It 'S16.1/S16.2: this repository has one Contract record per design/20-contract.md Public-surface entry (less Update-WorkMirror.ps1, S16.6), and OwnerMismatch reports none' {
+    It 'S16.1/S16.2: this repository has one Contract record per design/20-contract.md Public-surface entry, and OwnerMismatch reports none' {
+        # S14 wrote tools/Update-WorkMirror.ps1 and contract/update-workmirror with it, so the
+        # S16.6 exclusion (a Declaration pointing at an absent file) no longer applies - the
+        # count grew from 8 to 9 with it.
         $graph = Read-DesignStateGraph -Path $script:RepoRoot
         $contracts = @($graph.Records | Where-Object { $_.Kind -eq 'Contract' })
-        $contracts.Count | Should -Be 8
+        $contracts.Count | Should -Be 9
         (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'OwnerMismatch' })).Count | Should -Be 0
     }
 

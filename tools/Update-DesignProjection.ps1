@@ -5,16 +5,17 @@
     (design/20-contract.md § tools/Update-DesignProjection.ps1).
 
 .DESCRIPTION
-    Reads design/state/ via Read-DesignState.ps1 and renders each projection in the minimum set
-    except `outstanding` (design/20-contract.md § Unresolved - no document is determined for it
-    yet, and this script does not invent one).
+    Reads design/state/ via Read-DesignState.ps1 and renders every projection in the minimum
+    set (design/20-contract.md § tools/Update-DesignProjection.ps1).
 
-    Six projections target a marked region in a tracked document and are written there:
-    `units`, `bound-by`, `consumers`, `decision-affects` and `question-affects` render into
-    design/state-index.md; `invariants` renders into design/20-contract.md's own § Invariants
-    region. `agent` has no document region - GitHub is where an issue's agent block lives, this
-    script never calls `gh`, so `agent` is rendered per WorkRef record and returned to the
-    caller only (S7.10).
+    Seven projections target a marked region in a tracked document and are written there:
+    `units`, `bound-by`, `consumers`, `decision-affects`, `question-affects` and `outstanding`
+    render into design/state-index.md; `invariants` renders into design/20-contract.md's own
+    § Invariants region. `outstanding` renders only `WorkRef` records whose `State` is `OPEN`,
+    ordered by `Rank` - it is a projection of the mirror, never a second read of the tracker
+    (I14: input is records, never a live gh call). `agent` has no document region - GitHub is
+    where an issue's agent block lives, this script never calls `gh`, so `agent` is rendered per
+    WorkRef record and returned to the caller only (S7.10).
 
     Writes only between the markers of a projected region (I18, I29): never a byte outside one,
     never a new region, never a document with no region for the id, and never inside a
@@ -162,6 +163,45 @@ function Get-InvariantsProjectionContent {
     ,@($lines)
 }
 
+function Get-RankSortKey {
+    param([string] $Rank)
+    if ($Rank -match '^\d+$') { return [double]$Rank }
+    [double]::MaxValue
+}
+
+function Get-OutstandingProjectionContent {
+    <#
+        Renders WorkRef records whose State is OPEN, ordered by Rank - a numeric Rank (project
+        position, or a bare issue number) sorts first and low-to-high; a non-numeric Rank
+        (`milestone/<n>`) has no board position to compare against a numeric one, so it sorts
+        after every numeric Rank and ties are broken by issue number (S14.3 does not promise a
+        single total order across sources, only that Rank is never absent).
+
+        A closed WorkRef is not "outstanding work" and is left out here - it stays in
+        design/state/work/ as a record, per I16, but this projection only ever renders the
+        mirror's live half.
+    #>
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records)
+    $refs = @($Records | Where-Object { $_.Kind -eq 'WorkRef' -and $_.Scalars['State'] -eq 'OPEN' } |
+        Sort-Object -Property @{ Expression = { Get-RankSortKey -Rank $_.Scalars['Rank'] } }, @{ Expression = { [int]$_.Scalars['Issue'] } })
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add('| Rank | Issue | Title | Criteria | Mirrored at |')
+    $lines.Add('|---|---|---|---|---|')
+    if ($refs.Count -eq 0) {
+        $lines.Add('| _(no outstanding WorkRef records yet)_ | | | | |')
+    }
+    foreach ($ref in $refs) {
+        $issue = $ref.Scalars['Issue']
+        $title = $ref.Scalars['Title']
+        $rank = $ref.Scalars['Rank']
+        $criteria = @(if ($ref.Lists.ContainsKey('Criteria')) { @($ref.Lists['Criteria'] | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) } else { @() })
+        $criteriaCell = if ($criteria.Count -eq 0) { '—' } else { ($criteria -join ', ') }
+        $mirroredAt = $ref.Scalars['MirroredAt']
+        $lines.Add("| $rank | #$issue | $title | $criteriaCell | ``$mirroredAt`` |")
+    }
+    ,@($lines)
+}
+
 function Get-AgentProjectionContent {
     <#
         S7.10. Renders only what a WorkRef record actually carries - Issue, Title, Criteria,
@@ -257,6 +297,7 @@ function Invoke-DesignProjection {
         [pscustomobject]@{ Id = 'consumers'; Document = 'design/state-index.md'; Render = { Get-ConsumersProjectionContent -Records $records } }
         [pscustomobject]@{ Id = 'decision-affects'; Document = 'design/state-index.md'; Render = { Get-DecisionAffectsProjectionContent -Records $records } }
         [pscustomobject]@{ Id = 'question-affects'; Document = 'design/state-index.md'; Render = { Get-QuestionAffectsProjectionContent -Records $records } }
+        [pscustomobject]@{ Id = 'outstanding'; Document = 'design/state-index.md'; Render = { Get-OutstandingProjectionContent -Records $records } }
         [pscustomobject]@{ Id = 'invariants'; Document = 'design/20-contract.md'; Render = { Get-InvariantsProjectionContent -Records $records } }
     )
 
