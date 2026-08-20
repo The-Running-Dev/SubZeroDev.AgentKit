@@ -56,10 +56,22 @@ BeforeAll {
         $full
     }
 
-    # A minimal but exact stand-in for design/20-contract.md § "The divergence classes",
-    # carrying the same 22 ids Test-DesignState.ps1 declares, so end-to-end tests below do not
-    # spuriously raise ClassListDisagreement while exercising something else entirely.
+    # A minimal but exact stand-in for the two sections of design/20-contract.md the checker
+    # parses about itself - the same 23 class ids Test-DesignState.ps1 declares, and a verbatim
+    # copy of § "Artifacts of a unit kind"'s table - so end-to-end tests below do not spuriously
+    # raise ClassListDisagreement or GlobDisagreement while exercising something else entirely.
+    # The glob table agrees with the enumeration over any tree by construction, which is exactly
+    # the property GlobDisagreement exists to keep true of the real document.
     $script:MinimalContract = @'
+### Artifacts of a unit kind
+
+| Kind | Glob | Excluded |
+|---|---|---|
+| command | `.claude/commands/*.md` | `*-local.md` |
+| script | `tools/*.ps1` | `*.Tests.ps1` |
+| document | `design/*.md`, `templates/design/*.md`, `*.md`, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md`, `CLAUDE.md` |
+| invariant | not a tree path | — |
+
 ### The divergence classes
 
 **This is the closed list.**
@@ -80,6 +92,7 @@ BeforeAll {
 | `EnforcementUnevidenced` | x | x |
 | `ClosureOverBudget` | x | x |
 | `ClassListDisagreement` | x | x |
+| `GlobDisagreement` | x | x |
 
 **Reported, never blocking.**
 
@@ -614,7 +627,7 @@ Kind: command
 
 Describe 'Test-DesignState: ClassListDisagreement (S5.1)' {
 
-    It 'raises nothing when the contract document declares exactly the same 22 ids' -Tag 'NearMiss','ClassListDisagreement' {
+    It 'raises nothing when the contract document declares exactly the same 23 ids' -Tag 'NearMiss','ClassListDisagreement' {
         New-TreeFile -RelativePath 'design/20-contract.md' -Content $script:MinimalContract
         $result = Test-ClassListAgreement -ContractPath (Join-Path $TestDrive 'design/20-contract.md')
         $result.Finding | Should -BeNullOrEmpty
@@ -640,6 +653,134 @@ Describe 'Test-DesignState: ClassListDisagreement (S5.1)' {
         New-TreeFile -RelativePath 'design/20-contract.md' -Content $script:MinimalContract
         $parsed = Get-ContractClassIds -ContractPath (Join-Path $TestDrive 'design/20-contract.md')
         $parsed.Ids.CouldNotEvaluate | Should -Not -Contain 'DesignStateFailure'
+    }
+}
+
+Describe 'Test-DesignState: GlobDisagreement (#74)' {
+
+    BeforeAll {
+        # A throwaway tree carrying one artifact per globbed kind plus one of each exclusion, so
+        # every case below varies only the contract table against a tree that does not move.
+        $script:GlobRoot = Join-Path $TestDrive 'globfixture'
+        foreach ($rel in @(
+            '.claude/commands/alpha.md', '.claude/commands/beta-local.md',
+            'tools/Thing.ps1', 'tools/Thing.Tests.ps1',
+            'design/10-design.md', 'design/FROZEN.md',
+            'templates/design/00-brief.md', 'templates/design/CLAUDE.md',
+            'README.md', 'CLAUDE.md',
+            '.claude/COMPANIONS.md', '.github/ISSUE_TEMPLATE/bug.md', 'codex/PROFILES.md'
+        )) {
+            $full = Join-Path $script:GlobRoot $rel
+            New-Item -ItemType Directory -Path (Split-Path $full -Parent) -Force | Out-Null
+            Set-Content -LiteralPath $full -Value 'x' -Encoding utf8NoBOM
+        }
+
+        # The table as design/20-contract.md carries it. Each test below rewrites one cell.
+        $script:GlobTable = @'
+| Kind | Glob | Excluded |
+|---|---|---|
+| command | `.claude/commands/*.md` | `*-local.md` |
+| script | `tools/*.ps1` | `*.Tests.ps1` |
+| document | `design/*.md`, `templates/design/*.md`, `*.md`, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md`, `CLAUDE.md` |
+| invariant | not a tree path | — |
+
+trailing prose
+'@
+
+        function New-GlobContract {
+            param([Parameter(Mandatory)][string] $Name, [Parameter(Mandatory)][string] $Table)
+            $full = Join-Path $TestDrive "globcontracts/$Name.md"
+            New-Item -ItemType Directory -Path (Split-Path $full -Parent) -Force | Out-Null
+            Set-Content -LiteralPath $full -Value $Table -Encoding utf8NoBOM
+            $full
+        }
+    }
+
+    It 'raises nothing when every kind resolves to exactly what the checker enumerates' -Tag 'NearMiss','GlobDisagreement' {
+        $path = New-GlobContract -Name 'agree' -Table $script:GlobTable
+        $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path
+        $result.Findings | Should -BeNullOrEmpty
+        $result.CouldNotEvaluate | Should -BeNullOrEmpty
+    }
+
+    It 'fires when the contract drops an exclusion the checker still applies' -Tag 'Fires','GlobDisagreement' {
+        $table = $script:GlobTable -replace '\| `\*-local\.md` \|', '| — |'
+        $path = New-GlobContract -Name 'no-local-exclusion' -Table $table
+        $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path
+        $result.Findings.Class | Should -Contain 'GlobDisagreement'
+        $finding = @($result.Findings | Where-Object { $_.Subject -eq 'command' })[0]
+        $finding.Detail | Should -Match 'the contract''s patterns reach'
+        $finding.Detail | Should -Match 'beta-local\.md'
+        $finding.Blocking | Should -BeTrue
+    }
+
+    It 'fires when the checker enumerates a location the contract''s patterns do not reach' -Tag 'Fires','GlobDisagreement' {
+        $table = $script:GlobTable -replace ', `\.github/ISSUE_TEMPLATE/\*\.md`', ''
+        $path = New-GlobContract -Name 'no-issue-templates' -Table $table
+        $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path
+        $finding = @($result.Findings | Where-Object { $_.Subject -eq 'document' })[0]
+        $finding.Detail | Should -Match 'the checker enumerates'
+        $finding.Detail | Should -Match 'ISSUE_TEMPLATE/bug\.md'
+    }
+
+    <#
+        The case Option 1A could not have caught, and the reason this class compares resolved
+        file sets. The document row still names exactly two exclusions - the token count and
+        every other token are unchanged - but one of them changes scope from a
+        repository-relative path to a basename pattern, so it now also excludes
+        templates/design/CLAUDE.md, which Get-DocumentGlobFiles still enumerates.
+    #>
+    It 'fires when an exclusion changes scope while the token list stays the same size' -Tag 'Fires','GlobDisagreement' {
+        $table = $script:GlobTable -replace '`design/FROZEN\.md`, `CLAUDE\.md`', '`design/FROZEN.md`, `*CLAUDE.md`'
+        $path = New-GlobContract -Name 'exclusion-scope' -Table $table
+        $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path
+        $finding = @($result.Findings | Where-Object { $_.Subject -eq 'document' })[0]
+        $finding | Should -Not -BeNullOrEmpty
+        $finding.Detail | Should -Match 'templates/design/CLAUDE\.md'
+    }
+
+    It 'does not fire merely because an exclusion path repeats a basename elsewhere in the tree' -Tag 'NearMiss','GlobDisagreement' {
+        # templates/design/CLAUDE.md and CLAUDE.md share a basename; only the latter is excluded
+        # on both sides, which is the near-miss the case above turns into a fire.
+        $path = New-GlobContract -Name 'basename-collision' -Table $script:GlobTable
+        $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path
+        $result.Findings | Should -BeNullOrEmpty
+    }
+
+    It 'fires when the table carries no patterns for a kind the checker enumerates' -Tag 'Fires','GlobDisagreement' {
+        $table = $script:GlobTable -replace '\| script \| `tools/\*\.ps1` \| `\*\.Tests\.ps1` \|\r?\n', ''
+        $path = New-GlobContract -Name 'no-script-row' -Table $table
+        $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path
+        $finding = @($result.Findings | Where-Object { $_.Subject -eq 'script' })[0]
+        $finding.Detail | Should -Match 'carries no patterns for it'
+    }
+
+    It 'does not compare the invariant row, which has no pattern in either cell' -Tag 'NearMiss','GlobDisagreement' {
+        $parsed = Get-ContractGlobPatterns -ContractPath (New-GlobContract -Name 'invariant-row' -Table $script:GlobTable)
+        $parsed.Failure | Should -BeNullOrEmpty
+        $parsed.Kinds.Keys | Should -Not -Contain 'invariant'
+        $parsed.Kinds.Keys | Should -Contain 'document'
+    }
+
+    It 'reports ContractListUnreadable - uncomputed, never clean - when the table cannot be read' {
+        $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath (Join-Path $TestDrive 'globcontracts/absent.md')
+        $result.Findings | Should -BeNullOrEmpty
+        $result.CouldNotEvaluate.Reason | Should -Be 'ContractListUnreadable'
+        $result.CouldNotEvaluate.Detail | Should -Match 'uncomputed, not clean'
+    }
+
+    It 'reports ContractListUnreadable when the document exists but carries no glob table' {
+        $path = New-GlobContract -Name 'no-table' -Table "# Contract`n`nnothing tabular here`n"
+        $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path
+        $result.CouldNotEvaluate.Reason | Should -Be 'ContractListUnreadable'
+        $result.CouldNotEvaluate.Detail | Should -Match 'GlobTableNotFound'
+    }
+
+    It 'this repository''s own table and its own enumeration agree' -Tag 'NearMiss','GlobDisagreement' {
+        $repo = Split-Path $PSScriptRoot -Parent
+        $result = Test-GlobDisagreement -RepoPath $repo -ContractPath (Join-Path $repo 'design/20-contract.md')
+        $result.CouldNotEvaluate | Should -BeNullOrEmpty
+        $result.Findings | Should -BeNullOrEmpty
     }
 }
 
