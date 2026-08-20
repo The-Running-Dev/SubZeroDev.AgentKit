@@ -66,9 +66,9 @@ worth running and worth naming if run, but their absence from CI means they neve
 "did not run because it did not run" failure mode the flag exists to close:
 
 ```powershell
-Get-Content package.json | Select-String '"scripts"' -Context 0,20
-Get-ChildItem . -Filter *.sln, *.csproj -Recurse -Depth 2
-Get-ChildItem build -Filter *.ps1
+if (Test-Path package.json) { Get-Content package.json | Select-String '"scripts"' -Context 0,20 }
+Get-ChildItem . -Include *.sln, *.csproj -Recurse -Depth 2
+if (Test-Path build) { Get-ChildItem build -Filter *.ps1 }
 Test-Path docs.ps1
 ```
 
