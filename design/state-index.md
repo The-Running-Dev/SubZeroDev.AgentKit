@@ -207,6 +207,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-20-claim-excludes-rejections-question-writer-open | `unit/document/design-20-contract`, `unit/document/design-90-decisions` |
 | decision/2026-08-20-fix-picks-its-own-bug-when-given-nothing | `unit/command/fix` |
 | decision/2026-08-20-globdisagreement-checks-the-glob-table | `unit/document/design-20-contract`, `unit/script/test-designstate` |
+| decision/2026-08-20-install-initializes-an-absent-repository | `unit/command/install-all`, `unit/document/install-md` |
 | decision/2026-08-20-invariant-enforcement-not-enumerated-in-prose | — |
 | decision/2026-08-20-state-index-hosts-outstanding-projection | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 <!-- decision-affects:end -->
