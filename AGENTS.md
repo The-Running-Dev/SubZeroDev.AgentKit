@@ -96,6 +96,7 @@ The table above names each vendor's primary identity for a tier. A vendor's own 
 | `/refine` | `sonnet`, `medium` | Never escalates — an architectural ask is routed to the command that owns it, not refined |
 | `/install` | `sonnet`, `medium` | — |
 | `/install-all` | `sonnet`, `medium` | Escalate only to judge whether a per-repo hard stop is actually safe to resolve — never to resolve it unattended |
+| `/install-code-review-agent` | `sonnet`, `medium` | Writes a GitHub Actions workflow file only; the GitHub App install and the API-key/OAuth-token secret are the user's own action and are never entered by the agent |
 | `/kit-sync` | `sonnet`, `medium` | Escalate only to judge whether a refused fast-forward in `~/.agent-kit` is safe to resolve — never to force past it unattended |
 | `/kit-help` | `haiku`, `low` | Orientation from file existence and a tracker listing. Escalate only where the repository's state matches no stage |
 | `/done` | `haiku`, `low` | Mechanical git housekeeping — branch switch, `--merged` check, prune. Escalate only to judge whether an unmerged-looking branch is actually safe to delete |
