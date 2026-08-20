@@ -438,11 +438,21 @@ in the projector and may grow, but may not shrink below this:
 | `outstanding` | The outstanding work list, its order, and each item's criteria, from the `WorkRef` mirrors | *Work state* — "from a checkout with no network" |
 | `invariants` | This document's § Invariants, from the invariant records | *Single ownership* — otherwise the statements live here and in the records both |
 
-**`units`, `bound-by`, `consumers`, `decision-affects` and `question-affects` render into
-`design/state-index.md`** (S7) — no other document owned any of the five before this, and this
-one exists to hold them. `invariants` renders into this document's own § *Invariants*, below.
-`agent` has no document region: GitHub is where an issue's agent block lives, and no module of
-this mechanism writes there (S7.10). `outstanding` is not delivered — see § *Unresolved*.
+**`units`, `bound-by`, `consumers`, `decision-affects`, `question-affects` and `outstanding`
+render into `design/state-index.md`** — the first five at S7, on the test that no other document
+owned any of them and this one exists to hold them. **`outstanding` joins them on the same
+test.** `design/30-slices.md` § *Outstanding* owns hand-authored **proposals**, and authority
+transfer makes a proposal a different thing from criteria (§ *Cross-cutting obligations on
+commands*), so no document owned the mirrors either. Placing it here also keeps generated content
+out of the one document `/reconcile` is barred from, leaves that document's retirement convention
+untouched, and makes the proposal/criteria boundary a document boundary — the same boundary the
+transfer draws.
+
+`invariants` renders into this document's own § *Invariants*, below. `agent` has no document
+region: GitHub is where an issue's agent block lives, and no module of this mechanism writes
+there (S7.10). **`outstanding` is contracted here and not yet rendered** — the region, its
+registry entry, and `tools/Update-WorkMirror.ps1` land together at S14, which is what makes the
+host document a contract term rather than that slice's choice.
 
 ### `tools/Update-WorkMirror.ps1`
 
@@ -812,26 +822,16 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**Two items.** `/slice`'s "the contract does not contain a signature you need" stop condition
+**One item.** `/slice`'s "the contract does not contain a signature you need" stop condition
 should fire on nothing else.
 
-### Where a slice's criteria are rendered once GitHub is the authority
-
-`design/30-slices.md` is the authority for acceptance criteria today. Under I28 it stops being
-one, and `design/10-design.md` does not say what the document becomes.
-
-Three things have to hold at once and the design determines only the first two: no file is the
-authority (brief, *Work state*); a checkout with no network still yields the outstanding work,
-its order, and each item's criteria (same); and `/slices` appends proposals to that document
-before any issue exists, which is where authority transfers (`design/10-design.md`, *WorkRef*).
-
-The readings that survive all three differ in what `## Outstanding` becomes — a marked region
-projecting the `WorkRef` mirrors, a hand-authored proposal area that empties as issues are
-created, or both in sequence — and they imply different changes to `/slices`, `/slice`, `/track`
-and to the retirement convention `design/30-slices.md` § *How this document is kept* states.
-Choosing between them here would be inventing a signature the design does not determine.
-
-A slice that reaches this stops. It does not resolve it in the implementing session.
+Where a slice's criteria are rendered was the second item and is **resolved**: `outstanding`
+renders into `design/state-index.md`, § *Outstanding* stays hand-authored proposals, and
+§ *Public surface* above carries the term. Two of the three readings it listed were eliminated by
+derivation rather than by preference — a projected § *Outstanding* has no record kind to render a
+proposal from and erases one on the next regeneration, and a proposal area that empties at issue
+creation leaves a checkout with criteria for none of the outstanding work — which left a
+placement rather than a mechanism to choose (`design/90-decisions.md`, 2026-08-20).
 
 ### Which command writes a question record, and when
 
