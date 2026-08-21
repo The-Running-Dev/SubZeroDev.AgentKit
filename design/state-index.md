@@ -214,6 +214,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-20-state-index-hosts-outstanding-projection | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 | decision/2026-08-21-install-code-review-agent-writes-the-workflow-file-only | `unit/command/install-code-review-agent` |
 | decision/2026-08-21-install-delivers-on-a-feature-branch | — |
+| decision/2026-08-22-done-always-hands-off-to-track | `unit/command/done`, `unit/command/kit-help` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks
