@@ -198,9 +198,9 @@ Present the decisions **one at a time**. Do not batch them, and do not proceed o
 Only after sign-off.
 
 1. **Initialize the repository first, if phase 0 recorded it absent.** `git -C <target> init -b main`.
-   No prompt — phase 3's sign-off covers it — and no commit: § *What installing must not do* binds this
-   step like every other, so `.git/` is all that appears and staging stays the user's. `main` matches the
-   default branch every other tool in this kit assumes. Say in the closing report that you created it.
+   No prompt — phase 3's sign-off covers it — and no commit *here*: step 8 is where delivery happens,
+   and until it runs `.git/` is all that appears. `main` matches the default branch every other tool in
+   this kit assumes. Say in the closing report that you created it.
 
 2. **Re-check the target's state first.** Phase 0's snapshot is stale by now — a long reconciliation gives the user time to commit, branch, or edit the very file you are about to move. Re-run `git status --short --branch` and diff your source-of-truth for any moved content against `HEAD`, not against what you read in phase 0.
 3. Write the approved files. Preserve UTF-8 and LF. **On a re-install, apply `.claude/commands/*.md`, `.claude/COMPANIONS.md` and `tools/*.ps1` by re-running `tools/Sync-Kit.ps1 -TargetRepo <target> -KitRoot <kit-root>` — the same call as phase 1, without `-DryRun`.** It applies every `Added`/`Updated`/`Superseded` file, advances the target's `syncedCommit`, and leaves every `Divergent-Skipped`/`Collision-Skipped`/`Unmigrated-Blocked` file untouched by design; write those by hand only where phase 3's sign-off approved it. Pass `-Force` only if a `RemovedUpstream` row was approved for deletion. **Never write a `-local.md` companion** — a companion is the target's, and an installer that authors one has written the repository's policy for it.
@@ -222,9 +222,33 @@ Only after sign-off.
    - **The core/companion split holds.** `pwsh <kit-root>/tools/Test-Companion.ps1 -TargetRepo <target>`, exit 0. A companion the target wrote during this install to resolve an `Unmigrated-Blocked` row is exactly what this catches when it overrides a category its core does not allow.
 6. **Write `.claude/kit.json`**'s `commit` field with the kit's current HEAD sha and today's date — now, after the work succeeded, not before it. This is the whole-kit reconciliation marker and stays this phase's to write. If step 3 ran `Sync-Kit.ps1`, it has already written `syncedCommit` itself, scoped to what it actually synced — a separate field, not a second copy of this one.
 7. `git -C <target> status --short` and `git diff --check`.
-8. **Stage nothing and commit nothing.** Show what changed and let the user commit. The kit's own contract requires named-path staging, and an installer that commits for you is an installer that has staged something you did not read.
+8. **Deliver on a feature branch, and open the pull request.** Branch from the target's default branch,
+   stage **by named path**, commit, push, and open a pull request against the default branch. Never commit
+   to the default branch itself, and never `git add -A`, `git add .`, or a bare-directory add.
 
-Report what was created, what was reconciled and how, and what remains for the user to decide.
+   Named-path staging is what makes this safe, and it is not a formality here: every path you stage is one
+   you wrote in this phase, so you can name all of them. If you cannot, you do not know what the install
+   did, and that is the condition to stop on — not the commit itself.
+
+   An earlier version of this file stopped short of committing, on the reasoning that an installer which
+   commits for you has staged something you did not read. The branch and the pull request are the answer to
+   that: nothing reaches the default branch, and the diff is reviewable in the place review happens. Stopping
+   at a dirty worktree did not produce a reading — it produced an install somebody finished by hand, against
+   a diff no one had reviewed either, and with the reconciliation's reasoning already scrolled out of sight.
+
+   Two cases where there is no branch to make:
+
+   - **The repository was initialized in step 1.** There is no default branch carrying a commit yet, so there
+     is nothing to protect. Commit onto `main`, push only if a remote is configured, and say which in the report.
+   - **No remote configured.** Commit on the branch, and report that the push and the pull request did not run.
+     Do not infer a remote from the directory name.
+
+   **The pull request body is the phase 3 report plus what step 4 recorded** — what was created, what was
+   reconciled and how, which forks were decided and what was rejected, and what is left for the user. Not a
+   placeholder deferring to `/pr`, and not a summary of one; `/pr` does not run here.
+
+Report what was created, what was reconciled and how, and what remains for the user to decide. Name the branch
+and link the pull request.
 
 ---
 
@@ -238,7 +262,7 @@ Installing again upgrades. The classification in phase 1 is what makes it safe: 
 
 ## What installing must not do
 
-- Not commit, push, or open a pull request.
+- Not commit to, or push to, the target's default branch. Delivery is phase 4 step 8's feature branch and pull request, and nothing outside the artifacts phase 1 listed is staged onto it.
 - Not touch the target's existing documentation, source, or configuration beyond the artifacts listed in phase 1.
 - Not reformat or "improve" prose it is not otherwise changing.
 - Not run `git add -A`, `git add .`, or a bare-directory add.
