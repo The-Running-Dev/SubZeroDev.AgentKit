@@ -3,22 +3,22 @@
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Every *.ps1 file parsed cleanly via [System.Management.Automation.Language.Parser]::ParseFile — no syntax errors."
+      "detail": "Every *.ps1 file parsed cleanly via [System.Management.Automation.Language.Parser]::ParseFile — no syntax errors. Exit code: 0."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests Passed: 253, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0. TotalCount: 253, Result: Passed."
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests Passed: 256, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0. TotalCount: 256, Result: Passed. Tests completed in 108.95s. Exit code: 0."
     },
     {
       "name": "Validate the core/companion split",
       "status": "Passed",
-      "detail": "Companion split OK - 22 core(s) checked, 0 companion file(s) present, 22 core(s) with no companion. State: Valid, Findings: {}."
+      "detail": "Companion split OK - 22 core(s) checked, 0 companion file(s) present, 22 core(s) with no companion. State: Valid, Findings: {}. Exit code: 0."
     },
     {
       "name": "Check the design state against the tree",
       "status": "Passed",
-      "detail": "Findings (0): Reported (0): Could not evaluate (0): Largest closure: unit/document/design-20-contract, 16167 bytes (ceiling 16384). Exit code: 0."
+      "detail": "Findings (0): Reported (0): Could not evaluate (0): Largest closure: unit/document/design-20-contract, 16167 bytes (ceiling 16384), largest contributor unit/document/design-20-contract. Exit code: 0."
     }
   ]
 }
