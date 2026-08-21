@@ -213,6 +213,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-20-invariant-enforcement-not-enumerated-in-prose | — |
 | decision/2026-08-20-state-index-hosts-outstanding-projection | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 | decision/2026-08-21-install-code-review-agent-writes-the-workflow-file-only | `unit/command/install-code-review-agent` |
+| decision/2026-08-21-install-delivers-on-a-feature-branch | — |
 <!-- decision-affects:end -->
 
 ## Questions — blocks
