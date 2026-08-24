@@ -186,7 +186,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-12-codex-vendor-alias-list-for-sol-terra | `unit/document/agents-md` |
 | decision/2026-08-12-commands-split-core-and-companion | `unit/document/companions-md`, `unit/script/test-companion` |
 | decision/2026-08-12-install-all-write-surface-guard | `unit/command/install-all`, `unit/script/test-writesurface` |
-| decision/2026-08-13-codex-alias-gpt-5-added | `unit/document/agents-md` |
+| decision/2026-08-13-codex-alias-gpt-5-added | — |
 | decision/2026-08-13-gate-check-comparison-by-tier-not-literal-name | `unit/document/agents-md` |
 | decision/2026-08-19-anchormissing-widens-to-every-tree-pointer | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-08-19-brief-written-kit-owned-mechanism-proven-here-only | `unit/document/design-00-brief` |
@@ -215,6 +215,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-21-install-code-review-agent-writes-the-workflow-file-only | `unit/command/install-code-review-agent` |
 | decision/2026-08-21-install-delivers-on-a-feature-branch | — |
 | decision/2026-08-22-done-always-hands-off-to-track | `unit/command/done`, `unit/command/kit-help` |
+| decision/2026-08-24-codex-tier-resolved-from-config | `unit/document/agents-md` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks
