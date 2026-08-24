@@ -5,33 +5,6 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
-- **Codex profile selection was manual and repeatedly mismatched a command's required tier.**
-  `codex/PROFILES.md` defines `architect`/`builder`/`quick` but nothing picked one from a
-  command name, so a Codex session kept launching commands (e.g. `/kit-help`, which needs
-  `quick`) on whatever profile the shell already had open (`builder`), tripping the tier
-  gate in `AGENTS.md` § *Model, effort, and review budget* every time. Added
-  [`tools/Invoke-CodexCommand.ps1`](../tools/Invoke-CodexCommand.ps1), which maps a command
-  name to its profile per `AGENTS.md`'s *Command routing* table and execs
-  `codex --profile <profile>`. A 🔴 Definitely-avoidable mechanical gap, not a design change.
-
-- **`tools/Invoke-CodexCommand.ps1` cannot select a model on the machine it was written for.**
-  It execs `codex --profile <name>`, and against `codex-cli 0.145.0` that flag still exists
-  and still means what `codex/PROFILES.md` says it does — `--help` reads "Layer
-  `$CODEX_HOME/<name>.config.toml` on top of the base user config". No such file exists:
-  `~/.codex/` holds no `*.config.toml` profiles and `~/.codex/config.toml` holds no
-  `[profiles.*]` sections, so every mapping in the script resolves to a flag with nothing
-  behind it and the session runs the base config regardless of the command. Either the three
-  profiles are created to match `codex/PROFILES.md`, or the script's premise is wrong and it
-  should set `-c model=<id> -c model_reasoning_effort=<effort>` directly, which needs no file
-  to exist. A defect in the tooling, not a design change.
-
-- **Two command files still point at the retired authorization batch.**
-  `.claude/commands/fix.md` § *Never* says a thread is resolved "under the batch `AGENTS.md`
-  defines", and `.claude/commands/resolve.md` § *Classify every thread* says "the batch below
-  asks once" above a fixed order that has had no batch step since `5dfe3c2`. Both should name
-  the delegation `AGENTS.md`, *Git and delivery* states. A defect in two command files, not a
-  design change.
-
 - **`unit/document/design-20-contract` is one decision away from `ClosureOverBudget`.**
   Its closure is 16,167 bytes against I23's 16,384 — 217 bytes of headroom, with seventeen
   `Live` decisions whose records run 590 to 1,241 bytes. The smallest of them is several times
