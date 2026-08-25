@@ -13,7 +13,12 @@ jobs:
   powershell:
     runs-on: windows-latest
     steps:
+      # Full history: the design-state check resolves merge-base ancestry for every WorkRef's
+      # MirroredAt sha, which a shallow (default depth-1) checkout can't do - ShallowCheckout
+      # would fire for every one and fail S12.5 with no real drift to show for it.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # verification: true
       - name: Parse-check PowerShell scripts
