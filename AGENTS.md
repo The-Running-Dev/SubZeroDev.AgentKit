@@ -66,7 +66,9 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 
 ### Vendor model aliases
 
-The table above names each vendor's primary identity for a tier. A vendor's own tooling can report a session under a different name for the same tier — Codex has been observed reporting `Sol`, `Terra`, `Luna`, `Codex Spark`, and `GPT-5`, none of which appear in the table above. A name below is a **synonym for an existing tier row, never a new tier of its own**; the gate matches on tier, not on which name the vendor happened to print.
+The table above names each vendor's primary identity for a tier. A vendor's own tooling can report a session under a different name for the same tier — Codex has been observed reporting `Sol`, `Terra`, `Luna`, `Codex Spark`, and `GPT-5`, none of which appear in the table above. A name below **carrying a tier is a synonym for that tier's row, never a new tier of its own**; the gate matches on tier, not on which name the vendor happened to print.
+
+**Resolve the tier from the session's configuration, not from what the session says it is.** A model cannot see which snapshot it is running as — it repeats whatever its system prompt calls it, and that name is chosen for the family, not for the tier. The configuration is an observable fact and the self-report is an assertion, so *Verification*'s first rule binds the gate itself: read the configured `model` and `model_reasoning_effort`, layering the `--profile` overlay over the base config when one was used, and resolve from those. [`codex/PROFILES.md`](codex/PROFILES.md) owns where both live for a given CLI version. The **family segment of the model id** is the name to look up below — `gpt-5.6-sol` resolves through the `Sol` row to Deep reasoning. Effort needs no alias at all, because `model_reasoning_effort` states it outright; that, not an unconfirmed mapping, is why `xhigh` has no Codex row.
 
 | Vendor | Reported as | Tier |
 |---|---|---|
@@ -74,9 +76,11 @@ The table above names each vendor's primary identity for a tier. A vendor's own 
 | Codex | `Terra` | Implementation |
 | Codex | `Luna` | High volume |
 | Codex | `Codex Spark` | Implementation |
-| Codex | `GPT-5` | Implementation |
+| Codex | `GPT-5` — bare family prefix | **none.** Resolve from configuration |
 
-**`xhigh` still has no confirmed Codex alias.** A session reporting a name that matches neither the table above nor this list is a real mismatch — the gate stops on it, same as any other mismatch. Add a row here, never a new column above, when another vendor name turns up; that is what keeps the primary table one identity per vendor per tier instead of an accumulating list of historical names.
+**A bare family prefix is not an alias.** `GPT-5` is what every model in the family answers when asked to identify itself, Sol included, so no tier can be read off it — mapping one to a tier gates a correctly-launched session as the wrong tier every time it runs. It stays in the table without one so that it is not mapped again.
+
+**Where the configuration cannot be read, the self-report is all there is, and it stops.** A name matching neither the table above nor this list is a real mismatch, and so is a bare family prefix — the gate stops on both, same as any other mismatch, and says which of the two it hit. Add a row here, never a new column above, when another vendor name turns up; that is what keeps the primary table one identity per vendor per tier instead of an accumulating list of historical names.
 
 ### Command routing
 
