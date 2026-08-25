@@ -30,16 +30,6 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
   carries a dead half. Nothing guarantees a candidate next time, and a supersession manufactured
   to free bytes would be the log lying about why a decision was replaced.
 
-- **Nothing retires a landed slice's body out of `design/30-slices.md` § *Outstanding*.**
-  All fifteen slices in the current set — S4 through S18 — have closed issues (#47–#58, #71,
-  #72, #81), which by `design/30-slices.md`'s own § *How this document is kept* means each
-  one's full body should already be retired to the `## Landed` index table below it. None
-  are: `## Landed` still lists only S1–S3, and S4–S18 sit under `## Outstanding` with their
-  full acceptance criteria intact despite being done. `/track` only syncs slice state into
-  GitHub and cannot write to this document's body; `/reconcile` is barred from
-  `design/30-slices.md` outright. No command currently owns performing the retirement the
-  document describes. Found during a `/track` run on 2026-08-25.
-
 ---
 
 ### 2026-08-25 — `/code-review` defaults to `high` effort, always runs `--fix`, and its fixes are committed and pushed
