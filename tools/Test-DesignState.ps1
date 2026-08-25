@@ -1050,13 +1050,39 @@ function Test-CommitIsAncestor {
     }
 }
 
+function Invoke-GhRaw {
+    <#
+        gh writes UTF-8. PowerShell's native-command capture (`& gh @args`) decodes that
+        stdout using [Console]::OutputEncoding, which on a Windows host defaults to the OEM
+        code page (ibm437) rather than UTF-8 - the same class of bug Sync-Kit.ps1's
+        Invoke-GitRaw fixed for git's output (#20), never applied to gh. A non-ASCII byte in
+        an issue title then decodes to the wrong character and WorkStateDivergence misfires
+        comparing a correctly-mirrored title against a corrupted live read. Routing through
+        ProcessStartInfo with an explicit UTF-8 StandardOutputEncoding sidesteps the console
+        entirely.
+    #>
+    param([string[]] $GhArgs)
+    $psi = [System.Diagnostics.ProcessStartInfo]::new()
+    $psi.FileName = 'gh'
+    foreach ($a in $GhArgs) { $psi.ArgumentList.Add($a) }
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $psi.UseShellExecute = $false
+    $psi.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $proc = [System.Diagnostics.Process]::Start($psi)
+    $stdout = $proc.StandardOutput.ReadToEnd()
+    $proc.StandardError.ReadToEnd() | Out-Null
+    $proc.WaitForExit()
+    [pscustomobject]@{ Output = $stdout; ExitCode = $proc.ExitCode }
+}
+
 function Test-TrackerAvailable {
     param([string] $Repository)
     $ghArgs = @('issue', 'list', '--state', 'all', '--limit', '1', '--json', 'number')
     if ($Repository) { $ghArgs += @('-R', $Repository) }
     try {
-        & gh @ghArgs 2>$null | Out-Null
-        return ($LASTEXITCODE -eq 0)
+        $result = Invoke-GhRaw -GhArgs $ghArgs
+        return ($result.ExitCode -eq 0)
     } catch {
         return $false
     }
@@ -1085,13 +1111,13 @@ function Test-TrackerClasses {
         foreach ($ref in $workRefs) {
             $number = $ref.Scalars['Issue']
             if ([string]::IsNullOrWhiteSpace($number)) { continue }
-            $json = & gh issue view $number --json title,state 2>$null
-            if ($LASTEXITCODE -ne 0 -or -not $json) {
+            $issueResult = Invoke-GhRaw -GhArgs @('issue', 'view', $number, '--json', 'title,state')
+            if ($issueResult.ExitCode -ne 0 -or -not $issueResult.Output) {
                 $couldNotEvaluate.Add((New-CouldNotEvaluate -Reason 'TrackerUnavailable' -Detail "could not read issue #$number for $($ref.Id)"))
                 continue
             }
             try {
-                $issue = ($json -join "`n") | ConvertFrom-Json
+                $issue = $issueResult.Output | ConvertFrom-Json
             } catch {
                 $couldNotEvaluate.Add((New-CouldNotEvaluate -Reason 'TrackerUnavailable' -Detail "unparseable gh output for issue #$number"))
                 continue
