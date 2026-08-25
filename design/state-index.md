@@ -216,6 +216,9 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-21-install-delivers-on-a-feature-branch | — |
 | decision/2026-08-22-done-always-hands-off-to-track | `unit/command/done`, `unit/command/kit-help` |
 | decision/2026-08-24-codex-tier-resolved-from-config | `unit/document/agents-md` |
+| decision/2026-08-25-branch-commit-push-pr-delegated-for-all-work | — |
+| decision/2026-08-25-code-review-defaults-high-effort-fix-push | — |
+| decision/2026-08-25-high-volume-tier-retired-haiku-luna-removed | — |
 <!-- decision-affects:end -->
 
 ## Questions — blocks
