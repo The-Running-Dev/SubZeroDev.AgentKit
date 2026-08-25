@@ -946,10 +946,30 @@ function Invoke-Projector {
     if (-not (Test-Path -LiteralPath $projectorPath)) {
         return [pscustomobject]@{ Ran = $false; Detail = 'tools/Update-DesignProjection.ps1 does not exist'; Regions = @() }
     }
+    <#
+        A nested pwsh's stdout is native-command output too, decoded via
+        [Console]::OutputEncoding the same as gh's - the OEM code page on this host, not the
+        UTF-8 the child actually writes. A projected region carrying a non-ASCII byte (the em
+        dashes throughout 20-contract.md, or a mirrored issue title) came back corrupted, so
+        every comparison against the tree's real UTF-8 copy mismatched and ProjectionStale
+        fired on content that was never actually stale. Same fix as Invoke-GhRaw: an explicit
+        UTF-8 StandardOutputEncoding via ProcessStartInfo, sidestepping the console.
+    #>
+    $raw = $null
     try {
-        $raw = & pwsh -NoProfile -File $projectorPath -Path $RepoPath -DryRun 2>$null
-        if ($LASTEXITCODE -ne 0) {
-            return [pscustomobject]@{ Ran = $false; Detail = "exited $LASTEXITCODE"; Regions = @() }
+        $psi = [System.Diagnostics.ProcessStartInfo]::new()
+        $psi.FileName = (Get-Process -Id $PID).Path
+        foreach ($a in @('-NoProfile', '-File', $projectorPath, '-Path', $RepoPath, '-DryRun')) { $psi.ArgumentList.Add($a) }
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.UseShellExecute = $false
+        $psi.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+        $proc = [System.Diagnostics.Process]::Start($psi)
+        $raw = $proc.StandardOutput.ReadToEnd()
+        $proc.StandardError.ReadToEnd() | Out-Null
+        $proc.WaitForExit()
+        if ($proc.ExitCode -ne 0) {
+            return [pscustomobject]@{ Ran = $false; Detail = "exited $($proc.ExitCode)"; Regions = @() }
         }
     } catch {
         return [pscustomobject]@{ Ran = $false; Detail = $_.Exception.Message; Regions = @() }
@@ -958,7 +978,7 @@ function Invoke-Projector {
     $regions = @()
     try {
         if ($raw) {
-            $regions = @(($raw -join "`n") | ConvertFrom-Json)
+            $regions = @($raw | ConvertFrom-Json)
         }
     } catch {
         return [pscustomobject]@{ Ran = $false; Detail = "unparseable projector output: $($_.Exception.Message)"; Regions = @() }
