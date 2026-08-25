@@ -243,11 +243,12 @@ that looks old.
 <!-- outstanding:start -->
 | Rank | Issue | Title | Criteria | Mirrored at |
 |---|---|---|---|---|
-| 4 | #12 | Nothing sizes a prompt to the target model | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
-| 24 | #116 | Codex profile selection was manual and repeatedly mismatched a command's required tier | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
-| 25 | #117 | tools/Invoke-CodexCommand.ps1 cannot select a model on the machine it was written for | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
-| 26 | #118 | Two command files still point at the retired authorization batch | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
+| 4 | #12 | Nothing sizes a prompt to the target model | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
+| 24 | #116 | Codex profile selection was manual and repeatedly mismatched a command's required tier | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
+| 25 | #117 | tools/Invoke-CodexCommand.ps1 cannot select a model on the machine it was written for | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
+| 26 | #118 | Two command files still point at the retired authorization batch | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
+| 27 | #120 | Nothing retires a landed slice's body out of design/30-slices.md § Outstanding | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
 | 112 | #112 | Kit self-tests fail again in any installed target that has run /track (#109 regression) | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
-| 113 | #113 | StateSetAbsent never fires in a target that has run /track: 16 work-mirror records mask an unadopted state set | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
-| milestone/3 | #33 | Move commands to a vendor-neutral path | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
+| 113 | #113 | StateSetAbsent never fires in a target that has run /track: 16 work-mirror records mask an unadopted state set | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
+| milestone/3 | #33 | Move commands to a vendor-neutral path | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
 <!-- outstanding:end -->
