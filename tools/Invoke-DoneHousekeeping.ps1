@@ -10,7 +10,7 @@
     the default branch, does the current branch have unmerged commits, which local branches
     does `--merged` confirm, and (cross-checked via `gh`) which of the rest merged by squash.
     That is exactly the kind of repeated, mechanical scan AGENTS.md's own model-work table
-    calls out as not needing a model call at all, which is why /done is routed `haiku/low`
+    calls out as not needing a model call at all, which is why /done is routed `sonnet/medium`
     rather than higher - this script removes even that call for the part that never needed
     judgement.
 
