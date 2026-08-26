@@ -5,6 +5,23 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
+- **`Update-WorkMirror.ps1`'s per-write `MirroredAt` restamp collides with the no-work-on-`main`
+  branching rule, producing a `/track` → PR → `/clean` → `/track` loop on every run.** S14.2 and
+  `design/20-contract.md`'s `WorkRef` clause require stamping `MirroredAt` on every write,
+  including one that changes no other field — `design/10-design.md`'s "stale by construction" is
+  deliberate, since the tracker-moving-mid-refresh race is explicitly judged not worth detecting.
+  Separately, `AGENTS.md`'s *Git and delivery* requires any repository change to land on a branch,
+  be committed, pushed, and opened as a PR — never directly on `main`. The two rules compose
+  badly: any commit to `main`, including `/track`'s own prior mirror-refresh commit, makes the
+  next `/track` run see a diff that is purely the SHA stamp, forcing another branch → PR → merge
+  → `/clean` cycle even though no mirrored issue's state, title, or criteria actually changed.
+  Observed directly on 2026-08-26: a `/track` run refreshed the mirror, its PR merged, `/clean`
+  removed the branch, and the very next `/track` run — with nothing else touched in between —
+  produced an identical-shaped diff again. Whether the fix is exempting `WorkRef` writes from the
+  per-commit branching rule, changing what `MirroredAt` stamps or how staleness is judged, or
+  accepting the extra round trip as the documented cost of "stale by construction" is
+  `design/20-contract.md`'s or `AGENTS.md`'s call, not this document's or the tool's.
+
 - **`unit/document/design-20-contract` is one decision away from `ClosureOverBudget`.**
   Its closure is 16,167 bytes against I23's 16,384 — 217 bytes of headroom, with seventeen
   `Live` decisions whose records run 590 to 1,241 bytes. The smallest of them is several times
