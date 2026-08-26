@@ -231,11 +231,12 @@ wrong by the next commit. Records are written for artifacts that already exist;
 no artifact is created to give a record something to point at. This runs on this repository and
 never in a target.
 
-That population **advances by slice and is not finished.** `units/`, `invariants/`, `decisions/`,
-`questions/` and `contracts/` carry records; no `work/…` record has been written, so `work/` does
-not exist yet. A kind with no records is zero records of that kind and nothing
-more — `StateSetAbsent` is taken over `design/state/` as a whole, not per kind, so an absent
-subdirectory is neither a finding nor a could-not-evaluate.
+That population **advances by slice.** A kind with no records is zero records of that kind and
+nothing more — `StateSetAbsent` is taken over `design/state/` as a whole, not per kind, so an
+absent subdirectory is neither a finding nor a could-not-evaluate. **Which kinds are populated
+is the directory listing's to state and is not written here**, on the same ground the migration
+paragraph above refuses a log-entry count: a per-kind roster fixed in this document is wrong by
+the next slice, and it is a restatement of the tree that no class checks.
 
 ### Marked regions
 
