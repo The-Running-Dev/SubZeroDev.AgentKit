@@ -470,7 +470,22 @@ generator. What that block cannot state:
   Two writers of a mirror is two answers to "when was this current".
 - **Writes `WorkRef` records and nothing else.** Never an issue, never a label, never a
   milestone — those are `/track`'s own carved-out writes and stay in the command.
-- **Stamps `MirroredAt` on every write**, including a write that changed nothing.
+- **Writes a `WorkRef` only when a mirrored field changed, and stamps `MirroredAt` on every write
+  it does make.** The mirrored fields are `Title`, `State`, `Criteria` and `Rank`; **`MirroredAt`
+  is not one of them and never triggers a write by itself.** A run that finds the tracker unmoved
+  leaves every record byte-identical and reports that it changed nothing. That is what stops a
+  `/track` run manufacturing a diff — and with it a branch, a pull request, and a `/clean` pass —
+  out of the commit sha alone, on a repository where no work may land on the default branch
+  (`AGENTS.md`, *Git and delivery*). The unconditional-write rule this replaces made the mirror's
+  content a function of repository history rather than of tracker state, so every `/track` run
+  produced a commit whose entire content was a stamp and whose merge guaranteed the next run
+  would do it again.
+- **`MirroredAt` therefore dates the mirror's *content*, not the tracker's last consultation.**
+  It is the commit at which a mirrored field was last established, and a checkout can no longer
+  say when `/track` last looked. That is this clause's price and it is paid deliberately:
+  `MirrorStale` has never blocked, and GitHub is authoritative for anyone who can reach it
+  (I28). **`MirrorStale`'s own comparison is unchanged** — it still fires for every record the
+  current commit did not write, so a mirror is still stale by default and still says so.
 - **`Rank` degrades rather than failing: a project field where a project exists, otherwise
   milestone, otherwise issue number.** `/track` "adds issues to an existing project, and never
   creates one" (`design/90-decisions.md`, 2026-08-03), so a repository with no project is the
