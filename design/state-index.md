@@ -19,9 +19,9 @@ means no record exists yet, not that nothing is true.
 | Id | Kind | Anchor |
 |---|---|---|
 | `unit/command/brief-check` | command | `.claude/commands/brief-check.md` |
+| `unit/command/clean` | command | `.claude/commands/clean.md` |
 | `unit/command/contract` | command | `.claude/commands/contract.md` |
 | `unit/command/design` | command | `.claude/commands/design.md` |
-| `unit/command/done` | command | `.claude/commands/done.md` |
 | `unit/command/fix` | command | `.claude/commands/fix.md` |
 | `unit/command/freeze` | command | `.claude/commands/freeze.md` |
 | `unit/command/install` | command | `.claude/commands/install.md` |
@@ -175,7 +175,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-05-resolve-asks-once-over-completed-classification | — |
 | decision/2026-08-05-seed-moves-to-templates-design | `unit/document/install-md` |
 | decision/2026-08-05-sync-kit-mechanism-recorded | `unit/script/sync-kit` |
-| decision/2026-08-08-done-housekeeping-scripts-everything-before-ask | `unit/command/done`, `unit/script/invoke-donehousekeeping` |
+| decision/2026-08-08-done-housekeeping-scripts-everything-before-ask | `unit/command/clean`, `unit/script/invoke-donehousekeeping` |
 | decision/2026-08-08-kit-sync-new-command | `unit/command/kit-sync` |
 | decision/2026-08-08-pr-absorbs-gates-drafts-abolished | `unit/command/fix`, `unit/command/pr`, `unit/command/slice`, `unit/document/agents-md` |
 | decision/2026-08-08-sync-kit-built | `unit/document/install-md`, `unit/script/sync-kit` |
@@ -214,7 +214,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-20-state-index-hosts-outstanding-projection | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 | decision/2026-08-21-install-code-review-agent-writes-the-workflow-file-only | `unit/command/install-code-review-agent` |
 | decision/2026-08-21-install-delivers-on-a-feature-branch | — |
-| decision/2026-08-22-done-always-hands-off-to-track | `unit/command/done`, `unit/command/kit-help` |
+| decision/2026-08-22-done-always-hands-off-to-track | `unit/command/clean`, `unit/command/kit-help` |
 | decision/2026-08-24-codex-tier-resolved-from-config | `unit/document/agents-md` |
 | decision/2026-08-25-branch-commit-push-pr-delegated-for-all-work | — |
 | decision/2026-08-25-code-review-defaults-high-effort-fix-push | — |

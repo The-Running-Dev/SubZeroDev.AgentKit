@@ -1,7 +1,7 @@
-# unit/command/done
+# unit/command/clean
 Kind: command
 Status: active
-Anchor: .claude/commands/done.md
+Anchor: .claude/commands/clean.md
 Consumes:
 Exposes:
 Binds:
