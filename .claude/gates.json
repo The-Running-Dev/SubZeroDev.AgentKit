@@ -1,22 +1,22 @@
 {
-  "manifestHash": "16dce660107edd50f37832c8ba82905195497d477669a1e3c075b1cc1f9be6d8",
-  "generated": "2026-08-20",
+  "manifestHash": "fa9083b8a69fbd21b8ec72183c9316c844a42c736b8f568cfa9175c412dd54eb",
+  "generated": "2026-08-27",
   "gates": [
     {
-      "name": "Parse-check PowerShell scripts",
-      "command": "parse"
+      "command": "Get-ChildItem -Recurse -Filter *.ps1 | parse each with [System.Management.Automation.Language.Parser]::ParseFile",
+      "name": "Parse-check PowerShell scripts"
     },
     {
-      "name": "Run Pester tests",
-      "command": "pester"
+      "command": "Invoke-Pester -Path tools -Output Detailed -PassThru",
+      "name": "Run Pester tests"
     },
     {
-      "name": "Validate the core/companion split",
-      "command": "./tools/Test-Companion.ps1"
+      "command": "./tools/Test-Companion.ps1",
+      "name": "Validate the core/companion split"
     },
     {
-      "name": "Check the design state against the tree",
-      "command": "./tools/Test-DesignState.ps1"
+      "command": "./tools/Test-DesignState.ps1",
+      "name": "Check the design state against the tree"
     }
   ]
 }
