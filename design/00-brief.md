@@ -124,9 +124,11 @@ checked is not finished being written.
   **without opening `design/90-decisions.md`**: contracts it consumes, contracts it exposes,
   invariants that apply to it, accepted decisions, superseded decisions, unresolved questions
   affecting it, dependent GitHub work, and implementation evidence.
-- The design state loaded to begin work on any one named unit is **at most 16,384 bytes**.
-  Checked mechanically across every unit, with the largest one named in the report. This
-  ceiling is fixed and does not rise as the corpus grows.
+- The design state loaded to begin work on any one named unit is **at most 16,384 bytes**,
+  **including that unit's own artifact**. Checked mechanically across every unit, with the
+  largest one named in the report. This ceiling is fixed and does not rise as the corpus grows.
+  The artifact counts because the criterion measures the bytes loaded and a session that begins
+  work on a unit opens that unit's file; excluding it certifies a number nobody reads against.
 - No existing entry in `design/90-decisions.md` is modified. Checkable: this project's commits
   to that file show additions only — no line of a pre-existing entry is deleted, reordered, or
   reformatted.
