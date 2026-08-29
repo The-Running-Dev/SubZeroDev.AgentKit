@@ -113,7 +113,8 @@ $commandProfiles = [ordered]@{
     'install-all'      = 'builder'
     'kit-sync'         = 'builder'
     'kit-help'         = 'quick'
-    'done'             = 'quick'
+    'clean'            = 'quick'
+    'install-code-review-agent' = 'builder'
     'freeze'           = 'builder'
     'unfreeze'         = 'builder'     # its own reconcile/track sub-phases pick their own profile
 }
