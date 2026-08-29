@@ -3,20 +3,20 @@
   "generated": "2026-08-27",
   "gates": [
     {
-      "command": "Get-ChildItem -Recurse -Filter *.ps1 | parse each with [System.Management.Automation.Language.Parser]::ParseFile",
-      "name": "Parse-check PowerShell scripts"
+      "name": "Parse-check PowerShell scripts",
+      "command": "parse"
     },
     {
-      "command": "Invoke-Pester -Path tools -Output Detailed -PassThru",
-      "name": "Run Pester tests"
+      "name": "Run Pester tests",
+      "command": "pester"
     },
     {
-      "command": "./tools/Test-Companion.ps1",
-      "name": "Validate the core/companion split"
+      "name": "Validate the core/companion split",
+      "command": "companion"
     },
     {
-      "command": "./tools/Test-DesignState.ps1",
-      "name": "Check the design state against the tree"
+      "name": "Check the design state against the tree",
+      "command": "design-state"
     }
   ]
 }

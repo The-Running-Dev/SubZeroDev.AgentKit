@@ -1,24 +1,24 @@
 {
   "gates": [
     {
-      "detail": "No parse errors across every *.ps1 in the repository (Parser]::ParseFile).",
       "name": "Parse-check PowerShell scripts",
-      "status": "Passed"
+      "status": "Passed",
+      "detail": "Every *.ps1 parsed with [System.Management.Automation.Language.Parser]::ParseFile, no parse errors. Output: PARSE_OK"
     },
     {
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: 266 passed, 0 failed, 0 skipped, 0 not run.",
       "name": "Run Pester tests",
-      "status": "Passed"
+      "status": "Passed",
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru. Tests completed in 68.58s. Tests Passed: 257, Failed: 0, Skipped: 0, NotRun: 0."
     },
     {
-      "detail": "Test-Companion.ps1: Companion split OK - 22 core(s) checked, 0 companion file(s) present, 22 core(s) with no companion. State=Valid, exit 0.",
       "name": "Validate the core/companion split",
-      "status": "Passed"
+      "status": "Passed",
+      "detail": "./tools/Test-Companion.ps1 output: Companion split OK - 22 core(s) checked, 0 companion file(s) present, 22 core(s) with no companion. State: Valid, Findings: {}, CoreCount: 22, CompanionCount: 0, AbsentCount: 22."
     },
     {
-      "detail": "Test-DesignState.ps1: 0 blocking Findings, 0 CouldNotEvaluate, exit 0. 9 non-blocking Reported items (MirrorStale x8, WorkStateDivergence x1) - pre-existing tracker-mirror staleness unrelated to this change; largest closure unit/document/design-20-contract at 16167/16384 bytes.",
       "name": "Check the design state against the tree",
-      "status": "Passed"
+      "status": "Passed",
+      "detail": "./tools/Test-DesignState.ps1 exit code 0. Findings (0): none. Reported (9) non-blocking MirrorStale/WorkStateDivergence items for unrelated open issues (work/112, work/113, work/116, work/117, work/118, work/12, work/120, work/33) since HEAD moved past their last mirror commit - these are advisory, not gate failures. Could not evaluate (0): none. Largest closure: unit/document/design-20-contract, 16167 bytes (ceiling 16384)."
     }
   ]
 }
