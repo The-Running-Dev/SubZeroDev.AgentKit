@@ -5,13 +5,7 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
-- **The absorbed edge is decided and not implemented** — `design/10-design.md` § *Retirement is
-  relocation, never deletion* adds `Absorbed` and `Answered` to the `Unit` record and excludes
-  both from the orientation closure, which is what stops `unit/document/agents-md` accruing
-  decisions it has no room for. Still to be written: the record grammar, the four class ids the
-  new failure modes need, and the reader, projector and checker changes. Until they land the
-  fields cannot be used and every decision still lands in `Live`, so the wall stands where the
-  entry below found it. A todo, not a design question.
+**None.** The absorbed-edge todo tracked here is now [#140](../../issues/140).
 
 ---
 
