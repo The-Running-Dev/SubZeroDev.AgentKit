@@ -264,5 +264,8 @@ that looks old.
 | 146 | #146 | A partial decision write is indistinguishable from a valid one | O4.1, O4.2, O4.3 | `b1db60157739f6c254c41e6c1b9f94cce2e31dc6` |
 | 147 | #147 | The 16 KB measurement excludes design state orientation is required to read | O5.1, O5.2, O5.3 | `b1db60157739f6c254c41e6c1b9f94cce2e31dc6` |
 | 148 | #148 | Supersession can form a cycle with no standing decision | O6.1, O6.2, O6.3 | `b1db60157739f6c254c41e6c1b9f94cce2e31dc6` |
+| 151 | #151 | Five decision records exist with no unit naming them, and a new rule would flag each as a finding | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
+| 152 | #152 | question/answered-question-unit-edge is recorded open despite being answered on 2026-08-29 | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
+| 153 | #153 | ClosureOverBudget is green for a reason now known to be wrong | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
