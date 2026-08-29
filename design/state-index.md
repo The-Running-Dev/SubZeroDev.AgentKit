@@ -253,8 +253,14 @@ that looks old.
 | 26 | #118 | Two command files still point at the retired authorization batch | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 | 27 | #120 | Nothing retires a landed slice's body out of design/30-slices.md § Outstanding | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 | 29 | #140 | The absorbed edge is decided and not implemented | — | `5c4534e7e41773cfb17d44e042c73e0519be287d` |
+| 30 | #143 | The closure still grows without bound; absorption only slows it | O1.1, O1.2, O1.3 | `b1db60157739f6c254c41e6c1b9f94cce2e31dc6` |
 | 112 | #112 | Kit self-tests fail again in any installed target that has run /track (#109 regression) | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
 | 113 | #113 | StateSetAbsent never fires in a target that has run /track: 16 work-mirror records mask an unadopted state set | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 | 127 | #127 | Update-WorkMirror.ps1's per-write MirroredAt restamp collides with the no-work-on-main branching rule, producing a /track -> PR -> /clean -> /track loop on every run | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
+| 144 | #144 | A retired contract leaves an active unit's Consumes/Exposes edge with nowhere to go | O2.1, O2.2, O2.3 | `b1db60157739f6c254c41e6c1b9f94cce2e31dc6` |
+| 145 | #145 | Status consistency is checked in one direction only | O3.1, O3.2, O3.3 | `b1db60157739f6c254c41e6c1b9f94cce2e31dc6` |
+| 146 | #146 | A partial decision write is indistinguishable from a valid one | O4.1, O4.2, O4.3 | `b1db60157739f6c254c41e6c1b9f94cce2e31dc6` |
+| 147 | #147 | The 16 KB measurement excludes design state orientation is required to read | O5.1, O5.2, O5.3 | `b1db60157739f6c254c41e6c1b9f94cce2e31dc6` |
+| 148 | #148 | Supersession can form a cycle with no standing decision | O6.1, O6.2, O6.3 | `b1db60157739f6c254c41e6c1b9f94cce2e31dc6` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
