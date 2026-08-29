@@ -7,31 +7,8 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 
 The absorbed-edge todo is [#140](../../issues/140), and `/redteam`'s six findings of 2026-08-29
 against `design/10-design.md` are [#143](../../issues/143) through [#148](../../issues/148); the
-entry immediately below answers all six. Two todos follow from that answer.
-
-- **Five decision records no unit names exist today, and the new rule makes each a finding** —
-  `design/10-design.md` § *A decision nothing names is an interrupted write* requires every
-  accepted decision to be named by a `Live` or to place a `StatedIn` site, and every superseded one
-  to be named by an `Archival`. Four accepted records break the first half
-  (`decision/2026-08-21-install-delivers-on-a-feature-branch`,
-  `decision/2026-08-25-branch-commit-push-pr-delegated-for-all-work`,
-  `decision/2026-08-25-code-review-defaults-high-effort-fix-push`,
-  `decision/2026-08-25-high-volume-tier-retired-haiku-luna-removed`) and one superseded record
-  breaks the second (`decision/2026-08-03-ticking-checkbox-is-the-users`). Each needs an edge
-  written or a site named before the class can be turned on; whether each is an interrupted write
-  or a unit that was never given the edge is a per-record judgement, not a mechanical fix.
-
-- **`question/answered-question-unit-edge` is recorded `open` and was answered on 2026-08-29** —
-  the design settled that a unit's `Questions` edge gains a retired half, and the record still says
-  `Status: open` with no `AnsweredBy`, so `design/state-index.md` renders it under
-  `Questions — blocks` for units nothing blocks. It cannot be corrected until the grammar carries
-  `Answered`, which is why it is a todo rather than an edit: the record and the companion half land
-  together or the checker reports a question answered by a decision with nowhere to move the edge.
-
-- **`ClosureOverBudget` is green for a reason now known to be wrong** — `tools/Test-DesignState.ps1`
-  computes the closure over records only, and the ceiling now counts the unit's own artifact, so the
-  gate reports zero findings where thirteen units breach. Amending the meter is a slice's, and I23's
-  text is `/contract`'s; until both land, a clean design-state run does not mean the ceiling is met.
+entry immediately below answers all six. The three todos that followed from that answer are
+[#151](../../issues/151), [#152](../../issues/152), and [#153](../../issues/153).
 
 ---
 
