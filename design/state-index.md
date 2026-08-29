@@ -19,9 +19,9 @@ means no record exists yet, not that nothing is true.
 | Id | Kind | Anchor |
 |---|---|---|
 | `unit/command/brief-check` | command | `.claude/commands/brief-check.md` |
+| `unit/command/clean` | command | `.claude/commands/clean.md` |
 | `unit/command/contract` | command | `.claude/commands/contract.md` |
 | `unit/command/design` | command | `.claude/commands/design.md` |
-| `unit/command/done` | command | `.claude/commands/done.md` |
 | `unit/command/fix` | command | `.claude/commands/fix.md` |
 | `unit/command/freeze` | command | `.claude/commands/freeze.md` |
 | `unit/command/install` | command | `.claude/commands/install.md` |
@@ -175,7 +175,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-05-resolve-asks-once-over-completed-classification | — |
 | decision/2026-08-05-seed-moves-to-templates-design | `unit/document/install-md` |
 | decision/2026-08-05-sync-kit-mechanism-recorded | `unit/script/sync-kit` |
-| decision/2026-08-08-done-housekeeping-scripts-everything-before-ask | `unit/command/done`, `unit/script/invoke-donehousekeeping` |
+| decision/2026-08-08-done-housekeeping-scripts-everything-before-ask | `unit/command/clean`, `unit/script/invoke-donehousekeeping` |
 | decision/2026-08-08-kit-sync-new-command | `unit/command/kit-sync` |
 | decision/2026-08-08-pr-absorbs-gates-drafts-abolished | `unit/command/fix`, `unit/command/pr`, `unit/command/slice`, `unit/document/agents-md` |
 | decision/2026-08-08-sync-kit-built | `unit/document/install-md`, `unit/script/sync-kit` |
@@ -214,11 +214,12 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-20-state-index-hosts-outstanding-projection | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 | decision/2026-08-21-install-code-review-agent-writes-the-workflow-file-only | `unit/command/install-code-review-agent` |
 | decision/2026-08-21-install-delivers-on-a-feature-branch | — |
-| decision/2026-08-22-done-always-hands-off-to-track | `unit/command/done`, `unit/command/kit-help` |
+| decision/2026-08-22-done-always-hands-off-to-track | `unit/command/clean`, `unit/command/kit-help` |
 | decision/2026-08-24-codex-tier-resolved-from-config | `unit/document/agents-md` |
 | decision/2026-08-25-branch-commit-push-pr-delegated-for-all-work | — |
 | decision/2026-08-25-code-review-defaults-high-effort-fix-push | — |
 | decision/2026-08-25-high-volume-tier-retired-haiku-luna-removed | — |
+| decision/2026-08-26-workmirror-writes-only-on-change | `unit/script/update-workmirror` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks
@@ -243,12 +244,12 @@ that looks old.
 <!-- outstanding:start -->
 | Rank | Issue | Title | Criteria | Mirrored at |
 |---|---|---|---|---|
-| 4 | #12 | Nothing sizes a prompt to the target model | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
-| 24 | #116 | Codex profile selection was manual and repeatedly mismatched a command's required tier | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
-| 25 | #117 | tools/Invoke-CodexCommand.ps1 cannot select a model on the machine it was written for | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
-| 26 | #118 | Two command files still point at the retired authorization batch | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
-| 27 | #120 | Nothing retires a landed slice's body out of design/30-slices.md § Outstanding | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
+| 4 | #12 | Nothing sizes a prompt to the target model | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
+| 24 | #116 | Codex profile selection was manual and repeatedly mismatched a command's required tier | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
+| 25 | #117 | tools/Invoke-CodexCommand.ps1 cannot select a model on the machine it was written for | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
+| 26 | #118 | Two command files still point at the retired authorization batch | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
+| 27 | #120 | Nothing retires a landed slice's body out of design/30-slices.md § Outstanding | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
 | 112 | #112 | Kit self-tests fail again in any installed target that has run /track (#109 regression) | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
-| 113 | #113 | StateSetAbsent never fires in a target that has run /track: 16 work-mirror records mask an unadopted state set | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
-| milestone/3 | #33 | Move commands to a vendor-neutral path | — | `041d6c1d2ea55915c5f7e9b74e77ee6bf096d4a1` |
+| 113 | #113 | StateSetAbsent never fires in a target that has run /track: 16 work-mirror records mask an unadopted state set | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
+| milestone/3 | #33 | Move commands to a vendor-neutral path | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
 <!-- outstanding:end -->
