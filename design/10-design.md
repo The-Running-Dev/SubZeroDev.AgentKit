@@ -26,9 +26,10 @@ easily lost later, so it is stated early and enforced in *Module boundaries*.
 
 **Nothing a session must read grows with the corpus.** The brief fixes a ceiling and says it
 never rises; a representation where any counted field accumulates makes that ceiling a
-countdown rather than a bound. Every field in the counted set is therefore bounded by the
-unit's own surface or by work in progress, and *The orientation closure* discharges that
-field by field rather than asserting it.
+countdown rather than a bound. Every record field in the counted set is therefore bounded by
+the unit's own surface or by work in progress, and *The orientation closure* discharges that
+field by field rather than asserting it. The unit's own artifact is counted too and is bounded
+by nothing but its own size, which is why *Whether the ceiling can be met* exists.
 
 ## Data model
 
@@ -383,8 +384,7 @@ The brief's 16,384-byte ceiling is only checkable if "the state loaded to begin 
 *defined set*. It is:
 
 > **closure(U) = the active record of U, plus the record of every id that record names
-> directly.** One hop. Not transitive. The companion is not in it, and neither is U's own
-> artifact.
+> directly, plus U's own artifact.** One hop. Not transitive. The companion is not in it.
 
 Five consequences, all load-bearing:
 
@@ -392,35 +392,77 @@ Five consequences, all load-bearing:
   to the units it also affects is pursuing a question, not starting work. An unbounded closure
   reaches everything, because decisions bind many units, and the budget would be unmeetable
   by construction.
-- **No field in the counted set grows with the corpus**, and that is discharged per field
-  rather than asserted. `Consumes`, `Exposes` and `Binds` are bounded by the unit's real
+- **No record field in the counted set grows with the corpus**, and that is discharged per
+  field rather than asserted. `Consumes`, `Exposes` and `Binds` are bounded by the unit's real
   surface. `Live` is bounded by decisions in flight. `Questions` by open questions, `Work` by
   open issues, `Evidence` by the unit's tests. `Owns` is one sentence. Everything that
   accumulates — superseded decisions, answered questions, closed issues, executed decisions,
   retired contracts — has left for the companion or for a site on the decision. That is the
   brief's *does not rise as the corpus grows* made structural instead of aspirational, and it
-  is the property the whole retirement mechanism exists to buy.
-- **The ceiling measures records, not artifacts, and the total is reported so nothing hides
-  behind that.** A unit's own file has never been inside its budget — a session orienting on a
-  command reads the command — and absorption does not change that, it uses it. But absorption
-  does mean some standing design state is stated in artifact bytes the meter does not count,
-  so the checker additionally reports, for every unit, **closure bytes plus the artifact's
-  bytes**, and names the largest of those too. The blocking number is the one the brief fixes;
-  the reported number is what a session actually loads, and publishing both is what keeps the
-  first from becoming a number that is true and unhelpful. *Open questions* carries the one
-  half of this that is the brief's wording and not mine to settle.
+  is the property the whole retirement mechanism exists to buy. The artifact is the term this
+  does not bound, and *Whether the ceiling can be met* below is where that is confronted rather
+  than absorbed into a caveat.
+- **The artifact counts in full, so the ceiling measures orientation cost and not bookkeeping
+  cost.** A session that begins work on a unit opens that unit's file; counting the records it
+  must additionally fetch while excluding the file it certainly opens produces a number that is
+  true and unhelpful, and one that absorption can drive toward zero without reducing a byte of
+  what is read. Including it is the literal reading of the brief's criterion and the only one
+  under which the measurement cannot be improved without improving the thing it measures.
+- **Absorption is now unambiguously a shrink, and the reach rule is what makes it one.** The
+  artifact's bytes are counted whether or not a decision's terms are written into it, so
+  executing a decision into a site removes the decision record from the closure and adds
+  nothing — every absorption is a strict saving, and there is no longer any case where writing
+  a rule into the document it governs raises the number. The reach rule earns its keep here
+  rather than in the accounting: a site must be somewhere already counted, so a claim can never
+  move to a place the ceiling does not see.
 - **The measurement must equal what is actually read**, so each record is separately
   openable and the closure is a sum of whole files. A representation where records share a
   file would make the metric understate the load, because a reader opens the file. It is the
   same argument that puts the retired halves in their own file rather than lower down in the
-  same one.
-- **Nothing is filtered at measurement time.** The closure has no exclusion clause left,
-  because *Every reference sits in the half its referent's state requires* removed the need
-  for one.
+  same one, and the same argument that puts the artifact in.
 
-The largest closure, and the largest reported total, are **named by the checker, not predicted
-here.** No number belongs in this document: it would be a second copy of a measurement, and it
-is the copy that rots.
+Nothing is filtered at measurement time. The closure has no exclusion clause left, because
+*Every reference sits in the half its referent's state requires* removed the need for one.
+
+The largest closure is **named by the checker, not predicted here.** No number belongs in this
+document: it would be a second copy of a measurement, and it is the copy that rots.
+
+### Whether the ceiling can be met
+
+It is not met today, and the brief's *Abandonment* line — not a relaxation — is the designed
+response. This section states the shape of the problem; the measurement itself belongs to the
+checker and to `design/cost.md`, not here.
+
+**The artifact dominates, and it dominates by roughly a factor of five on the units that
+matter.** For this repository's largest units the record closure is comfortably inside the
+ceiling and the artifact alone is several times it. That is not a bookkeeping failure the
+retirement mechanism can fix — every field it bounds is already bounded — and it is not
+something absorption can fix either, because absorption only ever removes records.
+
+**Meeting the ceiling under this definition means a file-size limit on the repository.** Since
+the closure is dominated by the artifact, "every unit under 16,384 bytes" is within a few
+kilobytes of "no command file, script, or document exceeds about ten kilobytes". That is a
+constraint on the whole tree, imposed by the design-state mechanism, and it is a much larger
+claim than anything else in this document. Two things follow, and both are honest rather than
+convenient:
+
+- **The obvious remedy is one this design has already rejected twice.** Splitting a large
+  document into one unit per section divides the artifact the same way it divides the `Live`
+  set, and it fails for the same reasons: two units anchored on one file breaks the
+  one-record-per-artifact bijection that makes "nothing is unrecorded" a checkable set
+  difference, and it moves every anchor onto a heading that a rename invalidates. Reaching for
+  it here because the arithmetic now demands it would be relitigating a settled decision under
+  pressure, which is the failure the decision log exists to prevent.
+- **Relaxing or retiring the ceiling is foreclosed.** The brief names a relaxed ceiling as the
+  failure mode it exists to prevent, not a smaller version of success. So the ceiling stands,
+  the measurement stands, and what is reported is that the two do not currently agree.
+
+**What the design does about it is report, precisely and on every run.** The checker names the
+unit with the largest closure, its size, and its largest contributor, on a clean run as well as
+a failing one. Under this definition the largest contributor will usually be the artifact, and
+saying so on every run is what keeps the gap from being rediscovered as a surprise. Whether the
+project proceeds, re-scopes, or stops is a judgement the brief reserves — and it is not a
+model's to make.
 
 ### Persisted versus in-memory
 
@@ -439,7 +481,7 @@ current-looking and wrong.
 | The graph validator | Reference and existence classes, including every pointer resolution, the half/status table, and supersession acyclicity | the reader, the tree | Findings |
 | The projector | Rendering one projection from records | the reader | Text |
 | The projection checker | Comparing a rendered region against the tree's copy | the projector, the tree | Findings |
-| The budget meter | Closure computation, the ceiling, and the reported total | the reader, the tree | Findings, reports, and the largest unit of each by name |
+| The budget meter | Closure computation and the ceiling | the reader, the tree | Findings, and the largest unit and its largest contributor by name |
 | The mirror generator | Refreshing `WorkRef` mirrors | `gh`, the reader | Written mirrors. **`/track`'s alone** |
 | The divergence checker | The closed class list, the freeze gate, the three-list report | validator, projection checker, budget meter, `design/FROZEN.md` | Three lists and an exit code |
 | `AGENTS.md` | The marked-region rule; the freeze rule | nothing | The rule every command cites |
@@ -461,7 +503,7 @@ by any other means.
 
 **The meter now reads the tree, and that is a widening worth naming.** Resolving a site's
 heading and sizing a unit's artifact both need the checkout, which the validator already
-needed. It is not a read of a projection, so it does not close the loop, and it needs nothing
+needed, and the second is no longer incidental — the artifact is a term in the sum. It is not a read of a projection, so it does not close the loop, and it needs nothing
 but the checkout, so it does not disturb the blocking rule below.
 
 **Two boundary conditions the rest of the kit imposes.**
@@ -483,17 +525,17 @@ mechanical rather than aspirational.
 The payoff path, and the one the brief's cost criterion measures.
 
 1. Resolve the unit by name to its active record.
-2. Read the closure: the record, plus one hop.
+2. Read the closure: the record, plus one hop, plus the unit's own artifact.
 3. Begin. **No corpus read, no reconstruction, and `design/90-decisions.md` is not opened.**
 
 What makes this different from reading a well-organised document is not the reading — it is
 that step 1 is a lookup with one answer. Today the same step is a judgement about which parts
 of 216 KB are still true.
 
-Decisions already executed against this unit are not in the closure and do not need to be:
-their terms are in the sections the session is opening regardless — the unit's own artifact, or
-a contract record already one hop away. That is what absorption bought, and the reported total
-is what keeps the size of it visible.
+Decisions already executed against this unit have no record in the closure and do not need
+one: their terms are in the sections the session is opening regardless — the unit's own
+artifact, or a contract record already one hop away, both of which the closure counts whether
+or not a decision was written into them. That is what makes absorption a strict saving.
 
 ### Record — a decision is made
 
@@ -543,8 +585,7 @@ that decides the closed list, and it is not a convenience — a class needing th
 in exactly the environment where the failure means nothing, and an unavailable tracker reported
 as a divergence is the fabricated gate result *Verification* exists to prevent. Reported and
 never blocking, therefore: mirror staleness and anything needing the tracker; pin ancestry,
-because a shallow CI checkout has no history to answer it with; the orientation total, because
-it counts an artifact the ceiling was never set against; and every semantic disagreement,
+because a shallow CI checkout has no history to answer it with; and every semantic disagreement,
 permanently, because the brief's *no formal specification of behaviour* non-goal puts them out
 of reach and a build that fails on a model's opinion is a build nobody trusts.
 
@@ -589,8 +630,7 @@ brief's scope answer expressed as a flow.
 | Line endings differ but content does not | Normalise before comparing | **Not a finding** | Nothing |
 | A decision anchor resolves to zero or two headings | Heading scan of the log | Finding, blocking | The anchor and the count |
 | A log entry has no decision record | Set difference against the log's headings | Finding, blocking | The entry's heading |
-| A closure exceeds the ceiling | The meter | Finding, blocking | The unit, its size, and its largest contributor |
-| A closure plus its artifact exceeds the ceiling | The meter | **Reported, never blocking** | The unit and both numbers, on every run |
+| A closure exceeds the ceiling | The meter | Finding, blocking | The unit, its size, and its largest contributor — usually the artifact |
 | An invariant enforced by `code` has no evidence | Field check | Finding, blocking | The invariant id |
 | `gh` absent or unauthenticated | Non-zero exit on first call | **Could not evaluate** for tracker classes only; the rest of the run completes | Named as a comparison that did not happen |
 | A shallow CI checkout | No history for `merge-base` | **Could not evaluate** for ancestry, and never a pass | That ancestry was not checked, and why |
@@ -690,19 +730,22 @@ supersession that never happened. **A derived `States` list projected into the u
 which keeps the unit-side view without a written second copy and puts generated text inside the
 file the reader parses and the meter counts, which is the one place a projection must not go.
 
-**The artifact's bytes: excluded from the ceiling, reported alongside it.** The fork that
-reaches the brief. Rejected: **counting each absorbed section against the ceiling**, which is
-the literal reading of "design state loaded to begin work" and inverts the mechanism — a
-section is almost always larger than the one decision record it first replaces, so absorption
-would raise the closure until several decisions had accumulated in it, and a large document
-unit would breach on its own prose. **Counting the whole artifact**, honest and brutal:
-`AGENTS.md` was 34,899 bytes at the brief's baseline, so every large document unit fails for
-existing, and the ceiling stops measuring reconstruction cost and starts measuring the size of
-the thing being worked on. **Excluding it silently**, today's behaviour and the defect
-`/redteam` raised — the meter can then certify a number that is true and unhelpful, with
-nothing in the report saying so. Reporting the total keeps the blocking number comparable and
-makes the excluded half visible on every run, which is the same three-list discipline the rest
-of the checker already runs on.
+**The artifact's bytes: counted in full against the ceiling.** The fork that reaches the
+brief, and the one decided against this document's own recommendation — the recommendation was
+to keep counting records and report the total beside them, and the decision is that a criterion
+saying "the design state loaded to begin work" means the bytes loaded, without a qualification
+the brief does not make. It is recorded as declined rather than dropped, because the cost it
+named is now paid rather than avoided: a large document unit breaches on its own prose, and
+*Whether the ceiling can be met* is that cost stated in full instead of hedged. Rejected:
+**excluding the artifact and reporting the total alongside**, the recommendation, which keeps
+the blocking number comparable across units and leaves the criterion narrowed by a
+qualification nobody wrote down. **Excluding it silently**, today's behaviour and the defect
+`/redteam` raised — the meter certifies a number that is true and unhelpful, with nothing in
+the report saying so, and absorption can drive it toward zero without reducing a byte of what
+is read. **Counting only the sections a decision was absorbed into**, an intermediate worse
+than either end: it inverts the mechanism, because a section is almost always larger than the
+one decision record it first replaces, so absorbing would *raise* the closure until several
+decisions had accumulated in the same section.
 
 **Half/status agreement: one total table, both directions.** Rejected: **the four
 one-directional checks the previous revision named** — an absorbed decision that is superseded,
@@ -781,8 +824,9 @@ broken checker, which has nothing to do with the staleness a freeze is meant to 
 
 ## Open questions
 
-**Four of the five are closed**, by `design/90-decisions.md`, *2026-08-19 — The four open
-questions in `design/10-design.md` are closed; the unit set is 59, not 49*. They are kept rather
+**All five are closed.** The first four by `design/90-decisions.md`, *2026-08-19 — The four
+open questions in `design/10-design.md` are closed; the unit set is 59, not 49*; the fifth on
+2026-08-29, at sign-off, against this document's recommendation. They are kept rather
 than deleted because one was decided against its recommendation and one narrowed the brief, and
 a question that disappears is one the next session asks again. The answers are recorded here;
 the reasoning and the rejected alternatives stay in the log entry.
@@ -811,19 +855,17 @@ the reasoning and the rejected alternatives stay in the log entry.
    repository's design state, and that cost is now paid rather than avoided.
 
 5. **Does "the design state loaded to begin work on any one named unit" include the unit's own
-   artifact?** **Open, and it is the brief's to answer, not this document's.** The design above
-   reads it as *records besides the artifact* — the reading every version of this document has
-   used, and the only one under which a 34,899-byte `AGENTS.md` does not fail a 16,384-byte
-   ceiling for existing. Absorption is what made the reading load-bearing rather than incidental:
-   once a decision's terms stand in a section of the artifact, some standing design state is
-   held in bytes the ceiling does not count, and the criterion's wording does not draw that
-   line. The design's answer to the half it owns is to **report** closure-plus-artifact for
-   every unit on every run, so the excluded bytes are stated rather than assumed; what remains is
-   whether `design/00-brief.md` § *Definition of done* should say so in the criterion itself. The
-   brief's content is not a model's to write, so it is asked here rather than assumed and
-   amended.
+   artifact?** **Closed: yes — against the recommendation**, which was to count records only and
+   report closure-plus-artifact beside them. The criterion is read literally: the bytes loaded
+   are the bytes loaded, and a qualification the brief does not make is not one this document
+   may supply. Retained as a declined recommendation rather than dropped, because the cost it
+   named was that a large document unit fails a 16,384-byte ceiling for existing, and that cost
+   is now paid: the ceiling is not met on this repository's own corpus, and the brief's
+   *Abandonment* line is live. *Whether the ceiling can be met* is where that is stated, and it
+   is stated rather than worked around, because working around it is the failure mode the
+   brief's own line exists to prevent.
 
-**One was added and it is the fifth.** The rule that this section only shrinks holds for
-questions the brief has answered; this one the brief has not been asked. The two questions the
-previous revision closed — how a closure shrinks, and whether a question edge gets a retired
-half — are decisions now and do not reappear.
+**The fifth was added and closed in the same revision.** The rule that this section only shrinks
+holds for questions the brief has answered; this one it had not been asked, and now has been.
+The two questions the previous revision closed — how a closure shrinks, and whether a question
+edge gets a retired half — are decisions now and do not reappear.

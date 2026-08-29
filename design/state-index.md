@@ -221,6 +221,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-25-code-review-defaults-high-effort-fix-push | — |
 | decision/2026-08-25-high-volume-tier-retired-haiku-luna-removed | — |
 | decision/2026-08-26-workmirror-writes-only-on-change | `unit/script/update-workmirror` |
+| decision/2026-08-29-ceiling-counts-the-units-own-artifact | `unit/document/design-00-brief`, `unit/document/design-10-design` |
 | decision/2026-08-29-claims-trimmed-to-standing-terms | `unit/document/design-10-design` |
 | decision/2026-08-29-closures-shrink-by-absorption | — |
 | decision/2026-08-29-retired-halves-to-companion-absorption-to-decision | `unit/document/design-10-design` |
