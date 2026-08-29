@@ -252,6 +252,7 @@ that looks old.
 | 25 | #117 | tools/Invoke-CodexCommand.ps1 cannot select a model on the machine it was written for | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 | 26 | #118 | Two command files still point at the retired authorization batch | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 | 27 | #120 | Nothing retires a landed slice's body out of design/30-slices.md § Outstanding | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
+| 29 | #140 | The absorbed edge is decided and not implemented | — | `5c4534e7e41773cfb17d44e042c73e0519be287d` |
 | 112 | #112 | Kit self-tests fail again in any installed target that has run /track (#109 regression) | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
 | 113 | #113 | StateSetAbsent never fires in a target that has run /track: 16 work-mirror records mask an unadopted state set | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 | 127 | #127 | Update-WorkMirror.ps1's per-write MirroredAt restamp collides with the no-work-on-main branching rule, producing a /track -> PR -> /clean -> /track loop on every run | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |

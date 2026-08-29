@@ -5,7 +5,55 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
-**None.** The absorbed-edge todo tracked here is now [#140](../../issues/140).
+The absorbed-edge todo tracked here is now [#140](../../issues/140). The six items below are
+`/redteam`'s findings of 2026-08-29 against `design/10-design.md`, each classified **defect** at
+sign-off. None is a fix: each names what the current design permits and which document owns the
+answer.
+
+- **The closure still grows without bound; absorption only slows it** — `record(U)` is counted in
+  full, and a retired edge's id and heading stay inside it. Twenty-two decision ids already occupy
+  1,334 bytes of `unit/document/agents-md`; the retired halves remove the referenced records from
+  the closure but not the references themselves, so I23's ceiling remains a countdown rather than a
+  freeze. The 2026-08-29 entry below claims the growth stops; that claim does not hold for the
+  reference bytes. `design/10-design.md` § *The orientation closure* owns whether a retired
+  reference is counted, and the answer is expensive to change later because storage, grammar,
+  reader, projection and closure semantics all depend on the retired-edge representation.
+
+- **A retired contract leaves an active unit's `Consumes`/`Exposes` edge with nowhere to go** —
+  keeping the edge points an active unit at a record excluded from its closure; removing it breaks
+  *Retirement is relocation, never deletion*, and no retired half exists for either edge. Reference
+  validation accepts the first state because the contract record still exists, so CI stays green
+  while orientation silently omits contract semantics the unit still names. `design/10-design.md`
+  § *Contract* and § *Retirement is relocation, never deletion*.
+
+- **Status consistency is checked in one direction only** — `Absorbed → superseded` and
+  `Questions → answered` are rejected, but `Live → superseded`, `Archival → accepted` and
+  `Answered → open` are not. All ids resolve and the halves stay disjoint, so the checker passes
+  while orientation can present a superseded claim as current, hide an accepted claim as
+  historical, or omit an unresolved blocker. `design/10-design.md` § *Failure modes*, with class
+  ids in `design/20-contract.md`.
+
+- **A partial decision write is indistinguishable from a valid one** — the log entry and the
+  decision record can exist with no unit naming the decision. Every written id is valid,
+  `Decision.Affects` derives to the empty set, and no failure mode rejects it, so an accepted
+  decision sits outside every unit's orientation state and a later session cannot tell an
+  interrupted write from an intentional zero-unit decision. Cheap now, while an empty `Affects` set
+  has no established meaning. `design/10-design.md` § *Decision* and § *Failure modes*.
+
+- **The 16 KB measurement excludes design state orientation is required to read** — an `Absorbed`
+  edge asserts the unit's own artifact states the decision's terms, and the closure meter excludes
+  that artifact. `AGENTS.md` was 34,899 bytes at the brief's baseline, more than twice the ceiling,
+  yet its absorbed terms count as zero. The checker can certify a closure under 16,384 bytes while
+  the session must load more than that to orient, so the cost criterion stops measuring what is
+  read. This narrows the brief's *Explicit current state* wording — "design state loaded to begin
+  work" — into "records besides the artifact", a qualification the brief does not make, so
+  `design/00-brief.md` is in scope alongside `design/10-design.md` § *Absorption*.
+
+- **Supersession can form a cycle with no standing decision** — A superseded by B while B is
+  superseded by A, or a decision naming itself. Every id exists, every `SupersededBy` is present,
+  and no validation rejects it, leaving a history that is internally contradictory with no accepted
+  terminal decision. Cheap now; a persisted cycle needs human adjudication to reconstruct intent.
+  `design/10-design.md` § *Decision* and § *Failure modes*.
 
 ---
 
