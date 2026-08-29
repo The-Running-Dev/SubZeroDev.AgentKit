@@ -12,11 +12,11 @@
     },
     {
       "name": "Validate the core/companion split",
-      "command": "./tools/Test-Companion.ps1"
+      "command": "companion"
     },
     {
       "name": "Check the design state against the tree",
-      "command": "./tools/Test-DesignState.ps1"
+      "command": "design-state"
     }
   ]
 }
