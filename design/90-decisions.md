@@ -5,10 +5,12 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 
-- **`unit/document/design-20-contract` is one decision away from `ClosureOverBudget`.**
-  Its closure is 16,167 bytes against I23's 16,384 — 217 bytes of headroom, with seventeen
-  `Live` decisions whose records run 590 to 1,241 bytes. The smallest of them is several times
-  the headroom, so the next decision recorded against this unit blocks the checker. The
+- **The document units are running out of closure, and `unit/document/agents-md` is now the
+  one nearest the wall** — 15,922 bytes against I23's 16,384, 462 of headroom, over
+  twenty-two `Live` decisions, and it accrues one on every command-routing change.
+  `unit/document/design-20-contract` was the binding constraint at 16,167 bytes and 217 of
+  headroom until the 2026-08-29 entry below trimmed five over-long `Claim`s; it now sits at
+  14,826 with 1,558, which is roughly two amendments and does not answer this item. The
   design's only closure-shrinking mechanism is archival, and `Archival` is defined as
   *superseded*, which needs a later decision to replace an earlier one. Decisions about a
   document's own rules mostly do not supersede each other — each settles a different clause —
@@ -31,6 +33,13 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
   to free bytes would be the log lying about why a decision was replaced.
 
 ---
+
+### 2026-08-29 — Five over-long decision `Claim`s are trimmed to their standing terms; the structural ceiling remedy stays open
+Context: A `/contract` re-run found the contract derives cleanly from `design/10-design.md` — every declaration pointer, parameter assertion and the § *Public surface*/`Contract`-record correspondence that no class checks all hold — so no section needed regenerating. What the run did find was the checker naming `unit/document/design-20-contract` as the largest closure at 16,167 bytes against I23's 16,384: 217 bytes of headroom, against a smallest live decision record of 590. The next amendment to that document would have been a blocking `ClosureOverBudget` finding, and both remaining § *Unresolved* items land on it — the `Questions`-edge one explicitly as "`/contract`'s to specify". The § *Open* item above already records the structural problem and parks the remedy as `design/10-design.md`'s call; what it had no answer for was the immediate amendments.
+Chosen: Five live `Claim`s — the 1,022-to-1,241-byte records, in a set otherwise averaging around 700 — are trimmed to their standing terms, dropping the justification, which stays recoverable through each record's `Anchor` into the entry it binds to. `design/10-design.md` § *Data model* already caps a `Claim` as short prose kept "a claim rather than a summary", and `design/20-contract.md` states that the closure ceiling is the only budget and is enforced at the closure rather than at the field; these five read as summaries. No term is dropped from any of them. `design-20-contract`'s closure falls to 14,826 and its headroom from 217 to 1,558 — about two amendments. This is a stopgap and is recorded as one.
+Rejected: **Split `unit/document/design-20-contract`** — its own `Owns` line names four separable responsibilities and splitting divides the `Live` set, which is the only remedy that scales; it needs two document units anchored on one file, which `design/10-design.md`'s `Unit` model does not contemplate, so it is `/design`'s and not this command's. **Raise or retire I23's ceiling** — circular, since the amendment writes a decision into the very closure it would relieve, and it gives up the honestly-measurable load that one-file-per-record storage was chosen over a grouped document to buy. **Archive the claims already absorbed into the document's prose** — `Archival` means superseded and all seventeen are in force; using it as a size valve would make the log lie about why a decision was replaced, which is the objection the § *Open* item already raises against a manufactured supersession. **Do nothing and let the next amendment block** — the checker names the unit and its size on every run, so the failure would at least be accurate, but it leaves both § *Unresolved* items unresolvable, and the 2026-08-26 entry below already records two rejected alternatives that could not be written down for exactly this reason.
+Known and retained: the trim buys roughly two amendments and does not answer the § *Open* item, which stands unchanged. **`unit/document/agents-md` is now the binding constraint** at 15,922 bytes with 462 of headroom over 22 live decisions, and it accrues a decision on every command-routing change.
+Reversibility: cheap — the five records' prior text is one `git show` away, and no term was dropped from any of them.
 
 ### 2026-08-25 — `/code-review` defaults to `high` effort, always runs `--fix`, and its fixes are committed and pushed
 Context: The Command routing table left `/code-review`'s effort at "whatever was passed, e.g. `high`", which meant a run with no explicit level fell back to reusing whatever level was last typed rather than a guaranteed floor. It also left `--fix` as an opt-in flag and said nothing about what happens to the working tree after a fix is applied — under the pre-existing *Git and delivery* rules that meant a `--fix` run's changes could sit uncommitted until asked about. The user asked for all three to be fixed together: always `high`, always `--fix`, and always commit-and-push the result afterward.

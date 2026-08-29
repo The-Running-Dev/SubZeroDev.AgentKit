@@ -221,6 +221,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-25-code-review-defaults-high-effort-fix-push | — |
 | decision/2026-08-25-high-volume-tier-retired-haiku-luna-removed | — |
 | decision/2026-08-26-workmirror-writes-only-on-change | `unit/script/update-workmirror` |
+| decision/2026-08-29-claims-trimmed-to-standing-terms | `unit/document/design-10-design` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks
@@ -245,12 +246,13 @@ that looks old.
 <!-- outstanding:start -->
 | Rank | Issue | Title | Criteria | Mirrored at |
 |---|---|---|---|---|
-| 4 | #12 | Nothing sizes a prompt to the target model | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
-| 24 | #116 | Codex profile selection was manual and repeatedly mismatched a command's required tier | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
-| 25 | #117 | tools/Invoke-CodexCommand.ps1 cannot select a model on the machine it was written for | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
-| 26 | #118 | Two command files still point at the retired authorization batch | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
-| 27 | #120 | Nothing retires a landed slice's body out of design/30-slices.md § Outstanding | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
+| 4 | #12 | Nothing sizes a prompt to the target model | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
+| 24 | #116 | Codex profile selection was manual and repeatedly mismatched a command's required tier | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
+| 25 | #117 | tools/Invoke-CodexCommand.ps1 cannot select a model on the machine it was written for | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
+| 26 | #118 | Two command files still point at the retired authorization batch | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
+| 27 | #120 | Nothing retires a landed slice's body out of design/30-slices.md § Outstanding | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 | 112 | #112 | Kit self-tests fail again in any installed target that has run /track (#109 regression) | — | `6c72d87b89fe999b79a006043b35f926538a0333` |
-| 113 | #113 | StateSetAbsent never fires in a target that has run /track: 16 work-mirror records mask an unadopted state set | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
-| milestone/3 | #33 | Move commands to a vendor-neutral path | — | `ba4fb2261acd06caad1febdac44f06b363d65754` |
+| 113 | #113 | StateSetAbsent never fires in a target that has run /track: 16 work-mirror records mask an unadopted state set | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
+| 127 | #127 | Update-WorkMirror.ps1's per-write MirroredAt restamp collides with the no-work-on-main branching rule, producing a /track -> PR -> /clean -> /track loop on every run | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
+| milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
