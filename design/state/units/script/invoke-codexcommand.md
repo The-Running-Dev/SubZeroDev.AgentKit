@@ -5,7 +5,7 @@ Anchor: tools/Invoke-CodexCommand.ps1
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-08-30-tier-gate-reads-environment-stamp-first
 Archival:
 Questions:
 Work:
