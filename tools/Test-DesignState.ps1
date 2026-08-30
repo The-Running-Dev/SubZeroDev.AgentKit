@@ -852,9 +852,12 @@ function Test-EnforcementUnevidenced {
 # ---------------------------------------------------------------------------------------------
 # The budget meter. closure(U) = record(U), plus the record of every id record(U) names
 # directly, excluding Archival and excluding any named record whose Status is retired
-# (design/10-design.md § "The orientation closure"; S5.5). Size is the sum of the closure
-# members' own file sizes on disk, because the measurement must equal what a reader actually
-# opens.
+# (design/10-design.md § "The orientation closure"; S5.5), plus the tree artifact record(U)'s
+# own Anchor names, where that Anchor is a tree path rather than an invariant number or absent
+# (design/20-contract.md § tools/Test-DesignState.ps1, "the unit's own artifact is one of
+# them"; S19.1). Size is the sum of the closure members' own file sizes on disk, because the
+# measurement must equal what a reader actually opens - the artifact included, since a session
+# beginning work on a unit opens that file as surely as it opens the record.
 # ---------------------------------------------------------------------------------------------
 function Get-RecordFileBytes {
     param([Parameter(Mandatory)][string] $RepoPath, [Parameter(Mandatory)]$Record)
@@ -896,6 +899,17 @@ function Get-DesignClosure {
         $members.Add($named)
     }
 
+    # A Unit's Anchor is a tree path (design/20-contract.md § "Ids", "A unit of kind invariant
+    # is one record, not two" - the one exemption, where Anchor is the invariant number rather
+    # than a path). No other kind's Anchor is a tree pointer: Contract has no Anchor at all
+    # (Declaration instead), and Decision's Anchor is a dated heading label, never a path.
+    if ($Root.Kind -eq 'Unit' -and $Root.Scalars.ContainsKey('Anchor')) {
+        $anchor = $Root.Scalars['Anchor']
+        if (-not [string]::IsNullOrWhiteSpace($anchor)) {
+            $members.Add([pscustomobject]@{ Id = $null; Kind = 'Artifact'; Path = $anchor })
+        }
+    }
+
     ,@($members)
 }
 
@@ -915,17 +929,20 @@ function Test-ClosureBudget {
         $sized = @($members | ForEach-Object { [pscustomobject]@{ Record = $_; Bytes = (Get-RecordFileBytes -RepoPath $RepoPath -Record $_) } })
         $total = ($sized | Measure-Object -Property Bytes -Sum).Sum
         $biggest = $sized | Sort-Object Bytes -Descending | Select-Object -First 1
+        # S19.4: the artifact member carries no id, only a tree path - naming it by path is what
+        # makes the report line point at the file a reader would actually open next.
+        $biggestLabel = if ($biggest.Record.Kind -eq 'Artifact') { $biggest.Record.Path } else { $biggest.Record.Id }
 
         if (-not $largest -or $total -gt $largest.Bytes) {
             $largest = [pscustomobject]@{
                 Unit               = $root.Id
                 Bytes              = $total
-                LargestContributor = $biggest.Record.Id
+                LargestContributor = $biggestLabel
             }
         }
 
         if ($total -gt $script:ClosureBudgetBytes) {
-            $findings.Add((New-DesignFinding -Class 'ClosureOverBudget' -Subject $root.Id -Detail "closure is $total bytes (ceiling $($script:ClosureBudgetBytes)); largest contributor '$($biggest.Record.Id)'" -Blocking $true))
+            $findings.Add((New-DesignFinding -Class 'ClosureOverBudget' -Subject $root.Id -Detail "closure is $total bytes (ceiling $($script:ClosureBudgetBytes)); largest contributor '$biggestLabel'" -Blocking $true))
         }
     }
 
