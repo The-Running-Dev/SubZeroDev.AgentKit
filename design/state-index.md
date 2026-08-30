@@ -262,10 +262,10 @@ that looks old.
 | 152 | #152 | question/answered-question-unit-edge is recorded open despite being answered on 2026-08-29 | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
 | 153 | #153 | ClosureOverBudget is green for a reason now known to be wrong | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
 | 162 | #162 | Test-DesignState.ps1's -Repository parameter is ignored for the per-issue tracker read | — | `11eba577c4589a98537733fd7c6023fd3e5ae373` |
-| 166 | #166 | Invoke-DoneHousekeeping.ps1 silently reports success when its default-branch checkout fails (worktree conflict) | — | `11eba577c4589a98537733fd7c6023fd3e5ae373` |
-| 171 | #171 | S19 — The ceiling counts the file a session actually opens | S19.1, S19.2, S19.3, S19.4, S19.5, S19.6 | `7d27606f8ad45567335c15147115bedaba2e72a2` |
-| 172 | #172 | S20 — A unit's retired half moves to its own file | S20.1, S20.2, S20.3, S20.4, S20.5, S20.6, S20.7, S20.8, S20.9, S20.10 | `7d27606f8ad45567335c15147115bedaba2e72a2` |
-| 173 | #173 | S21 — A rule written into a document stops being carried twice | S21.1, S21.2, S21.3, S21.4, S21.5, S21.6 | `7d27606f8ad45567335c15147115bedaba2e72a2` |
 | 174 | #174 | S22 — Every decision says which parts of the kit it is in force for | S22.1, S22.2, S22.3, S22.4, S22.5, S22.6, S22.7 | `7d27606f8ad45567335c15147115bedaba2e72a2` |
+| 181 | #181 | Measure-Session.ps1 undercounts sessions that spawned subagents | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
+| 182 | #182 | SessionEnd cost-log hook misses roughly half of sessions | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
+| 183 | #183 | Housekeeping commands (/clean, /done, /next) run as full model sessions for work that is already scripted | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
+| 184 | #184 | The -Watch context-size warning fires with no consequence | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
