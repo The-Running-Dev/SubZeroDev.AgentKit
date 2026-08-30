@@ -160,7 +160,7 @@ $script:FieldTables = @{
     }
     Decision  = @{
         Scalar = @('Date', 'Anchor', 'Status', 'SupersededBy')
-        List   = @()
+        List   = @('StatedIn')
         Prose  = @('Claim')
     }
     Question  = @{
@@ -323,7 +323,27 @@ function Read-DesignFieldBlock {
 
                 [void]$seen.Add($name)
                 if ($Table.List -contains $name) {
-                    $lists[$name] = if ([string]::IsNullOrWhiteSpace($value)) { @() } else { @($value -split ',' | ForEach-Object { $_.Trim() }) }
+                    $rawEntries = if ([string]::IsNullOrWhiteSpace($value)) { @() } else { @($value -split ',' | ForEach-Object { $_.Trim() }) }
+                    if ($name -eq 'StatedIn') {
+                        # design/20-contract.md § "The state set": each site is `<id> § <heading>`.
+                        # An entry not of that form is a parse failure (S21.1) - reported with the
+                        # whole field line, per New-DesignStateFailure's own rule that the offending
+                        # line is reproduced verbatim rather than described - and never silently
+                        # dropped from the failure list, even though it is dropped from the parsed
+                        # list so a malformed site cannot masquerade as a resolvable one.
+                        $validEntries = [System.Collections.Generic.List[string]]::new()
+                        foreach ($entry in $rawEntries) {
+                            if ($entry -match '^\S+ § .+$') {
+                                $validEntries.Add($entry)
+                            } else {
+                                $failures.Add((New-DesignStateFailure -Reason 'Unparseable' -Path $RelativePath -Line $lineNumber -Text $line))
+                            }
+                        }
+                        $lists[$name] = @($validEntries)
+                    }
+                    else {
+                        $lists[$name] = $rawEntries
+                    }
                 }
                 else {
                     $scalars[$name] = $value

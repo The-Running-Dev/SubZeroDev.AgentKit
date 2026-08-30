@@ -167,7 +167,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-04-measure-session-claude-code-only-errors-not-zero | `unit/script/measure-session` |
 | decision/2026-08-04-pester-tests-and-ci-gate-for-measure-session | `unit/script/measure-session` |
 | decision/2026-08-04-refine-is-a-front-door-between-stages | `unit/command/refine` |
-| decision/2026-08-04-session-boundaries-are-policy-in-agents-md | `unit/document/agents-md` |
+| decision/2026-08-04-session-boundaries-are-policy-in-agents-md | — |
 | decision/2026-08-04-sessionend-hook-writes-cost-log | `unit/document/install-md`, `unit/script/measure-session` |
 | decision/2026-08-04-slice-creates-own-branch-and-pushes | `unit/command/slice` |
 | decision/2026-08-04-slice-takes-no-argument-reads-doneness-from-tracker | `unit/command/slice` |

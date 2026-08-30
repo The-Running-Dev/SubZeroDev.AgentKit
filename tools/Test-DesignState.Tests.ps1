@@ -66,7 +66,7 @@ BeforeAll {
     }
 
     # A minimal but exact stand-in for the two sections of design/20-contract.md the checker
-    # parses about itself - the same 26 class ids Test-DesignState.ps1 declares, and a verbatim
+    # parses about itself - the same 29 class ids Test-DesignState.ps1 declares, and a verbatim
     # copy of § "Artifacts of a unit kind"'s table - so end-to-end tests below do not spuriously
     # raise ClassListDisagreement or GlobDisagreement while exercising something else entirely.
     # The glob table agrees with the enumeration over any tree by construction, which is exactly
@@ -105,6 +105,9 @@ BeforeAll {
 | `RecordPairMalformed` | x | x |
 | `HalfStatusMismatch` | x | x |
 | `HalfOverlap` | x | x |
+| `SiteAmbiguous` | x | x |
+| `SiteOutOfReach` | x | x |
+| `SiteContradictsLive` | x | x |
 
 **Reported, never blocking.**
 
@@ -936,9 +939,95 @@ Status: active
     }
 }
 
+Describe 'Test-DesignState: absorption sites (S21)' {
+
+    BeforeEach {
+        Get-ChildItem $TestDrive -ErrorAction SilentlyContinue -Recurse -File |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'S21.2: SiteAmbiguous fires when a site resolves to zero headings' -Tag 'Fires', 'SiteAmbiguous' {
+        New-TreeFile -RelativePath 'TARGET.md' -Content @'
+# Title
+
+## Something Else
+'@
+        $unit = New-Record -Id 'unit/document/target' -Scalars @{ Kind = 'document'; Status = 'active'; Anchor = 'TARGET.md' }
+        $decision = New-Record -Id 'decision/zero-heading' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('unit/document/target § Missing Heading') }
+        $byId = @{ 'unit/document/target' = $unit; 'decision/zero-heading' = $decision }
+
+        $findings = Test-SiteAmbiguous -Records @($unit, $decision) -ById $byId -RepoPath $TestDrive
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'decision/zero-heading'
+        $findings[0].Detail | Should -Match '0 heading'
+    }
+
+    It 'S21.2: SiteAmbiguous fires when a site resolves to two headings' -Tag 'Fires', 'SiteAmbiguous' {
+        New-TreeFile -RelativePath 'TARGET2.md' -Content @'
+## Duplicate
+
+## Duplicate
+'@
+        $unit = New-Record -Id 'unit/document/target2' -Scalars @{ Kind = 'document'; Status = 'active'; Anchor = 'TARGET2.md' }
+        $decision = New-Record -Id 'decision/two-heading' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('unit/document/target2 § Duplicate') }
+        $byId = @{ 'unit/document/target2' = $unit; 'decision/two-heading' = $decision }
+
+        $findings = Test-SiteAmbiguous -Records @($unit, $decision) -ById $byId -RepoPath $TestDrive
+        $findings.Count | Should -Be 1
+        $findings[0].Detail | Should -Match '2 heading'
+    }
+
+    It 'S21.2: a site resolving to exactly one heading is silent' -Tag 'NearMiss', 'SiteAmbiguous' {
+        New-TreeFile -RelativePath 'TARGET3.md' -Content @'
+## Exactly One
+'@
+        $unit = New-Record -Id 'unit/document/target3' -Scalars @{ Kind = 'document'; Status = 'active'; Anchor = 'TARGET3.md' }
+        $decision = New-Record -Id 'decision/one-heading' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('unit/document/target3 § Exactly One') }
+        $byId = @{ 'unit/document/target3' = $unit; 'decision/one-heading' = $decision }
+
+        $findings = Test-SiteAmbiguous -Records @($unit, $decision) -ById $byId -RepoPath $TestDrive
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S21.3: SiteOutOfReach fires when no unit''s own identity or one-hop closure names the site''s id' -Tag 'Fires', 'SiteOutOfReach' {
+        $unit = New-Record -Id 'unit/document/unrelated' -Scalars @{ Status = 'active' }
+        $decision = New-Record -Id 'decision/orphan-site' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('unit/document/nowhere § Some Heading') }
+
+        $findings = Test-SiteOutOfReach -Records @($unit, $decision)
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'decision/orphan-site'
+    }
+
+    It 'S21.3: a site naming a contract at least one unit consumes or exposes is silent' -Tag 'NearMiss', 'SiteOutOfReach' {
+        $unit = New-Record -Id 'unit/script/holder' -Scalars @{ Status = 'active' } -Lists @{ Exposes = @('contract/held') }
+        $decision = New-Record -Id 'decision/reachable-site' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('contract/held § Semantics') }
+
+        $findings = Test-SiteOutOfReach -Records @($unit, $decision)
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S21.4: SiteContradictsLive fires when a decision is both named by a unit''s Live and stated in that same unit' -Tag 'Fires', 'SiteContradictsLive' {
+        $unit = New-Record -Id 'unit/document/both' -Scalars @{ Status = 'active' } -Lists @{ Live = @('decision/contradicts') }
+        $decision = New-Record -Id 'decision/contradicts' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('unit/document/both § Some Heading') }
+
+        $findings = Test-SiteContradictsLive -Records @($unit, $decision)
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'unit/document/both'
+    }
+
+    It 'S21.4: a decision Live on one unit and stated in a different one is silent' -Tag 'NearMiss', 'SiteContradictsLive' {
+        $liveUnit = New-Record -Id 'unit/document/holds-live' -Scalars @{ Status = 'active' } -Lists @{ Live = @('decision/elsewhere') }
+        $siteUnit = New-Record -Id 'unit/document/holds-site' -Scalars @{ Status = 'active' }
+        $decision = New-Record -Id 'decision/elsewhere' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('unit/document/holds-site § Some Heading') }
+
+        $findings = Test-SiteContradictsLive -Records @($liveUnit, $siteUnit, $decision)
+        $findings.Count | Should -Be 0
+    }
+}
+
 Describe 'Test-DesignState: ClassListDisagreement (S5.1)' {
 
-    It 'raises nothing when the contract document declares exactly the same 26 ids' -Tag 'NearMiss','ClassListDisagreement' {
+    It 'raises nothing when the contract document declares exactly the same 29 ids' -Tag 'NearMiss','ClassListDisagreement' {
         New-TreeFile -RelativePath 'design/20-contract.md' -Content $script:MinimalContract
         $result = Test-ClassListAgreement -ContractPath (Join-Path $TestDrive 'design/20-contract.md')
         $result.Finding | Should -BeNullOrEmpty
@@ -1472,13 +1561,57 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         }
     }
 
-    It 'S20.10: ClassListDisagreement''s contract-only set is exactly the five ids this slice does not land' {
+    It 'S21.5: one real absorption lands - decision/2026-08-04-session-boundaries-are-policy-in-agents-md is stated in unit/document/agents-md and dropped from its Live, and the run reports no SiteAmbiguous, SiteOutOfReach or SiteContradictsLive for it' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+
+        $decisionId = 'decision/2026-08-04-session-boundaries-are-policy-in-agents-md'
+        $byId[$decisionId].Lists['StatedIn'] | Should -Be @('unit/document/agents-md § Session boundaries')
+        $byId['unit/document/agents-md'].Lists['Live'] | Should -Not -Contain $decisionId
+
+        foreach ($class in 'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive') {
+            @($script:RealResult.Findings | Where-Object { $_.Class -eq $class -and $_.Subject -match $decisionId -or ($_.Class -eq $class -and $_.Detail -match $decisionId) }).Count | Should -Be 0
+        }
+
+        $afterMembers = Get-DesignClosure -Root $byId['unit/document/agents-md'] -ById $byId
+        @($afterMembers | ForEach-Object { $_.Id }) | Should -Not -Contain $decisionId
+    }
+
+    It 'S21.5: absorbing the decision shrinks unit/document/agents-md''s closure by exactly that decision record''s length' {
+        # Isolates exactly what the criterion measures - the byte cost of one more Live member -
+        # by comparing against an in-memory root whose Live differs by only the absorbed decision
+        # id. Reverting the real files on disk would also shrink the unit's own record (the Live
+        # line itself gets shorter), which is a second, unrelated saving the criterion does not
+        # claim; this keeps every other byte fixed.
+        $decisionId = 'decision/2026-08-04-session-boundaries-are-policy-in-agents-md'
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+
+        $afterRoot = $byId['unit/document/agents-md']
+        $afterMembers = Get-DesignClosure -Root $afterRoot -ById $byId
+        $afterBytes = ($afterMembers | ForEach-Object { Get-RecordFileBytes -RepoPath $script:RepoRoot -Record $_ } | Measure-Object -Sum).Sum
+
+        $clonedLists = $afterRoot.Lists.Clone()
+        $clonedLists['Live'] = @($afterRoot.Lists['Live']) + @($decisionId)
+        $beforeRoot = New-DesignRecord -Id $afterRoot.Id -Kind $afterRoot.Kind -Path $afterRoot.Path `
+            -Scalars $afterRoot.Scalars -Lists $clonedLists -Prose $afterRoot.Prose
+        $beforeMembers = Get-DesignClosure -Root $beforeRoot -ById $byId
+        $beforeBytes = ($beforeMembers | ForEach-Object { Get-RecordFileBytes -RepoPath $script:RepoRoot -Record $_ } | Measure-Object -Sum).Sum
+
+        ($beforeMembers | ForEach-Object { $_.Id }) | Should -Contain $decisionId
+        $decisionBytes = Get-RecordFileBytes -RepoPath $script:RepoRoot -Record $byId[$decisionId]
+        ($beforeBytes - $afterBytes) | Should -Be $decisionBytes
+    }
+
+    It 'S21.6: ClassListDisagreement''s contract-only set is exactly the two ids this slice does not land' {
         $finding = @($script:RealResult.Findings | Where-Object { $_.Class -eq 'ClassListDisagreement' })
         $finding.Count | Should -Be 1
-        foreach ($id in 'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive', 'DecisionUnplaced', 'SupersessionCycle') {
+        foreach ($id in 'DecisionUnplaced', 'SupersessionCycle') {
             $finding[0].Detail | Should -Match $id
         }
-        foreach ($id in 'RecordPairMalformed', 'HalfStatusMismatch', 'HalfOverlap') {
+        foreach ($id in 'RecordPairMalformed', 'HalfStatusMismatch', 'HalfOverlap', 'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive') {
             $finding[0].Detail | Should -Not -Match $id
         }
     }

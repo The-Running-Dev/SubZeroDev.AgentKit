@@ -72,7 +72,8 @@ $script:BlockingClasses = @(
     'UnresolvedId', 'AnchorMissing', 'OwnerMismatch', 'UnrecordedArtifact', 'ProjectionStale',
     'RegionMalformed', 'IdCollision', 'DecisionAnchorAmbiguous', 'LogEntryUnrecorded',
     'EnforcementUnevidenced', 'ClosureOverBudget', 'ClassListDisagreement', 'GlobDisagreement',
-    'RecordPairMalformed', 'HalfStatusMismatch', 'HalfOverlap'
+    'RecordPairMalformed', 'HalfStatusMismatch', 'HalfOverlap',
+    'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive'
 )
 $script:ReportedClasses = @(
     'MirrorStale', 'WorkStateDivergence', 'PinAncestry', 'SemanticDisagreement'
@@ -1016,6 +1017,166 @@ function Test-HalfOverlap {
 }
 
 # ---------------------------------------------------------------------------------------------
+# SiteAmbiguous, SiteOutOfReach, SiteContradictsLive: the three checks the 2026-08-30 revision's
+# S21 slice adds for absorption (design/10-design.md § "Absorption - where a decision's terms
+# come to stand"; design/20-contract.md § "The state set", "The divergence classes"). Malformed
+# StatedIn entries never reach these three - Read-DesignState.ps1 drops them as parse failures
+# (S21.1) - so every entry seen here is already `<id> § <heading>`.
+# ---------------------------------------------------------------------------------------------
+
+<#
+    Splits one already-validated `<id> § <heading>` site into its two parts. Never returns $null
+    for an entry that reached this point, because the reader's own grammar guarantees the shape.
+#>
+function ConvertFrom-StatedInSite {
+    param([Parameter(Mandatory)][string] $Site)
+    if ($Site -notmatch '^(?<id>\S+) § (?<heading>.+)$') { return $null }
+    [pscustomobject]@{ Id = $Matches['id']; Heading = $Matches['heading'] }
+}
+
+<#
+    The file a site's id stands for - design/20-contract.md, "resolved against the file the
+    site's id stands for - a unit's Anchor, or the record file of a contract". A Unit resolves to
+    the tree file its own Anchor names (a script's Anchor has no Markdown headings, which is what
+    keeps a direct script absorption from ever resolving - design/10-design.md's own reasoning,
+    not a rule enforced here). A Contract resolves to its own record file, which is real Markdown
+    carrying `## Semantics`. Any other kind, or an id with no record at all, resolves to nothing -
+    SiteAmbiguous reports that as zero headings rather than this function guessing a file.
+#>
+function Resolve-StatedInSiteFile {
+    param(
+        [Parameter(Mandatory)][string] $SiteId,
+        [Parameter(Mandatory)][hashtable] $ById,
+        [Parameter(Mandatory)][string] $RepoPath
+    )
+    if (-not $ById.ContainsKey($SiteId)) { return $null }
+    $record = $ById[$SiteId]
+    if ($record.Kind -eq 'Unit') {
+        $anchor = $record.Scalars['Anchor']
+        if ([string]::IsNullOrWhiteSpace($anchor)) { return $null }
+        return (Join-Path $RepoPath $anchor)
+    }
+    if ($record.Kind -eq 'Contract') {
+        return (Join-Path $RepoPath $record.Path)
+    }
+    return $null
+}
+
+function Get-MarkdownHeadingCount {
+    param([Parameter(Mandatory)][AllowNull()][string] $FilePath, [Parameter(Mandatory)][string] $Heading)
+    if (-not $FilePath -or -not (Test-Path -LiteralPath $FilePath -PathType Leaf)) { return 0 }
+    $count = 0
+    foreach ($line in (Get-Content -LiteralPath $FilePath)) {
+        if ($line -match '^#{1,6}\s+(.+?)\s*$' -and $Matches[1] -eq $Heading) { $count++ }
+    }
+    $count
+}
+
+<#
+    SiteAmbiguous. A site's heading must resolve to exactly one heading in the file its id
+    stands for; zero or two is a finding (design/20-contract.md § "The divergence classes").
+#>
+function Test-SiteAmbiguous {
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records,
+        [Parameter(Mandatory)][hashtable] $ById,
+        [Parameter(Mandatory)][string] $RepoPath
+    )
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+    foreach ($decision in @($Records | Where-Object { $_.Kind -eq 'Decision' })) {
+        if (-not $decision.Lists.ContainsKey('StatedIn')) { continue }
+        foreach ($site in $decision.Lists['StatedIn']) {
+            if ([string]::IsNullOrWhiteSpace($site)) { continue }
+            $parsed = ConvertFrom-StatedInSite -Site $site
+            if (-not $parsed) { continue }
+            $file = Resolve-StatedInSiteFile -SiteId $parsed.Id -ById $ById -RepoPath $RepoPath
+            $count = Get-MarkdownHeadingCount -FilePath $file -Heading $parsed.Heading
+            if ($count -ne 1) {
+                $findings.Add((New-DesignFinding -Class 'SiteAmbiguous' -Subject $decision.Id -Detail "site '$site' resolves to $count heading(s)" -Blocking $true))
+            }
+        }
+    }
+    ,@($findings)
+}
+
+<#
+    SiteOutOfReach. A site is in reach when some unit's own identity, or some unit's one-hop
+    closure (Consumes, Exposes, Binds, Live, Questions), names the site's id - design/10-design.md
+    § "Absorption", "somewhere that unit's reader already reaches: a section of the unit's own
+    Anchor, or a section of a record already one hop from it". "A site naming a contract at
+    least one unit consumes or exposes is silent" (design/20-contract.md) is the second half of
+    this test; the first half - a site naming a unit that is itself in the set - is what makes a
+    document able to absorb a decision into its own Anchor.
+#>
+function Test-SiteOutOfReach {
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records
+    )
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+    $units = @($Records | Where-Object { $_.Kind -eq 'Unit' })
+    $closureFields = @('Consumes', 'Exposes', 'Binds', 'Live', 'Questions')
+
+    foreach ($decision in @($Records | Where-Object { $_.Kind -eq 'Decision' })) {
+        if (-not $decision.Lists.ContainsKey('StatedIn')) { continue }
+        foreach ($site in $decision.Lists['StatedIn']) {
+            if ([string]::IsNullOrWhiteSpace($site)) { continue }
+            $parsed = ConvertFrom-StatedInSite -Site $site
+            if (-not $parsed) { continue }
+
+            $reached = $false
+            foreach ($unit in $units) {
+                if ($unit.Id -eq $parsed.Id) { $reached = $true; break }
+                foreach ($field in $closureFields) {
+                    if ($unit.Lists.ContainsKey($field) -and $unit.Lists[$field] -contains $parsed.Id) { $reached = $true; break }
+                }
+                if ($reached) { break }
+            }
+            if (-not $reached) {
+                $findings.Add((New-DesignFinding -Class 'SiteOutOfReach' -Subject $decision.Id -Detail "site '$site' names '$($parsed.Id)', which no unit's own identity or one-hop closure reaches" -Blocking $true))
+            }
+        }
+    }
+    ,@($findings)
+}
+
+<#
+    SiteContradictsLive. A decision may not be both named by a unit's Live and stated in that
+    same unit (design/10-design.md § "Absorption", "A decision may not be both Live on a unit
+    and stated in it").
+#>
+function Test-SiteContradictsLive {
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records
+    )
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+    $units = @($Records | Where-Object { $_.Kind -eq 'Unit' })
+
+    foreach ($decision in @($Records | Where-Object { $_.Kind -eq 'Decision' })) {
+        if (-not $decision.Lists.ContainsKey('StatedIn')) { continue }
+        $siteUnitIds = [System.Collections.Generic.HashSet[string]]::new()
+        foreach ($site in $decision.Lists['StatedIn']) {
+            if ([string]::IsNullOrWhiteSpace($site)) { continue }
+            $parsed = ConvertFrom-StatedInSite -Site $site
+            if (-not $parsed) { continue }
+            [void]$siteUnitIds.Add($parsed.Id)
+        }
+        if ($siteUnitIds.Count -eq 0) { continue }
+
+        foreach ($unit in $units) {
+            if (-not $unit.Lists.ContainsKey('Live')) { continue }
+            if ($unit.Lists['Live'] -notcontains $decision.Id) { continue }
+            if ($siteUnitIds.Contains($unit.Id)) {
+                $findings.Add((New-DesignFinding -Class 'SiteContradictsLive' -Subject $unit.Id -Detail "decision '$($decision.Id)' is both named by Live and stated in this unit via a site" -Blocking $true))
+            }
+        }
+    }
+    ,@($findings)
+}
+
+# ---------------------------------------------------------------------------------------------
 # The budget meter. closure(U) = record(U), plus the record of every id record(U) names
 # directly, plus the tree artifact record(U)'s own Anchor names, where that Anchor is a tree
 # path rather than an invariant number or absent (design/20-contract.md § tools/Test-DesignState.ps1,
@@ -1426,6 +1587,9 @@ function Invoke-DesignStateCheck {
     $blockingFindings.AddRange((Test-RecordPairMalformed -Records $records -CompanionOnly $graph.CompanionOnly))
     $blockingFindings.AddRange((Test-HalfStatusMismatch -Records $records -ById $byId))
     $blockingFindings.AddRange((Test-HalfOverlap -Records $records))
+    $blockingFindings.AddRange((Test-SiteAmbiguous -Records $records -ById $byId -RepoPath $RepoPath))
+    $blockingFindings.AddRange((Test-SiteOutOfReach -Records $records))
+    $blockingFindings.AddRange((Test-SiteContradictsLive -Records $records))
 
     $globResult = Test-GlobDisagreement -RepoPath $RepoPath -ContractPath $contractPath
     if ($globResult.CouldNotEvaluate) { $couldNotEvaluate.Add($globResult.CouldNotEvaluate) }
