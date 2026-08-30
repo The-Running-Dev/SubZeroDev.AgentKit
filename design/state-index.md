@@ -30,6 +30,7 @@ means no record exists yet, not that nothing is true.
 | `unit/command/kit-help` | command | `.claude/commands/kit-help.md` |
 | `unit/command/kit-sync` | command | `.claude/commands/kit-sync.md` |
 | `unit/command/make-human-docs` | command | `.claude/commands/make-human-docs.md` |
+| `unit/command/next` | command | `.claude/commands/next.md` |
 | `unit/command/pr` | command | `.claude/commands/pr.md` |
 | `unit/command/reconcile` | command | `.claude/commands/reconcile.md` |
 | `unit/command/redteam` | command | `.claude/commands/redteam.md` |
@@ -215,7 +216,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-20-state-index-hosts-outstanding-projection | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 | decision/2026-08-21-install-code-review-agent-writes-the-workflow-file-only | `unit/command/install-code-review-agent` |
 | decision/2026-08-21-install-delivers-on-a-feature-branch | — |
-| decision/2026-08-22-done-always-hands-off-to-track | `unit/command/clean`, `unit/command/kit-help` |
+| decision/2026-08-22-done-always-hands-off-to-track | `unit/command/kit-help` |
 | decision/2026-08-24-codex-tier-resolved-from-config | `unit/document/agents-md` |
 | decision/2026-08-25-branch-commit-push-pr-delegated-for-all-work | — |
 | decision/2026-08-25-code-review-defaults-high-effort-fix-push | — |
@@ -225,6 +226,11 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-29-claims-trimmed-to-standing-terms | `unit/document/design-10-design` |
 | decision/2026-08-29-closures-shrink-by-absorption | — |
 | decision/2026-08-29-retired-halves-to-companion-absorption-to-decision | `unit/document/design-10-design` |
+| decision/2026-08-30-derived-state-commits-to-default-branch | `unit/command/clean`, `unit/command/track`, `unit/document/agents-md` |
+| decision/2026-08-30-force-delete-delegated-on-tip-comparison | `unit/command/clean`, `unit/document/agents-md`, `unit/script/invoke-donehousekeeping` |
+| decision/2026-08-30-next-command-orients-and-acts | `unit/command/kit-help`, `unit/command/next`, `unit/document/agents-md` |
+| decision/2026-08-30-redteam-writes-findings-to-a-file | `unit/command/redteam` |
+| decision/2026-08-30-tier-gate-reads-environment-stamp-first | `unit/document/agents-md`, `unit/script/invoke-codexcommand` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks
