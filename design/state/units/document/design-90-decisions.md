@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds: I26
 Live: decision/2026-08-20-claim-excludes-rejections-question-writer-open
-Archival:
 Questions:
 Work:
 Evidence:

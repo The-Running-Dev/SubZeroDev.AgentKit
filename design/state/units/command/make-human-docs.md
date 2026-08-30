@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-03-make-human-docs-generated-drift-checked
-Archival:
 Questions:
 Work:
 Evidence:

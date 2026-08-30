@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-12-install-all-write-surface-guard
-Archival:
 Questions:
 Work:
 Evidence: tools/Test-WriteSurface.Tests.ps1
