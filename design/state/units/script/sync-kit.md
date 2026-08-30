@@ -6,7 +6,6 @@ Consumes: contract/test-companion
 Exposes:
 Binds:
 Live: decision/2026-08-05-sync-kit-mechanism-recorded, decision/2026-08-08-sync-kit-built
-Archival:
 Questions:
 Work:
 Evidence: tools/Sync-Kit.Tests.ps1

@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-04-refine-is-a-front-door-between-stages
-Archival:
 Questions:
 Work:
 Evidence:

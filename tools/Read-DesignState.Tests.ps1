@@ -69,7 +69,6 @@ Consumes:
 Exposes:
 Binds: I28
 Live: decision/2026-08-03-track-adds-to-existing-project
-Archival:
 Questions:
 Work:
 Evidence:

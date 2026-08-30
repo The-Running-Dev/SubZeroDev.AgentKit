@@ -6,7 +6,6 @@ Consumes:
 Exposes: contract/test-designdrift
 Binds: I12, I13
 Live:
-Archival:
 Questions:
 Work:
 Evidence: tools/Test-DesignDrift.Tests.ps1

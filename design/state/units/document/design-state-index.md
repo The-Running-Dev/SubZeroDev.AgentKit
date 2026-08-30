@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-20-state-index-hosts-outstanding-projection
-Archival: decision/2026-08-19-state-index-md-added
 Questions:
 Work:
 Evidence:

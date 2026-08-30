@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-02-lesson-capture-is-reconcile-output, decision/2026-08-11-documents-state-only-what-tree-cannot
-Archival:
 Questions:
 Work:
 Evidence:

@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-03-issues-read-human-first-agent-detail-collapsed
-Archival:
 Questions:
 Work:
 Evidence:

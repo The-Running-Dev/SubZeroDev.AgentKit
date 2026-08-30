@@ -71,7 +71,8 @@ $PSNativeCommandUseErrorActionPreference = $false
 $script:BlockingClasses = @(
     'UnresolvedId', 'AnchorMissing', 'OwnerMismatch', 'UnrecordedArtifact', 'ProjectionStale',
     'RegionMalformed', 'IdCollision', 'DecisionAnchorAmbiguous', 'LogEntryUnrecorded',
-    'EnforcementUnevidenced', 'ClosureOverBudget', 'ClassListDisagreement', 'GlobDisagreement'
+    'EnforcementUnevidenced', 'ClosureOverBudget', 'ClassListDisagreement', 'GlobDisagreement',
+    'RecordPairMalformed', 'HalfStatusMismatch', 'HalfOverlap'
 )
 $script:ReportedClasses = @(
     'MirrorStale', 'WorkStateDivergence', 'PinAncestry', 'SemanticDisagreement'
@@ -850,14 +851,180 @@ function Test-EnforcementUnevidenced {
 }
 
 # ---------------------------------------------------------------------------------------------
+# RecordPairMalformed, HalfStatusMismatch, HalfOverlap: the three checks the 2026-08-29 revision
+# adds for the retired-companion split (design/10-design.md §§ "A unit is one record in two
+# files", "Every reference sits in the half its referent's state requires"; design/20-contract.md
+# § "The divergence classes"). All three are Unit-only - a companion exists only for that kind
+# (S20's Out of scope: invariant records stay single-file).
+# ---------------------------------------------------------------------------------------------
+
+<#
+    Which file each Unit field belongs in - the pairing rule design/20-contract.md describes
+    ("which file a field may appear in is a pairing rule rather than a second field table")
+    rather than a second field table the reader would have to duplicate. Kind/Status/Anchor/Owns
+    have no companion counterpart at all, so a companion carrying any of them is exactly the same
+    defect shape as a companion carrying Archival etc. - "an active field written into the
+    companion" either way.
+#>
+$script:UnitFieldHalf = @{
+    Kind = 'Active'; Status = 'Active'; Anchor = 'Active'; Owns = 'Active'
+    Consumes  = 'Active'; Consumed = 'Companion'
+    Exposes   = 'Active'; Exposed  = 'Companion'
+    Binds     = 'Active'; Bound    = 'Companion'
+    Live      = 'Active'; Archival = 'Companion'
+    Questions = 'Active'; Answered = 'Companion'
+    Work      = 'Active'; Worked   = 'Companion'
+    Evidence  = 'Active'
+}
+
+<#
+    RecordPairMalformed. Three shapes (design/20-contract.md): a companion with no active record
+    beside it (from the reader's own CompanionOnly list - the reader parses a companion whether
+    or not its active half exists, so this is not could-not-evaluate, it is a real pair defect);
+    a retired-half field written into the active record; an active-half field written into the
+    companion. The last two both read off FieldOrigin, which the reader stamps per field with
+    the file it was actually read from - a field misplaced this way still parses cleanly under
+    the one Unit vocabulary, so nothing else on the closed list would ever see it.
+#>
+function Test-RecordPairMalformed {
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $CompanionOnly
+    )
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+
+    foreach ($orphan in $CompanionOnly) {
+        $findings.Add((New-DesignFinding -Class 'RecordPairMalformed' -Subject $orphan.Id `
+            -Detail "companion '$($orphan.Path)' exists with no active record beside it" -Blocking $true))
+    }
+
+    foreach ($record in $Records) {
+        if ($record.Kind -ne 'Unit') { continue }
+        if (-not $record.FieldOrigin) { continue }
+        $activePath = $record.Path
+        $companionPath = if ($record.CompanionPath) { $record.CompanionPath } else { '(no companion file)' }
+
+        foreach ($field in $record.FieldOrigin.Keys) {
+            if (-not $script:UnitFieldHalf.ContainsKey($field)) { continue }
+            $expected = $script:UnitFieldHalf[$field]
+            $actual = $record.FieldOrigin[$field]
+            if ($actual -eq $expected) { continue }
+
+            $side = if ($expected -eq 'Companion') { 'the retired companion' } else { 'the active record' }
+            $findings.Add((New-DesignFinding -Class 'RecordPairMalformed' -Subject $record.Id `
+                -Detail "field '$field' belongs in $side; active='$activePath', companion='$companionPath'" -Blocking $true))
+        }
+    }
+    ,@($findings)
+}
+
+<#
+    HalfStatusMismatch. design/10-design.md's half/status table, checked in both directions for
+    every row it states. Work/Worked name a WorkRef by issue number rather than a design-state id
+    (design/20-contract.md, "Work... issue numbers, not a design-state id"), so this resolves
+    them against 'work/<issue>' itself rather than reusing $script:IdListFields' resolution - the
+    same construction WorkRef's own id form uses. A `StatedIn` site is the table's eleventh row
+    and is out of scope here: the field does not exist until S21.
+#>
+function Test-HalfStatusMismatch {
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records, [Parameter(Mandatory)][hashtable] $ById)
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+    $units = @($Records | Where-Object { $_.Kind -eq 'Unit' })
+
+    $pairs = @(
+        @{ Active = 'Consumes';  Companion = 'Consumed'; ActiveStatus = 'active';   CompanionStatus = 'retired' }
+        @{ Active = 'Exposes';   Companion = 'Exposed';  ActiveStatus = 'active';   CompanionStatus = 'retired' }
+        @{ Active = 'Binds';     Companion = 'Bound';    ActiveStatus = 'active';   CompanionStatus = 'retired' }
+        @{ Active = 'Live';      Companion = 'Archival'; ActiveStatus = 'accepted'; CompanionStatus = 'superseded' }
+        @{ Active = 'Questions'; Companion = 'Answered'; ActiveStatus = 'open';     CompanionStatus = 'answered' }
+    )
+
+    foreach ($unit in $units) {
+        foreach ($pair in $pairs) {
+            foreach ($half in 'Active', 'Companion') {
+                $field = $pair[$half]
+                if (-not $unit.Lists.ContainsKey($field)) { continue }
+                $requiredStatus = $pair["${half}Status"]
+                foreach ($id in $unit.Lists[$field]) {
+                    if ([string]::IsNullOrWhiteSpace($id)) { continue }
+                    if (-not $ById.ContainsKey($id)) { continue }
+                    $status = $ById[$id].Scalars['Status']
+                    if ($status -ne $requiredStatus) {
+                        $findings.Add((New-DesignFinding -Class 'HalfStatusMismatch' -Subject $unit.Id `
+                            -Detail "$field names '$id', whose Status is '$status', not '$requiredStatus'" -Blocking $true))
+                    }
+                }
+            }
+        }
+
+        foreach ($pair in @(
+                @{ Field = 'Work';   RequiredState = 'OPEN' }
+                @{ Field = 'Worked'; RequiredState = 'CLOSED' }
+            )) {
+            if (-not $unit.Lists.ContainsKey($pair.Field)) { continue }
+            foreach ($issue in $unit.Lists[$pair.Field]) {
+                if ([string]::IsNullOrWhiteSpace($issue)) { continue }
+                $workId = "work/$issue"
+                if (-not $ById.ContainsKey($workId)) { continue }
+                $state = $ById[$workId].Scalars['State']
+                if ($state -ne $pair.RequiredState) {
+                    $findings.Add((New-DesignFinding -Class 'HalfStatusMismatch' -Subject $unit.Id `
+                        -Detail "$($pair.Field) names issue '$issue', whose WorkRef State is '$state', not '$($pair.RequiredState)'" -Blocking $true))
+                }
+            }
+        }
+    }
+    ,@($findings)
+}
+
+<#
+    HalfOverlap. design/10-design.md, "Relocation is reversible and the halves are disjoint" - an
+    id sitting in both halves of one edge on the same unit, e.g. named by both Live and Archival.
+    The same id in two different edges (Live and Binds, say) is not this class's - it is not even
+    a defect, since they are different fields entirely.
+#>
+function Test-HalfOverlap {
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records)
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+    $units = @($Records | Where-Object { $_.Kind -eq 'Unit' })
+
+    $pairs = @(
+        @{ Active = 'Consumes';  Companion = 'Consumed' }
+        @{ Active = 'Exposes';   Companion = 'Exposed' }
+        @{ Active = 'Binds';     Companion = 'Bound' }
+        @{ Active = 'Live';      Companion = 'Archival' }
+        @{ Active = 'Questions'; Companion = 'Answered' }
+        @{ Active = 'Work';      Companion = 'Worked' }
+    )
+
+    foreach ($unit in $units) {
+        foreach ($pair in $pairs) {
+            $activeIds = @(if ($unit.Lists.ContainsKey($pair.Active)) { @($unit.Lists[$pair.Active] | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) } else { @() })
+            $companionIds = @(if ($unit.Lists.ContainsKey($pair.Companion)) { @($unit.Lists[$pair.Companion] | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) } else { @() })
+            foreach ($id in $activeIds) {
+                if ($id -in $companionIds) {
+                    $findings.Add((New-DesignFinding -Class 'HalfOverlap' -Subject $unit.Id `
+                        -Detail "'$id' sits in both $($pair.Active) and $($pair.Companion)" -Blocking $true))
+                }
+            }
+        }
+    }
+    ,@($findings)
+}
+
+# ---------------------------------------------------------------------------------------------
 # The budget meter. closure(U) = record(U), plus the record of every id record(U) names
-# directly, excluding Archival and excluding any named record whose Status is retired
-# (design/10-design.md § "The orientation closure"; S5.5), plus the tree artifact record(U)'s
-# own Anchor names, where that Anchor is a tree path rather than an invariant number or absent
-# (design/20-contract.md § tools/Test-DesignState.ps1, "the unit's own artifact is one of
-# them"; S19.1). Size is the sum of the closure members' own file sizes on disk, because the
-# measurement must equal what a reader actually opens - the artifact included, since a session
-# beginning work on a unit opens that file as surely as it opens the record.
+# directly, plus the tree artifact record(U)'s own Anchor names, where that Anchor is a tree
+# path rather than an invariant number or absent (design/20-contract.md § tools/Test-DesignState.ps1,
+# "the unit's own artifact is one of them"; S19.1). Nothing is filtered at measurement time
+# (S20.8): the half/status table above is what keeps a retired record out of an active edge in
+# the first place, so the meter no longer needs an exclusion clause of its own. Size is the sum
+# of the closure members' own file sizes on disk, because the measurement must equal what a
+# reader actually opens - the artifact included, since a session beginning work on a unit opens
+# that unit's file as surely as it opens the record.
 # ---------------------------------------------------------------------------------------------
 function Get-RecordFileBytes {
     param([Parameter(Mandatory)][string] $RepoPath, [Parameter(Mandatory)]$Record)
@@ -874,17 +1041,19 @@ function Get-DesignClosure {
     $seen = [System.Collections.Generic.HashSet[string]]::new()
     [void]$seen.Add($Root.Id)
 
+    # Filters nothing (S20.8): the half/status table (design/10-design.md, "Every reference sits
+    # in the half its referent's state requires") already keeps a retired referent out of an
+    # active edge - HalfStatusMismatch is what catches the reference that shouldn't be here, not
+    # a skip at measurement time. A named id that reaches this point is therefore trusted as-is.
     $namedFields = @('Consumes', 'Exposes', 'Binds', 'Live', 'Questions')
     foreach ($field in $namedFields) {
         if (-not $Root.Lists.ContainsKey($field)) { continue }
         foreach ($id in $Root.Lists[$field]) {
             if ([string]::IsNullOrWhiteSpace($id)) { continue }
             if (-not $ById.ContainsKey($id)) { continue }
-            $named = $ById[$id]
-            if ($named.Scalars.ContainsKey('Status') -and $named.Scalars['Status'] -eq 'retired') { continue }
             if ($seen.Contains($id)) { continue }
             [void]$seen.Add($id)
-            $members.Add($named)
+            $members.Add($ById[$id])
         }
     }
     foreach ($field in $script:IdScalarFields) {
@@ -892,11 +1061,9 @@ function Get-DesignClosure {
         $id = $Root.Scalars[$field]
         if ([string]::IsNullOrWhiteSpace($id)) { continue }
         if (-not $ById.ContainsKey($id)) { continue }
-        $named = $ById[$id]
-        if ($named.Scalars.ContainsKey('Status') -and $named.Scalars['Status'] -eq 'retired') { continue }
         if ($seen.Contains($id)) { continue }
         [void]$seen.Add($id)
-        $members.Add($named)
+        $members.Add($ById[$id])
     }
 
     # A Unit's Anchor is a tree path (design/20-contract.md § "Ids", "A unit of kind invariant
@@ -1256,6 +1423,9 @@ function Invoke-DesignStateCheck {
     $blockingFindings.AddRange((Test-RecordIdCollision -Records $records))
     $blockingFindings.AddRange((Test-DecisionAnchors -Records $records -LogPath (Join-Path $RepoPath 'design/90-decisions.md')))
     $blockingFindings.AddRange((Test-EnforcementUnevidenced -Records $records))
+    $blockingFindings.AddRange((Test-RecordPairMalformed -Records $records -CompanionOnly $graph.CompanionOnly))
+    $blockingFindings.AddRange((Test-HalfStatusMismatch -Records $records -ById $byId))
+    $blockingFindings.AddRange((Test-HalfOverlap -Records $records))
 
     $globResult = Test-GlobDisagreement -RepoPath $RepoPath -ContractPath $contractPath
     if ($globResult.CouldNotEvaluate) { $couldNotEvaluate.Add($globResult.CouldNotEvaluate) }

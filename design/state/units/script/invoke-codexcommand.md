@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-30-tier-gate-reads-environment-stamp-first
-Archival:
 Questions:
 Work:
 Evidence:

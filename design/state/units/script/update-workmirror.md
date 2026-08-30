@@ -6,7 +6,6 @@ Consumes:
 Exposes: contract/update-workmirror
 Binds:
 Live: decision/2026-08-26-workmirror-writes-only-on-change
-Archival:
 Questions:
 Work:
 Evidence: tools/Update-WorkMirror.Tests.ps1

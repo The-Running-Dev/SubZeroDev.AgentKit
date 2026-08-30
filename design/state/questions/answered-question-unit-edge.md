@@ -1,5 +1,6 @@
 # question/answered-question-unit-edge
-Status: open
+Status: answered
+AnsweredBy: decision/2026-08-29-retired-halves-to-companion-absorption-to-decision
 
 ## Text
 Whether a unit's `Questions` edge survives the question being answered — `design/10-design.md` § *Question* derives `Affects` from the units whose `Questions` names it, and says nothing about status. A decision has the symmetric case settled by a field: superseding it moves the id from a unit's `Live` to its `Archival`, and `decision-affects` renders `—`, which is why `design/state-index.md`'s live view is honest for decisions. A question has one edge field and no archival half, so the first answered question in this repository leaves `question-affects` rendering it under the heading `Questions — blocks` for two units nothing blocks. Three candidates: the answering session drops the id from each unit, which loses the resolvable edge retirement exists to keep; the projector filters on `Status`, which widens a shipped projection's render and is `/contract`'s to specify; or `Questions` gains an archival half, which is a design-model change and the only one that matches the decision precedent exactly.

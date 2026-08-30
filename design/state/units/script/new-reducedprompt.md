@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live:
-Archival:
 Questions:
 Work: work/12
 Evidence: tools/New-ReducedPrompt.Tests.ps1

@@ -6,8 +6,7 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-11-documents-state-only-what-tree-cannot
-Archival:
-Questions: question/slices-authority-home
+Questions:
 Work:
 Evidence:
 

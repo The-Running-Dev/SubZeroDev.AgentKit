@@ -6,7 +6,6 @@ Consumes:
 Exposes: contract/test-companion
 Binds:
 Live: decision/2026-08-12-commands-split-core-and-companion
-Archival:
 Questions:
 Work:
 Evidence: tools/Test-Companion.Tests.ps1
