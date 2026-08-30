@@ -251,9 +251,10 @@ that looks old.
 |---|---|---|---|---|
 | 27 | #120 | Nothing retires a landed slice's body out of design/30-slices.md § Outstanding | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 | 29 | #140 | The absorbed edge is decided and not implemented | — | `5c4534e7e41773cfb17d44e042c73e0519be287d` |
-| 113 | #113 | StateSetAbsent never fires in a target that has run /track: 16 work-mirror records mask an unadopted state set | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 | 151 | #151 | Five decision records exist with no unit naming them, and a new rule would flag each as a finding | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
 | 152 | #152 | question/answered-question-unit-edge is recorded open despite being answered on 2026-08-29 | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
 | 153 | #153 | ClosureOverBudget is green for a reason now known to be wrong | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
+| 162 | #162 | Test-DesignState.ps1's -Repository parameter is ignored for the per-issue tracker read | — | `11eba577c4589a98537733fd7c6023fd3e5ae373` |
+| 166 | #166 | Invoke-DoneHousekeeping.ps1 silently reports success when its default-branch checkout fails (worktree conflict) | — | `11eba577c4589a98537733fd7c6023fd3e5ae373` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
