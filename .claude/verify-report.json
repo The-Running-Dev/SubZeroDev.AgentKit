@@ -3,22 +3,22 @@
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parsed all 31 *.ps1 files under the repository with [System.Management.Automation.Language.Parser]::ParseFile; zero parse errors."
+      "detail": "Parsed every *.ps1 under the repository with [System.Management.Automation.Language.Parser]::ParseFile, as the CI step does. Output: 'All PowerShell scripts parsed cleanly.' Exit 0."
     },
     {
       "name": "Run Pester tests",
-      "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests Passed: 273, Failed: 0, Skipped: 0, NotRun: 0. Branch merged origin/main (884f9d4, PR #165) which regenerated design/state-index.md's #outstanding projection and fixed issue #158 - the 4 failures seen in this PR's earlier gate run (S12.5, S7.9, S18.6, S7.3) all cleared once that fix landed. Includes the new regression test 'regression (issue #161): Backup-RestoreOnFailure restores the real files even when the wrapped run fails', confirmed to fail against the pre-fix code and pass against the fix."
+      "status": "Failed",
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests completed in 129.42s. Tests Passed: 289, Failed: 3, Skipped: 0, NotRun: 0. TotalCount: 292. All 3 failures are pre-existing (not introduced by this PR - the same 3 failed on main before this branch's commit, confirmed by a baseline run) and are S20/S21/S22's to clear, per design/30-slices.md's own note that ClassListDisagreement stays red until the last of the four S19-S22 slices lands: (1) 'S5.1: this repository's design/20-contract.md declares exactly the same class ids as the script' - Expected 0, but got 1, at Test-DesignState.Tests.ps1:1226 (design/20-contract.md already carries S20/S21/S22's contract-only classes: DecisionUnplaced, HalfOverlap, HalfStatusMismatch, RecordPairMalformed, SiteAmbiguous, SiteContradictsLive, SiteOutOfReach, SupersessionCycle). (2) 'S12.5: the check exits 0 against this repository, and names the largest closure and its size' - Expected 0, because findings: [ClassListDisagreement] ... plus 16 [ClosureOverBudget] findings (unit/command/track, unit/document/agents-md, unit/document/design-00-brief, unit/document/design-10-design, unit/document/design-20-contract, unit/document/design-30-slices, unit/document/design-90-decisions, unit/document/design-state-index, unit/document/install-md, unit/script/invoke-donehousekeeping, unit/script/measure-session, unit/script/read-designstate, unit/script/sync-kit, unit/script/test-designstate, unit/script/update-designprojection, unit/script/update-workmirror), but got 1, at Test-DesignState.Tests.ps1:1283. (3) 'S18.6: EnforcementUnevidenced rejects this repository's own superseded decision once its SupersededBy line is removed, and clears once it is restored' - Expected 0, but got 1, at Test-DesignState.Tests.ps1:1355 (same ClassListDisagreement cause). This slice's own new tests (S19.1-S19.6, seven new It blocks) all pass, including S19.2 and S19.3 which replaced the now-superseded S5.12."
     },
     {
       "name": "Validate the core/companion split",
       "status": "Passed",
-      "detail": "./tools/Test-Companion.ps1 exit 0: 'Companion split OK - 22 core(s) checked, 0 companion file(s) present, 22 core(s) with no companion.' State: Valid, Findings: 0."
+      "detail": "./tools/Test-Companion.ps1 exit 0: 'Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion.' State: Valid, Findings: 0, CoreCount: 23, CompanionCount: 0, AbsentCount: 23."
     },
     {
       "name": "Check the design state against the tree",
-      "status": "Passed",
-      "detail": "./tools/Test-DesignState.ps1 -Path . exit 0, Findings: 0 blocking. Reported (19, non-blocking): MirrorStale on 19 design/state/work/* records - MirroredAt SHAs older than this branch's new HEAD 23adb05, expected since design/state/work is only refreshed by /track. Largest closure: unit/document/agents-md, 15922 bytes (ceiling 16384) - under budget."
+      "status": "Failed",
+      "detail": "./tools/Test-DesignState.ps1 exit 1. Findings (17, blocking): 1x ClassListDisagreement (contract-only: DecisionUnplaced, HalfOverlap, HalfStatusMismatch, RecordPairMalformed, SiteAmbiguous, SiteContradictsLive, SiteOutOfReach, SupersessionCycle - pre-existing, S20/S21/S22's to clear per design/30-slices.md); 16x ClosureOverBudget - this is this slice's own intended, contracted effect (design/30-slices.md S19: 'the number' the checker must now report honestly): unit/command/track (22803 bytes, ceiling 16384, largest contributor .claude/commands/track.md), unit/document/agents-md (63811 bytes, largest contributor AGENTS.md), unit/document/design-00-brief (17635 bytes), unit/document/design-10-design (70114 bytes), unit/document/design-20-contract (99976 bytes), unit/document/design-30-slices (29473 bytes), unit/document/design-90-decisions (296939 bytes, the largest), unit/document/design-state-index (21669 bytes), unit/document/install-md (36943 bytes), unit/script/invoke-donehousekeeping (17392 bytes), unit/script/measure-session (27571 bytes), unit/script/read-designstate (16734 bytes), unit/script/sync-kit (25438 bytes), unit/script/test-designstate (76591 bytes), unit/script/update-designprojection (23589 bytes), unit/script/update-workmirror (18170 bytes). Reported (25, non-blocking): MirrorStale on 25 design/state/work/* records - MirroredAt SHAs older than this branch's HEAD, expected since design/state/work is only refreshed by /track. Could not evaluate: none. Largest closure: unit/document/design-90-decisions, 296939 bytes (ceiling 16384), largest contributor design/90-decisions.md."
     }
   ]
 }
