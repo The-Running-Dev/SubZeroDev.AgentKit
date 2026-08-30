@@ -8,7 +8,7 @@
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests Passed: 272, Failed: 0, Skipped: 0, NotRun: 0. Includes the 3 new tests added under Update-WorkMirror.Tests.ps1's 'closed-issue refresh' context, confirmed to fail against the pre-fix script and pass against the fix."
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests Passed: 273, Failed: 0, Skipped: 0, NotRun: 0. Branch merged origin/main (884f9d4, PR #165) which regenerated design/state-index.md's #outstanding projection and fixed issue #158 - the 4 failures seen in this PR's earlier gate run (S12.5, S7.9, S18.6, S7.3) all cleared once that fix landed. Includes the new regression test 'regression (issue #161): Backup-RestoreOnFailure restores the real files even when the wrapped run fails', confirmed to fail against the pre-fix code and pass against the fix."
     },
     {
       "name": "Validate the core/companion split",
@@ -18,7 +18,7 @@
     {
       "name": "Check the design state against the tree",
       "status": "Passed",
-      "detail": "./tools/Test-DesignState.ps1 exit 0, Findings: 0. Reported 30 non-blocking entries (MirrorStale/WorkStateDivergence) - design/state/work records stamped against older commits than this branch's new HEAD, and several WorkRefs mirrored before their issues closed; all Blocking=False, pre-existing and unrelated to this change (design/state/work is only refreshed by /track, not by this command). Largest closure: unit/document/agents-md, 15922 bytes (ceiling 16384) - under budget."
+      "detail": "./tools/Test-DesignState.ps1 -Path . exit 0, Findings: 0 blocking. Reported (19, non-blocking): MirrorStale on 19 design/state/work/* records - MirroredAt SHAs older than this branch's new HEAD 23adb05, expected since design/state/work is only refreshed by /track. Largest closure: unit/document/agents-md, 15922 bytes (ceiling 16384) - under budget."
     }
   ]
 }
