@@ -6,8 +6,8 @@
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, landed as
 > S4–S18; its bodies are retired to the same index. The **2026-08-29 revision to that
 > mechanism** — the retired companion, absorption, the half/status table, and the
-> artifact-inclusive ceiling — is contracted and not implemented; it is S19–S22 under
-> `## Outstanding`.
+> artifact-inclusive ceiling — landed as S19–S21, retired to the same index; S22, which
+> finishes wiring the revision's decision-affects surface, remains under `## Outstanding`.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -110,11 +110,11 @@ does not resolve it in the implementing session.
 
 **A third set, and it implements the 2026-08-29 revision the contract already carries.**
 `design/20-contract.md` was amended ahead of its detection — the retired companion, `StatedIn`,
-the half/status table, the eight new blocking classes, and the artifact-inclusive ceiling are
-all contracted and none is implemented. The checker says so itself: `ClassListDisagreement`
-names eight contract-only class ids on every run today, and it stays red until the last of the
-four slices below lands. That is the same designed interim § *Interim findings are expected*
-describes for S5–S11, at a smaller scale and with CI already wired.
+the half/status table, the eight new blocking classes, and the artifact-inclusive ceiling. S19–S21
+have landed; the checker still says `ClassListDisagreement` names two contract-only class ids —
+`DecisionUnplaced` and `SupersessionCycle` — and stays red until S22, the one slice left in this
+set, lands. That is the same designed interim § *Interim findings are expected* describes for
+S5–S11, at a smaller scale and with CI already wired.
 
 The riskiest assumption in this set is **the ceiling itself**, and it is not a question of
 whether the mechanism works — `design/10-design.md` § *Whether the ceiling can be met* already
@@ -123,133 +123,6 @@ untested is whether this repository is willing to live with what the honest numb
 the brief's *Abandonment* clause attaches to exactly that. **S19 does nothing but produce the
 number**, ahead of every structural change, so the adjudication the brief reserves to the user
 happens before three slices of work are spent on the assumption it will go one way.
-
-### S19 — The ceiling counts the file a session actually opens
-
-Delivers: Anyone running the design-state check sees the true cost of picking up a part of this
-kit — the notes about it and the file itself, which is what a session really opens. The parts
-that are too expensive to orient on are named, instead of a clean run that quietly measured
-only half the load.
-Touches: `tools/Test-DesignState.ps1` — `Get-DesignClosure`, `Get-RecordFileBytes`,
-         `Test-ClosureBudget`; `tools/Test-DesignState.Tests.ps1`
-Depends on: none
-Acceptance:
-  - S19.1 A closure root whose `Anchor` is a tree path counts that file's bytes as a closure
-    member alongside the records. A root with no `Anchor`, and a root whose `Anchor` is an
-    invariant number rather than a path, counts records only.
-  - S19.2 The closure of `unit/document/agents-md` measured on this repository equals the sum
-    of its own record file, the record file of every id its record names directly, and
-    `AGENTS.md`'s own length — every term read from disk in the assertion, never a literal
-    written into the test.
-  - S19.3 A run against this repository reports one `ClosureOverBudget` finding per breaching
-    unit and the set is non-empty, where the same run before this slice reported one. No count
-    is asserted: the set is whatever the corpus then holds.
-  - S19.4 `LargestContributor` identifies the artifact by its tree path where the artifact is
-    the largest member, and by record id where a record is.
-  - S19.5 The largest-closure report line is emitted on a clean run as well as a failing one —
-    a fixture state set whose every closure is inside the ceiling still produces it.
-  - S19.6 A root whose `Anchor` names a path not in the tree contributes zero artifact bytes
-    rather than throwing, and the meter raises nothing for it: the missing path is
-    `AnchorMissing`'s to report, and reporting it twice would double-count one divergence.
-Out of scope: removing the meter's exclusion of `Archival` ids and of records whose `Status` is
-  `retired`. That clause may only go once the retired companion exists to hold them, which is
-  S20, and `I23` therefore stays `Enforcement: instruction` through this slice. Also out of
-  scope: deciding what to do about the units that now breach — the brief's *Abandonment* line
-  reserves that to the user, and a slice that re-scoped the ceiling would be resolving it.
-
-### S20 — A unit's retired half moves to its own file
-
-Delivers: Whoever picks up a part of this kit sees only what is true of it now. Everything that
-has retired — a surface it no longer uses, a rule that was replaced, a question that was
-answered, an issue that closed — sits in a companion file beside it, still findable by name,
-and no longer counted against what a session has to read to begin.
-Touches: `tools/Read-DesignState.ps1` — `$script:FieldTables`, `Get-DesignPathInfo`,
-         `Read-DesignRecordFile`, `Read-DesignStateGraph`; `tools/Test-DesignState.ps1` —
-         `$script:BlockingClasses`, `Get-DesignClosure`, the three new checks;
-         `design/state/units/**`; `design/state/invariants/I23.md`,
-         `design/state/invariants/I30.md`; `tools/Read-DesignState.Tests.ps1`,
-         `tools/Test-DesignState.Tests.ps1`
-Depends on: S19
-Acceptance:
-  - S20.1 `design/state/units/<kind>/retired/<slug>.md` parses under the one `Unit` vocabulary
-    and reaches the caller joined into the single record for `unit/<kind>/<slug>`. The reader
-    emits one record per unit and never two, and every field carries which of the two files it
-    arrived in.
-  - S20.2 A unit with no companion file parses as a unit whose every retired half is empty —
-    not as a missing file, and not as a finding.
-  - S20.3 `units/<kind>/retired/<slug>.md` resolves `<kind>` against the four unit kinds, so
-    `units/retired/<slug>.md` is a parse failure naming a kind that is not one, and `retired`
-    never resolves as a kind.
-  - S20.4 `RecordPairMalformed` fires on each of the three shapes — a companion with no active
-    record beside it, a retired half written into the active record, and an active field
-    written into the companion — and each finding names both files, the field, and which side
-    it belongs on. A unit with an empty companion, and a unit with none, are both silent.
-  - S20.5 `HalfStatusMismatch` fires in both directions against real records on this
-    repository: `unit/command/kit-help`'s `Live` names
-    `decision/2026-08-22-done-always-hands-off-to-track`, which is superseded, and
-    `unit/document/design-30-slices` and `unit/script/update-designprojection` both name
-    `question/slices-authority-home` in `Questions`, which is answered. An active edge naming
-    an active referent, and a retired half naming a retired one, are silent.
-  - S20.6 `HalfOverlap` fires when one id sits in both halves of one edge, naming the unit, the
-    edge and the id. The same id in two different edges is silent.
-  - S20.7 Every non-empty retired half on this repository sits in a companion file and not in
-    an active record: the six units carrying `Archival` today, and the `Questions` edges S20.5
-    names, which move to `Answered`. A run afterwards reports no `RecordPairMalformed` and no
-    `HalfStatusMismatch` for any of them.
-  - S20.8 `Get-DesignClosure` filters nothing: it no longer skips a named record because its
-    `Status` is `retired`, and no longer special-cases `Archival`. The retired companion is
-    never a closure member, and a unit's measured closure is unchanged by the size of its
-    companion.
-  - S20.9 `I23` and `I30` carry `Enforcement: code` with `Evidence` naming the tests that hold
-    them, and `tools/Test-DesignState.Tests.ps1`'s case *"S5.5: closure excludes Archival and
-    excludes any named record whose Status is retired"* is deleted — it asserts the exclusion
-    clause the contract dropped, and would now fail for the right reason.
-  - S20.10 `ClassListDisagreement`'s contract-only set is exactly the five ids this slice does
-    not land, and names them.
-Out of scope: `StatedIn` and the three site classes (S21); `Decision.Affects`,
-  `Question.Affects`, and the two placement classes (S22). Also out of scope: giving the
-  companion its own field vocabulary — the contract is explicit that a misfiled field is a
-  finding about placement, not an unparseable line.
-
-### S21 — A rule written into a document stops being carried twice
-
-Delivers: When a rule is written into the document it governs, whoever picks that document up
-next stops having to read the decision separately. The decision records where its terms now
-stand, and the document's reading list gets shorter rather than longer with every rule added
-to it.
-Touches: `tools/Read-DesignState.ps1` — the `Decision` field table;
-         `tools/Test-DesignState.ps1` — `$script:BlockingClasses`, the three new checks;
-         `design/state/decisions/**`; `design/state/units/document/agents-md.md`;
-         `tools/Read-DesignState.Tests.ps1`, `tools/Test-DesignState.Tests.ps1`
-Depends on: S20
-Acceptance:
-  - S21.1 `Decision.StatedIn` parses as a list field whose every entry is `<id> § <heading>`.
-    An entry not of that form is a parse failure reported with its file, line number, and
-    verbatim text, never a silently dropped site.
-  - S21.2 A site's heading is resolved against the file the site's id stands for — a unit's
-    `Anchor`, or the record file of a contract — and `SiteAmbiguous` fires when it resolves to
-    zero headings or to two, reporting the decision, the site, and the count. Exactly one is
-    silent.
-  - S21.3 A site is in reach when some unit's own `Anchor`, or some unit's one-hop closure,
-    contains the site's id; that set of units is what the site resolves to. `SiteOutOfReach`
-    fires when it is empty, reporting the decision, the site, and that no unit reaches it. A
-    site naming a contract at least one unit consumes or exposes is silent.
-  - S21.4 `SiteContradictsLive` fires when a decision is named by a unit's `Live` and also
-    places a site resolving to that same unit, reporting the unit and the decision. A decision
-    `Live` on one unit and stated in a different one is silent.
-  - S21.5 One real absorption lands: a decision whose terms already stand in a section of
-    `AGENTS.md` is given a `StatedIn` site naming that section, its id is removed from
-    `unit/document/agents-md`'s `Live`, and that unit's measured closure afterwards is smaller
-    than before by exactly that decision record's length. The run reports no `SiteAmbiguous`,
-    no `SiteOutOfReach`, and no `SiteContradictsLive`.
-  - S21.6 `ClassListDisagreement`'s contract-only set is exactly the two ids this slice does
-    not land, and names them.
-Out of scope: absorbing more than the one decision S21.5 requires. Executing the rest of
-  `AGENTS.md`'s `Live` set is ordinary amendment work the mechanism allows at any time once
-  proven; doing it here would make a slice whose size is set by the corpus rather than by the
-  mechanism. Also out of scope: writing a decision's terms into a section that does not already
-  state them — absorption records where terms *stand*, and a slice that wrote them would be
-  amending `AGENTS.md`, which is `/contract`'s or `/design`'s.
 
 ### S22 — Every decision says which parts of the kit it is in force for
 
@@ -330,6 +203,9 @@ repository during S5–S11, not a defect, and it is why S12 rather than S5 carri
 | **S16** | Every part says what it offers and what it leans on | [#71](../../issues/71), closed | S16.1–S16.7 | `45bd7c8` |
 | **S17** | Every rule the kit binds itself to becomes a file | [#72](../../issues/72), closed | S17.1–S17.7 | `45bd7c8` |
 | **S18** | A record that says a claim was replaced has to say what replaced it | [#81](../../issues/81), closed | S18.1–S18.6 | `45bd7c8` |
+| **S19** | The ceiling counts the file a session actually opens | [#171](../../issues/171), closed | S19.1–S19.6 | `7d27606` |
+| **S20** | A unit's retired half moves to its own file | [#172](../../issues/172), closed | S20.1–S20.10 | `7d27606` |
+| **S21** | A rule written into a document stops being carried twice | [#173](../../issues/173), closed | S21.1–S21.6 | `7d27606` |
 
 What each delivered, in one line, because the index is the only place a reader now meets
 them:
@@ -374,3 +250,12 @@ them:
   § *Invariants*, which becomes a single generated region rather than half hand-kept.
 - **S18** — `EnforcementUnevidenced` widened to catch a superseded decision or an answered
   question that names nothing as having replaced or answered it.
+- **S19** — the closure meter counts a unit's own artifact bytes alongside its records,
+  proving on this repository's own corpus that the artifact dominates the ceiling by roughly
+  five to one, which the brief's *Abandonment* clause leaves for the user to adjudicate.
+- **S20** — a `retired/` companion file beside each unit's active record, `RecordPairMalformed`,
+  `HalfStatusMismatch`, and `HalfOverlap` policing the pairing, and the closure meter no longer
+  filtering on `Status` or `Archival`.
+- **S21** — `Decision.StatedIn`, resolving a rule written into a document back to where it
+  stands, with `SiteAmbiguous`, `SiteOutOfReach`, and `SiteContradictsLive` policing it, and one
+  real absorption landed against `AGENTS.md`.
