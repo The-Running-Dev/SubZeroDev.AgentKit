@@ -62,18 +62,62 @@ per-kind vocabulary, citing it. What neither can state:
   believed (I17). The grammar has no production for them, which is what makes the check free
   rather than a rule someone remembers. **`Contract.Owner` is the one reverse edge that is
   written**, and `OwnerMismatch` is what makes it a binding rather than a second copy.
-- **`Status` is retirement, and a retired record is still resolvable.** A live record may name a
-  retired one and that is not a finding — keeping the id resolvable is the entire reason
-  retirement exists rather than deletion (I16). What retirement changes is two things and only
+- **`Status` is retirement, and a retired record is still resolvable.** Keeping the id
+  resolvable is the entire reason retirement exists rather than deletion (I16). What retirement
+  changes is two things and only
   two: the record leaves every closure, and its `Anchor` stops being checked against the tree
   (I30), and a retired *invariant* additionally leaves § *Invariants* below, because that table is
   the invariant unit set rather than a history — a retired row would keep the id in
   `UnrecordedArtifact`'s difference and make the table grow monotonically. A retired unit's
   artifact is gone by definition, so an `Anchor` check against it would block on every run
-  forever.
-- **`Archival` is excluded from the closure and from nothing else.** It is read when history
-  is wanted; it is not read when orienting. A reader that folds it into `Live` makes the
-  ceiling a countdown against a monotonic log (I23).
+  forever. **What retirement no longer changes is whether an active record may name it: it may
+  not.** `design/10-design.md` § *Every reference sits in the half its referent's state requires*
+  makes an active edge naming a retired referent a `HalfStatusMismatch` finding, and the
+  reference relocates to the retired half rather than staying put and being skipped. The earlier
+  reading — that such a reference was legal and merely filtered at measurement time — was the
+  exclusion clause the meter has since dropped, and it is stated here as superseded rather than
+  removed silently, because a reader who remembers the old rule needs to be told which way it
+  went.
+- **A unit is one record in two files, and the retired companion is not a second record.** It
+  carries no `Id` line and has no id of its own; it is never enumerated as a record, is in no
+  closure, and holds one half per active edge and nothing else. What follows and the grammar
+  cannot say: **both files are parsed under the one `Unit` vocabulary, and which file a field
+  may appear in is a pairing rule rather than a second field table.** A retired half in the
+  active file and an active field in the companion are the same defect seen from either side,
+  and a companion whose active record is absent is half a unit rather than an orphan to adopt.
+  All three are `RecordPairMalformed`. Giving the companion its own closed vocabulary would have
+  made a misfiled field an unparseable line — could-not-evaluate, under I24 — when it is a
+  divergence the reader understood perfectly and should report as one.
+- **Unqualified, *companion* in this document means a target's `*-local.md` command companion**
+  (§ *Marked regions*, `.claude/COMPANIONS.md`). The retired half is always the **retired
+  companion**, never the bare word. Two mechanisms arrived at the same English noun
+  independently; naming the collision is cheaper than renaming either, and cheaper still than
+  the first reader who resolves it the wrong way.
+- **`StatedIn` is a decision's address list, and the reach rule is what makes it honest.** Each
+  site is `<id> § <heading>`, must resolve to exactly one heading (`SiteAmbiguous`), and must
+  name somewhere that unit's reader already reaches — the unit's own `Anchor`, or a record
+  already one hop from it (`SiteOutOfReach`). Absent the reach rule a claim could move somewhere
+  the closure does not count, which shrinks the measured number without shrinking what is read,
+  and a metric improvable without improving its subject has stopped being one. **A decision is
+  never both `Live` on a unit and stated in it** (`SiteContradictsLive`): the two say opposite
+  things about where that unit's reader finds the terms, and a record asserting both is a
+  finding rather than a merge to resolve by preferring one. **A script unit cannot be absorbed
+  into directly** and no rule says so — a `.ps1` has no headings for the pointer to resolve
+  against, so the site names that script's contract `§ Semantics`, one hop away. The restriction
+  falls out of the check instead of being a second rule to remember.
+- **`Decision.Affects` may never be empty; `Question.Affects` may.** An accepted decision must be
+  named by some unit's `Live` or place at least one site, and a superseded one must be named by
+  some `Archival`, or it is `DecisionUnplaced` — an interrupted write, indistinguishable from a
+  deliberate zero-unit decision once one exists, which is why it is forbidden now while nothing
+  has established the second meaning. The asymmetry is deliberate and is not an oversight to be
+  tidied: an open question blocking nothing yet is a real state — it is what § *Unresolved* below
+  holds — and requiring a unit would force the noticing session to invent an affected one in
+  order to record the question at all.
+- **`SupersededBy` chains terminate, and they terminate in an `accepted` decision.** A chain
+  that revisits a decision leaves a history with no standing claim anywhere in it while every id
+  in it resolves, so no other class sees it (`SupersessionCycle`). The walk carries a visited
+  set, and it is cheap to add now precisely because no cycle has been written: a persisted one
+  needs a human to reconstruct which claim was meant to stand, because the record no longer says.
 - **A unit of kind `invariant` is one record, not two.** The `Invariant` fields specialise the
   `Unit` fields on the same record; `Anchor` is the invariant number itself, per the `Unit`
   table's own allowance, and is the one anchor whose resolution check is well-formedness and
@@ -187,7 +231,7 @@ own decision-log entry naming what stops a stale record being trusted.
 
 | Id | File |
 |---|---|
-| `unit/<kind>/<slug>` | `design/state/units/<kind>/<slug>.md` |
+| `unit/<kind>/<slug>` | `design/state/units/<kind>/<slug>.md`, and its retired companion at `design/state/units/<kind>/retired/<slug>.md` |
 | `I<n>` | `design/state/invariants/I<n>.md` |
 | `contract/<slug>` | `design/state/contracts/<slug>.md` |
 | `decision/<date>-<slug>` | `design/state/decisions/<date>-<slug>.md` |
@@ -199,6 +243,20 @@ Keys, and what the mapping cannot state:
 - **The file path is the primary key and the `Id` line inside it must agree.** Disagreement is
   an `IdCollision` finding. Two records claiming one id is the failure this key exists to make
   impossible, and a filesystem gives it for nothing.
+- **The retired companion is the one file the key rule does not reach, and it is a subdirectory
+  rather than a suffix for exactly that reason.** It carries no `Id` line to agree with anything;
+  its identity is entirely positional — the unit whose slug it shares, one directory up. A
+  sibling `<slug>.retired.md` would have put a non-record inside the glob every consumer already
+  walks, so each would have had to remember to exclude it and a forgotten exclusion would have
+  produced a plausible-looking phantom id. `retired/` is one segment the path-to-kind mapping
+  can name, which makes the companion's non-membership a fact about where it lives rather than a
+  filter every reader reapplies (`design/90-decisions.md`, 2026-08-30). **The pair is what a
+  unit is**, so a `retired/` file with no record beside its parent directory, and a field in the
+  file its half does not belong to, are both `RecordPairMalformed` rather than a stray file to
+  ignore.
+- **A `retired/` directory is a location, never a kind.** The four unit kinds are the design's
+  and this segment adds no fifth; a path naming a kind that is not one of the four is a parse
+  failure, unchanged, and `retired` never resolves as one.
 - **`design/state/` sits inside `design/` for one reason: the kit's own `design/` is never
   installed into a target.** `INSTALL.md`, phase 1, holds the artifact list and is not copied
   here; the load-bearing fact is that **nothing under the kit's `design/` is on it**, while
@@ -366,6 +424,17 @@ declarations cannot state:
 - **An absent `design/state/` is a graph with `Root` empty and zero records, not an error.**
   Deciding what absence means is the checker's, not the reader's; a reader that decided would
   make every caller inherit that decision.
+- **A unit's two files reach the caller as one record.** The reader pairs them and emits a
+  single record per unit; nothing downstream sees a companion, and no consumer reassembles the
+  pair for itself. A reader that emitted two would make every consumer — validator, projector,
+  meter — invent the same join, and one of them would eventually get it wrong in a direction
+  nothing checks. **Which file each field arrived in is retained**, because
+  `RecordPairMalformed` is a finding about placement and a join that forgot placement could not
+  raise it.
+- **An absent companion is a unit with every retired half empty, not a missing file.** Most
+  units have retired nothing, so requiring the file would make the common case carry an empty
+  one and put its bytes in the state set for nothing. The reverse — a companion with no active
+  record — is the finding, because that direction is a unit that has lost its live half.
 - **It is invoked as a script, not imported as a module.** `INSTALL.md` and
   `tools/Sync-Kit.ps1` both treat `tools/*.ps1` as the kit-owned glob, so a `.psm1` would not
   ship and the checker would arrive broken in eighteen repositories. `Sync-Kit.ps1`'s call into
@@ -385,15 +454,31 @@ three-list report.
   only on 1 turns *could not evaluate* into a pass at the call site, which is I19 and I20
   defeated by the consumer rather than by the script — and the brief's *fail CI* line is about
   what the build does, not about what the exit code was.
-- **Measures a closure as the sum of whole record files** (I23), never as the bytes of the fields
-  a reader actually consulted. A meter that counted only what it looked at would satisfy the
-  ceiling while understating the load, which is the single property one-file-per-record was chosen
-  over a grouped document to make impossible.
-- **Always names the largest closure and the unit it belongs to, on a clean run as well as a
-  failing one.** `ClosureOverBudget` fires only once the ceiling is passed; the brief requires
-  the largest unit named in the report regardless. Headroom nobody is shown is a ceiling nobody
-  can see being approached, and the first anyone would learn of it is the run that blocks. It
-  is a report line, never a finding.
+- **Measures a closure as the sum of whole files, and the unit's own artifact is one of them**
+  (I23) — never as the bytes of the fields a reader actually consulted. A meter that counted
+  only what it looked at would satisfy the ceiling while understating the load, which is the
+  single property one-file-per-record was chosen over a grouped document to make impossible;
+  **excluding the artifact is the same failure at a larger scale**, because a session beginning
+  work on a unit opens that unit's file, and a number that omits the one file it is certain to
+  open is true and unhelpful. The artifact is what makes absorption a strict saving rather than
+  an accounting move: its bytes are counted whether or not a decision's terms have been written
+  into it, so executing a decision into a site removes a record from the sum and adds nothing.
+  **This is the one term in the sum no field bounds**, and the consequence is not softened here
+  — see the report rule below.
+- **Filters nothing at measurement time.** The closure has no exclusion clause: retired halves
+  are in the companion, which is not a closure member, and `HalfStatusMismatch` is what keeps a
+  retired record out of an active edge in the first place. A rule enforced by a filter is one
+  every consumer must reapply; a rule enforced by where the bytes live is one nobody can forget.
+- **Always names the largest closure, the unit it belongs to, and its largest contributor, on a
+  clean run as well as a failing one.** `ClosureOverBudget` fires only once the ceiling is
+  passed; the brief requires the largest unit named in the report regardless. Headroom nobody is
+  shown is a ceiling nobody can see being approached, and the first anyone would learn of it is
+  the run that blocks. It is a report line, never a finding. **Under the artifact-inclusive
+  definition the largest contributor is usually the artifact**, and saying so on every run is
+  what keeps the gap between the ceiling and this repository from being rediscovered as a
+  surprise — `design/10-design.md` § *Whether the ceiling can be met* is where that gap is
+  confronted, and whether the project proceeds, re-scopes, or stops under the brief's
+  *Abandonment* line is reserved to the user and is not this script's to soften.
 - **Never clean on an absent or empty state set** (I19). Zero records is I8's shape: absence of
   a finding is not a finding of absence, and a target must never be told its design state
   agrees with anything.
@@ -713,6 +798,14 @@ list.
 | `LogEntryUnrecorded` | A log heading has no decision record | The entry's heading |
 | `EnforcementUnevidenced` | A conditionally-required field is absent on a record whose own `Status` or `Enforcement` requires it — an invariant with `Enforcement: code` and no `Evidence`, a decision with `Status: superseded` and no `SupersededBy`, or a question with `Status: answered` and no `AnsweredBy` | The record, the absent field, and the value that required it |
 | `ClosureOverBudget` | A closure exceeds 16,384 bytes | The unit, its size, and its largest contributor |
+| `RecordPairMalformed` | A unit's retired companion exists with no active record, or a field sits in the file its half does not belong to — a retired half in the active record, or an active field in the companion | Both files, the field, and which side it belongs on |
+| `HalfStatusMismatch` | A reference sits in a half its referent's status does not allow, in **either** direction — an active edge naming a retired referent, or a retired half naming an active one | The record, the half, the referent, and the status that contradicts it |
+| `HalfOverlap` | An id appears in both halves of one edge | The unit, the edge, and the id |
+| `SiteAmbiguous` | A `StatedIn` site resolves to zero or two headings in the file it names | The decision, the site, and the count |
+| `SiteOutOfReach` | A `StatedIn` site names a place the unit's reader does not already reach — neither the unit's own `Anchor` nor a record one hop from it | The decision, the site, and the unit |
+| `SiteContradictsLive` | A decision is both named by a unit's `Live` and stated in that same unit | The unit and the decision |
+| `DecisionUnplaced` | `Decision.Affects` derives empty — an accepted decision no `Live` names and no site places, or a superseded one no `Archival` names | The decision, its status, and that it is an interrupted write |
+| `SupersessionCycle` | A `SupersededBy` chain revisits a decision, or a decision names itself | The cycle, in order |
 | `ClassListDisagreement` | The checker's declared class ids differ from this document's list | Both sets, and the difference in each direction |
 | `GlobDisagreement` | For a globbed unit kind, the file set § *Artifacts of a unit kind*'s patterns resolve to differs from the set the checker's enumeration returns | The kind, the direction, and the paths |
 
@@ -731,6 +824,36 @@ set here and the class stays silent. That is the comparison working as specified
 it, and the exposure is bounded by the same fact that causes it: a divergence invisible here is
 invisible because it has no artifact here to be wrong about. It becomes visible in the first
 checkout that has one.
+
+**The eight classes above `ClassListDisagreement` are new, and their granularity is derived
+rather than chosen.** `design/10-design.md` § *Failure modes* lists each as its own row with its
+own *User sees* column; one class per row is what makes a finding say which check fired. Two
+places that grouping might have gone differently are worth naming, because both were argued and
+neither is arbitrary:
+
+- **`HalfStatusMismatch` is one class for the whole table, not one per half.** The design's
+  half/status table is *total* — every half has a required status and every status has a half —
+  and its totality is the property, not its rows. Eleven ids for one rule is the split this
+  document has already refused twice, and it would make adding a half a contract amendment in
+  two places rather than one.
+- **`SiteAmbiguous` and `SiteOutOfReach` stay apart, though both are about a site.** They are
+  two rules with two remedies: a heading that does not resolve is a pointer to fix, and a
+  heading in a place the reader never opens is a claim that has moved somewhere the ceiling
+  cannot see. Merging them would report the second as a typo. This is the same test
+  `EnforcementUnevidenced` passes in the other direction — that class merges three fields
+  because one rule governs all three, not because they look alike.
+
+**All eight are blocking, and each qualifies on I22's own terms rather than by resemblance.**
+File pairing, status agreement, half intersection and chain-walking need only the parsed graph.
+Heading resolution and the reach check need the checkout, which the validator already reads —
+`design/10-design.md` § *Module boundaries* names that widening rather than absorbing it. None
+needs the network, the tracker, or a running service.
+
+**`SiteContradictsLive` and `DecisionUnplaced` are the two that check a derived value, and that
+is not a projection being read back** (I14). Both are computed from records in memory during the
+same pass; nothing renders, and nothing reads a rendered region. The distinction matters because
+`Decision.Affects` is a *derived edge*, and I14's prohibition is on generated **text** becoming
+an input — a rule about files, not about arithmetic.
 
 **`AnchorMissing` is named for a unit's `Anchor` and checks every tree pointer a record
 carries.** `Contract.Declaration` and the `Evidence` list on a unit or an invariant record are
@@ -840,14 +963,14 @@ wait in.
 | **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 | **I21** | While `design/FROZEN.md` exists, no blocking class fails the build, and exit 2 still stands. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 | **I22** | Every class on the blocking list is evaluable from the checkout alone — no network, no tracker, no running service. | `unit/document/design-20-contract` | instruction | — |
-| **I23** | The orientation closure is exactly one hop, excludes `Archival`, and its ceiling is 16,384 bytes and never rises. It is measured as the sum of whole record files, never as the bytes of the fields a reader consulted. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
+| **I23** | The orientation closure is exactly one hop and counts the unit's own artifact in full, and its ceiling is 16,384 bytes and never rises. It is measured as the sum of whole files, never as the bytes of the fields a reader consulted, and nothing is filtered at measurement time. | `unit/script/test-designstate` | instruction | — |
 | **I24** | A line the record grammar does not recognise is reported verbatim and never skipped. | `unit/script/read-designstate` | code | tools/Read-DesignState.Tests.ps1 |
 | **I25** | Regeneration is idempotent and order-independent: twice produces identical bytes, and one region's regeneration never changes another's output. | `unit/script/update-designprojection` | code | tools/Update-DesignProjection.Tests.ps1 |
 | **I26** | No pre-existing entry in `design/90-decisions.md` is ever modified. Commits to that file are additions only. | `unit/document/design-90-decisions` | instruction | — |
 | **I27** | Every command and script this design touches degrades to today's behaviour when the state set is absent. | `unit/document/design-10-design` | instruction | — |
 | **I28** | GitHub is the authority for a slice's acceptance criteria, completion and order. A `WorkRef` is a mirror, is stale by default, and is never cited as authority. | `unit/command/track` | instruction | — |
 | **I29** | The projector never writes inside a declared region, and no id is both projected and declared. | `unit/script/update-designprojection` | code | tools/Update-DesignProjection.Tests.ps1 |
-| **I30** | A record with `Status: retired` keeps its id resolvable, is excluded from every closure, and has its `Anchor` exempt from the tree check. Nothing else about it changes, and a live record naming it is not a finding. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
+| **I30** | A record with `Status: retired` keeps its id resolvable, is in no closure, and has its `Anchor` exempt from the tree check. Nothing else about it changes, and an active record naming it is a `HalfStatusMismatch` finding rather than the permitted reference it once was. | `unit/script/test-designstate` | instruction | — |
 | **I31** | A contract's `Owner` is the unique active unit whose `Exposes` names that contract. It is the only reverse edge written to a record, and it is written only because it is checked. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 <!-- invariants:end -->
 
@@ -858,6 +981,17 @@ arrived `instruction`, because **the slice that writes the evidencing test flips
 same commit** and no test preceded its invariant. Writing `code` ahead of the test is the claim
 `EnforcementUnevidenced` exists to reject, and a table that made it would be making it once for
 every such row.
+
+**Two rows have just moved the other way, and that direction needs stating because nothing else
+in this document has used it.** I23 and I30 were `code` against
+`tools/Test-DesignState.Tests.ps1`, and this amendment changed what both of them claim: I23 now
+counts the unit's own artifact, and I30 now says an active record naming a retired one is a
+finding. The named test evidences neither, and one of its cases asserts the closure rule I23
+has just dropped. So both fall to `instruction` with no `Evidence` until the slice that amends
+the meter and lands `HalfStatusMismatch` flips them back — **an amended statement demotes its
+own row**, because `Enforcement` is a claim about the tree as it stands and the tree has not
+moved yet. Leaving them `code` would have been the one thing this column exists to prevent: a
+row a reader is entitled to trust without checking, evidencing a sentence it does not test.
 
 **Which rows are `code`, and against which test, is the region's own `Enforcement` and
 `Evidence` columns and is not enumerated here.** The set rises as slices land, and a prose list
@@ -889,38 +1023,30 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**Two items.** `/slice`'s "the contract does not contain a signature you need" stop condition
+**One item.** `/slice`'s "the contract does not contain a signature you need" stop condition
 should fire on nothing else.
 
-Where a slice's criteria are rendered was the second item and is **resolved**: `outstanding`
+Whether a unit's `Questions` edge survives the question being answered was an item and is
+**resolved**, by the design rather than by preference: `Questions` gains a retired half,
+`Answered`, in the companion — the third of the three readings this section listed, and the one
+it correctly identified as `design/10-design.md`'s to make rather than this document's
+(`design/90-decisions.md`, 2026-08-29, "Retired halves move to a companion file"). It is not a
+special case: **every** active edge gained exactly one companion half in the same decision, so
+the question edge is answered by the general rule instead of a mechanism of its own. The two
+readings it rejected were rejected for the reasons stated there — dropping the id destroys the
+resolvable edge, and filtering in the projector leaves the record self-contradictory and makes
+an offline read and a rendered read disagree. `question/answered-question-unit-edge` stays
+`open` until the `Answered` grammar lands, because a record answered by a decision with nowhere
+to move its edge is the self-contradiction the sequencing exists to avoid
+([#152](../../issues/152)).
+
+Where a slice's criteria are rendered was an item and is **resolved**: `outstanding`
 renders into `design/state-index.md`, § *Outstanding* stays hand-authored proposals, and
 § *Public surface* above carries the term. Two of the three readings it listed were eliminated by
 derivation rather than by preference — a projected § *Outstanding* has no record kind to render a
 proposal from and erases one on the next regeneration, and a proposal area that empties at issue
 creation leaves a checkout with criteria for none of the outstanding work — which left a
 placement rather than a mechanism to choose (`design/90-decisions.md`, 2026-08-20).
-
-### Whether a unit's `Questions` edge survives the question being answered
-
-`design/10-design.md` § *Question* derives `Affects` from the units whose `Questions` names it and
-is silent on status, so an answered question keeps rendering under `design/state-index.md`'s
-`Questions — blocks` heading for units nothing blocks. **The first answered question this
-repository has had is what exposed it**, the same way the first retirement exposed the projector's
-disagreement with its own test — a latent contradiction rather than a regression.
-
-The decision case is settled and settled by a *field*: superseding one moves the id from a unit's
-`Live` to its `Archival`, `decision-affects` renders `—`, and the id stays resolvable. A question
-has one edge field and no archival half, so nothing carries that answer across.
-
-Three readings, each landing somewhere different. **The answering session drops the id from each
-unit** — cheapest, and it loses the resolvable edge retirement exists to keep. **The projector
-filters on `Status`** — it widens a shipped projection's render, and what a region renders is this
-document's to state, so it is an amendment here rather than a slice's call. **`Questions` gains an
-archival half** — the only reading that matches the decision precedent exactly, and a change to
-`design/10-design.md`'s data model rather than to this document.
-
-Choosing between them here would be inventing the third case's field, which the design does not
-determine.
 
 ### Which command writes a question record, and when
 
