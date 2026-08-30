@@ -285,6 +285,23 @@ Reversibility: cheap | expensive
 
 The rejected alternatives are the point. Without them the next session relitigates the same choice.
 
+## Writing a design-state record
+
+**Where this repository's own `design/state/` exists**, a decision that changes it is written by this sequence — the citation `/reconcile`, `/contract`, and `/design` each point at instead of restating it:
+
+1. Append the entry to `design/90-decisions.md`, in the existing format (*Decision logging*, above), unchanged. Nothing already there is touched.
+2. Write the decision record: anchor, status, claim.
+3. Update the affected unit records — adding the id to `Live`, and moving any id this decision supersedes from `Live` to the companion's `Archival`.
+4. **Where the same change writes the decision's terms into a site** — a section of a unit's own artifact, or a contract's `Semantics` — name that site in the decision's `StatedIn` and leave the id out of that unit's `Live`. This is the ordinary case for a policy document and the command file it governs, and it is one step rather than a later cleanup pass precisely so that it is not one.
+5. Regenerate projections — `tools/Update-DesignProjection.ps1`, a real run, not `-DryRun`.
+6. Run the checker — `tools/Test-DesignState.ps1`.
+
+Step 5 before step 6 is not optional — checking before regenerating reports every projection as stale, which trains the reader to ignore the report.
+
+**Absorption also happens without a decision being made**, when an amendment finally writes an already-recorded decision into its site. That is step 4 in isolation: name the site, drop the id from `Live`, regenerate, check.
+
+Where `design/state/` does not exist, none of this applies — write the decision-log entry alone, per *Decision logging* above.
+
 ## House conventions
 
 - Windows host, projects under `D:\Dropbox\Projects\`. PowerShell Core for scripts.
