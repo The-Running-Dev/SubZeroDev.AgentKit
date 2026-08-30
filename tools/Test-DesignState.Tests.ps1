@@ -634,6 +634,125 @@ Kind: command
     }
 }
 
+Describe 'Test-DesignState: the artifact-inclusive closure (S19)' {
+
+    It 'S19.1: a Unit root whose Anchor is a tree path counts that file''s bytes as a closure member' {
+        New-StateFile -RelativePath 'units/document/s19-with-anchor.md' -Content @'
+# unit/document/s19-with-anchor
+Kind: document
+Status: active
+Anchor: s19-artifact.md
+'@
+        New-TreeFile -RelativePath 's19-artifact.md' -Content ('a' * 250)
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $root = $byId['unit/document/s19-with-anchor']
+
+        $members = Get-DesignClosure -Root $root -ById $byId
+        $artifacts = @($members | Where-Object { $_.Kind -eq 'Artifact' })
+        $artifacts.Count | Should -Be 1
+        $artifacts[0].Path | Should -Be 's19-artifact.md'
+    }
+
+    It 'S19.1: a root with no Anchor counts records only' {
+        New-StateFile -RelativePath 'units/command/s19-no-anchor.md' -Content @'
+# unit/command/s19-no-anchor
+Kind: command
+Status: active
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $root = $byId['unit/command/s19-no-anchor']
+
+        $members = Get-DesignClosure -Root $root -ById $byId
+        @($members | Where-Object { $_.Kind -eq 'Artifact' }).Count | Should -Be 0
+    }
+
+    It 'S19.1: an Invariant root, whose Anchor is the invariant number rather than a path, counts records only' {
+        New-StateFile -RelativePath 'invariants/I900.md' -Content @'
+# I900
+Kind: invariant
+Status: active
+Anchor: I900
+Owner: unit/command/s19-no-anchor
+Enforcement: instruction
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $root = $byId['I900']
+
+        $members = Get-DesignClosure -Root $root -ById $byId
+        @($members | Where-Object { $_.Kind -eq 'Artifact' }).Count | Should -Be 0
+    }
+
+    It 'S19.4/S19.5: LargestContributor names the artifact by its tree path once it dominates a closure, and the report line still renders on a clean run' {
+        # 20,000 bytes clears every other fixture built up earlier in this file (the largest is
+        # the S5.7 pair at 16,385/16,384), so this fixture is the single largest closure by the
+        # time this test runs and the assertions below are unambiguous.
+        New-StateFile -RelativePath 'units/document/s19-dominant-artifact.md' -Content @'
+# unit/document/s19-dominant-artifact
+Kind: document
+Status: active
+Anchor: s19-big-artifact.md
+'@
+        New-TreeFile -RelativePath 's19-big-artifact.md' -Content ('b' * 20000)
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive
+
+        $result.Largest | Should -Not -BeNullOrEmpty
+        $result.Largest.Unit | Should -Be 'unit/document/s19-dominant-artifact'
+        $result.Largest.LargestContributor | Should -Be 's19-big-artifact.md'
+    }
+
+    It 'S19.4: LargestContributor names a record by id where a record, not the artifact, is the largest member' {
+        New-StateFile -RelativePath 'units/document/s19-record-dominant.md' -Content @'
+# unit/document/s19-record-dominant
+Kind: document
+Status: active
+Anchor: s19-tiny-artifact.md
+Live: decision/s19-record-dominant-live
+'@
+        New-TreeFile -RelativePath 's19-tiny-artifact.md' -Content 'x'
+        New-StateFile -RelativePath 'decisions/s19-record-dominant-live.md' -Content @"
+# decision/s19-record-dominant-live
+Status: accepted
+
+## Claim
+$('y' * 500)
+"@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $root = $byId['unit/document/s19-record-dominant']
+
+        $members = Get-DesignClosure -Root $root -ById $byId
+        $sized = @($members | ForEach-Object { [pscustomobject]@{ Record = $_; Bytes = (Get-RecordFileBytes -RepoPath $TestDrive -Record $_) } })
+        $biggest = $sized | Sort-Object Bytes -Descending | Select-Object -First 1
+        $biggest.Record.Id | Should -Be 'decision/s19-record-dominant-live'
+    }
+
+    It 'S19.6: a Unit root whose Anchor names a path not in the tree contributes zero artifact bytes rather than throwing, and raises no closure finding for it' {
+        New-StateFile -RelativePath 'units/document/s19-missing-anchor.md' -Content @'
+# unit/document/s19-missing-anchor
+Kind: document
+Status: active
+Anchor: s19-does-not-exist.md
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+
+        { Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive } | Should -Not -Throw
+        $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive
+        (@($result.Findings | Where-Object { $_.Subject -eq 'unit/document/s19-missing-anchor' })).Count | Should -Be 0
+    }
+}
+
 Describe 'Test-DesignState: ClassListDisagreement (S5.1)' {
 
     It 'raises nothing when the contract document declares exactly the same 23 ids' -Tag 'NearMiss','ClassListDisagreement' {
@@ -1113,13 +1232,45 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         $script:RealResult.LargestClosure.LargestContributor | Should -Not -BeNullOrEmpty
     }
 
-    It 'S5.12: neither S4.6 closure (unit/command/track, unit/document/agents-md) exceeds the 16,384-byte ceiling' {
+    It 'S19.3: the artifact-inclusive closure reports one ClosureOverBudget per breaching unit, and the set is non-empty' {
+        # Supersedes S5.12's 'neither exceeds the ceiling', which asserted the record-only
+        # closure the 2026-08-29 revision dropped (design/30-slices.md § S19). Under the
+        # artifact-inclusive measurement this slice adds, both of S4.6's stress-test closures
+        # breach, along with others the record-only meter never counted - exactly what S19.3
+        # requires: the set was one finding before this slice and is not one now.
         $graph = Read-DesignStateGraph -Path $script:RepoRoot
         $byId = @{}
         foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
         $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $script:RepoRoot
-        (@($result.Findings | Where-Object { $_.Subject -eq 'unit/command/track' })).Count | Should -Be 0
-        (@($result.Findings | Where-Object { $_.Subject -eq 'unit/document/agents-md' })).Count | Should -Be 0
+
+        $overBudget = @($result.Findings | Where-Object { $_.Class -eq 'ClosureOverBudget' })
+        $overBudget.Count | Should -BeGreaterThan 0
+
+        $subjects = @($overBudget | ForEach-Object { $_.Subject })
+        ($subjects | Sort-Object -Unique).Count | Should -Be $subjects.Count
+
+        $subjects | Should -Contain 'unit/command/track'
+        $subjects | Should -Contain 'unit/document/agents-md'
+    }
+
+    It 'S19.2: the closure of unit/document/agents-md equals its own record, every id it names directly, and AGENTS.md''s own length - every term read from disk' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $root = $byId['unit/document/agents-md']
+
+        $members = Get-DesignClosure -Root $root -ById $byId
+        $expected = 0
+        foreach ($m in $members) {
+            $expected += (Get-Item -LiteralPath (Join-Path $script:RepoRoot $m.Path)).Length
+        }
+
+        ($members | Where-Object { $_.Kind -eq 'Artifact' }).Path | Should -Be 'AGENTS.md'
+
+        $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $script:RepoRoot
+        $finding = @($result.Findings | Where-Object { $_.Subject -eq 'unit/document/agents-md' })
+        $finding.Count | Should -Be 1
+        $finding[0].Detail | Should -Match "closure is $expected bytes"
     }
 
     It 'S12.5: the check exits 0 against this repository, and names the largest closure and its size' {
