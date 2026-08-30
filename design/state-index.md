@@ -226,6 +226,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-29-claims-trimmed-to-standing-terms | `unit/document/design-10-design` |
 | decision/2026-08-29-closures-shrink-by-absorption | — |
 | decision/2026-08-29-retired-halves-to-companion-absorption-to-decision | `unit/document/design-10-design` |
+| decision/2026-08-30-contract-carries-companion-halves-and-artifact-closure | `unit/document/design-20-contract` |
 | decision/2026-08-30-derived-state-commits-to-default-branch | `unit/command/clean`, `unit/command/track`, `unit/document/agents-md` |
 | decision/2026-08-30-force-delete-delegated-on-tip-comparison | `unit/command/clean`, `unit/document/agents-md`, `unit/script/invoke-donehousekeeping` |
 | decision/2026-08-30-next-command-orients-and-acts | `unit/command/kit-help`, `unit/command/next`, `unit/document/agents-md` |
