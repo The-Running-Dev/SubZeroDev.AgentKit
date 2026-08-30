@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live:
-Archival:
 Questions:
 Work:
 Evidence: tools/Test-VerifyReport.Tests.ps1

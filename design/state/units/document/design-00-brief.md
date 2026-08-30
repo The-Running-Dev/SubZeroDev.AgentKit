@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-29-ceiling-counts-the-units-own-artifact, decision/2026-08-19-four-open-questions-closed-unit-set-widens, decision/2026-08-19-brief-written-kit-owned-mechanism-proven-here-only
-Archival:
 Questions:
 Work:
 Evidence:

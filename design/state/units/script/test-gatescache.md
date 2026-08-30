@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live:
-Archival:
 Questions:
 Work:
 Evidence:

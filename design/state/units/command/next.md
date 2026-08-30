@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-30-next-command-orients-and-acts
-Archival:
 Questions:
 Work:
 Evidence:

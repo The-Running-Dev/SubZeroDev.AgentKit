@@ -66,7 +66,7 @@ BeforeAll {
     }
 
     # A minimal but exact stand-in for the two sections of design/20-contract.md the checker
-    # parses about itself - the same 23 class ids Test-DesignState.ps1 declares, and a verbatim
+    # parses about itself - the same 26 class ids Test-DesignState.ps1 declares, and a verbatim
     # copy of § "Artifacts of a unit kind"'s table - so end-to-end tests below do not spuriously
     # raise ClassListDisagreement or GlobDisagreement while exercising something else entirely.
     # The glob table agrees with the enumeration over any tree by construction, which is exactly
@@ -102,6 +102,9 @@ BeforeAll {
 | `ClosureOverBudget` | x | x |
 | `ClassListDisagreement` | x | x |
 | `GlobDisagreement` | x | x |
+| `RecordPairMalformed` | x | x |
+| `HalfStatusMismatch` | x | x |
+| `HalfOverlap` | x | x |
 
 **Reported, never blocking.**
 
@@ -540,42 +543,6 @@ Describe 'Test-DesignState: Get-ContractInvariantIds' {
 
 Describe 'Test-DesignState: the budget meter (S5.5, S5.7)' {
 
-    It 'S5.5: closure excludes Archival and excludes any named record whose Status is retired' {
-        New-StateFile -RelativePath 'units/command/root.md' -Content @'
-# unit/command/root
-Kind: command
-Status: active
-Live: decision/live-one
-Archival: decision/archival-one
-Binds: I1
-'@
-        New-StateFile -RelativePath 'decisions/live-one.md' -Content @'
-# decision/live-one
-Status: accepted
-'@
-        New-StateFile -RelativePath 'decisions/archival-one.md' -Content @'
-# decision/archival-one
-Status: accepted
-'@
-        New-StateFile -RelativePath 'invariants/I1.md' -Content @'
-# I1
-Kind: invariant
-Status: retired
-'@
-        $graph = Read-DesignStateGraph -Path $TestDrive
-        $byId = @{}
-        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
-        $root = $byId['unit/command/root']
-
-        $members = Get-DesignClosure -Root $root -ById $byId
-        $ids = @($members | ForEach-Object { $_.Id })
-
-        $ids | Should -Contain 'unit/command/root'
-        $ids | Should -Contain 'decision/live-one'
-        $ids | Should -Not -Contain 'decision/archival-one'
-        $ids | Should -Not -Contain 'I1'
-    }
-
     It 'S5.5: a live record naming a retired one raises no UnresolvedId finding' {
         New-StateFile -RelativePath 'units/command/root.md' -Content @'
 # unit/command/root
@@ -753,9 +720,225 @@ Anchor: s19-does-not-exist.md
     }
 }
 
+Describe 'Test-DesignState: the retired-companion split (S20)' {
+
+    BeforeEach {
+        Get-ChildItem $TestDrive -ErrorAction SilentlyContinue -Recurse -File |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'S20.1: a companion joins into the active record as one record, and FieldOrigin names each field''s source file' {
+        New-StateFile -RelativePath 'units/command/paired.md' -Content @'
+# unit/command/paired
+Kind: command
+Status: active
+Live: decision/paired-live
+'@
+        New-StateFile -RelativePath 'units/command/retired/paired.md' -Content @'
+Archival: decision/paired-archival
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+
+        $matches = @($graph.Records | Where-Object { $_.Id -eq 'unit/command/paired' })
+        $matches.Count | Should -Be 1 -Because 'the reader emits one record per unit and never two'
+        $r = $matches[0]
+        $r.CompanionPath | Should -Be 'design/state/units/command/retired/paired.md'
+        $r.Lists['Live'] | Should -Be @('decision/paired-live')
+        $r.Lists['Archival'] | Should -Be @('decision/paired-archival')
+        $r.FieldOrigin['Live'] | Should -Be 'Active'
+        $r.FieldOrigin['Archival'] | Should -Be 'Companion'
+    }
+
+    It 'S20.2: a unit with no companion file parses as a unit whose every retired half is empty - not a missing file, not a finding' {
+        New-StateFile -RelativePath 'units/command/solo.md' -Content @'
+# unit/command/solo
+Kind: command
+Status: active
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+
+        $graph.CompanionOnly.Count | Should -Be 0
+        $r = @($graph.Records | Where-Object { $_.Id -eq 'unit/command/solo' })[0]
+        $r.CompanionPath | Should -BeNullOrEmpty
+        $r.Lists.ContainsKey('Archival') | Should -BeFalse
+
+        $findings = Test-RecordPairMalformed -Records @($r) -CompanionOnly $graph.CompanionOnly
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S20.3: a companion path resolves its kind segment against the four unit kinds' {
+        $info = Get-DesignPathInfo -RelativeToState 'units/command/retired/x.md'
+        $info.PathId | Should -Be 'unit/command/x'
+        $info.IsCompanion | Should -BeTrue
+    }
+
+    It 'S20.3: a path naming "retired" where the kind belongs is a parse failure - retired never resolves as a kind' {
+        Get-DesignPathInfo -RelativeToState 'units/retired/x.md' | Should -BeNullOrEmpty
+    }
+
+    It 'S20.4: RecordPairMalformed fires for a companion with no active record beside it' -Tag 'Fires', 'RecordPairMalformed' {
+        New-StateFile -RelativePath 'units/command/retired/orphan.md' -Content @'
+Archival: decision/x
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $findings = Test-RecordPairMalformed -Records $graph.Records -CompanionOnly $graph.CompanionOnly
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'unit/command/orphan'
+    }
+
+    It 'S20.4: RecordPairMalformed fires when a retired-half field is written into the active record' -Tag 'Fires', 'RecordPairMalformed' {
+        New-StateFile -RelativePath 'units/command/misfiled.md' -Content @'
+# unit/command/misfiled
+Kind: command
+Status: active
+Archival: decision/x
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $findings = Test-RecordPairMalformed -Records $graph.Records -CompanionOnly $graph.CompanionOnly
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'unit/command/misfiled'
+        $findings[0].Detail | Should -Match "field 'Archival' belongs in the retired companion"
+        $findings[0].Detail | Should -Match 'active='
+        $findings[0].Detail | Should -Match 'companion='
+    }
+
+    It 'S20.4: RecordPairMalformed fires when an active-half field is written into the companion' -Tag 'Fires', 'RecordPairMalformed' {
+        New-StateFile -RelativePath 'units/command/misfiled2.md' -Content @'
+# unit/command/misfiled2
+Kind: command
+Status: active
+'@
+        New-StateFile -RelativePath 'units/command/retired/misfiled2.md' -Content @'
+Live: decision/x
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $findings = Test-RecordPairMalformed -Records $graph.Records -CompanionOnly $graph.CompanionOnly
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'unit/command/misfiled2'
+        $findings[0].Detail | Should -Match "field 'Live' belongs in the active record"
+    }
+
+    It 'S20.4: a unit with an empty companion, and a unit with none, are both silent' -Tag 'NearMiss', 'RecordPairMalformed' {
+        New-StateFile -RelativePath 'units/command/empty-companion.md' -Content @'
+# unit/command/empty-companion
+Kind: command
+Status: active
+'@
+        New-StateFile -RelativePath 'units/command/retired/empty-companion.md' -Content "`n"
+        New-StateFile -RelativePath 'units/command/no-companion.md' -Content @'
+# unit/command/no-companion
+Kind: command
+Status: active
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $findings = Test-RecordPairMalformed -Records $graph.Records -CompanionOnly $graph.CompanionOnly
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S20.5: HalfStatusMismatch fires when an active edge names a referent whose status the edge forbids' -Tag 'Fires', 'HalfStatusMismatch' {
+        $live = New-Record -Id 'unit/command/bad-live' -Scalars @{ Status = 'active' } -Lists @{ Live = @('decision/superseded-one') }
+        $decision = New-Record -Id 'decision/superseded-one' -Kind 'Decision' -Scalars @{ Status = 'superseded' }
+        $byId = @{ 'unit/command/bad-live' = $live; 'decision/superseded-one' = $decision }
+        $findings = Test-HalfStatusMismatch -Records @($live, $decision) -ById $byId
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'unit/command/bad-live'
+    }
+
+    It 'S20.5: HalfStatusMismatch fires when a retired half names a referent whose status the half forbids' -Tag 'Fires', 'HalfStatusMismatch' {
+        $unit = New-Record -Id 'unit/command/bad-archival' -Scalars @{ Status = 'active' } -Lists @{ Archival = @('decision/still-live') }
+        $decision = New-Record -Id 'decision/still-live' -Kind 'Decision' -Scalars @{ Status = 'accepted' }
+        $byId = @{ 'unit/command/bad-archival' = $unit; 'decision/still-live' = $decision }
+        $findings = Test-HalfStatusMismatch -Records @($unit, $decision) -ById $byId
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'unit/command/bad-archival'
+    }
+
+    It 'S20.5: HalfStatusMismatch also checks Work/Worked against a WorkRef''s State, in both directions' -Tag 'Fires', 'HalfStatusMismatch' {
+        $unit = New-Record -Id 'unit/command/bad-work' -Scalars @{ Status = 'active' } -Lists @{ Work = @('999') }
+        $work = New-Record -Id 'work/999' -Kind 'WorkRef' -Scalars @{ Issue = '999'; State = 'CLOSED' }
+        $byId = @{ 'unit/command/bad-work' = $unit; 'work/999' = $work }
+        $findings = Test-HalfStatusMismatch -Records @($unit, $work) -ById $byId
+        $findings.Count | Should -Be 1
+        $findings[0].Detail | Should -Match 'Work'
+    }
+
+    It 'S20.5: an active edge naming an active/open referent, and a retired half naming a retired/superseded/answered/closed one, are silent' -Tag 'NearMiss', 'HalfStatusMismatch' {
+        $unit = New-Record -Id 'unit/command/good-pair' -Scalars @{ Status = 'active' } -Lists @{
+            Live = @('decision/good-live'); Archival = @('decision/good-archival')
+            Questions = @('question/good-open'); Answered = @('question/good-answered')
+            Work = @('1'); Worked = @('2')
+        }
+        $goodLive = New-Record -Id 'decision/good-live' -Kind 'Decision' -Scalars @{ Status = 'accepted' }
+        $goodArchival = New-Record -Id 'decision/good-archival' -Kind 'Decision' -Scalars @{ Status = 'superseded' }
+        $goodOpen = New-Record -Id 'question/good-open' -Kind 'Question' -Scalars @{ Status = 'open' }
+        $goodAnswered = New-Record -Id 'question/good-answered' -Kind 'Question' -Scalars @{ Status = 'answered' }
+        $workOpen = New-Record -Id 'work/1' -Kind 'WorkRef' -Scalars @{ Issue = '1'; State = 'OPEN' }
+        $workClosed = New-Record -Id 'work/2' -Kind 'WorkRef' -Scalars @{ Issue = '2'; State = 'CLOSED' }
+        $records = @($unit, $goodLive, $goodArchival, $goodOpen, $goodAnswered, $workOpen, $workClosed)
+        $byId = @{}
+        foreach ($r in $records) { $byId[$r.Id] = $r }
+
+        $findings = Test-HalfStatusMismatch -Records $records -ById $byId
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S20.6: HalfOverlap fires when one id sits in both halves of one edge' -Tag 'Fires', 'HalfOverlap' {
+        $unit = New-Record -Id 'unit/command/overlap' -Lists @{ Live = @('decision/x'); Archival = @('decision/x') }
+        $findings = Test-HalfOverlap -Records @($unit)
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'unit/command/overlap'
+        $findings[0].Detail | Should -Match 'decision/x'
+    }
+
+    It 'S20.6: the same id in two different edges is silent' -Tag 'NearMiss', 'HalfOverlap' {
+        $unit = New-Record -Id 'unit/command/nooverlap' -Lists @{ Live = @('decision/x'); Binds = @('decision/x') }
+        $findings = Test-HalfOverlap -Records @($unit)
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S20.8: Get-DesignClosure no longer skips a named record whose Status is retired' {
+        New-StateFile -RelativePath 'units/command/root2.md' -Content @'
+# unit/command/root2
+Kind: command
+Status: active
+Live: decision/retired-target
+'@
+        New-StateFile -RelativePath 'decisions/retired-target.md' -Content @'
+# decision/retired-target
+Status: retired
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $root = $byId['unit/command/root2']
+
+        $members = Get-DesignClosure -Root $root -ById $byId
+        @($members | ForEach-Object { $_.Id }) | Should -Contain 'decision/retired-target'
+    }
+
+    It 'S20.8: the retired companion is never a closure member, and the closure size does not grow with it' {
+        New-StateFile -RelativePath 'units/command/sized.md' -Content @'
+# unit/command/sized
+Kind: command
+Status: active
+'@
+        New-StateFile -RelativePath 'units/command/retired/sized.md' -Content ("Archival:`n" + ('z' * 5000))
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $root = $byId['unit/command/sized']
+
+        $members = Get-DesignClosure -Root $root -ById $byId
+        @($members | ForEach-Object { $_.Path }) | Should -Not -Contain 'design/state/units/command/retired/sized.md'
+
+        $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive
+        (@($result.Findings | Where-Object { $_.Subject -eq 'unit/command/sized' })).Count | Should -Be 0
+    }
+}
+
 Describe 'Test-DesignState: ClassListDisagreement (S5.1)' {
 
-    It 'raises nothing when the contract document declares exactly the same 23 ids' -Tag 'NearMiss','ClassListDisagreement' {
+    It 'raises nothing when the contract document declares exactly the same 26 ids' -Tag 'NearMiss','ClassListDisagreement' {
         New-TreeFile -RelativePath 'design/20-contract.md' -Content $script:MinimalContract
         $result = Test-ClassListAgreement -ContractPath (Join-Path $TestDrive 'design/20-contract.md')
         $result.Finding | Should -BeNullOrEmpty
@@ -1271,6 +1454,33 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         $finding = @($result.Findings | Where-Object { $_.Subject -eq 'unit/document/agents-md' })
         $finding.Count | Should -Be 1
         $finding[0].Detail | Should -Match "closure is $expected bytes"
+    }
+
+    It 'S20.7: every non-empty retired half sits in a companion file and not in an active record' {
+        (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'RecordPairMalformed' })).Count | Should -Be 0
+        (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'HalfStatusMismatch' })).Count | Should -Be 0
+        (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'HalfOverlap' })).Count | Should -Be 0
+    }
+
+    It 'S20.9: I23 and I30 carry Enforcement: code with Evidence naming the tests that hold them' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        foreach ($id in 'I23', 'I30') {
+            $byId[$id].Scalars['Enforcement'] | Should -Be 'code'
+            $byId[$id].Lists['Evidence'] | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    It 'S20.10: ClassListDisagreement''s contract-only set is exactly the five ids this slice does not land' {
+        $finding = @($script:RealResult.Findings | Where-Object { $_.Class -eq 'ClassListDisagreement' })
+        $finding.Count | Should -Be 1
+        foreach ($id in 'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive', 'DecisionUnplaced', 'SupersessionCycle') {
+            $finding[0].Detail | Should -Match $id
+        }
+        foreach ($id in 'RecordPairMalformed', 'HalfStatusMismatch', 'HalfOverlap') {
+            $finding[0].Detail | Should -Not -Match $id
+        }
     }
 
     It 'S12.5: the check exits 0 against this repository, and names the largest closure and its size' {

@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-02-installing-is-agent-executed-reconciliation
-Archival:
 Questions:
 Work:
 Evidence:

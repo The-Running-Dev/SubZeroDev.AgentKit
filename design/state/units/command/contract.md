@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-19-contract-becomes-repository-scoped
-Archival:
 Questions:
 Work:
 Evidence:

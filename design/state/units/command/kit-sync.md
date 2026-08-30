@@ -6,7 +6,6 @@ Consumes:
 Exposes:
 Binds:
 Live: decision/2026-08-08-kit-sync-new-command
-Archival:
 Questions:
 Work:
 Evidence:

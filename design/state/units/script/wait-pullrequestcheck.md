@@ -6,7 +6,6 @@ Consumes:
 Exposes: contract/wait-pullrequestcheck
 Binds: I2, I7, I8
 Live:
-Archival:
 Questions:
 Work:
 Evidence: tools/Wait-PullRequestCheck.Tests.ps1

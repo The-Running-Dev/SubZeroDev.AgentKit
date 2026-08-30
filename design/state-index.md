@@ -216,7 +216,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-20-state-index-hosts-outstanding-projection | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 | decision/2026-08-21-install-code-review-agent-writes-the-workflow-file-only | `unit/command/install-code-review-agent` |
 | decision/2026-08-21-install-delivers-on-a-feature-branch | — |
-| decision/2026-08-22-done-always-hands-off-to-track | `unit/command/kit-help` |
+| decision/2026-08-22-done-always-hands-off-to-track | — |
 | decision/2026-08-24-codex-tier-resolved-from-config | `unit/document/agents-md` |
 | decision/2026-08-25-branch-commit-push-pr-delegated-for-all-work | — |
 | decision/2026-08-25-code-review-defaults-high-effort-fix-push | — |
@@ -239,9 +239,9 @@ means no record exists yet, not that nothing is true.
 <!-- question-affects:start -->
 | Question | Blocks |
 |---|---|
-| question/answered-question-unit-edge | `unit/script/update-designprojection` |
+| question/answered-question-unit-edge | — |
 | question/question-record-writer | `unit/command/slice`, `unit/command/track` |
-| question/slices-authority-home | `unit/document/design-30-slices`, `unit/script/update-designprojection` |
+| question/slices-authority-home | — |
 <!-- question-affects:end -->
 
 ## Outstanding
