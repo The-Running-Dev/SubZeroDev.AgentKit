@@ -156,7 +156,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-03-reconciliation-ends-in-decision-not-report | `unit/document/agents-md` |
 | decision/2026-08-03-redteam-pass-is-phase-gate-stopping-rule-in-command | `unit/command/redteam`, `unit/document/agents-md` |
 | decision/2026-08-03-resolve-classifies-in-bulk-asks-on-ambiguous | `unit/command/resolve` |
-| decision/2026-08-03-ticking-checkbox-is-the-users | — |
+| decision/2026-08-03-ticking-checkbox-is-the-users | `unit/command/slice` |
 | decision/2026-08-03-track-adds-to-existing-project | `unit/command/track` |
 | decision/2026-08-03-verify-discovers-gates-reports-what-did-not-run | `unit/command/verify` |
 | decision/2026-08-03-work-defers-to-github-track-owns-github-writes | `unit/command/track`, `unit/document/agents-md` |
@@ -167,14 +167,14 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-04-measure-session-claude-code-only-errors-not-zero | `unit/script/measure-session` |
 | decision/2026-08-04-pester-tests-and-ci-gate-for-measure-session | `unit/script/measure-session` |
 | decision/2026-08-04-refine-is-a-front-door-between-stages | `unit/command/refine` |
-| decision/2026-08-04-session-boundaries-are-policy-in-agents-md | — |
+| decision/2026-08-04-session-boundaries-are-policy-in-agents-md | `unit/document/agents-md` |
 | decision/2026-08-04-sessionend-hook-writes-cost-log | `unit/document/install-md`, `unit/script/measure-session` |
 | decision/2026-08-04-slice-creates-own-branch-and-pushes | `unit/command/slice` |
 | decision/2026-08-04-slice-takes-no-argument-reads-doneness-from-tracker | `unit/command/slice` |
 | decision/2026-08-04-userpromptsubmit-hook-warns-on-session-size | `unit/document/install-md`, `unit/script/measure-session` |
 | decision/2026-08-05-design-filled-for-one-path-scoped-brief-unwritten | `unit/document/design-10-design` |
 | decision/2026-08-05-fix-is-a-new-command-files-own-bug-issue | `unit/command/fix` |
-| decision/2026-08-05-resolve-asks-once-over-completed-classification | — |
+| decision/2026-08-05-resolve-asks-once-over-completed-classification | `unit/command/resolve`, `unit/document/agents-md` |
 | decision/2026-08-05-seed-moves-to-templates-design | `unit/document/install-md` |
 | decision/2026-08-05-sync-kit-mechanism-recorded | `unit/script/sync-kit` |
 | decision/2026-08-08-done-housekeeping-scripts-everything-before-ask | `unit/command/clean`, `unit/script/invoke-donehousekeeping` |
@@ -188,7 +188,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-12-codex-vendor-alias-list-for-sol-terra | `unit/document/agents-md` |
 | decision/2026-08-12-commands-split-core-and-companion | `unit/document/companions-md`, `unit/script/test-companion` |
 | decision/2026-08-12-install-all-write-surface-guard | `unit/command/install-all`, `unit/script/test-writesurface` |
-| decision/2026-08-13-codex-alias-gpt-5-added | — |
+| decision/2026-08-13-codex-alias-gpt-5-added | `unit/document/agents-md` |
 | decision/2026-08-13-gate-check-comparison-by-tier-not-literal-name | `unit/document/agents-md` |
 | decision/2026-08-19-anchormissing-widens-to-every-tree-pointer | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-08-19-brief-written-kit-owned-mechanism-proven-here-only | `unit/document/design-00-brief` |
@@ -206,25 +206,25 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-19-record-ids-kind-prefixed-slugs | `unit/document/design-10-design`, `unit/document/design-20-contract` |
 | decision/2026-08-19-resolution-batch-replaced-by-standing-delegation | `unit/command/resolve`, `unit/document/agents-md` |
 | decision/2026-08-19-retirement-is-status-field | `unit/document/design-10-design`, `unit/document/design-20-contract` |
-| decision/2026-08-19-state-index-md-added | — |
+| decision/2026-08-19-state-index-md-added | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 | decision/2026-08-19-state-set-one-file-per-record-ps1-tooling | `unit/document/design-10-design`, `unit/document/design-20-contract` |
 | decision/2026-08-20-claim-excludes-rejections-question-writer-open | `unit/document/design-20-contract`, `unit/document/design-90-decisions` |
 | decision/2026-08-20-fix-picks-its-own-bug-when-given-nothing | `unit/command/fix` |
 | decision/2026-08-20-globdisagreement-checks-the-glob-table | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-08-20-install-initializes-an-absent-repository | `unit/command/install-all`, `unit/document/install-md` |
-| decision/2026-08-20-invariant-enforcement-not-enumerated-in-prose | — |
+| decision/2026-08-20-invariant-enforcement-not-enumerated-in-prose | `unit/document/design-20-contract` |
 | decision/2026-08-20-state-index-hosts-outstanding-projection | `unit/document/design-20-contract`, `unit/document/design-state-index` |
 | decision/2026-08-21-install-code-review-agent-writes-the-workflow-file-only | `unit/command/install-code-review-agent` |
-| decision/2026-08-21-install-delivers-on-a-feature-branch | — |
-| decision/2026-08-22-done-always-hands-off-to-track | — |
+| decision/2026-08-21-install-delivers-on-a-feature-branch | `unit/document/agents-md`, `unit/document/install-md` |
+| decision/2026-08-22-done-always-hands-off-to-track | `unit/command/clean`, `unit/command/kit-help` |
 | decision/2026-08-24-codex-tier-resolved-from-config | `unit/document/agents-md` |
-| decision/2026-08-25-branch-commit-push-pr-delegated-for-all-work | — |
-| decision/2026-08-25-code-review-defaults-high-effort-fix-push | — |
-| decision/2026-08-25-high-volume-tier-retired-haiku-luna-removed | — |
+| decision/2026-08-25-branch-commit-push-pr-delegated-for-all-work | `unit/document/agents-md` |
+| decision/2026-08-25-code-review-defaults-high-effort-fix-push | `unit/document/agents-md` |
+| decision/2026-08-25-high-volume-tier-retired-haiku-luna-removed | `unit/document/agents-md` |
 | decision/2026-08-26-workmirror-writes-only-on-change | `unit/script/update-workmirror` |
 | decision/2026-08-29-ceiling-counts-the-units-own-artifact | `unit/document/design-00-brief`, `unit/document/design-10-design` |
 | decision/2026-08-29-claims-trimmed-to-standing-terms | `unit/document/design-10-design` |
-| decision/2026-08-29-closures-shrink-by-absorption | — |
+| decision/2026-08-29-closures-shrink-by-absorption | `unit/document/design-10-design` |
 | decision/2026-08-29-retired-halves-to-companion-absorption-to-decision | `unit/document/design-10-design` |
 | decision/2026-08-30-contract-carries-companion-halves-and-artifact-closure | `unit/document/design-20-contract` |
 | decision/2026-08-30-derived-state-commits-to-default-branch | `unit/command/clean`, `unit/command/track`, `unit/document/agents-md` |
@@ -234,14 +234,14 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-30-tier-gate-reads-environment-stamp-first | `unit/document/agents-md`, `unit/script/invoke-codexcommand` |
 <!-- decision-affects:end -->
 
-## Questions — blocks
+## Questions — blocks and answered
 
 <!-- question-affects:start -->
-| Question | Blocks |
-|---|---|
-| question/answered-question-unit-edge | — |
-| question/question-record-writer | `unit/command/slice`, `unit/command/track` |
-| question/slices-authority-home | — |
+| Question | Blocks | Answered |
+|---|---|---|
+| question/answered-question-unit-edge | — | `unit/script/update-designprojection` |
+| question/question-record-writer | `unit/command/slice`, `unit/command/track` | — |
+| question/slices-authority-home | — | `unit/document/design-30-slices`, `unit/script/update-designprojection` |
 <!-- question-affects:end -->
 
 ## Outstanding
