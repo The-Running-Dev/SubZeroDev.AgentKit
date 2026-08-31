@@ -5,7 +5,7 @@ Anchor: tools/Invoke-DoneHousekeeping.ps1
 Consumes:
 Exposes:
 Binds:
-Live: decision/2026-08-08-done-housekeeping-scripts-everything-before-ask, decision/2026-08-30-force-delete-delegated-on-tip-comparison
+Live: decision/2026-08-08-done-housekeeping-scripts-everything-before-ask, decision/2026-08-30-force-delete-delegated-on-tip-comparison, decision/2026-08-31-invoke-donehousekeeping-gets-a-contract
 Questions:
 Work:
 Evidence:

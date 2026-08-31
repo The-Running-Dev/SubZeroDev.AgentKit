@@ -1699,14 +1699,44 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'SupersessionCycle' })).Count | Should -Be 0
     }
 
-    It 'S12.5: the check exits 0 against this repository, and names the largest closure and its size' {
+    It 'S12.5: the check reports only the adjudicated ClosureOverBudget findings against this repository, and names the largest closure and its size' {
         # Replaces S5's 'never clean against this repository', whose stated reason - that most
         # commands, scripts and documents had no unit record - stopped being true at S8 and S9.
         # It kept passing on a divergence it was never written to describe, which is the shape
         # AGENTS.md (Verification) calls a test that guards nothing.
+        #
+        # It then asserted exit 0, which stopped being true at S19: counting a unit's own
+        # artifact puts every document unit over the ceiling, and design/10-design.md
+        # ("Whether the ceiling can be met") says so outright - the brief's Abandonment line is
+        # live and the adjudication is the user's. A blanket exit-0 assertion turned that
+        # designed state into a permanently red build, which is the same defect one level up:
+        # a gate whose value is constant reports nothing.
+        #
+        # So the assertion is what the design actually claims. ClosureOverBudget is expected and
+        # every instance of it must be artifact-dominated - that is the *reason* the brief's
+        # clause is live rather than a bookkeeping failure. A unit that breaches on its records
+        # instead is not the adjudicated case and turns this red.
         $failing = @($script:RealResult.Findings | ForEach-Object { "[$($_.Class)] $($_.Subject): $($_.Detail)" })
         $unevaluated = @($script:RealResult.CouldNotEvaluate | ForEach-Object { "[$($_.Reason)] $($_.Detail)" })
-        $script:RealResult.ExitCode | Should -Be 0 -Because "findings: $($failing -join ' | '); could not evaluate: $($unevaluated -join ' | ')"
+
+        $script:RealResult.CouldNotEvaluate | Should -BeNullOrEmpty -Because "could not evaluate: $($unevaluated -join ' | ')"
+
+        $otherClasses = @($script:RealResult.Findings | Where-Object { $_.Class -ne 'ClosureOverBudget' })
+        $otherClasses | Should -BeNullOrEmpty -Because "the only adjudicated finding class is ClosureOverBudget; got: $($failing -join ' | ')"
+
+        $script:RealResult.ExitCode | Should -Be 1 -Because "findings: $($failing -join ' | ')"
+
+        # Every breach is the artifact's, not the record set's. A unit whose one-hop records
+        # alone exceed the ceiling is the case design/10-design.md ("Whether the ceiling can be
+        # met") calls remediable by absorption, and nothing else in the closed list sees it.
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        foreach ($f in @($script:RealResult.Findings)) {
+            $anchor = $byId[$f.Subject].Scalars['Anchor']
+            $f.Detail | Should -Match ([regex]::Escape("largest contributor '$anchor'")) -Because "$($f.Subject) breaches on something other than its own artifact, which is not the adjudicated case: $($f.Detail)"
+        }
+
         $script:RealResult.LargestClosure.Unit | Should -Not -BeNullOrEmpty
         $script:RealResult.LargestClosure.Bytes | Should -BeGreaterThan 0
     }
@@ -1776,9 +1806,12 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
             Set-Content -LiteralPath $supersededPath -Value $original -Encoding utf8NoBOM -NoNewline
         }
 
+        # Restoring clears EnforcementUnevidenced; it does not clear ClosureOverBudget, which is
+        # this repository's adjudicated state (S12.5, and design/10-design.md "Whether the
+        # ceiling can be met"). Asserting exit 0 here asserted the ceiling was met.
         $restoredResult = Invoke-DesignStateCheck -RepoPath $script:RepoRoot
         (@($restoredResult.Findings | Where-Object { $_.Class -eq 'EnforcementUnevidenced' })).Count | Should -Be 0
-        $restoredResult.ExitCode | Should -Be 0
+        (@($restoredResult.Findings | Where-Object { $_.Class -notin @('ClosureOverBudget') })).Count | Should -Be 0
         (& git -C $script:RepoRoot status --short) | Should -Be $script:StatusBefore
     }
 }
