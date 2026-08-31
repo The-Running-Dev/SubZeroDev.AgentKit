@@ -73,7 +73,8 @@ $script:BlockingClasses = @(
     'RegionMalformed', 'IdCollision', 'DecisionAnchorAmbiguous', 'LogEntryUnrecorded',
     'EnforcementUnevidenced', 'ClosureOverBudget', 'ClassListDisagreement', 'GlobDisagreement',
     'RecordPairMalformed', 'HalfStatusMismatch', 'HalfOverlap',
-    'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive'
+    'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive',
+    'DecisionUnplaced', 'SupersessionCycle'
 )
 $script:ReportedClasses = @(
     'MirrorStale', 'WorkStateDivergence', 'PinAncestry', 'SemanticDisagreement'
@@ -1176,6 +1177,96 @@ function Test-SiteContradictsLive {
     ,@($findings)
 }
 
+<#
+    DecisionUnplaced (design/10-design.md § "A decision nothing names is an interrupted write";
+    design/20-contract.md's own row). An accepted decision must be named by at least one unit's
+    Live, or place at least one site in its own StatedIn - "place" is presence, not resolution;
+    whether a site actually resolves is SiteAmbiguous's and SiteOutOfReach's to say, and a site
+    that fails one of those still keeps this class silent, exactly as "a decision placed by a
+    site alone is silent" states. A superseded decision must be named by at least one Archival.
+    Status values other than the two the design/data model declares are outside this check's
+    scope - a decision record's Status is otherwise-unvalidated free text here, same as every
+    other scalar this checker resolves rather than type-checks.
+#>
+function Test-DecisionUnplaced {
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records)
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+    $units = @($Records | Where-Object { $_.Kind -eq 'Unit' })
+
+    foreach ($decision in @($Records | Where-Object { $_.Kind -eq 'Decision' })) {
+        $status = $decision.Scalars['Status']
+        if ($status -eq 'accepted') {
+            $hasLive = [bool]@($units | Where-Object { $_.Lists.ContainsKey('Live') -and $decision.Id -in $_.Lists['Live'] }).Count
+            $hasSite = $decision.Lists.ContainsKey('StatedIn') -and [bool]@($decision.Lists['StatedIn'] | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
+            if (-not $hasLive -and -not $hasSite) {
+                $findings.Add((New-DesignFinding -Class 'DecisionUnplaced' -Subject $decision.Id -Detail "status 'accepted', named by no unit's Live and placing no site - an interrupted write" -Blocking $true))
+            }
+        } elseif ($status -eq 'superseded') {
+            $hasArchival = [bool]@($units | Where-Object { $_.Lists.ContainsKey('Archival') -and $decision.Id -in $_.Lists['Archival'] }).Count
+            if (-not $hasArchival) {
+                $findings.Add((New-DesignFinding -Class 'DecisionUnplaced' -Subject $decision.Id -Detail "status 'superseded', named by no unit's Archival - an interrupted write" -Blocking $true))
+            }
+        }
+    }
+    ,@($findings)
+}
+
+<#
+    SupersessionCycle (design/10-design.md § "SupersededBy chains terminate, and they terminate
+    in an accepted decision"). Walks each decision's own SupersededBy chain with a visited set;
+    a chain that revisits a decision it has already walked - including naming itself - is a
+    cycle, reported in the order the walk found it. A chain that reaches a decision with no
+    record, or a superseded decision with no SupersededBy, stops without a finding here - those
+    are UnresolvedId's and EnforcementUnevidenced's respectively, not a cycle. Reported once per
+    distinct cycle regardless of how many decisions feed into it or which member the walk
+    started from: the finding names the cycle, not the walk that found it.
+#>
+function Test-SupersessionCycle {
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records,
+        [Parameter(Mandatory)][hashtable] $ById
+    )
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+    $reportedCycles = [System.Collections.Generic.HashSet[string]]::new()
+
+    foreach ($start in @($Records | Where-Object { $_.Kind -eq 'Decision' })) {
+        $path = [System.Collections.Generic.List[string]]::new()
+        $seen = @{}
+        $current = $start.Id
+        $cycle = $null
+
+        while ($true) {
+            if ($seen.ContainsKey($current)) {
+                $cycleStart = $path.IndexOf($current)
+                $cycle = @($path[$cycleStart..($path.Count - 1)]) + @($current)
+                break
+            }
+            $seen[$current] = $true
+            $path.Add($current)
+
+            if (-not $ById.ContainsKey($current)) { break }
+            $record = $ById[$current]
+            if ($record.Kind -ne 'Decision' -or $record.Scalars['Status'] -ne 'superseded') { break }
+            $next = $record.Scalars['SupersededBy']
+            if ([string]::IsNullOrWhiteSpace($next)) { break }
+            $current = $next
+        }
+
+        # Only report from a start that is itself inside the cycle just found - a decision whose
+        # own chain merely leads into someone else's cycle is not itself unterminated in a way
+        # this class exists to say; every member of the cycle will independently find it too.
+        if ($cycle -and $cycle[0] -eq $start.Id) {
+            $dedupeKey = (@($cycle | Select-Object -Unique) | Sort-Object) -join '|'
+            if ($reportedCycles.Add($dedupeKey)) {
+                $findings.Add((New-DesignFinding -Class 'SupersessionCycle' -Subject $start.Id -Detail "cycle: $($cycle -join ' -> ')" -Blocking $true))
+            }
+        }
+    }
+    ,@($findings)
+}
+
 # ---------------------------------------------------------------------------------------------
 # The budget meter. closure(U) = record(U), plus the record of every id record(U) names
 # directly, plus the tree artifact record(U)'s own Anchor names, where that Anchor is a tree
@@ -1590,6 +1681,8 @@ function Invoke-DesignStateCheck {
     $blockingFindings.AddRange((Test-SiteAmbiguous -Records $records -ById $byId -RepoPath $RepoPath))
     $blockingFindings.AddRange((Test-SiteOutOfReach -Records $records))
     $blockingFindings.AddRange((Test-SiteContradictsLive -Records $records))
+    $blockingFindings.AddRange((Test-DecisionUnplaced -Records $records))
+    $blockingFindings.AddRange((Test-SupersessionCycle -Records $records -ById $byId))
 
     $globResult = Test-GlobDisagreement -RepoPath $RepoPath -ContractPath $contractPath
     if ($globResult.CouldNotEvaluate) { $couldNotEvaluate.Add($globResult.CouldNotEvaluate) }

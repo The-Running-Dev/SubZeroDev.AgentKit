@@ -66,7 +66,7 @@ BeforeAll {
     }
 
     # A minimal but exact stand-in for the two sections of design/20-contract.md the checker
-    # parses about itself - the same 29 class ids Test-DesignState.ps1 declares, and a verbatim
+    # parses about itself - the same 31 class ids Test-DesignState.ps1 declares, and a verbatim
     # copy of § "Artifacts of a unit kind"'s table - so end-to-end tests below do not spuriously
     # raise ClassListDisagreement or GlobDisagreement while exercising something else entirely.
     # The glob table agrees with the enumeration over any tree by construction, which is exactly
@@ -108,6 +108,8 @@ BeforeAll {
 | `SiteAmbiguous` | x | x |
 | `SiteOutOfReach` | x | x |
 | `SiteContradictsLive` | x | x |
+| `DecisionUnplaced` | x | x |
+| `SupersessionCycle` | x | x |
 
 **Reported, never blocking.**
 
@@ -1025,9 +1027,74 @@ Describe 'Test-DesignState: absorption sites (S21)' {
     }
 }
 
+Describe 'Test-DesignState: DecisionUnplaced and SupersessionCycle (S22)' {
+
+    It 'S22.3: DecisionUnplaced fires for an accepted decision named by no unit''s Live and placing no site' -Tag 'Fires', 'DecisionUnplaced' {
+        $decision = New-Record -Id 'decision/orphan' -Kind 'Decision' -Scalars @{ Status = 'accepted' }
+        $findings = Test-DecisionUnplaced -Records @($decision)
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'decision/orphan'
+        $findings[0].Detail | Should -Match 'accepted'
+    }
+
+    It 'S22.3: DecisionUnplaced fires for a superseded decision named by no unit''s Archival' -Tag 'Fires', 'DecisionUnplaced' {
+        $decision = New-Record -Id 'decision/lost' -Kind 'Decision' -Scalars @{ Status = 'superseded'; SupersededBy = 'decision/somewhere' }
+        $findings = Test-DecisionUnplaced -Records @($decision)
+        $findings.Count | Should -Be 1
+        $findings[0].Detail | Should -Match 'superseded'
+    }
+
+    It 'S22.3: an accepted decision named by a unit''s Live is silent' -Tag 'NearMiss', 'DecisionUnplaced' {
+        $unit = New-Record -Id 'unit/document/holder' -Scalars @{ Status = 'active' } -Lists @{ Live = @('decision/held') }
+        $decision = New-Record -Id 'decision/held' -Kind 'Decision' -Scalars @{ Status = 'accepted' }
+        $findings = Test-DecisionUnplaced -Records @($unit, $decision)
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S22.3: a decision placed by a site alone is silent - placement is presence, not resolution' -Tag 'NearMiss', 'DecisionUnplaced' {
+        $decision = New-Record -Id 'decision/site-placed' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('unit/document/nowhere § Missing Heading') }
+        $findings = Test-DecisionUnplaced -Records @($decision)
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S22.3: a superseded decision named by a unit''s Archival is silent' -Tag 'NearMiss', 'DecisionUnplaced' {
+        $unit = New-Record -Id 'unit/document/archiver' -Scalars @{ Status = 'active' } -Lists @{ Archival = @('decision/archived') }
+        $decision = New-Record -Id 'decision/archived' -Kind 'Decision' -Scalars @{ Status = 'superseded'; SupersededBy = 'decision/elsewhere' }
+        $findings = Test-DecisionUnplaced -Records @($unit, $decision)
+        $findings.Count | Should -Be 0
+    }
+
+    It 'S22.6: SupersessionCycle fires on a two-record cycle, reporting it once regardless of which member the walk starts from' -Tag 'Fires', 'SupersessionCycle' {
+        $a = New-Record -Id 'decision/cycle-a' -Kind 'Decision' -Scalars @{ Status = 'superseded'; SupersededBy = 'decision/cycle-b' }
+        $b = New-Record -Id 'decision/cycle-b' -Kind 'Decision' -Scalars @{ Status = 'superseded'; SupersededBy = 'decision/cycle-a' }
+        $byId = @{ 'decision/cycle-a' = $a; 'decision/cycle-b' = $b }
+        $findings = Test-SupersessionCycle -Records @($a, $b) -ById $byId
+        $findings.Count | Should -Be 1
+        $findings[0].Detail | Should -Match 'decision/cycle-a'
+        $findings[0].Detail | Should -Match 'decision/cycle-b'
+    }
+
+    It 'S22.6: SupersessionCycle fires when a decision names itself' -Tag 'Fires', 'SupersessionCycle' {
+        $self = New-Record -Id 'decision/self-loop' -Kind 'Decision' -Scalars @{ Status = 'superseded'; SupersededBy = 'decision/self-loop' }
+        $byId = @{ 'decision/self-loop' = $self }
+        $findings = Test-SupersessionCycle -Records @($self) -ById $byId
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'decision/self-loop'
+    }
+
+    It 'S22.6: a terminating chain of three or more, ending in an accepted decision, is silent' -Tag 'NearMiss', 'SupersessionCycle' {
+        $a = New-Record -Id 'decision/chain-a' -Kind 'Decision' -Scalars @{ Status = 'superseded'; SupersededBy = 'decision/chain-b' }
+        $b = New-Record -Id 'decision/chain-b' -Kind 'Decision' -Scalars @{ Status = 'superseded'; SupersededBy = 'decision/chain-c' }
+        $c = New-Record -Id 'decision/chain-c' -Kind 'Decision' -Scalars @{ Status = 'accepted' }
+        $byId = @{ 'decision/chain-a' = $a; 'decision/chain-b' = $b; 'decision/chain-c' = $c }
+        $findings = Test-SupersessionCycle -Records @($a, $b, $c) -ById $byId
+        $findings.Count | Should -Be 0
+    }
+}
+
 Describe 'Test-DesignState: ClassListDisagreement (S5.1)' {
 
-    It 'raises nothing when the contract document declares exactly the same 29 ids' -Tag 'NearMiss','ClassListDisagreement' {
+    It 'raises nothing when the contract document declares exactly the same 31 ids' -Tag 'NearMiss','ClassListDisagreement' {
         New-TreeFile -RelativePath 'design/20-contract.md' -Content $script:MinimalContract
         $result = Test-ClassListAgreement -ContractPath (Join-Path $TestDrive 'design/20-contract.md')
         $result.Finding | Should -BeNullOrEmpty
@@ -1605,15 +1672,31 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         ($beforeBytes - $afterBytes) | Should -Be $decisionBytes
     }
 
-    It 'S21.6: ClassListDisagreement''s contract-only set is exactly the two ids this slice does not land' {
-        $finding = @($script:RealResult.Findings | Where-Object { $_.Class -eq 'ClassListDisagreement' })
-        $finding.Count | Should -Be 1
-        foreach ($id in 'DecisionUnplaced', 'SupersessionCycle') {
-            $finding[0].Detail | Should -Match $id
+    It 'S22.7: ClassListDisagreement is silent - DecisionUnplaced and SupersessionCycle now land, closing the gap S21.6 left open' {
+        (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'ClassListDisagreement' })).Count | Should -Be 0
+    }
+
+    It 'S22.4: the five records issue #151 names each carry the edge or the site they lack, and DecisionUnplaced reports none of them' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+
+        $byId['unit/command/slice'].CompanionPath | Should -Not -BeNullOrEmpty
+        $slicedCompanionLists = @($byId['unit/command/slice'].Lists['Archival'])
+        $slicedCompanionLists | Should -Contain 'decision/2026-08-03-ticking-checkbox-is-the-users'
+
+        foreach ($id in 'decision/2026-08-21-install-delivers-on-a-feature-branch',
+            'decision/2026-08-25-branch-commit-push-pr-delegated-for-all-work',
+            'decision/2026-08-25-code-review-defaults-high-effort-fix-push',
+            'decision/2026-08-25-high-volume-tier-retired-haiku-luna-removed') {
+            $byId[$id].Lists['StatedIn'] | Should -Not -BeNullOrEmpty
         }
-        foreach ($id in 'RecordPairMalformed', 'HalfStatusMismatch', 'HalfOverlap', 'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive') {
-            $finding[0].Detail | Should -Not -Match $id
-        }
+
+        (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'DecisionUnplaced' })).Count | Should -Be 0
+    }
+
+    It 'S22.6: SupersessionCycle reports none against this repository''s own decisions' {
+        (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'SupersessionCycle' })).Count | Should -Be 0
     }
 
     It 'S12.5: the check exits 0 against this repository, and names the largest closure and its size' {
