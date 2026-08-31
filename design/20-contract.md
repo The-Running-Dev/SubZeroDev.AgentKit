@@ -637,9 +637,11 @@ Stated once here rather than enumerated per command, because the obligation is t
 - **Degrade to today's behaviour when the state set is absent** (I27). This, not a version
   check, is what makes the brief's zero-hard-stops promise mechanical. A command that requires
   `design/state/` has broken eighteen repositories.
-- **A decision writes a record.** `design/10-design.md` § *Record* is the sequence: append the
-  log entry unchanged, write the decision record, update the affected units, regenerate, check.
-  Steps 4 and 5 in that order, never the reverse.
+- **A decision writes a record**, by the sequence in `AGENTS.md` § *Writing a design-state
+  record* — the canonical copy, and the one a target repository carries. It is not restated
+  here, and the two ordering constraints it fixes are the ones a command may not reorder:
+  a `StatedIn` site is named in the same change that writes the section it points at, and
+  regeneration precedes the check, never the reverse.
 - **An `## Open` item and a question record are different things, and becoming an issue does
   not discharge a question.** `AGENTS.md`, *Tracking work*, owns `## Open` as a staging area
   bound for the tracker; a *question* is the other thing that section currently absorbs —
@@ -982,16 +984,16 @@ same commit** and no test preceded its invariant. Writing `code` ahead of the te
 `EnforcementUnevidenced` exists to reject, and a table that made it would be making it once for
 every such row.
 
-**Two rows have just moved the other way, and that direction needs stating because nothing else
-in this document has used it.** I23 and I30 were `code` against
-`tools/Test-DesignState.Tests.ps1`, and this amendment changed what both of them claim: I23 now
-counts the unit's own artifact, and I30 now says an active record naming a retired one is a
-finding. The named test evidences neither, and one of its cases asserts the closure rule I23
-has just dropped. So both fall to `instruction` with no `Evidence` until the slice that amends
-the meter and lands `HalfStatusMismatch` flips them back — **an amended statement demotes its
-own row**, because `Enforcement` is a claim about the tree as it stands and the tree has not
-moved yet. Leaving them `code` would have been the one thing this column exists to prevent: a
-row a reader is entitled to trust without checking, evidencing a sentence it does not test.
+**A row can move the other way, and that direction needs stating because it is the only one
+that ever demotes.** When the 2026-08-29 amendment changed what I23 and I30 claim — I23 to
+count the unit's own artifact, I30 to make an active record naming a retired one a finding —
+both fell from `code` to `instruction` with no `Evidence`, because the named test evidenced
+neither and one of its cases asserted the closure rule I23 had just dropped. **An amended
+statement demotes its own row**, because `Enforcement` is a claim about the tree as it stands
+and the tree had not moved yet. Leaving them `code` would have been the one thing this column
+exists to prevent: a row a reader is entitled to trust without checking, evidencing a sentence
+it does not test. S19 and S20 amended the meter and landed `HalfStatusMismatch`, so both rows
+are `code` again — the rule is what stands here, not that instance of it.
 
 **Which rows are `code`, and against which test, is the region's own `Enforcement` and
 `Evidence` columns and is not enumerated here.** The set rises as slices land, and a prose list
@@ -1023,8 +1025,9 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**One item.** `/slice`'s "the contract does not contain a signature you need" stop condition
-should fire on nothing else.
+**Two items.** `/slice`'s "the contract does not contain a signature you need" stop condition
+should fire on nothing else. The second is § *Which command writes a question record, and when*
+below.
 
 Whether a unit's `Questions` edge survives the question being answered was an item and is
 **resolved**, by the design rather than by preference: `Questions` gains a retired half,
@@ -1035,10 +1038,11 @@ special case: **every** active edge gained exactly one companion half in the sam
 the question edge is answered by the general rule instead of a mechanism of its own. The two
 readings it rejected were rejected for the reasons stated there — dropping the id destroys the
 resolvable edge, and filtering in the projector leaves the record self-contradictory and makes
-an offline read and a rendered read disagree. `question/answered-question-unit-edge` stays
-`open` until the `Answered` grammar lands, because a record answered by a decision with nowhere
+an offline read and a rendered read disagree. `question/answered-question-unit-edge` was held
+`open` until the `Answered` grammar landed, because a record answered by a decision with nowhere
 to move its edge is the self-contradiction the sequencing exists to avoid
-([#152](../../issues/152)).
+([#152](../../issues/152)). S20 landed that grammar, and the record is `answered` with its edge
+in `unit/script/update-designprojection`'s companion.
 
 Where a slice's criteria are rendered was an item and is **resolved**: `outstanding`
 renders into `design/state-index.md`, § *Outstanding* stays hand-authored proposals, and
@@ -1054,11 +1058,10 @@ placement rather than a mechanism to choose (`design/90-decisions.md`, 2026-08-2
 and a question record are different things. `design/10-design.md` does not say who separates
 them.
 
-§ *Record* gives a five-step flow for a decision — append the entry, write the decision record,
-update the affected units, regenerate, check — and there is no question equivalent anywhere in
-the design. The one question record this repository has was written by hand at S11, during a
-migration that runs once and never in a target, so nothing about the steady state can be read
-off it.
+`AGENTS.md` § *Writing a design-state record* gives a flow for a decision, and there is no
+question equivalent anywhere in it or in the design. The one question record this repository
+has was written by hand at S11, during a migration that runs once and never in a target, so
+nothing about the steady state can be read off it.
 
 The candidates each imply a different command's surface. `/track` already reads `## Open` and
 already distinguishes a question from a task (`.claude/commands/track.md`), which makes it the

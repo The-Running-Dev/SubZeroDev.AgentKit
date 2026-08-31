@@ -232,6 +232,11 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-30-next-command-orients-and-acts | `unit/command/kit-help`, `unit/command/next`, `unit/document/agents-md` |
 | decision/2026-08-30-redteam-writes-findings-to-a-file | `unit/command/redteam` |
 | decision/2026-08-30-tier-gate-reads-environment-stamp-first | `unit/document/agents-md`, `unit/script/invoke-codexcommand` |
+| decision/2026-08-31-agents-md-owns-record-writing-sequence | `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-31-cost-keeps-both-closure-readings | `unit/document/design-cost` |
+| decision/2026-08-31-invoke-donehousekeeping-gets-a-contract | `unit/document/design-20-contract`, `unit/script/invoke-donehousekeeping` |
+| decision/2026-08-31-live-absorbed-as-a-pass-and-a-reported-class | `unit/document/design-10-design`, `unit/document/design-20-contract` |
+| decision/2026-08-31-self-check-asserts-adjudicated-findings | `unit/script/test-designstate` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered
