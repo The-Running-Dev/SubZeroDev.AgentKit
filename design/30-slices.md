@@ -6,8 +6,8 @@
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, landed as
 > S4–S18; its bodies are retired to the same index. The **2026-08-29 revision to that
 > mechanism** — the retired companion, absorption, the half/status table, and the
-> artifact-inclusive ceiling — landed as S19–S21, retired to the same index; S22, which
-> finishes wiring the revision's decision-affects surface, remains under `## Outstanding`.
+> artifact-inclusive ceiling — landed as S19–S22, retired to the same index. Nothing
+> remains under `## Outstanding`.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -108,64 +108,13 @@ does not resolve it in the implementing session.
 
 ## Outstanding
 
-**A third set, and it implements the 2026-08-29 revision the contract already carries.**
-`design/20-contract.md` was amended ahead of its detection — the retired companion, `StatedIn`,
-the half/status table, the eight new blocking classes, and the artifact-inclusive ceiling. S19–S21
-have landed; the checker still says `ClassListDisagreement` names two contract-only class ids —
-`DecisionUnplaced` and `SupersessionCycle` — and stays red until S22, the one slice left in this
-set, lands. That is the same designed interim § *Interim findings are expected* describes for
-S5–S11, at a smaller scale and with CI already wired.
+**Nothing.** The third set — S19–S22, implementing the 2026-08-29 revision the contract already
+carried — has landed in full, and every slice this document has proposed is retired to
+`## Landed` below. `ClassListDisagreement` is silent: the checker's declared class ids and this
+document's contract list agree in both directions, which is what S22 closed.
 
-The riskiest assumption in this set is **the ceiling itself**, and it is not a question of
-whether the mechanism works — `design/10-design.md` § *Whether the ceiling can be met* already
-states that it is not met and that the artifact dominates by roughly five to one. What is
-untested is whether this repository is willing to live with what the honest number says, and
-the brief's *Abandonment* clause attaches to exactly that. **S19 does nothing but produce the
-number**, ahead of every structural change, so the adjudication the brief reserves to the user
-happens before three slices of work are spent on the assumption it will go one way.
-
-### S22 — Every decision says which parts of the kit it is in force for
-
-Delivers: The index answers, for every decision and every open question, which parts of the kit
-it actually applies to — including rules already written into a document, and questions that
-have since been answered. A decision no part of the kit claims is reported as an unfinished
-write rather than sitting where nobody would look for it.
-Touches: `tools/Update-DesignProjection.ps1` — `Get-DecisionAffectsProjectionContent`,
-         `Get-QuestionAffectsProjectionContent`; `tools/Test-DesignState.ps1` —
-         `$script:BlockingClasses`, the two new checks; `design/state/units/**`;
-         `design/state/questions/answered-question-unit-edge.md`; `design/state-index.md`;
-         `tools/Update-DesignProjection.Tests.ps1`, `tools/Test-DesignState.Tests.ps1`
-Depends on: S20, S21
-Acceptance:
-  - S22.1 `Decision.Affects` derives from the units whose `Live` names it, the units whose
-    `Archival` names it, and the units its `StatedIn` sites resolve to, and the
-    `decision-affects` projection renders that union. A decision reachable only through a site
-    renders with that unit named, where before this slice it rendered empty.
-  - S22.2 `Question.Affects` derives from the units whose `Questions` names it together with
-    those whose `Answered` does, and the `question-affects` projection distinguishes the two —
-    an answered question's units render as answered and no longer under *blocks*.
-  - S22.3 `DecisionUnplaced` fires for an accepted decision that no `Live` names and no site
-    places, and for a superseded decision that no `Archival` names, reporting the decision, its
-    status, and that it is an interrupted write. A decision placed by a site alone is silent.
-  - S22.4 The five records issue #151 names each carry the edge or the site they lack —
-    `decision/2026-08-21-install-delivers-on-a-feature-branch`,
-    `decision/2026-08-25-branch-commit-push-pr-delegated-for-all-work`,
-    `decision/2026-08-25-code-review-defaults-high-effort-fix-push`,
-    `decision/2026-08-25-high-volume-tier-retired-haiku-luna-removed`, and
-    `decision/2026-08-03-ticking-checkbox-is-the-users`, which is superseded and needs an
-    `Archival` — and a run afterwards reports no `DecisionUnplaced`.
-  - S22.5 `question/answered-question-unit-edge` carries `Status: answered` with `AnsweredBy`
-    naming the decision that answered it, the unit edges naming it sit in `Answered`, and
-    `design/state-index.md` no longer renders it under *Questions — blocks*.
-  - S22.6 `SupersessionCycle` fires on a two-record cycle and on a decision naming itself,
-    reporting the cycle in order. A terminating chain of three or more, ending in an accepted
-    decision, is silent.
-  - S22.7 `ClassListDisagreement` is silent: the checker's declared class ids equal this
-    document's contract list in both directions.
-Out of scope: relitigating whether an empty `Question.Affects` is legal — the contract states
-  the asymmetry with `Decision.Affects` and its reason, and a slice narrowing it would be
-  re-deciding. Also out of scope: acting on whatever `DecisionUnplaced` finds beyond the five
-  records above; a sixth found in passing is an issue, not this slice's to place.
+`/slices` appends the next set here. The two notes below outlive any one set and are kept for
+whatever is appended.
 
 ### A note on counts
 
@@ -206,6 +155,7 @@ repository during S5–S11, not a defect, and it is why S12 rather than S5 carri
 | **S19** | The ceiling counts the file a session actually opens | [#171](../../issues/171), closed | S19.1–S19.6 | `7d27606` |
 | **S20** | A unit's retired half moves to its own file | [#172](../../issues/172), closed | S20.1–S20.10 | `7d27606` |
 | **S21** | A rule written into a document stops being carried twice | [#173](../../issues/173), closed | S21.1–S21.6 | `7d27606` |
+| **S22** | Every decision says which parts of the kit it is in force for | [#174](../../issues/174), closed | S22.1–S22.7 | `c11f60c` |
 
 What each delivered, in one line, because the index is the only place a reader now meets
 them:
@@ -259,3 +209,7 @@ them:
 - **S21** — `Decision.StatedIn`, resolving a rule written into a document back to where it
   stands, with `SiteAmbiguous`, `SiteOutOfReach`, and `SiteContradictsLive` policing it, and one
   real absorption landed against `AGENTS.md`.
+- **S22** — `Decision.Affects` and `Question.Affects` derived from the unit edges and the
+  `StatedIn` sites that reach them, with `DecisionUnplaced` reporting a decision no part of
+  the kit claims as an interrupted write, and `SupersessionCycle` catching a chain that
+  never terminates.
