@@ -48,7 +48,12 @@ $ ./tools/Measure-Session.ps1 -SessionId 963e6aed -Detail
 103 seconds of active time — reached before `design/state/` was written, orienting on this
 slice by reading `design/10-design.md` and `design/20-contract.md` directly.
 
-## Closure sizes, over the records that exist (S5.12)
+## Closure sizes at S5, under the records-only definition (S5.12)
+
+**Historical.** This reading predates S19, which made the closure count the unit's own artifact.
+It is kept because it is the evidence that S19's change of definition — not corpus growth — is
+what moved the ceiling from met to unmet. The current reading is the section after it, and it is
+the one that describes the repository today.
 
 `tools/Test-DesignState.ps1` names the largest closure on every run — clean or failing — never
 predicted, always measured:
@@ -62,8 +67,45 @@ decision/2026-08-10-frozen-md-marker
 1,671 bytes against the 16,384-byte ceiling — 10% of the budget, with eight records in the
 state set (`unit/command/track`, `unit/document/agents-md`, `I3`, `I4`, `I9`, `I28`, and two
 decision records). Neither closure S4.6 wrote (`unit/command/track`'s or
-`unit/document/agents-md`'s) exceeds the ceiling, so this slice proceeds rather than stopping
-per the brief's abandonment line.
+`unit/document/agents-md`'s) exceeded the ceiling, so that slice proceeded rather than stopping
+per the brief's abandonment line. That conclusion was correct under the definition then in
+force and does not survive S19's.
+
+## Closure sizes under the artifact-inclusive definition (S19)
+
+The same command, at `15990d9`:
+
+```
+$ ./tools/Test-DesignState.ps1 -Quiet
+Largest closure: unit/document/design-90-decisions, 296929 bytes (ceiling 16384), largest
+contributor design/90-decisions.md
+```
+
+**Sixteen units exceed the ceiling, and every one of them exceeds it on its own artifact.** The
+brief's *Abandonment* line is therefore live, and adjudicating it is reserved to the user
+(`design/10-design.md` § *Whether the ceiling can be met*). No number below is predicted; each
+is the difference between the checker's closure and the file's own size.
+
+| Unit | Closure | Artifact | Records alone |
+|---|---|---|---|
+| `unit/document/design-90-decisions` | 296,929 | 295,452 | 1,477 |
+| `unit/document/design-20-contract` | 99,902 | 84,003 | 15,899 |
+| `unit/script/test-designstate` | 98,912 | 88,235 | 10,677 |
+| `unit/document/design-10-design` | 70,054 | 60,565 | 9,489 |
+| `unit/document/agents-md` | 62,927 | 43,720 | **19,207** |
+| `unit/document/install-md` | 36,851 | 29,284 | 7,567 |
+
+**One unit breaches on its records alone, and that is a different failure from the other
+fifteen.** `unit/document/agents-md` carries 25 decisions in `Live` totalling 17,073 bytes —
+89% of its record closure — and their terms are already written into named `AGENTS.md`
+sections. They are executed decisions that were never given a `StatedIn` site, so a set the
+design defines as *in flight* has become a history. Across the state set, 84 of 89 accepted
+decisions sit in some unit's `Live` and 5 of 96 decision records carry a site.
+
+That half is remediable by absorption and nothing on the closed list detects it; the other
+fifteen are not remediable by anything the mechanism has. Both are recorded here rather than
+in a running count, because this document is what the brief's *Cost* criteria are measured
+against.
 
 ## After: a `/slice` session with `design/state/` present (S15.5)
 

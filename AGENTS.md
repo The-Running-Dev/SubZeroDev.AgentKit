@@ -253,7 +253,7 @@ A marked region is a fenced span inside a prose document that something else can
 
 **The bare form means projected, not declared.** That reads as the worse English and is the better contract: a projected block lives somewhere a generator can reach on every run, while a declared block lives somewhere that migrates only by being shipped — and the form that changes on generalisation is the one with a migration path, not the one already numerous everywhere it appears (`design/20-contract.md` § *Marked regions* has the full reasoning). A projected id and a declared id share one namespace: the same id in both forms is a collision, not two regions.
 
-This repository has two instances today. An issue's `<!-- agent:start -->` block is **projected**, id `agent` — see *Tracking work* below for what regenerates it and what does not. A command file's companion block is **declared**, id `companion` — `.claude/COMPANIONS.md` owns that mechanism and points back here for what declared means, without restating the marker forms.
+The kit ships two instances, and they are the two every repository has. An issue's `<!-- agent:start -->` block is **projected**, id `agent` — see *Tracking work* below for what regenerates it and what does not. A command file's companion block is **declared**, id `companion` — `.claude/COMPANIONS.md` owns that mechanism and points back here for what declared means, without restating the marker forms. A repository that also keeps its own `design/state/` carries one projected region per projection besides; which they are is that repository's projector's to say, not this file's.
 
 ## Tracking work
 

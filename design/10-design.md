@@ -394,14 +394,16 @@ Five consequences, all load-bearing:
   by construction.
 - **No record field in the counted set grows with the corpus**, and that is discharged per
   field rather than asserted. `Consumes`, `Exposes` and `Binds` are bounded by the unit's real
-  surface. `Live` is bounded by decisions in flight. `Questions` by open questions, `Work` by
+  surface. `Questions` by open questions, `Work` by
   open issues, `Evidence` by the unit's tests. `Owns` is one sentence. Everything that
   accumulates — superseded decisions, answered questions, closed issues, executed decisions,
   retired contracts — has left for the companion or for a site on the decision. That is the
   brief's *does not rise as the corpus grows* made structural instead of aspirational, and it
-  is the property the whole retirement mechanism exists to buy. The artifact is the term this
-  does not bound, and *Whether the ceiling can be met* below is where that is confronted rather
-  than absorbed into a caveat.
+  is the property the whole retirement mechanism exists to buy. **`Live` is the one bound that
+  is maintained rather than held**: it is decisions in flight only while each executed decision
+  is given its site, and nothing detects a unit where that has stopped happening. The artifact
+  is the term this does not bound at all, and *Whether the ceiling can be met* below is where
+  both are confronted rather than absorbed into a caveat.
 - **The artifact counts in full, so the ceiling measures orientation cost and not bookkeeping
   cost.** A session that begins work on a unit opens that unit's file; counting the records it
   must additionally fetch while excluding the file it certainly opens produces a number that is
@@ -433,11 +435,20 @@ It is not met today, and the brief's *Abandonment* line — not a relaxation —
 response. This section states the shape of the problem; the measurement itself belongs to the
 checker and to `design/cost.md`, not here.
 
-**The artifact dominates, and it dominates by roughly a factor of five on the units that
-matter.** For this repository's largest units the record closure is comfortably inside the
-ceiling and the artifact alone is several times it. That is not a bookkeeping failure the
-retirement mechanism can fix — every field it bounds is already bounded — and it is not
-something absorption can fix either, because absorption only ever removes records.
+**The artifact dominates on the units that matter, and no number for it belongs here** — the
+checker names the largest closure and its largest contributor on every run, and a figure
+written down is the copy that rots. On a document unit of any size the artifact alone exceeds
+the ceiling, and that is not a bookkeeping failure the retirement mechanism can fix, because
+every field it bounds is already bounded.
+
+**Absorption is the one part of the gap that is remediable, and skipping it is how a record
+closure breaches on its own.** `Live` is bounded by decisions in flight only while step 4 of
+*Record* is actually taken; where a decision's terms are written into a document and no site
+is named, the id stays and the set becomes the history it was designed not to be. Nothing
+detects that — it is the residual *Failure modes* names — so it is arithmetic that has to be
+performed rather than a property that holds itself. A policy document accumulating decisions
+faster than they are absorbed is therefore the case to watch, and it is the case where the
+checker's report is the only warning available.
 
 **Meeting the ceiling under this definition means a file-size limit on the repository.** Since
 the closure is dominated by the artifact, "every unit under 16,384 bytes" is within a few
@@ -539,30 +550,30 @@ or not a decision was written into them. That is what makes absorption a strict 
 
 ### Record — a decision is made
 
-1. Append the entry to `design/90-decisions.md`, in the existing format, unchanged. Nothing
-   already there is touched.
-2. Write the decision record: anchor, status, claim.
-3. Update the affected unit records — adding the id to `Live`, and moving any id this decision
-   supersedes from `Live` to the companion's `Archival`.
-4. **Where the same change writes the decision's terms into a site — a section of a unit's own
-   artifact, or a contract's `Semantics` — name that site in the decision's `StatedIn` and
-   leave the id out of that unit's `Live`.** This is the ordinary case for a policy document
-   and the command file it governs, and it is one step rather than a later cleanup pass
-   precisely so that it is not one.
-5. Regenerate projections.
-6. Run the checker.
+**The steps are `AGENTS.md` § *Writing a design-state record*'s and are not restated here.**
+That is the copy an installed target carries and the one `/reconcile`, `/contract` and `/design`
+cite; a second numbered list here is the copy that rots, and it rotted once already — the
+contract's abbreviated version outlived the insertion of the `StatedIn` step and went on
+numbering five where there were six. What belongs here is why the sequence has the shape it
+has.
 
-Steps 2 through 4 are the new cost, and they are the trade this design makes: **a small
+**The structured writes are the new cost, and they are the trade this design makes: a small
 structured write at every decision, in exchange for no large read at any session start.**
 Whether that trade pays is the brief's cost criterion, and it is measured, not argued.
 
-Step 5 before step 6 is not optional — checking before regenerating reports every projection
-as stale, which trains the reader to ignore the report.
+**Naming the site is a step rather than a later cleanup pass, precisely so that it is not one.**
+Writing a decision's terms into the document it governs is the ordinary case for a policy
+document and the command file it governs, and a claim that is executed but not addressed leaves
+its id in `Live` — which is where an in-flight set silently becomes a history. Nothing detects
+that (*Failure modes*, the residual rows), so the only thing holding it is that the write
+happens in the same change.
+
+**Regeneration precedes the check, and that ordering is not optional** — checking before
+regenerating reports every projection as stale, which trains the reader to ignore the report.
 
 **Absorption also happens without a decision being made**, when an amendment finally writes an
-already-recorded decision into its site. That is the same step 4 in isolation: name the site,
-drop the id from `Live`, regenerate, check. It is the path a freeze defers and an unfreeze
-completes.
+already-recorded decision into its site: name the site, drop the id from `Live`, regenerate,
+check. It is the path a freeze defers and an unfreeze completes.
 
 ### Check — CI, or `/verify`, or a command's own gate
 
