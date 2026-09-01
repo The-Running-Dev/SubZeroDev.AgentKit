@@ -606,49 +606,54 @@ Kind: command
     }
 }
 
-Describe 'Test-DesignState: the artifact-inclusive closure (S19)' {
+Describe 'Test-DesignState: the records-bounded closure (S23)' {
 
-    It 'S19.1: a Unit root whose Anchor is a tree path counts that file''s bytes as a closure member' {
-        New-StateFile -RelativePath 'units/document/s19-with-anchor.md' -Content @'
-# unit/document/s19-with-anchor
+    It 'S23.1: a Unit root whose Anchor is a tree path returns the same member set as the same root with the Anchor removed, and no member carries Kind = Artifact' {
+        New-StateFile -RelativePath 'units/document/s23-with-anchor.md' -Content @'
+# unit/document/s23-with-anchor
 Kind: document
 Status: active
-Anchor: s19-artifact.md
+Anchor: s23-artifact.md
 '@
-        New-TreeFile -RelativePath 's19-artifact.md' -Content ('a' * 250)
+        New-TreeFile -RelativePath 's23-artifact.md' -Content ('a' * 250)
         $graph = Read-DesignStateGraph -Path $TestDrive
         $byId = @{}
         foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
-        $root = $byId['unit/document/s19-with-anchor']
+        $root = $byId['unit/document/s23-with-anchor']
 
         $members = Get-DesignClosure -Root $root -ById $byId
-        $artifacts = @($members | Where-Object { $_.Kind -eq 'Artifact' })
-        $artifacts.Count | Should -Be 1
-        $artifacts[0].Path | Should -Be 's19-artifact.md'
+        @($members | Where-Object { $_.Kind -eq 'Artifact' }).Count | Should -Be 0
+
+        $withoutAnchor = New-DesignRecord -Id $root.Id -Kind $root.Kind -Path $root.Path `
+            -Scalars ($root.Scalars.Clone()) -Lists $root.Lists -Prose $root.Prose
+        $withoutAnchor.Scalars.Remove('Anchor')
+        $membersWithoutAnchor = Get-DesignClosure -Root $withoutAnchor -ById $byId
+
+        @($members | ForEach-Object { $_.Id }) | Should -Be @($membersWithoutAnchor | ForEach-Object { $_.Id })
     }
 
-    It 'S19.1: a root with no Anchor counts records only' {
-        New-StateFile -RelativePath 'units/command/s19-no-anchor.md' -Content @'
-# unit/command/s19-no-anchor
+    It 'S23.1: a root with no Anchor counts records only' {
+        New-StateFile -RelativePath 'units/command/s23-no-anchor.md' -Content @'
+# unit/command/s23-no-anchor
 Kind: command
 Status: active
 '@
         $graph = Read-DesignStateGraph -Path $TestDrive
         $byId = @{}
         foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
-        $root = $byId['unit/command/s19-no-anchor']
+        $root = $byId['unit/command/s23-no-anchor']
 
         $members = Get-DesignClosure -Root $root -ById $byId
         @($members | Where-Object { $_.Kind -eq 'Artifact' }).Count | Should -Be 0
     }
 
-    It 'S19.1: an Invariant root, whose Anchor is the invariant number rather than a path, counts records only' {
+    It 'S23.1: an Invariant root, whose Anchor is the invariant number rather than a path, counts records only' {
         New-StateFile -RelativePath 'invariants/I900.md' -Content @'
 # I900
 Kind: invariant
 Status: active
 Anchor: I900
-Owner: unit/command/s19-no-anchor
+Owner: unit/command/s23-no-anchor
 Enforcement: instruction
 '@
         $graph = Read-DesignStateGraph -Path $TestDrive
@@ -660,38 +665,41 @@ Enforcement: instruction
         @($members | Where-Object { $_.Kind -eq 'Artifact' }).Count | Should -Be 0
     }
 
-    It 'S19.4/S19.5: LargestContributor names the artifact by its tree path once it dominates a closure, and the report line still renders on a clean run' {
-        # 20,000 bytes clears every other fixture built up earlier in this file (the largest is
-        # the S5.7 pair at 16,385/16,384), so this fixture is the single largest closure by the
-        # time this test runs and the assertions below are unambiguous.
-        New-StateFile -RelativePath 'units/document/s19-dominant-artifact.md' -Content @'
-# unit/document/s19-dominant-artifact
+    It 'S23.2: the unit''s own artifact is measured separately, by the byte length of the file its Anchor names, and is never a closure member' {
+        New-StateFile -RelativePath 'units/document/s23-dominant-artifact.md' -Content @'
+# unit/document/s23-dominant-artifact
 Kind: document
 Status: active
-Anchor: s19-big-artifact.md
+Anchor: s23-big-artifact.md
 '@
-        New-TreeFile -RelativePath 's19-big-artifact.md' -Content ('b' * 20000)
+        $artifactPath = New-TreeFile -RelativePath 's23-big-artifact.md' -Content ('b' * 20000)
+        $artifactBytes = (Get-Item -LiteralPath $artifactPath).Length
         $graph = Read-DesignStateGraph -Path $TestDrive
         $byId = @{}
         foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
-        $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive
+        $root = $byId['unit/document/s23-dominant-artifact']
 
-        $result.Largest | Should -Not -BeNullOrEmpty
-        $result.Largest.Unit | Should -Be 'unit/document/s19-dominant-artifact'
-        $result.Largest.LargestContributor | Should -Be 's19-big-artifact.md'
+        Get-UnitArtifactBytes -RepoPath $TestDrive -Root $root | Should -Be $artifactBytes
+
+        $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive
+        $finding = @($result.Findings | Where-Object { $_.Subject -eq 'unit/document/s23-dominant-artifact' })
+        # The 20,000-byte artifact is excluded from the bound (S23.1), so the record-only
+        # closure - the record itself, well under the ceiling - does not breach.
+        $finding.Count | Should -Be 0
     }
 
-    It 'S19.4: LargestContributor names a record by id where a record, not the artifact, is the largest member' {
-        New-StateFile -RelativePath 'units/document/s19-record-dominant.md' -Content @'
-# unit/document/s19-record-dominant
+    It 'S23.4: LargestContributor names a record by id, never the artifact - the closure has no artifact member to name' {
+        New-StateFile -RelativePath 'units/document/s23-record-dominant.md' -Content @'
+# unit/document/s23-record-dominant
 Kind: document
 Status: active
-Anchor: s19-tiny-artifact.md
-Live: decision/s19-record-dominant-live
+Anchor: s23-tiny-artifact.md
+Live: decision/s23-record-dominant-live
 '@
-        New-TreeFile -RelativePath 's19-tiny-artifact.md' -Content 'x'
-        New-StateFile -RelativePath 'decisions/s19-record-dominant-live.md' -Content @"
-# decision/s19-record-dominant-live
+        $tinyArtifactPath = New-TreeFile -RelativePath 's23-tiny-artifact.md' -Content 'x'
+        $tinyArtifactBytes = (Get-Item -LiteralPath $tinyArtifactPath).Length
+        New-StateFile -RelativePath 'decisions/s23-record-dominant-live.md' -Content @"
+# decision/s23-record-dominant-live
 Status: accepted
 
 ## Claim
@@ -700,28 +708,68 @@ $('y' * 500)
         $graph = Read-DesignStateGraph -Path $TestDrive
         $byId = @{}
         foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
-        $root = $byId['unit/document/s19-record-dominant']
+        $root = $byId['unit/document/s23-record-dominant']
 
         $members = Get-DesignClosure -Root $root -ById $byId
         $sized = @($members | ForEach-Object { [pscustomobject]@{ Record = $_; Bytes = (Get-RecordFileBytes -RepoPath $TestDrive -Record $_) } })
         $biggest = $sized | Sort-Object Bytes -Descending | Select-Object -First 1
-        $biggest.Record.Id | Should -Be 'decision/s19-record-dominant-live'
+        $biggest.Record.Id | Should -Be 'decision/s23-record-dominant-live'
+
+        $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive
+        $result.Largest.LargestContributor | Should -Be 'decision/s23-record-dominant-live'
+        $result.Largest.ArtifactBytes | Should -Be $tinyArtifactBytes
     }
 
-    It 'S19.6: a Unit root whose Anchor names a path not in the tree contributes zero artifact bytes rather than throwing, and raises no closure finding for it' {
-        New-StateFile -RelativePath 'units/document/s19-missing-anchor.md' -Content @'
-# unit/document/s19-missing-anchor
+    It 'S23.2: a Unit root whose Anchor names a path not in the tree yields zero artifact bytes rather than throwing, and raises no closure finding for it' {
+        New-StateFile -RelativePath 'units/document/s23-missing-anchor.md' -Content @'
+# unit/document/s23-missing-anchor
 Kind: document
 Status: active
-Anchor: s19-does-not-exist.md
+Anchor: s23-does-not-exist.md
 '@
         $graph = Read-DesignStateGraph -Path $TestDrive
         $byId = @{}
         foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $root = $byId['unit/document/s23-missing-anchor']
+
+        { Get-UnitArtifactBytes -RepoPath $TestDrive -Root $root } | Should -Not -Throw
+        Get-UnitArtifactBytes -RepoPath $TestDrive -Root $root | Should -Be 0
 
         { Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive } | Should -Not -Throw
         $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive
-        (@($result.Findings | Where-Object { $_.Subject -eq 'unit/document/s19-missing-anchor' })).Count | Should -Be 0
+        (@($result.Findings | Where-Object { $_.Subject -eq 'unit/document/s23-missing-anchor' })).Count | Should -Be 0
+    }
+
+    It 'S23.3: a ClosureOverBudget finding''s detail carries the unit''s own artifact size, named separately and never added into the bounded figure' {
+        $overPath = New-ExactSizeRecord -Slug 's23-over' -TotalBytes 16385
+        (Get-Item $overPath).Length | Should -Be 16385
+
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive
+
+        $finding = @($result.Findings | Where-Object { $_.Subject -eq 'unit/command/s23-over' })
+        $finding.Count | Should -Be 1
+        $finding[0].Detail | Should -Match "closure is 16385 bytes"
+        $finding[0].Detail | Should -Match "artifact is 0 bytes"
+    }
+
+    It 'S23.5: Largest always carries the unit, its largest contributor, and that unit''s own artifact size, whether or not any closure breaches' {
+        New-StateFile -RelativePath 'units/command/s23-clean.md' -Content @'
+# unit/command/s23-clean
+Kind: command
+Status: active
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $TestDrive
+
+        $result.Largest | Should -Not -BeNullOrEmpty
+        $result.Largest.Unit | Should -Not -BeNullOrEmpty
+        $result.Largest.LargestContributor | Should -Not -BeNullOrEmpty
+        $result.Largest.ArtifactBytes | Should -Not -BeNullOrEmpty
     }
 }
 
@@ -1586,12 +1634,12 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         $script:RealResult.LargestClosure.LargestContributor | Should -Not -BeNullOrEmpty
     }
 
-    It 'S19.3: the artifact-inclusive closure reports one ClosureOverBudget per breaching unit, and the set is non-empty' {
-        # Supersedes S5.12's 'neither exceeds the ceiling', which asserted the record-only
-        # closure the 2026-08-29 revision dropped (design/30-slices.md § S19). Under the
-        # artifact-inclusive measurement this slice adds, both of S4.6's stress-test closures
-        # breach, along with others the record-only meter never counted - exactly what S19.3
-        # requires: the set was one finding before this slice and is not one now.
+    It 'S23.6: against this repository, every ClosureOverBudget breach names a record, never a tree path, as its largest contributor, and the set is non-empty' {
+        # Supersedes S19.3, which asserted the artifact-inclusive measurement the 2026-09-01
+        # re-scoping dropped (design/30-slices.md § S23; design/10-design.md, "Whether the
+        # ceiling can be met"). The remaining gap is a bookkeeping one absorption closes, so the
+        # set is still expected to be non-empty - what changed is that every member of it now
+        # names something absorption can move.
         $graph = Read-DesignStateGraph -Path $script:RepoRoot
         $byId = @{}
         foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
@@ -1603,28 +1651,36 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         $subjects = @($overBudget | ForEach-Object { $_.Subject })
         ($subjects | Sort-Object -Unique).Count | Should -Be $subjects.Count
 
-        $subjects | Should -Contain 'unit/command/track'
-        $subjects | Should -Contain 'unit/document/agents-md'
+        foreach ($f in $overBudget) {
+            if ($f.Detail -match "largest contributor '([^']+)'") {
+                $byId.ContainsKey($Matches[1]) | Should -BeTrue -Because "$($f.Subject)'s largest contributor '$($Matches[1])' names a record, never a tree path: $($f.Detail)"
+            } else {
+                throw "finding detail carries no 'largest contributor' term: $($f.Detail)"
+            }
+        }
     }
 
-    It 'S19.2: the closure of unit/document/agents-md equals its own record, every id it names directly, and AGENTS.md''s own length - every term read from disk' {
+    It 'S23.2: the closure of unit/document/agents-md equals its own record and every id it names directly - never AGENTS.md itself - and AGENTS.md''s own length is reported separately as its artifact' {
         $graph = Read-DesignStateGraph -Path $script:RepoRoot
         $byId = @{}
         foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
         $root = $byId['unit/document/agents-md']
 
         $members = Get-DesignClosure -Root $root -ById $byId
+        @($members | Where-Object { $_.Kind -eq 'Artifact' }).Count | Should -Be 0
         $expected = 0
         foreach ($m in $members) {
             $expected += (Get-Item -LiteralPath (Join-Path $script:RepoRoot $m.Path)).Length
         }
 
-        ($members | Where-Object { $_.Kind -eq 'Artifact' }).Path | Should -Be 'AGENTS.md'
+        $agentsMdBytes = (Get-Item -LiteralPath (Join-Path $script:RepoRoot 'AGENTS.md')).Length
+        Get-UnitArtifactBytes -RepoPath $script:RepoRoot -Root $root | Should -Be $agentsMdBytes
 
         $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $script:RepoRoot
         $finding = @($result.Findings | Where-Object { $_.Subject -eq 'unit/document/agents-md' })
         $finding.Count | Should -Be 1
         $finding[0].Detail | Should -Match "closure is $expected bytes"
+        $finding[0].Detail | Should -Match "unit's own artifact is $agentsMdBytes bytes"
     }
 
     It 'S20.7: every non-empty retired half sits in a companion file and not in an active record' {

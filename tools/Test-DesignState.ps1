@@ -1269,14 +1269,14 @@ function Test-SupersessionCycle {
 
 # ---------------------------------------------------------------------------------------------
 # The budget meter. closure(U) = record(U), plus the record of every id record(U) names
-# directly, plus the tree artifact record(U)'s own Anchor names, where that Anchor is a tree
-# path rather than an invariant number or absent (design/20-contract.md § tools/Test-DesignState.ps1,
-# "the unit's own artifact is one of them"; S19.1). Nothing is filtered at measurement time
+# directly - records only (I23; S23.1). The unit's own artifact is not a closure member: it is
+# measured separately, by the byte length of the file its Anchor names, and reported beside the
+# bounded figure rather than folded into it (design/20-contract.md § tools/Test-DesignState.ps1,
+# "the unit's own artifact is not one of them"). Nothing is filtered at measurement time
 # (S20.8): the half/status table above is what keeps a retired record out of an active edge in
 # the first place, so the meter no longer needs an exclusion clause of its own. Size is the sum
 # of the closure members' own file sizes on disk, because the measurement must equal what a
-# reader actually opens - the artifact included, since a session beginning work on a unit opens
-# that unit's file as surely as it opens the record.
+# reader actually opens.
 # ---------------------------------------------------------------------------------------------
 function Get-RecordFileBytes {
     param([Parameter(Mandatory)][string] $RepoPath, [Parameter(Mandatory)]$Record)
@@ -1318,18 +1318,24 @@ function Get-DesignClosure {
         $members.Add($ById[$id])
     }
 
-    # A Unit's Anchor is a tree path (design/20-contract.md § "Ids", "A unit of kind invariant
-    # is one record, not two" - the one exemption, where Anchor is the invariant number rather
-    # than a path). No other kind's Anchor is a tree pointer: Contract has no Anchor at all
-    # (Declaration instead), and Decision's Anchor is a dated heading label, never a path.
-    if ($Root.Kind -eq 'Unit' -and $Root.Scalars.ContainsKey('Anchor')) {
-        $anchor = $Root.Scalars['Anchor']
-        if (-not [string]::IsNullOrWhiteSpace($anchor)) {
-            $members.Add([pscustomobject]@{ Id = $null; Kind = 'Artifact'; Path = $anchor })
-        }
-    }
-
     ,@($members)
+}
+
+# The unit's own artifact, measured on its own (I23; S23.2). A Unit's Anchor is a tree path
+# (design/20-contract.md § "Ids", "A unit of kind invariant is one record, not two" - the one
+# exemption, where Anchor is the invariant number rather than a path). No other kind's Anchor is
+# a tree pointer: Contract has no Anchor at all (Declaration instead), and Decision's Anchor is a
+# dated heading label, never a path. A root whose Anchor names a path not in the tree yields zero
+# and raises no finding for it (S19.6, preserved).
+function Get-UnitArtifactBytes {
+    param([Parameter(Mandatory)][string] $RepoPath, [Parameter(Mandatory)]$Root)
+
+    if ($Root.Kind -ne 'Unit' -or -not $Root.Scalars.ContainsKey('Anchor')) { return 0 }
+    $anchor = $Root.Scalars['Anchor']
+    if ([string]::IsNullOrWhiteSpace($anchor)) { return 0 }
+    $full = Join-Path $RepoPath $anchor
+    if (-not (Test-Path -LiteralPath $full)) { return 0 }
+    (Get-Item -LiteralPath $full).Length
 }
 
 function Test-ClosureBudget {
@@ -1348,20 +1354,24 @@ function Test-ClosureBudget {
         $sized = @($members | ForEach-Object { [pscustomobject]@{ Record = $_; Bytes = (Get-RecordFileBytes -RepoPath $RepoPath -Record $_) } })
         $total = ($sized | Measure-Object -Property Bytes -Sum).Sum
         $biggest = $sized | Sort-Object Bytes -Descending | Select-Object -First 1
-        # S19.4: the artifact member carries no id, only a tree path - naming it by path is what
-        # makes the report line point at the file a reader would actually open next.
-        $biggestLabel = if ($biggest.Record.Kind -eq 'Artifact') { $biggest.Record.Path } else { $biggest.Record.Id }
+        # S23.4: the closure has no artifact member any more, so the largest contributor is
+        # always a record - naming it by id is what makes it something a reader can act on.
+        $biggestLabel = $biggest.Record.Id
+        $artifactBytes = Get-UnitArtifactBytes -RepoPath $RepoPath -Root $root
 
         if (-not $largest -or $total -gt $largest.Bytes) {
             $largest = [pscustomobject]@{
                 Unit               = $root.Id
                 Bytes              = $total
                 LargestContributor = $biggestLabel
+                ArtifactBytes      = $artifactBytes
             }
         }
 
         if ($total -gt $script:ClosureBudgetBytes) {
-            $findings.Add((New-DesignFinding -Class 'ClosureOverBudget' -Subject $root.Id -Detail "closure is $total bytes (ceiling $($script:ClosureBudgetBytes)); largest contributor '$biggestLabel'" -Blocking $true))
+            # S23.3: four parts, the artifact figure named separately and never added into the
+            # bounded one.
+            $findings.Add((New-DesignFinding -Class 'ClosureOverBudget' -Subject $root.Id -Detail "closure is $total bytes (ceiling $($script:ClosureBudgetBytes)); largest contributor '$biggestLabel'; unit's own artifact is $artifactBytes bytes, excluded from the bound" -Blocking $true))
         }
     }
 
@@ -1729,7 +1739,7 @@ function Invoke-DesignStateCheck {
 
     $reportLines = [System.Collections.Generic.List[string]]::new()
     if ($budget.Largest) {
-        $reportLines.Add("Largest closure: $($budget.Largest.Unit), $($budget.Largest.Bytes) bytes (ceiling $($script:ClosureBudgetBytes)), largest contributor $($budget.Largest.LargestContributor)")
+        $reportLines.Add("Largest closure: $($budget.Largest.Unit), $($budget.Largest.Bytes) bytes (ceiling $($script:ClosureBudgetBytes)), largest contributor $($budget.Largest.LargestContributor), unit's own artifact $($budget.Largest.ArtifactBytes) bytes")
     }
     if ($freeze) {
         $reportLines.Add("Freeze active: $downgraded blocking finding(s) downgraded to reported.")
