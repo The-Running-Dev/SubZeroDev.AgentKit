@@ -1634,32 +1634,6 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         $script:RealResult.LargestClosure.LargestContributor | Should -Not -BeNullOrEmpty
     }
 
-    It 'S23.6: against this repository, every ClosureOverBudget breach names a record, never a tree path, as its largest contributor, and the set is non-empty' {
-        # Supersedes S19.3, which asserted the artifact-inclusive measurement the 2026-09-01
-        # re-scoping dropped (design/30-slices.md § S23; design/10-design.md, "Whether the
-        # ceiling can be met"). The remaining gap is a bookkeeping one absorption closes, so the
-        # set is still expected to be non-empty - what changed is that every member of it now
-        # names something absorption can move.
-        $graph = Read-DesignStateGraph -Path $script:RepoRoot
-        $byId = @{}
-        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
-        $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $script:RepoRoot
-
-        $overBudget = @($result.Findings | Where-Object { $_.Class -eq 'ClosureOverBudget' })
-        $overBudget.Count | Should -BeGreaterThan 0
-
-        $subjects = @($overBudget | ForEach-Object { $_.Subject })
-        ($subjects | Sort-Object -Unique).Count | Should -Be $subjects.Count
-
-        foreach ($f in $overBudget) {
-            if ($f.Detail -match "largest contributor '([^']+)'") {
-                $byId.ContainsKey($Matches[1]) | Should -BeTrue -Because "$($f.Subject)'s largest contributor '$($Matches[1])' names a record, never a tree path: $($f.Detail)"
-            } else {
-                throw "finding detail carries no 'largest contributor' term: $($f.Detail)"
-            }
-        }
-    }
-
     It 'S23.2: the closure of unit/document/agents-md equals its own record and every id it names directly - never AGENTS.md itself - and AGENTS.md''s own length is reported separately as its artifact' {
         $graph = Read-DesignStateGraph -Path $script:RepoRoot
         $byId = @{}
@@ -1770,7 +1744,7 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'SupersessionCycle' })).Count | Should -Be 0
     }
 
-    It 'S12.5: the check reports only the adjudicated ClosureOverBudget findings against this repository, and names the largest closure and its size' {
+    It 'S12.5/S23.6: the check reports only the adjudicated ClosureOverBudget findings against this repository, and every breach names a record as its largest contributor' {
         # Replaces S5's 'never clean against this repository', whose stated reason - that most
         # commands, scripts and documents had no unit record - stopped being true at S8 and S9.
         # It kept passing on a divergence it was never written to describe, which is the shape
@@ -1783,10 +1757,12 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         # designed state into a permanently red build, which is the same defect one level up:
         # a gate whose value is constant reports nothing.
         #
-        # So the assertion is what the design actually claims. ClosureOverBudget is expected and
-        # every instance of it must be artifact-dominated - that is the *reason* the brief's
-        # clause is live rather than a bookkeeping failure. A unit that breaches on its records
-        # instead is not the adjudicated case and turns this red.
+        # S23 re-scoped the adjudicated case again: the ceiling now excludes the unit's own
+        # artifact, so a breach can no longer be artifact-dominated - the closure has no artifact
+        # member left to dominate it (S23.1). What the design now claims (design/10-design.md,
+        # "Whether the ceiling can be met") is that the remaining gap is a bookkeeping one -
+        # every breach names a record, which is what makes it absorption-remediable (S23.4,
+        # S23.6) - and S24/S25 close it one unit at a time.
         $failing = @($script:RealResult.Findings | ForEach-Object { "[$($_.Class)] $($_.Subject): $($_.Detail)" })
         $unevaluated = @($script:RealResult.CouldNotEvaluate | ForEach-Object { "[$($_.Reason)] $($_.Detail)" })
 
@@ -1797,15 +1773,17 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
 
         $script:RealResult.ExitCode | Should -Be 1 -Because "findings: $($failing -join ' | ')"
 
-        # Every breach is the artifact's, not the record set's. A unit whose one-hop records
-        # alone exceed the ceiling is the case design/10-design.md ("Whether the ceiling can be
-        # met") calls remediable by absorption, and nothing else in the closed list sees it.
+        # Every breach names a record, never a tree path, as its largest contributor (S23.4) -
+        # the property that makes each one absorption-remediable rather than a verdict on file
+        # size wearing a budget's clothes.
         $graph = Read-DesignStateGraph -Path $script:RepoRoot
         $byId = @{}
         foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
         foreach ($f in @($script:RealResult.Findings)) {
-            $anchor = $byId[$f.Subject].Scalars['Anchor']
-            $f.Detail | Should -Match ([regex]::Escape("largest contributor '$anchor'")) -Because "$($f.Subject) breaches on something other than its own artifact, which is not the adjudicated case: $($f.Detail)"
+            if ($f.Detail -notmatch "largest contributor '([^']+)'") {
+                throw "finding detail carries no 'largest contributor' term: $($f.Detail)"
+            }
+            $byId.ContainsKey($Matches[1]) | Should -BeTrue -Because "$($f.Subject)'s largest contributor '$($Matches[1])' names a record, never a tree path: $($f.Detail)"
         }
 
         $script:RealResult.LargestClosure.Unit | Should -Not -BeNullOrEmpty
