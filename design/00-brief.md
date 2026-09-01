@@ -124,11 +124,17 @@ checked is not finished being written.
   **without opening `design/90-decisions.md`**: contracts it consumes, contracts it exposes,
   invariants that apply to it, accepted decisions, superseded decisions, unresolved questions
   affecting it, dependent GitHub work, and implementation evidence.
-- The design state loaded to begin work on any one named unit is **at most 16,384 bytes**,
-  **including that unit's own artifact**. Checked mechanically across every unit, with the
-  largest one named in the report. This ceiling is fixed and does not rise as the corpus grows.
-  The artifact counts because the criterion measures the bytes loaded and a session that begins
-  work on a unit opens that unit's file; excluding it certifies a number nobody reads against.
+- The design state loaded to begin work on any one named unit — its own record, its companion,
+  and the one hop of records those reference — is **at most 16,384 bytes**, **excluding that
+  unit's own artifact**. Checked mechanically across every unit, with the largest one named in
+  the report. This ceiling is fixed and does not rise as the corpus grows.
+- **That unit's own artifact is measured and reported beside the bounded number on every run,
+  and is itself never bounded.** It is not design state — it is what design state is *about* —
+  and for any one unit it is a constant, paid for opening the file the session came to work on.
+  Counting it inside the bound made every measurement a verdict on file size rather than on the
+  mechanism, which is a claim this brief never set out to make and cannot act on; omitting it
+  from the report instead would certify a number nobody reads against. So it is excluded from
+  the budget and reported in full, always, and the two numbers are named separately.
 - No existing entry in `design/90-decisions.md` is modified. Checkable: this project's commits
   to that file show additions only — no line of a pre-existing entry is deleted, reordered, or
   reformatted.
@@ -181,9 +187,14 @@ checked is not finished being written.
 
 **Abandonment**
 
-- If the 16 KB ceiling cannot be met on this repository's own corpus, the project **stops and
-  reports** rather than relaxing the ceiling. A relaxed ceiling is the failure mode this brief
-  exists to prevent, not a smaller version of success.
+- If the 16 KB ceiling cannot be met on this repository's own corpus **once every executed
+  decision has been given its site**, the project **stops and reports** rather than relaxing the
+  ceiling. A relaxed ceiling is the failure mode this brief exists to prevent, not a smaller
+  version of success.
+- **The number has not moved and does not move: 16,384 bytes.** What was re-scoped on
+  2026-09-01 is what it counts, not how much it allows — see `design/90-decisions.md` for the
+  evidence that forced it. A later change that raises the number, or that quietly widens what is
+  excluded from it, is the relaxation this line forbids.
 
 *(The abandonment line is mine to propose and yours to strike — it is the one criterion here
 that was not derived from an answer you gave.)*

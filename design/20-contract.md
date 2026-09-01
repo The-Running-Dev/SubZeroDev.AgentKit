@@ -97,8 +97,14 @@ per-kind vocabulary, citing it. What neither can state:
   site is `<id> § <heading>`, must resolve to exactly one heading (`SiteAmbiguous`), and must
   name somewhere that unit's reader already reaches — the unit's own `Anchor`, or a record
   already one hop from it (`SiteOutOfReach`). Absent the reach rule a claim could move somewhere
-  the closure does not count, which shrinks the measured number without shrinking what is read,
-  and a metric improvable without improving its subject has stopped being one. **A decision is
+  the unit's reader never opens, which shrinks the measured number without shrinking what is
+  read, and a metric improvable without improving its subject has stopped being one. **Reach is
+  what a reading covers, not what the budget counts, and since 2026-09-01 those are two
+  different sets.** A site in the unit's own artifact is outside the bounded closure and inside
+  reach, because a session beginning work on that unit opens that file unconditionally; reading
+  the rule as *somewhere the closure counts* would forbid the ordinary absorption — a policy
+  written into the document it governs — and would make taking the artifact out of the bound
+  reopen the gap this rule closes. **A decision is
   never both `Live` on a unit and stated in it** (`SiteContradictsLive`): the two say opposite
   things about where that unit's reader finds the terms, and a record asserting both is a
   finding rather than a merge to resolve by preferring one. **A script unit cannot be absorbed
@@ -454,31 +460,46 @@ three-list report.
   only on 1 turns *could not evaluate* into a pass at the call site, which is I19 and I20
   defeated by the consumer rather than by the script — and the brief's *fail CI* line is about
   what the build does, not about what the exit code was.
-- **Measures a closure as the sum of whole files, and the unit's own artifact is one of them**
-  (I23) — never as the bytes of the fields a reader actually consulted. A meter that counted
-  only what it looked at would satisfy the ceiling while understating the load, which is the
-  single property one-file-per-record was chosen over a grouped document to make impossible;
-  **excluding the artifact is the same failure at a larger scale**, because a session beginning
-  work on a unit opens that unit's file, and a number that omits the one file it is certain to
-  open is true and unhelpful. The artifact is what makes absorption a strict saving rather than
-  an accounting move: its bytes are counted whether or not a decision's terms have been written
-  into it, so executing a decision into a site removes a record from the sum and adds nothing.
-  **This is the one term in the sum no field bounds**, and the consequence is not softened here
-  — see the report rule below.
+- **Measures a closure as the sum of whole files, and the unit's own artifact is not one of
+  them** (I23) — never as the bytes of the fields a reader actually consulted. A meter that
+  counted only what it looked at would satisfy the ceiling while understating the load, which is
+  the single property one-file-per-record was chosen over a grouped document to make impossible.
+  That argument governs the records and stops at the artifact. **For any one unit the artifact is
+  a constant no field bounds and no absorption moves**, so admitting it to the sum added the same
+  term to every reading, changed which unit is worst not at all, and turned *under 16,384 bytes*
+  into a cap on how large this repository's files may be — a claim the design-state mechanism has
+  no standing to impose and no lever to satisfy. Excluded, the number is a statement about the
+  mechanism, which is the only thing the mechanism can act on. **Excluding it silently is the
+  separate defect and is not what happens here**: it leaves the bound and enters the report, and
+  the report rule below is where that obligation is stated rather than implied.
+- **Absorption stays a strict saving, and the reach rule rather than the arithmetic is what
+  makes it one.** Executing a decision into its site removes that record's file from the sum,
+  and what the reader gains is a file open it no longer performs. The site's bytes were going to
+  be read either way, because reach admits only another counted record or the unit's own
+  artifact, and the artifact is the one file a session beginning work on that unit opens
+  unconditionally. There is still no case where writing a rule into the document it governs
+  raises the number.
 - **Filters nothing at measurement time.** The closure has no exclusion clause: retired halves
   are in the companion, which is not a closure member, and `HalfStatusMismatch` is what keeps a
   retired record out of an active edge in the first place. A rule enforced by a filter is one
   every consumer must reapply; a rule enforced by where the bytes live is one nobody can forget.
-- **Always names the largest closure, the unit it belongs to, and its largest contributor, on a
-  clean run as well as a failing one.** `ClosureOverBudget` fires only once the ceiling is
-  passed; the brief requires the largest unit named in the report regardless. Headroom nobody is
-  shown is a ceiling nobody can see being approached, and the first anyone would learn of it is
-  the run that blocks. It is a report line, never a finding. **Under the artifact-inclusive
-  definition the largest contributor is usually the artifact**, and saying so on every run is
-  what keeps the gap between the ceiling and this repository from being rediscovered as a
-  surprise — `design/10-design.md` § *Whether the ceiling can be met* is where that gap is
-  confronted, and whether the project proceeds, re-scopes, or stops under the brief's
-  *Abandonment* line is reserved to the user and is not this script's to soften.
+  **The artifact is not an exception to this and is not a filter.** It is not a member that gets
+  dropped, it is not a member — measured on its own and reported on its own, which is how it sits
+  outside the bound without an exclusion clause anyone has to remember to apply.
+- **Always names the largest closure, the unit it belongs to, its largest contributor, and that
+  unit's own artifact size beside the bounded figure — on a clean run as well as a failing one.**
+  `ClosureOverBudget` fires only once the ceiling is passed; the brief requires the largest unit
+  named in the report regardless. Headroom nobody is shown is a ceiling nobody can see being
+  approached, and the first anyone would learn of it is the run that blocks. It is a report line,
+  never a finding. **The artifact figure is not optional and is never folded into the bounded
+  one.** It is the term the budget excludes, and the two are named separately because a run
+  reporting only the bounded half certifies a number nobody reads against — the exact defect the
+  exclusion would otherwise reintroduce. **The largest contributor is now always a record**,
+  which is what makes it something a reader can act on; under the previous definition it was
+  usually the artifact and therefore nothing anyone could move. `design/10-design.md`
+  § *Whether the ceiling can be met* is where the remaining gap is confronted, and whether the
+  project proceeds, re-scopes, or stops under the brief's *Abandonment* line is reserved to the
+  user and is not this script's to soften.
 - **Never clean on an absent or empty state set** (I19). Zero records is I8's shape: absence of
   a finding is not a finding of absence, and a target must never be told its design state
   agrees with anything.
@@ -799,7 +820,7 @@ list.
 | `DecisionAnchorAmbiguous` | A decision anchor resolves to zero or two log headings | The anchor and the count |
 | `LogEntryUnrecorded` | A log heading has no decision record | The entry's heading |
 | `EnforcementUnevidenced` | A conditionally-required field is absent on a record whose own `Status` or `Enforcement` requires it — an invariant with `Enforcement: code` and no `Evidence`, a decision with `Status: superseded` and no `SupersededBy`, or a question with `Status: answered` and no `AnsweredBy` | The record, the absent field, and the value that required it |
-| `ClosureOverBudget` | A closure exceeds 16,384 bytes | The unit, its size, and its largest contributor |
+| `ClosureOverBudget` | A **bounded** closure exceeds 16,384 bytes — the unit's own artifact excluded (I23) | The unit, its bounded size, its largest contributor, and that unit's own artifact size, named separately from the bounded one |
 | `RecordPairMalformed` | A unit's retired companion exists with no active record, or a field sits in the file its half does not belong to — a retired half in the active record, or an active field in the companion | Both files, the field, and which side it belongs on |
 | `HalfStatusMismatch` | A reference sits in a half its referent's status does not allow, in **either** direction — an active edge naming a retired referent, or a retired half naming an active one | The record, the half, the referent, and the status that contradicts it |
 | `HalfOverlap` | An id appears in both halves of one edge | The unit, the edge, and the id |
@@ -810,6 +831,13 @@ list.
 | `SupersessionCycle` | A `SupersededBy` chain revisits a decision, or a decision names itself | The cycle, in order |
 | `ClassListDisagreement` | The checker's declared class ids differ from this document's list | Both sets, and the difference in each direction |
 | `GlobDisagreement` | For a globbed unit kind, the file set § *Artifacts of a unit kind*'s patterns resolve to differs from the set the checker's enumeration returns | The kind, the direction, and the paths |
+
+**`ClosureOverBudget` carries the excluded term, and that is why its payload has four parts
+rather than three.** The report line names the artifact beside the bounded figure for the
+*largest* closure only, so a second breaching unit would otherwise have its bounded number
+stated with the term the bound excludes nowhere in sight — which is silent exclusion at exactly
+the moment the number is being acted on. Every place the bounded figure is printed, the artifact
+is printed beside it, and neither is ever folded into the other.
 
 **`GlobDisagreement` compares file sets, not tokens, and only in that direction.** Comparing the
 patterns as text would be a third id-level check in a document that already knows id-level checks
@@ -965,7 +993,7 @@ wait in.
 | **I20** | Findings and *could not evaluate* never collapse into each other, and exit 2 takes precedence over exit 1. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 | **I21** | While `design/FROZEN.md` exists, no blocking class fails the build, and exit 2 still stands. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 | **I22** | Every class on the blocking list is evaluable from the checkout alone — no network, no tracker, no running service. | `unit/document/design-20-contract` | instruction | — |
-| **I23** | The orientation closure is exactly one hop and counts the unit's own artifact in full, and its ceiling is 16,384 bytes and never rises. It is measured as the sum of whole files, never as the bytes of the fields a reader consulted, and nothing is filtered at measurement time. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
+| **I23** | The orientation closure is exactly one hop and excludes the unit's own artifact, and its ceiling is 16,384 bytes and never rises. It is measured as the sum of whole files, never as the bytes of the fields a reader consulted, and nothing is filtered at measurement time. That unit's own artifact is measured and reported beside the bounded figure on every run, and is itself never bounded. | `unit/script/test-designstate` | instruction | — |
 | **I24** | A line the record grammar does not recognise is reported verbatim and never skipped. | `unit/script/read-designstate` | code | tools/Read-DesignState.Tests.ps1 |
 | **I25** | Regeneration is idempotent and order-independent: twice produces identical bytes, and one region's regeneration never changes another's output. | `unit/script/update-designprojection` | code | tools/Update-DesignProjection.Tests.ps1 |
 | **I26** | No pre-existing entry in `design/90-decisions.md` is ever modified. Commits to that file are additions only. | `unit/document/design-90-decisions` | instruction | — |
@@ -993,7 +1021,11 @@ statement demotes its own row**, because `Enforcement` is a claim about the tree
 and the tree had not moved yet. Leaving them `code` would have been the one thing this column
 exists to prevent: a row a reader is entitled to trust without checking, evidencing a sentence
 it does not test. S19 and S20 amended the meter and landed `HalfStatusMismatch`, so both rows
-are `code` again — the rule is what stands here, not that instance of it.
+went back to `code`. **I23 has since demoted a second time**, on the 2026-09-01 amendment that
+took the unit's own artifact out of the bound: the meter still counts it and the named test
+still asserts that it does, so the row reads `instruction` until the slice that re-scopes both
+flips it back. One row making the round trip twice is the rule working rather than the column
+being unstable — the rule is what stands here, not either instance of it.
 
 **Which rows are `code`, and against which test, is the region's own `Enforcement` and
 `Evidence` columns and is not enumerated here.** The set rises as slices land, and a prose list

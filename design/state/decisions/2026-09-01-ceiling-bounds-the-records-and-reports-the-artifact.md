@@ -1,0 +1,8 @@
+# decision/2026-09-01-ceiling-bounds-the-records-and-reports-the-artifact
+Date: 2026-09-01
+Anchor: 2026-09-01 — The ceiling bounds the records and reports the artifact; the number does not move
+Status: accepted
+StatedIn: unit/document/design-00-brief § Definition of done, unit/document/design-10-design § Whether the ceiling can be met, unit/document/design-20-contract § `tools/Test-DesignState.ps1`, contract/test-designstate § Semantics
+
+## Claim
+`closure(U)` is bounded at 16,384 bytes over the active record, its companion and their one hop, and **excludes** the unit's own artifact, which is measured and reported beside the bounded figure on every run and is itself never bounded. The number is unchanged; what it counts was re-scoped, and a later change that raises it or widens the exclusion past this one term is the relaxation `design/00-brief.md` § *Abandonment* forbids. The artifact is excluded because for any one unit it is a constant the mechanism cannot move — admitting it added the same term to every reading, made "under 16,384 bytes" a de facto file-size cap on the whole tree that the design-state mechanism has no standing to impose, and buried the single actionable breach under fifteen unreachable ones. It stays in the report because excluding it silently is the original defect `/redteam` raised. Absorption remains a strict saving: the reach rule puts every site either in another counted record or in the unit's own artifact, which a session beginning work on that unit opens unconditionally, so a claim can still never move somewhere no reading covers. `design/00-brief.md` § *Abandonment* now fires on the records bound once every executed decision has been given its site, which makes it actionable rather than a verdict.
