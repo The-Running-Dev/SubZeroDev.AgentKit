@@ -237,6 +237,8 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-31-invoke-donehousekeeping-gets-a-contract | `unit/document/design-20-contract`, `unit/script/invoke-donehousekeeping` |
 | decision/2026-08-31-live-absorbed-as-a-pass-and-a-reported-class | `unit/document/design-10-design`, `unit/document/design-20-contract` |
 | decision/2026-08-31-self-check-asserts-adjudicated-findings | `unit/script/test-designstate` |
+| decision/2026-09-01-ceiling-bounds-the-records-and-reports-the-artifact | `unit/document/design-00-brief`, `unit/document/design-10-design`, `unit/document/design-20-contract`, `unit/script/test-designstate` |
+| decision/2026-09-01-contract-carries-the-rescoped-ceiling | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered

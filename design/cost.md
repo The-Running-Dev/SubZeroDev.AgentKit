@@ -107,6 +107,40 @@ fifteen are not remediable by anything the mechanism has. Both are recorded here
 in a running count, because this document is what the brief's *Cost* criteria are measured
 against.
 
+## Closure sizes under the records-bounded definition (2026-09-01)
+
+**Derived, not yet measured by the checker.** `design/00-brief.md`'s criterion was amended on
+2026-09-01 to bound the records and report the artifact separately; `tools/Test-DesignState.ps1`
+still implements the artifact-inclusive definition, so the figures below are the checker's own
+closures at `fcef65b` minus each artifact's size on disk, not a run of the amended meter. They
+are recorded here so the decision is checkable against a number, and they are superseded by the
+first run of the meter once the slice that changes it lands.
+
+**Two units breach on their records; fourteen of the sixteen clear immediately.**
+
+| Unit | Closure | Artifact | Records alone | Breaches |
+|---|---|---|---|---|
+| `unit/document/agents-md` | 63,137 | 43,930 | **19,207** | yes |
+| `unit/document/design-20-contract` | 102,245 | 84,324 | **17,921** | yes |
+| `unit/script/test-designstate` | 99,964 | 88,235 | 11,729 | no |
+| `unit/document/design-10-design` | 72,008 | 63,489 | 8,519 | no |
+| `unit/document/install-md` | 36,851 | 29,284 | 7,567 | no |
+| `unit/command/track` | 22,810 | 15,974 | 6,836 | no |
+| `unit/document/design-90-decisions` | 314,809 | 313,332 | 1,477 | no |
+
+`unit/document/design-20-contract` is a new breach rather than a persistent one: it measured
+15,899 bytes of records at `15990d9` and 17,921 at `fcef65b`, having crossed the ceiling on the
+`Live` edges the 2026-08-31 reconciliation added to it. That is the failure mode
+`design/10-design.md` § *Whether the ceiling can be met* names — a policy document accumulating
+decisions faster than they are absorbed — caught on the second unit rather than the first, and
+it is the case the artifact-inclusive reading could not surface because both units were already
+failing on prose nothing could shrink.
+
+Both breaches are absorption-remediable and neither is a reason to stop: `agents-md` carries
+17,073 bytes of `Live` decisions whose terms already stand in named `AGENTS.md` sections. The
+brief's *Abandonment* line fires on this bound only once every executed decision has been given
+its site, so it is not live until that pass has run.
+
 ## After: a `/slice` session with `design/state/` present (S15.5)
 
 Session `e5bc7d5d`, this repository, `/slice S15` — measured near the end of that slice, with

@@ -28,8 +28,9 @@ easily lost later, so it is stated early and enforced in *Module boundaries*.
 never rises; a representation where any counted field accumulates makes that ceiling a
 countdown rather than a bound. Every record field in the counted set is therefore bounded by
 the unit's own surface or by work in progress, and *The orientation closure* discharges that
-field by field rather than asserting it. The unit's own artifact is counted too and is bounded
-by nothing but its own size, which is why *Whether the ceiling can be met* exists.
+field by field rather than asserting it. The unit's own artifact is bounded by nothing but its
+own size, which is why it sits outside the budget and inside the report — *Whether the ceiling
+can be met* is where that split is argued.
 
 ## Data model
 
@@ -404,19 +405,23 @@ Five consequences, all load-bearing:
   is given its site, and nothing detects a unit where that has stopped happening. The artifact
   is the term this does not bound at all, and *Whether the ceiling can be met* below is where
   both are confronted rather than absorbed into a caveat.
-- **The artifact counts in full, so the ceiling measures orientation cost and not bookkeeping
-  cost.** A session that begins work on a unit opens that unit's file; counting the records it
-  must additionally fetch while excluding the file it certainly opens produces a number that is
-  true and unhelpful, and one that absorption can drive toward zero without reducing a byte of
-  what is read. Including it is the literal reading of the brief's criterion and the only one
-  under which the measurement cannot be improved without improving the thing it measures.
-- **Absorption is now unambiguously a shrink, and the reach rule is what makes it one.** The
-  artifact's bytes are counted whether or not a decision's terms are written into it, so
-  executing a decision into a site removes the decision record from the closure and adds
-  nothing — every absorption is a strict saving, and there is no longer any case where writing
-  a rule into the document it governs raises the number. The reach rule earns its keep here
-  rather than in the accounting: a site must be somewhere already counted, so a claim can never
-  move to a place the ceiling does not see.
+- **The artifact is measured and reported, and deliberately not budgeted.** For any one unit it
+  is a constant: a session beginning work on that unit opens that file whatever the state set
+  says, so admitting it to the bound adds the same number to every reading and changes which
+  unit is worst not at all. What it does change is what the budget is a statement about — with
+  the artifact in, "under 16,384 bytes" is a claim about how large the repository's files are
+  allowed to be, which is a constraint this design has no business imposing and no lever to
+  satisfy. Excluded, the number is once again a statement about the mechanism, which is the only
+  thing the mechanism can act on. It is reported on every run so that the total a session
+  actually reads is never hidden behind the bounded half.
+- **Absorption is a shrink, and it is a real one rather than an accounting one.** Executing a
+  decision into its site removes the record from the closure, and what the reader gains is a
+  file open it no longer performs. The site's own bytes were going to be read either way: the
+  reach rule puts every site either in another counted record or in the unit's own artifact,
+  and the artifact is the one file a session beginning work on that unit opens unconditionally.
+  That is what stops a claim escaping to a place no reading covers — and it is why the artifact
+  leaving the *bound* does not reopen the gap that admitting it closed, because what closed that
+  gap was the reach rule and the artifact staying in the *report*, not the arithmetic.
 - **The measurement must equal what is actually read**, so each record is separately
   openable and the closure is a sum of whole files. A representation where records share a
   file would make the metric understate the load, because a reader opens the file. It is the
@@ -431,15 +436,21 @@ document: it would be a second copy of a measurement, and it is the copy that ro
 
 ### Whether the ceiling can be met
 
-It is not met today, and the brief's *Abandonment* line — not a relaxation — is the designed
-response. This section states the shape of the problem; the measurement itself belongs to the
-checker and to `design/cost.md`, not here.
+It is not met today, and the remaining gap is a bookkeeping one that absorption closes. That is
+a different answer from the previous revision's, and the thing that changed is the criterion's
+scope rather than any measurement: the brief now bounds the records and reports the artifact,
+where before it bounded their sum. This section states the shape of the problem; the
+measurement itself belongs to the checker and to `design/cost.md`, not here.
 
-**The artifact dominates on the units that matter, and no number for it belongs here** — the
-checker names the largest closure and its largest contributor on every run, and a figure
-written down is the copy that rots. On a document unit of any size the artifact alone exceeds
-the ceiling, and that is not a bookkeeping failure the retirement mechanism can fix, because
-every field it bounds is already bounded.
+**The artifact dominated every reading, and no number for it belongs here** — the checker names
+the largest closure and its largest contributor on every run, and a figure written down is the
+copy that rots. On a document unit of any size the artifact alone exceeded the ceiling, and
+that was never a bookkeeping failure the retirement mechanism could fix, because every field it
+bounds is already bounded. A term the mechanism cannot move, added identically to every
+reading, is not a budget — it is a verdict on file size wearing a budget's clothes, and it
+crowded out the one breach that *was* actionable. Excluding it from the bound is what let that
+breach become visible again; keeping it in the report is what stops the exclusion becoming a
+number nobody reads against.
 
 **Absorption is the one part of the gap that is remediable, and skipping it is how a record
 closure breaches on its own.** `Live` is bounded by decisions in flight only while step 4 of
@@ -450,30 +461,32 @@ performed rather than a property that holds itself. A policy document accumulati
 faster than they are absorbed is therefore the case to watch, and it is the case where the
 checker's report is the only warning available.
 
-**Meeting the ceiling under this definition means a file-size limit on the repository.** Since
-the closure is dominated by the artifact, "every unit under 16,384 bytes" is within a few
-kilobytes of "no command file, script, or document exceeds about ten kilobytes". That is a
-constraint on the whole tree, imposed by the design-state mechanism, and it is a much larger
-claim than anything else in this document. Two things follow, and both are honest rather than
-convenient:
+**Bounding the sum meant a file-size limit on the repository, and that is why the sum is not
+what is bounded.** With the artifact in, "every unit under 16,384 bytes" was within a few
+kilobytes of "no command file, script, or document exceeds about ten kilobytes" — a constraint
+on the whole tree, imposed by the design-state mechanism, and a much larger claim than anything
+else in this document. The design-state mechanism is not entitled to make it. Two remedies were
+foreclosed before this one and remain so:
 
-- **The obvious remedy is one this design has already rejected twice.** Splitting a large
-  document into one unit per section divides the artifact the same way it divides the `Live`
-  set, and it fails for the same reasons: two units anchored on one file breaks the
-  one-record-per-artifact bijection that makes "nothing is unrecorded" a checkable set
-  difference, and it moves every anchor onto a heading that a rename invalidates. Reaching for
-  it here because the arithmetic now demands it would be relitigating a settled decision under
-  pressure, which is the failure the decision log exists to prevent.
-- **Relaxing or retiring the ceiling is foreclosed.** The brief names a relaxed ceiling as the
-  failure mode it exists to prevent, not a smaller version of success. So the ceiling stands,
-  the measurement stands, and what is reported is that the two do not currently agree.
+- **Splitting a large document into one unit per section is rejected, as it was twice before.**
+  It divides the artifact the same way it divides the `Live` set, and it fails for the same
+  reasons: two units anchored on one file breaks the one-record-per-artifact bijection that
+  makes "nothing is unrecorded" a checkable set difference, and it moves every anchor onto a
+  heading that a rename invalidates. Reaching for it because the arithmetic demanded it would
+  be relitigating a settled decision under pressure, which is the failure the decision log
+  exists to prevent.
+- **Relaxing or retiring the ceiling stays foreclosed.** The brief names a relaxed ceiling as
+  the failure mode it exists to prevent, and the number is unchanged at 16,384 bytes. What was
+  re-scoped is what the number counts. That distinction is the whole of this revision, and a
+  later change that raises the figure — or that widens the exclusion past the one term named
+  here — is the relaxation the brief forbids, not a further re-scope.
 
 **What the design does about it is report, precisely and on every run.** The checker names the
 unit with the largest closure, its size, and its largest contributor, on a clean run as well as
-a failing one. Under this definition the largest contributor will usually be the artifact, and
-saying so on every run is what keeps the gap from being rediscovered as a surprise. Whether the
-project proceeds, re-scopes, or stops is a judgement the brief reserves — and it is not a
-model's to make.
+a failing one, and names the unit's artifact beside the bounded figure rather than inside it.
+Saying both on every run is what keeps the excluded term from becoming invisible and the gap
+from being rediscovered as a surprise. Whether the project proceeds, re-scopes, or stops
+remains a judgement the brief reserves — and it is not a model's to make.
 
 ### Persisted versus in-memory
 
@@ -741,22 +754,27 @@ supersession that never happened. **A derived `States` list projected into the u
 which keeps the unit-side view without a written second copy and puts generated text inside the
 file the reader parses and the meter counts, which is the one place a projection must not go.
 
-**The artifact's bytes: counted in full against the ceiling.** The fork that reaches the
-brief, and the one decided against this document's own recommendation — the recommendation was
-to keep counting records and report the total beside them, and the decision is that a criterion
+**The artifact's bytes: excluded from the ceiling, reported beside it.** The fork that reaches
+the brief, and the only one in this document decided twice. It was first closed the other way —
+counted in full — against this document's own recommendation, on the reading that a criterion
 saying "the design state loaded to begin work" means the bytes loaded, without a qualification
-the brief does not make. It is recorded as declined rather than dropped, because the cost it
-named is now paid rather than avoided: a large document unit breaches on its own prose, and
-*Whether the ceiling can be met* is that cost stated in full instead of hedged. Rejected:
-**excluding the artifact and reporting the total alongside**, the recommendation, which keeps
-the blocking number comparable across units and leaves the criterion narrowed by a
-qualification nobody wrote down. **Excluding it silently**, today's behaviour and the defect
-`/redteam` raised — the meter certifies a number that is true and unhelpful, with nothing in
-the report saying so, and absorption can drive it toward zero without reducing a byte of what
-is read. **Counting only the sections a decision was absorbed into**, an intermediate worse
-than either end: it inverts the mechanism, because a section is almost always larger than the
-one decision record it first replaces, so absorbing would *raise* the closure until several
-decisions had accumulated in the same section.
+the brief does not make. **That closure is superseded, on the evidence its own declined
+recommendation predicted.** The cost recorded against it then was that a large document unit
+fails a 16,384-byte ceiling for existing; `design/cost.md` now measures sixteen units over the
+ceiling, fifteen of them on their artifact alone and unreachable by any lever the mechanism
+has, with the one genuinely actionable breach — a unit over budget on its records — invisible
+underneath them. A budget every reading fails for a reason none of them can act on is not a
+budget, so what the criterion counts was re-scoped and what it allows was not. Rejected:
+**counting the artifact in full**, the previous decision, whose literal reading is faithful to
+the brief's old sentence and whose consequence is a de facto file-size cap on the whole tree
+that the design-state mechanism has no standing to impose. **Excluding it silently**, the
+original defect `/redteam` raised — the meter certifies a number that is true and unhelpful,
+with nothing in the report saying so; this is what keeping the artifact in the *report* exists
+to prevent, and it is the half of the previous decision that survives intact. **Counting only
+the sections a decision was absorbed into**, an intermediate worse than either end: it inverts
+the mechanism, because a section is almost always larger than the one decision record it first
+replaces, so absorbing would *raise* the closure until several decisions had accumulated in the
+same section.
 
 **Half/status agreement: one total table, both directions.** Rejected: **the four
 one-directional checks the previous revision named** — an absorbed decision that is superseded,
@@ -866,17 +884,19 @@ the reasoning and the rejected alternatives stay in the log entry.
    repository's design state, and that cost is now paid rather than avoided.
 
 5. **Does "the design state loaded to begin work on any one named unit" include the unit's own
-   artifact?** **Closed: yes — against the recommendation**, which was to count records only and
-   report closure-plus-artifact beside them. The criterion is read literally: the bytes loaded
-   are the bytes loaded, and a qualification the brief does not make is not one this document
-   may supply. Retained as a declined recommendation rather than dropped, because the cost it
-   named was that a large document unit fails a 16,384-byte ceiling for existing, and that cost
-   is now paid: the ceiling is not met on this repository's own corpus, and the brief's
-   *Abandonment* line is live. *Whether the ceiling can be met* is where that is stated, and it
-   is stated rather than worked around, because working around it is the failure mode the
-   brief's own line exists to prevent.
+   artifact?** **Closed: no — reopened and re-closed on 2026-09-01**, adopting the
+   recommendation that was declined when this question was first put. It was closed *yes* on a
+   literal reading of the brief's then-wording; the cost recorded against that closure was that
+   a large document unit fails a 16,384-byte ceiling for existing. That cost came due and was
+   measured (`design/cost.md`), the brief's criterion was amended to bound the records and
+   report the artifact, and this question follows it. **The number did not move**: what changed
+   is what it counts. *Whether the ceiling can be met* carries the reasoning, and the rejected
+   alternatives — including the previous closure — are retained above rather than dropped.
 
-**The fifth was added and closed in the same revision.** The rule that this section only shrinks
-holds for questions the brief has answered; this one it had not been asked, and now has been.
-The two questions the previous revision closed — how a closure shrinks, and whether a question
-edge gets a retired half — are decisions now and do not reappear.
+**The fifth was closed, reopened once, and closed the other way.** The rule that this section
+only shrinks holds for questions the brief has answered; this one the brief has now answered
+twice, and a criterion the human amended is the one thing entitled to reopen a closed question
+here. It is not evidence the rule is soft — nothing else has reopened, and the reopening was
+the brief's, not this document's. The two questions the earlier revision closed — how a closure
+shrinks, and whether a question edge gets a retired half — are decisions now and do not
+reappear.
