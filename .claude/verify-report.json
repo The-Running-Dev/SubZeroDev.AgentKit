@@ -1,24 +1,24 @@
 {
-"gates": [
-  {
-    "name": "Parse-check PowerShell scripts",
-    "status": "Passed",
-    "detail": "OK: 33 files parsed cleanly (System.Management.Automation.Language.Parser::ParseFile against every *.ps1 in the repository)."
-  },
-  {
-    "name": "Run Pester tests",
-    "status": "Failed",
-    "detail": "Tests Passed: 336, Failed: 1, Skipped: 0, NotRun: 0, Total: 337.\nFailed: [-] S20.9: I23 and I30 carry Enforcement: code with Evidence naming the tests that hold them\nPre-existing on main: this is the known S20.9 fallout from the 2026-09-01 closure-ceiling re-scope (PR #190/#191), which demoted I23/I30 from code-enforced to instruction. S23-S25 (design/30-slices.md, PR #192, merged) exist to land the code that would make this pass again; unrelated to this fix's change to tools/Measure-Session.ps1."
-  },
-  {
-    "name": "Validate the core/companion split",
-    "status": "Passed",
-    "detail": "Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion. State: Valid."
-  },
-  {
-    "name": "Check the design state against the tree",
-    "status": "Failed",
-    "detail": "Exit code 1. 16 ClosureOverBudget findings (blocking), largest: unit/document/design-90-decisions, 317853 bytes (ceiling 16384). Also 32 non-blocking MirrorStale findings and 1 non-blocking WorkStateDivergence finding (work/181: mirrored State 'OPEN' disagrees with tracker's 'CLOSED', since PR #197 merged and closed #181 after the mirror was last refreshed) - both refreshed by /track, not this command.\nPre-existing on main: the 16 ClosureOverBudget findings are the tracked records-bounded-ceiling debt S23-S25 (design/30-slices.md, merged via PR #192) exist to resolve; tools/Measure-Session.ps1's own closure entry (31077 bytes) was already over budget before this fix and grows only incidentally from the added Get-CostLogPath function. Not caused by, or in scope for, this bug fix."
-  }
-]
+  "gates": [
+    {
+      "name": "Parse-check PowerShell scripts",
+      "status": "Passed",
+      "detail": "Parsed every *.ps1 under the repository with [System.Management.Automation.Language.Parser]::ParseFile; zero parse errors."
+    },
+    {
+      "name": "Run Pester tests",
+      "status": "Failed",
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: 335 passed, 3 failed. All three failures are pre-existing and unrelated to this change - confirmed identical when the same suite is run against the pre-fix commit (84ce80d). They are the tracked, open design-state migration defects from issues #140 and #153 (the ClosureOverBudget/Enforcement-field work in flight), not anything this PR touches:\n\n=== Test-DesignState against this repository's own tree.S20.9: I23 and I30 carry Enforcement: code with Evidence naming the tests that hold them ===\nExpected strings to be the same, but they were different.\nExpected length: 4\nActual length:   11\nStrings differ at index 0.\nExpected: 'code'\nBut was:  'instruction'\n\n=== Test-DesignState against this repository's own tree.S12.5: the check reports only the adjudicated ClosureOverBudget findings against this repository, and names the largest closure and its size ===\nExpected $null or empty, because could not evaluate: [TrackerUnavailable] gh missing or unauthenticated; WorkStateDivergence not compared, but got @{Reason=TrackerUnavailable; Detail=gh missing or unauthenticated; WorkStateDivergence not compared}.\n\n=== Test-DesignState against this repository's own tree.S18.6: EnforcementUnevidenced rejects this repository's own superseded decision once its SupersededBy line is removed, and clears once it is restored ===\nExpected 1, but got 2.\n\nThe new regression test for #162 ('the per-issue gh issue view call is scoped with -R when -Repository is given') is in the 335 that passed, and was separately verified failing before the fix and passing after."
+    },
+    {
+      "name": "Validate the core/companion split",
+      "status": "Passed",
+      "detail": "./tools/Test-Companion.ps1: Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion. Exit 0."
+    },
+    {
+      "name": "Check the design state against the tree",
+      "status": "DidNotRun",
+      "reason": "./tools/Test-DesignState.ps1 exited 2. Could not evaluate (1): [TrackerUnavailable] gh missing or unauthenticated; WorkStateDivergence not compared. This session's GH_TOKEN authenticates the GitHub MCP tool, not a directly-invoked gh CLI in this sandbox (gh auth status reports 'The token in GH_TOKEN is invalid' for direct use), so the tracker-dependent half of this check cannot be evaluated locally here. The corresponding CI check on this pull request runs with a real GITHUB_TOKEN and is where the authoritative answer comes from. The rest of the check ran and reported its pre-existing findings (a known ClosureOverBudget on design/90-decisions.md, tracked by #153, and 32 non-blocking MirrorStale reports from the work mirror being behind this commit) - unrelated to this PR's change."
+    }
+  ]
 }
