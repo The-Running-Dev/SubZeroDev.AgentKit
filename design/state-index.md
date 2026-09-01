@@ -273,5 +273,8 @@ that looks old.
 | 182 | #182 | SessionEnd cost-log hook misses roughly half of sessions | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
 | 183 | #183 | Housekeeping commands (/clean, /done, /next) run as full model sessions for work that is already scripted | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
 | 184 | #184 | The -Watch context-size warning fires with no consequence | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
+| 193 | #193 | S23 — The ceiling reports what can be shrunk, separately from what cannot | S23.1, S23.2, S23.3, S23.4, S23.5, S23.6, S23.7, S23.8, S23.9 | `c501da5846d6417a0aebbffbc0638ba826ee763c` |
+| 194 | #194 | S24 — The agent contract stops making every session read its own history | S24.1, S24.2, S24.3, S24.4, S24.5, S24.6 | `c501da5846d6417a0aebbffbc0638ba826ee763c` |
+| 195 | #195 | S25 — The interface contract stops making every session read its own history | S25.1, S25.2, S25.3, S25.4, S25.5, S25.6 | `c501da5846d6417a0aebbffbc0638ba826ee763c` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
