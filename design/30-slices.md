@@ -1,13 +1,15 @@
 # Slices
 
-> **Three paths appear here.** The **defect-to-merge path** landed as S1–S3; its bodies are
+> **Four paths appear here.** The **defect-to-merge path** landed as S1–S3; its bodies are
 > retired to the index under `## Landed` and its design body to
 > `git show dfd1cab:design/10-design.md`. The **explicit design-state mechanism**, designed in
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, landed as
 > S4–S18; its bodies are retired to the same index. The **2026-08-29 revision to that
 > mechanism** — the retired companion, absorption, the half/status table, and the
-> artifact-inclusive ceiling — landed as S19–S22, retired to the same index. Nothing
-> remains under `## Outstanding`.
+> artifact-inclusive ceiling — landed as S19–S22, retired to the same index. The
+> **2026-09-01 re-scoping of the ceiling**, which took the unit's own artifact back out of the
+> bound and made the one remaining breach a thing absorption can move, is **S23–S25** and is
+> outstanding.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -26,6 +28,16 @@ gives it, and it is now a question about this repository rather than about the m
 own artifact puts several units several times over the limit. S19 does nothing but make the
 checker say so, ahead of every structural change in the set, because the brief's *Abandonment*
 clause is the user's to answer and answering it late would waste three slices.
+
+The riskiest assumption in the fourth is that the re-scoped ceiling is **meetable at all** on
+this repository's own corpus — the same bet as the third, asked again of a number that now
+counts only what the mechanism has a lever on. The brief's *Abandonment* line was re-pointed at
+this bound on 2026-09-01 and fires once every executed decision has been given its site, so a
+pass that runs and still leaves a unit over the ceiling is the clause triggering rather than a
+slice failing. S23 does nothing but make the meter say what the bound now is, because until it
+does no absorption can be measured; S24 then absorbs the worst unit, which is where the bet is
+actually settled. Two of three slices, and the third only finishes what the second has already
+proven.
 
 `/track` should be run after this document is reviewed. **Do not open issues from here.**
 
@@ -108,13 +120,127 @@ does not resolve it in the implementing session.
 
 ## Outstanding
 
-**Nothing.** The third set — S19–S22, implementing the 2026-08-29 revision the contract already
-carried — has landed in full, and every slice this document has proposed is retired to
-`## Landed` below. `ClassListDisagreement` is silent: the checker's declared class ids and this
-document's contract list agree in both directions, which is what S22 closed.
+**Three slices, S23–S25**, implementing the 2026-09-01 re-scoping the contract already carries.
+`design/20-contract.md` § `tools/Test-DesignState.ps1` and I23 now state a ceiling that bounds a
+unit's records and its one hop and **excludes that unit's own artifact**, measuring and reporting
+the artifact beside the bounded figure. `tools/Test-DesignState.ps1` still implements the
+artifact-inclusive definition, which is why I23 reads `instruction` and why the design-state gate
+has been red since `4d06246`. S23 brings the meter to the contract; S24 and S25 run the
+absorption pass the 2026-08-31 decision commissioned, one unit each.
 
-`/slices` appends the next set here. The two notes below outlive any one set and are kept for
-whatever is appended.
+**Only the pass is sliced here.** That decision has two halves, and the other one — a divergence
+class, reported and never blocking, flagging a `Live` decision whose terms appear to already
+stand in the unit it is live on — is `/contract`'s, at `opus`/`high`, and has **not landed**:
+the class list in § *The divergence classes* does not carry it. No slice below implements it,
+because no slice may introduce a signature the contract does not contain. Until it lands, nothing
+stops the `Live` sets S24 and S25 empty from refilling, which is the standing half of the defect
+and is the user's to schedule.
+
+The two notes at the end of this section outlive any one set and are kept for whatever is
+appended.
+
+### S23 — The ceiling reports what can be shrunk, separately from what cannot
+Delivers: anyone running the design-state check sees, for each part of the kit, how much of its
+          reading load the project can actually do something about — stated separately from the
+          size of the document or script itself, which nobody can shrink and which used to
+          swamp the number. Sixteen parts currently look over budget for reasons no one could
+          act on; afterwards the report names only the ones somebody can fix.
+Touches: `tools/Test-DesignState.ps1` (`Get-DesignClosure`, `Test-ClosureBudget`, and the report
+         line), `tools/Test-DesignState.Tests.ps1`, `design/state/invariants/I23.md`,
+         `design/20-contract.md` § *Invariants* (the generated region, regenerated — never
+         hand-edited), `design/cost.md`
+Depends on: none
+Acceptance:
+  - S23.1 `Get-DesignClosure` returns records only: for a unit root whose `Anchor` is a tree
+    path, the returned member set is identical to the set returned for the same root with the
+    `Anchor` removed, and no member carries `Kind = 'Artifact'`.
+  - S23.2 The unit's own artifact is measured separately from the closure, by byte length of the
+    file its `Anchor` names. A unit whose `Anchor` names a path not in the tree yields `0` for
+    that figure and raises no finding for it — S19.6's behaviour, preserved under the new
+    arrangement rather than deleted with the case that asserted it.
+  - S23.3 A `ClosureOverBudget` finding's detail carries four parts — the unit, its bounded
+    size, its largest contributor, and that unit's own artifact size — with the artifact figure
+    named separately and never added into the bounded one.
+  - S23.4 The largest contributor named in a `ClosureOverBudget` finding is a record id. No
+    finding names a tree path there, on this repository or on a fixture.
+  - S23.5 The report line names the largest **bounded** closure, its unit, its largest
+    contributor, and that unit's own artifact size, and renders on a clean run as well as on a
+    failing one.
+  - S23.6 Against this repository the check exits 1, `CouldNotEvaluate` is empty,
+    `ClosureOverBudget` is the only class present in `Findings`, and **every** breach names a
+    record rather than a tree path as its largest contributor — which is the property that makes
+    each one absorption-remediable. The S12.5 and S18.6 cases assert this in place of the
+    artifact-dominance they assert today.
+  - S23.7 `design/state/invariants/I23.md` carries `Enforcement: code` with `Evidence` naming
+    `tools/Test-DesignState.Tests.ps1`, § *Invariants* is regenerated from it rather than
+    hand-edited, and `EnforcementUnevidenced` stays silent.
+  - S23.8 `design/cost.md` § *Closure sizes under the records-bounded definition* carries a
+    measured run of the amended meter, at a named commit, replacing the derived table that
+    section marks as superseded by exactly this slice.
+  - S23.9 Every S19 case asserting the artifact-inclusive definition either asserts the
+    records-bounded one or is removed, and none is left asserting a rule the contract has
+    dropped — the failure mode `design/20-contract.md` records against the 2026-08-29 amendment,
+    not repeated here.
+Out of scope: absorbing any decision or editing any unit's `Live` set (S24 and S25); changing
+              16,384; the reported class the 2026-08-31 decision commissions from `/contract`;
+              and `SiteOutOfReach`, which computes reach independently of `Get-DesignClosure`
+              and must keep reaching the unit's own artifact after the bound stops counting it.
+
+### S24 — The agent contract stops making every session read its own history
+Delivers: someone — or something — starting work on the repository's agent contract loads the
+          rules in force and not the twenty-five past decisions that produced them, because each
+          decision whose terms are already written into the contract now points at the section
+          that holds them instead of being carried alongside it.
+Touches: `design/state/units/document/agents-md.md` and its retired companion,
+         `design/state/decisions/*.md` (`StatedIn`), `design/state-index.md` (regenerated)
+Depends on: S23
+Acceptance:
+  - S24.1 Every decision in `unit/document/agents-md`'s `Live` whose terms already stand in a
+    named section of `AGENTS.md` carries a `StatedIn` site naming that section, and its id is
+    absent from `Live`. Both edits are in the same commit — a site named without the id dropped
+    saves nothing, and an id dropped without a site is `DecisionUnplaced`.
+  - S24.2 A decision whose terms do **not** stand in `AGENTS.md` keeps its `Live` id and gains no
+    site. The slice's pull request names each one it left and why, so the residue is a stated
+    judgement rather than an unexplained remainder.
+  - S24.3 `SiteAmbiguous`, `SiteOutOfReach`, and `SiteContradictsLive` are all silent: every site
+    added resolves to exactly one heading in `AGENTS.md`, names a place that unit's reader
+    already reaches, and belongs to no decision still live on that unit.
+  - S24.4 `DecisionUnplaced` is silent after the pass — a decision removed from `Live` is placed
+    by its site, which is the whole reason the two edits are one commit.
+  - S24.5 The checker reports no `ClosureOverBudget` finding for `unit/document/agents-md`.
+    Clearing it needs roughly 2,900 of the roughly 17,000 bytes its `Live` carries today, so the
+    criterion is met well before every candidate is absorbed and does not depend on absorbing
+    one whose terms are not really there.
+  - S24.6 No sentence of `AGENTS.md` changes. Absorption names a section that already states the
+    claim; writing the claim in to make a site resolve is the thing this pass must not do.
+Out of scope: `unit/document/design-20-contract`'s `Live` set (S25); any edit to `AGENTS.md`
+              itself; any change to the meter (S23); and the reported class.
+
+### S25 — The interface contract stops making every session read its own history
+Delivers: the same for the repository's interface contract, whose twenty live decisions took it
+          over the reading budget for the first time on 2026-08-31 — and, with it, the first run
+          in which the whole kit reports itself inside the budget it set.
+Touches: `design/state/units/document/design-20-contract.md` and its retired companion,
+         `design/state/decisions/*.md` (`StatedIn`), `design/state-index.md` (regenerated)
+Depends on: S23, and S24 for the pattern rather than for anything it changes
+Acceptance:
+  - S25.1 Every decision in `unit/document/design-20-contract`'s `Live` whose terms already stand
+    in a named section of `design/20-contract.md` carries a `StatedIn` site naming that section,
+    and its id is absent from `Live` — both in one commit, as S24.1.
+  - S25.2 A decision whose terms do not stand there keeps its `Live` id and gains no site, and
+    the pull request names each one and why.
+  - S25.3 `SiteAmbiguous`, `SiteOutOfReach`, `SiteContradictsLive`, and `DecisionUnplaced` are
+    all silent.
+  - S25.4 The checker reports **zero** `ClosureOverBudget` findings against this repository, and
+    exits 0 with `CouldNotEvaluate` empty.
+  - S25.5 `verify.yml`'s design-state step passes on this repository, and the pull request states
+    the commit — the first green run of that gate since `4d06246`. The claim is made from a run
+    that was watched, never from a merge.
+  - S25.6 No sentence of `design/20-contract.md` changes, on S24.6's rule.
+Out of scope: `unit/document/agents-md` (S24); relaxing 16,384 or widening the exclusion past
+              the unit's own artifact, either of which the brief's *Abandonment* line names as
+              the relaxation it forbids; and the reported class, whose absence is what leaves
+              these `Live` sets free to refill.
 
 ### A note on counts
 
