@@ -8,7 +8,7 @@
   {
     "name": "Run Pester tests",
     "status": "Failed",
-    "detail": "Tests Passed: 335, Failed: 1, Skipped: 0, NotRun: 0, Total: 336.\nFailed: [-] S20.9: I23 and I30 carry Enforcement: code with Evidence naming the tests that hold them\nPre-existing on main: this is the known S20.9 fallout from the 2026-09-01 closure-ceiling re-scope (PR #190/#191), which demoted I23/I30 from code-enforced to instruction. S23-S25 (design/30-slices.md, PR #192, merged) exist to land the code that would make this pass again; unrelated to this fix's change to tools/Measure-Session.ps1."
+    "detail": "Tests Passed: 336, Failed: 1, Skipped: 0, NotRun: 0, Total: 337.\nFailed: [-] S20.9: I23 and I30 carry Enforcement: code with Evidence naming the tests that hold them\nPre-existing on main: this is the known S20.9 fallout from the 2026-09-01 closure-ceiling re-scope (PR #190/#191), which demoted I23/I30 from code-enforced to instruction. S23-S25 (design/30-slices.md, PR #192, merged) exist to land the code that would make this pass again; unrelated to this fix's change to tools/Measure-Session.ps1."
   },
   {
     "name": "Validate the core/companion split",
@@ -18,7 +18,7 @@
   {
     "name": "Check the design state against the tree",
     "status": "Failed",
-    "detail": "Exit code 1. 16 ClosureOverBudget findings (blocking), largest: unit/document/design-90-decisions, 317853 bytes (ceiling 16384). Also 29 non-blocking MirrorStale findings (work/* mirrors stamped at earlier commits than the current HEAD e2093e3 - refreshed by /track, not this command).\nPre-existing on main: the 16 ClosureOverBudget findings are the tracked records-bounded-ceiling debt this session's own S23-S25 slices (design/30-slices.md, merged via PR #192) exist to resolve; tools/Measure-Session.ps1's closure entry (29668 bytes) was already over budget before this fix and grows only incidentally from the added Get-SubagentUsage function. Not caused by, or in scope for, this bug fix."
+    "detail": "Exit code 1. 16 ClosureOverBudget findings (blocking), largest: unit/document/design-90-decisions, 317853 bytes (ceiling 16384). Also 32 non-blocking MirrorStale findings and 1 non-blocking WorkStateDivergence finding (work/181: mirrored State 'OPEN' disagrees with tracker's 'CLOSED', since PR #197 merged and closed #181 after the mirror was last refreshed) - both refreshed by /track, not this command.\nPre-existing on main: the 16 ClosureOverBudget findings are the tracked records-bounded-ceiling debt S23-S25 (design/30-slices.md, merged via PR #192) exist to resolve; tools/Measure-Session.ps1's own closure entry (31077 bytes) was already over budget before this fix and grows only incidentally from the added Get-CostLogPath function. Not caused by, or in scope for, this bug fix."
   }
 ]
 }

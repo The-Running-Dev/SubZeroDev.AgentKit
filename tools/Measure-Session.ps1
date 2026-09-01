@@ -343,6 +343,35 @@ function Format-Row {
         $Label, $S.Calls, $S.Input, $S.CacheCreate, $S.CacheRead, $S.Output
 }
 
+function Get-CostLogPath {
+    <#
+      The log lives beside the repository, not beside whichever checkout
+      happened to run this hook. In a git worktree, Split-Path $ScriptRoot
+      -Parent resolves to the worktree's own directory rather than the main
+      checkout - so a session run there wrote its row to
+      <worktree>/.claude/session-costs.tsv, invisible to anyone looking at
+      the main checkout's log, and lost outright once the worktree is
+      deleted (this repository's own /clean does exactly that after a
+      merge). 'git rev-parse --git-common-dir' resolves to the same shared
+      .git directory regardless of which worktree asks, so its parent is
+      the one stable place every checkout of this repository agrees on.
+
+      Falls back to the pre-fix path (beside the running script) when git
+      is unavailable or the tree is not a git repository at all - the
+      common case in tests, and a graceful default rather than a hard
+      requirement on git being installed.
+    #>
+    param([string]$ScriptRoot)
+
+    $fallback = Join-Path (Split-Path $ScriptRoot -Parent) '.claude/session-costs.tsv'
+    try {
+        $commonDir = git -C $ScriptRoot rev-parse --path-format=absolute --git-common-dir 2>$null
+        if ($LASTEXITCODE -ne 0 -or -not $commonDir) { return $fallback }
+        return Join-Path (Split-Path $commonDir -Parent) '.claude/session-costs.tsv'
+    }
+    catch { return $fallback }
+}
+
 if ($Hook) {
     # SessionEnd delivers its JSON on stdin. Failing loudly here would put an
     # error in front of the user at the moment they are closing the session, so
@@ -368,7 +397,7 @@ if ($Hook) {
         }
         if (-not $sum.Calls) { exit 0 }
 
-        $log = Join-Path (Split-Path $PSScriptRoot -Parent) '.claude/session-costs.tsv'
+        $log = Get-CostLogPath -ScriptRoot $PSScriptRoot
         $columns = 'started', 'session', 'models', 'calls', 'span', 'active',
                    'input', 'cache_create', 'cache_read', 'output'
         $row = @(
