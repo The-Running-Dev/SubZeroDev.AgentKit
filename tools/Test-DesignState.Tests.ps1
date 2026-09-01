@@ -1417,6 +1417,21 @@ Describe 'Test-DesignState: the tracker classes (S5.11)' {
         $result.Reported.Count | Should -Be 0
         $result.CouldNotEvaluate.Count | Should -Be 0
     }
+
+    It '#162: the per-issue gh issue view call is scoped with -R when -Repository is given' {
+        Mock -CommandName Test-TrackerAvailable -MockWith { $true }
+        Mock -CommandName Invoke-GhRaw -MockWith {
+            param([string[]] $GhArgs)
+            $script:CapturedGhArgs = $GhArgs
+            [pscustomobject]@{ ExitCode = 0; Output = '{"title":"t","state":"open"}' }
+        }
+
+        $ref = New-Record -Id 'work/42' -Kind 'WorkRef' -Scalars @{ Issue = '42'; State = 'open'; Title = 't' }
+        Test-TrackerClasses -Records @($ref) -RepoPath $TestDrive -Repository 'x/y' | Out-Null
+
+        $script:CapturedGhArgs | Should -Contain '-R'
+        $script:CapturedGhArgs[$script:CapturedGhArgs.IndexOf('-R') + 1] | Should -Be 'x/y'
+    }
 }
 
 Describe 'Test-DesignState: end-to-end (S5.2, S5.3, S5.4, S5.9)' {
