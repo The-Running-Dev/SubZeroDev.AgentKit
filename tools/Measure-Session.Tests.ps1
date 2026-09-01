@@ -95,6 +95,27 @@ Describe 'Measure-Session -TranscriptPath' {
         $text | Should -Match 'foo\s+1\s+1\s+0\s+0\s+0'
     }
 
+    It 'reports subagent usage as a separate figure, not folded into the session total' {
+        New-TranscriptFile -Name 'sess-d.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"role":"assistant","model":"claude-sonnet-5","usage":{"input_tokens":10,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":5}}}'
+        )
+        $subagentDir = Join-Path $script:FixtureDir 'sess-d/subagents'
+        New-Item -ItemType Directory -Path $subagentDir -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $subagentDir 'agent-x.jsonl') -Encoding utf8NoBOM -Value @(
+            '{"parentUuid":null,"isSidechain":true,"agentId":"x","message":{"role":"assistant","model":"claude-sonnet-5","usage":{"input_tokens":100,"cache_creation_input_tokens":0,"cache_read_input_tokens":200,"output_tokens":50}}}'
+        )
+
+        $json = (& $script:ScriptPath -TranscriptPath $script:FixtureDir) -join "`n" | ConvertFrom-Json
+        $session = $json.sessions | Where-Object id -eq 'sess-d'
+
+        $session.total.input | Should -Be 10
+        $session.total.cacheRead | Should -Be 0
+        $session.subagents.calls | Should -Be 1
+        $session.subagents.input | Should -Be 100
+        $session.subagents.cacheRead | Should -Be 200
+        $session.subagents.output | Should -Be 50
+    }
+
     It 'throws when -SessionId matches no transcript' {
         New-TranscriptFile -Name 'sess-c.jsonl' -Lines @(
             '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"model":"claude-sonnet-5","usage":{"input_tokens":1}}}'
