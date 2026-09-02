@@ -2,6 +2,7 @@
 Date: 2026-08-10
 Anchor: 2026-08-10 — `design/FROZEN.md` freezes the design docs, and five commands refuse while it exists
 Status: accepted
+StatedIn: unit/document/agents-md § The design freeze
 
 ## Claim
 `design/FROZEN.md`'s existence is the entire freeze mechanism. While it exists, `/reconcile`,
