@@ -8,26 +8,9 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 The absorbed-edge todo is [#140](../../issues/140), and `/redteam`'s six findings of 2026-08-29
 against `design/10-design.md` are [#143](../../issues/143) through [#148](../../issues/148); the
 entry immediately below answers all six. The three todos that followed from that answer are
-[#151](../../issues/151), [#152](../../issues/152), and [#153](../../issues/153).
-
-- **A `StatedIn` site cannot name a heading that contains a comma.** `StatedIn` is a list field
-  and the reader splits it on `,`, so `unit/document/agents-md § Model, effort, and review budget`
-  parses as three entries and is `RecordUnparseable`. Found by S24: three decisions whose terms
-  stand in that section — `2026-08-03-model-routing-names-families-lives-in-agents-md`,
-  `2026-08-08-tier-mismatch-gates-symmetrically`,
-  `2026-08-13-gate-check-comparison-by-tier-not-literal-name` — stay in `Live` for that reason
-  alone. Either the list grammar gains a quoting form, or the site addresses a heading some other
-  way; that is a `/contract` question, not a slice's.
-
-- **A script unit that exposes no contract has nowhere to absorb a decision into.** A `StatedIn`
-  site resolves against a unit's own artifact or against a contract record one hop away, and a
-  `.ps1` has no Markdown headings — so for a script unit the contract record is the only site
-  there is, and a script exposing none has no site at all. Five do: `invoke-codexcommand`,
-  `invoke-donehousekeeping`, `measure-session`, `sync-kit`, `test-writesurface`. Their `Live`
-  sets can never be emptied and grow with every decision about them. None is near the ceiling
-  today, so this is a limit rather than a breach. Found while scoping S26. Whether the answer is
-  a contract record for each, a site kind that resolves against something other than a heading,
-  or an accepted exemption is a `/contract` question, not a slice's.
+[#151](../../issues/151), [#152](../../issues/152), and [#153](../../issues/153). The
+`StatedIn`-comma-grammar todo is [#203](../../issues/203) and the script-unit-with-no-contract
+todo is [#211](../../issues/211).
 ---
 
 ### 2026-08-31 — A unit's `Live` set is absorbed as a pass, and a reported class watches for the ones that stop being in flight

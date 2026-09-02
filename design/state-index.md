@@ -268,13 +268,8 @@ that looks old.
 | 151 | #151 | Five decision records exist with no unit naming them, and a new rule would flag each as a finding | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
 | 152 | #152 | question/answered-question-unit-edge is recorded open despite being answered on 2026-08-29 | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
 | 153 | #153 | ClosureOverBudget is green for a reason now known to be wrong | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
-| 162 | #162 | Test-DesignState.ps1's -Repository parameter is ignored for the per-issue tracker read | — | `11eba577c4589a98537733fd7c6023fd3e5ae373` |
-| 181 | #181 | Measure-Session.ps1 undercounts sessions that spawned subagents | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
-| 182 | #182 | SessionEnd cost-log hook misses roughly half of sessions | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
 | 183 | #183 | Housekeeping commands (/clean, /done, /next) run as full model sessions for work that is already scripted | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
 | 184 | #184 | The -Watch context-size warning fires with no consequence | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
-| 193 | #193 | S23 — The ceiling reports what can be shrunk, separately from what cannot | S23.1, S23.2, S23.3, S23.4, S23.5, S23.6, S23.7, S23.8, S23.9 | `c501da5846d6417a0aebbffbc0638ba826ee763c` |
-| 194 | #194 | S24 — The agent contract stops making every session read its own history | S24.1, S24.2, S24.3, S24.4, S24.5, S24.6 | `c501da5846d6417a0aebbffbc0638ba826ee763c` |
-| 195 | #195 | S25 — The interface contract stops making every session read its own history | S25.1, S25.2, S25.3, S25.4, S25.5, S25.6 | `c501da5846d6417a0aebbffbc0638ba826ee763c` |
+| 203 | #203 | A StatedIn site cannot name a heading that contains a comma | — | `44f3e168302695097c8ba31897a525bf79487887` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
