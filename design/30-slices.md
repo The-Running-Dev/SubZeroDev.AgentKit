@@ -1,6 +1,6 @@
 # Slices
 
-> **Four paths appear here.** The **defect-to-merge path** landed as S1–S3; its bodies are
+> **Five paths appear here.** The **defect-to-merge path** landed as S1–S3; its bodies are
 > retired to the index under `## Landed` and its design body to
 > `git show dfd1cab:design/10-design.md`. The **explicit design-state mechanism**, designed in
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, landed as
@@ -8,8 +8,11 @@
 > mechanism** — the retired companion, absorption, the half/status table, and the
 > artifact-inclusive ceiling — landed as S19–S22, retired to the same index. The
 > **2026-09-01 re-scoping of the ceiling**, which took the unit's own artifact back out of the
-> bound and made the one remaining breach a thing absorption can move, is **S23–S25** and is
-> outstanding.
+> bound and made the one remaining breach a thing absorption can move, landed as
+> **S23–S25**; those three bodies are still below rather than in the index, because nothing
+> retires a landed body and that gap is [#120](../../issues/120). The **remainder of the
+> absorption pass the 2026-08-31 decision commissioned** — the units that pass never reached,
+> which is every unit but the two it was scoped to — is **S26–S29** and is outstanding.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -29,15 +32,24 @@ own artifact puts several units several times over the limit. S19 does nothing b
 checker say so, ahead of every structural change in the set, because the brief's *Abandonment*
 clause is the user's to answer and answering it late would waste three slices.
 
-The riskiest assumption in the fourth is that the re-scoped ceiling is **meetable at all** on
+The riskiest assumption in the fourth was that the re-scoped ceiling is **meetable at all** on
 this repository's own corpus — the same bet as the third, asked again of a number that now
 counts only what the mechanism has a lever on. The brief's *Abandonment* line was re-pointed at
 this bound on 2026-09-01 and fires once every executed decision has been given its site, so a
 pass that runs and still leaves a unit over the ceiling is the clause triggering rather than a
-slice failing. S23 does nothing but make the meter say what the bound now is, because until it
-does no absorption can be measured; S24 then absorbs the worst unit, which is where the bet is
-actually settled. Two of three slices, and the third only finishes what the second has already
-proven.
+slice failing. S23 did nothing but make the meter say what the bound now is, because until it
+did no absorption could be measured; S24 then absorbed the worst unit, which is where the bet
+was actually settled. **It was met.** S25 finished the second-worst and the design-state gate
+reports exit 0 with no `ClosureOverBudget` finding, so the clause did not fire.
+
+The riskiest assumption in the fifth is not about the ceiling at all — it is that a decision
+**can be absorbed out of a unit whose own artifact has no headings to absorb it into.** A site
+resolves against a unit's artifact or against a contract record one hop away, and a PowerShell
+script has no Markdown headings, so for a script unit the contract record is the only site there
+is — and a script exposing no contract has none. That is why S26 is first and is the smallest
+of the three: it is the unit closest to breaching again, and it is the only one of the three
+whose route is not the route S24 and S25 already proved. S27 and S28 are that proved route
+applied to the units it was never pointed at.
 
 `/track` should be run after this document is reviewed. **Do not open issues from here.**
 
@@ -120,21 +132,41 @@ does not resolve it in the implementing session.
 
 ## Outstanding
 
-**Three slices, S23–S25**, implementing the 2026-09-01 re-scoping the contract already carries.
-`design/20-contract.md` § `tools/Test-DesignState.ps1` and I23 now state a ceiling that bounds a
-unit's records and its one hop and **excludes that unit's own artifact**, measuring and reporting
-the artifact beside the bounded figure. `tools/Test-DesignState.ps1` still implements the
-artifact-inclusive definition, which is why I23 reads `instruction` and why the design-state gate
-has been red since `4d06246`. S23 brings the meter to the contract; S24 and S25 run the
-absorption pass the 2026-08-31 decision commissioned, one unit each.
+**Four slices, S26–S29**, finishing the absorption pass the 2026-08-31 decision commissioned.
+That decision says a slice walks **every** unit's `Live`. S24 and S25 walked two — the two that
+were over the ceiling — and stopped there, correctly, because clearing the breach was their
+criterion. Every other active unit that carries a `Live` set is undischarged. S26 takes the
+script units, S27 the two large documents the pass never reached, S28 and S29 the commands,
+split where one session's reading stops rather than at a threshold.
 
-**Only the pass is sliced here.** That decision has two halves, and the other one — a divergence
-class, reported and never blocking, flagging a `Live` decision whose terms appear to already
-stand in the unit it is live on — is `/contract`'s, at `opus`/`high`, and has **not landed**:
-the class list in § *The divergence classes* does not carry it. No slice below implements it,
-because no slice may introduce a signature the contract does not contain. Until it lands, nothing
-stops the `Live` sets S24 and S25 empty from refilling, which is the standing half of the defect
-and is the user's to schedule.
+**Only S26 is about a unit near the bound.** After S25 the largest bounded closure is a script
+unit at roughly five-sixths of the ceiling, and it is a script unit — the kind whose route is
+unproven. Everything S27–S29 touches is comfortably inside the bound today and would stay there
+for a while untouched. They are here because the commission is *every* unit and because a `Live`
+set that is a history grows with every decision, not because any of them is about to breach; a
+reader deciding how much of this set to schedule should decide on that basis.
+
+**S23–S25 have landed** and their bodies are still below rather than in the `## Landed` index,
+because no command performs the retirement § *How this document is kept* describes
+([#120](../../issues/120)). This re-run appends and does not retire, so the state is unchanged
+and is named here rather than left to be rediscovered.
+
+**Only the pass is sliced here — still.** The 2026-08-31 decision has two halves, and the other
+one — a divergence class, reported and never blocking, flagging a `Live` decision whose terms
+appear to already stand in the unit it is live on — is `/contract`'s, at `opus`/`high`, and has
+**not landed**: the class list in § *The divergence classes* does not carry it. No slice below
+implements it, because no slice may introduce a signature the contract does not contain. Until it
+lands nothing stops any emptied `Live` set from refilling, which is the standing half of the
+defect and is the user's to schedule. Three passes now rest on it rather than one.
+
+**What is deliberately left, and why, so the residue is a judgement rather than a remainder.**
+Five script units — `invoke-codexcommand`, `invoke-donehousekeeping`, `measure-session`,
+`sync-kit`, `test-writesurface` — expose no contract and have a `.ps1` for an artifact, so no
+site in their reach resolves to a heading and their `Live` sets cannot be absorbed at all. That
+is a limit of the mechanism rather than a slice's omission; it is in `design/90-decisions.md`
+§ *Open* for `/track` to file. The residues S24 and S25 themselves adjudicated and left are not
+revisited by anything below — they were decided with reasons on the record, and re-walking a
+decided residue is relitigation, not a pass.
 
 The two notes at the end of this section outlive any one set and are kept for whatever is
 appended.
@@ -241,6 +273,130 @@ Out of scope: `unit/document/agents-md` (S24); relaxing 16,384 or widening the e
               the unit's own artifact, either of which the brief's *Abandonment* line names as
               the relaxation it forbids; and the reported class, whose absence is what leaves
               these `Live` sets free to refill.
+
+### S26 — The checking scripts stop carrying the arguments that produced them
+Delivers: someone opening the kit's own checking scripts to change one reads what that script
+          guarantees today, instead of the run of past arguments that settled it — and the part
+          of the kit that sits closest to its own reading budget gets some room back before it
+          runs out again. It is also the first time this is done for a script at all, which is
+          the part nobody has yet shown works.
+Touches: `design/state/units/script/*.md` (`Live`), `design/state/decisions/*.md` (`StatedIn`),
+         `design/state-index.md` (regenerated)
+Depends on: none
+Acceptance:
+  - S26.1 For every active `script` unit that names a contract in `Exposes`: each decision in
+    that unit's `Live` whose terms already stand under a named heading of that contract's record
+    carries a `StatedIn` site of the form `contract/<slug> § <heading>`, and its id is absent
+    from `Live`. Both edits are in the same commit, on S24.1's rule — a site named without the
+    id dropped saves nothing, and an id dropped without a site is `DecisionUnplaced`.
+  - S26.2 A decision whose terms do **not** stand in that contract record keeps its `Live` id and
+    gains no site. The pull request names each one it left and why, so the residue is a stated
+    judgement rather than an unexplained remainder.
+  - S26.3 `SiteAmbiguous`, `SiteOutOfReach`, `SiteContradictsLive`, and `DecisionUnplaced` are
+    all silent after the pass.
+  - S26.4 No sentence of any contract record's `Semantics` changes, and no `tools/*.ps1` changes.
+    Absorption names a place that already states the claim; writing the claim in to make a site
+    resolve is the thing this pass must not do (S24.6's rule, applied to the site kind this slice
+    uses).
+  - S26.5 A script unit that exposes no contract is left exactly as found — same `Live` ids
+    before and after, and no decision anywhere gains a site naming it. Such a unit has a `.ps1`
+    for an artifact and no contract record within reach, so every site it could be given would
+    resolve to zero headings; the tempting repair is to give it a contract, and that is
+    `/contract`'s and not this slice's.
+  - S26.6 The checker reports zero `ClosureOverBudget` findings and exits 0 with
+    `CouldNotEvaluate` empty — the state S25 reached, preserved rather than merely approached.
+  - S26.7 `unit/script/test-designstate`'s bounded closure is lower after the pass than before
+    it, and the pull request states both figures with the commit each was taken at. **No target
+    number is set here**, deliberately: a byte target is exactly what would buy an absorption of
+    a decision whose terms are not really in the record, which S26.4 forbids.
+Out of scope: the script units that expose no contract (S26.5); document and command units
+              (S27–S29); the residues S24 and S25 adjudicated and left, which are decided and
+              not this slice's to reopen; the reported class the 2026-08-31 decision commissions
+              from `/contract`; the `StatedIn` comma-grammar limit
+              ([#203](../../issues/203)), which is also `/contract`'s; and any edit to
+              `design/20-contract.md`.
+
+### S27 — The architecture document and the installation guide stop carrying theirs
+Delivers: someone opening the kit's architecture document, or the guide that installs it into a
+          repository, meets the design in force rather than the decisions that produced it — the
+          same relief the agent contract and the interface contract already got, for the two
+          remaining documents nobody has done it to.
+Touches: `design/state/units/document/design-10-design.md`,
+         `design/state/units/document/install-md.md`, `design/state/decisions/*.md`
+         (`StatedIn`), `design/state-index.md` (regenerated)
+Depends on: S26 for nothing it changes; the two are independent and may land in either order
+Acceptance:
+  - S27.1 Every decision in `unit/document/design-10-design`'s or `unit/document/install-md`'s
+    `Live` whose terms already stand in a named section of `design/10-design.md` or `INSTALL.md`
+    respectively carries a `StatedIn` site naming that section, and its id is absent from `Live`
+    — both in one commit, as S24.1.
+  - S27.2 A decision whose terms do not stand there keeps its `Live` id and gains no site, and
+    the pull request names each one and why.
+  - S27.3 `SiteAmbiguous`, `SiteOutOfReach`, `SiteContradictsLive`, and `DecisionUnplaced` are
+    all silent.
+  - S27.4 No sentence of `design/10-design.md` or `INSTALL.md` changes, on S24.6's rule.
+  - S27.5 The checker reports zero `ClosureOverBudget` findings and exits 0 with
+    `CouldNotEvaluate` empty.
+  - S27.6 Both units' bounded closures are lower after than before, with all four figures and
+    their commits in the pull request — S26.7's rule, and no target number for the same reason.
+Out of scope: script units (S26) and command units (S28, S29); `unit/document/agents-md` and
+              `unit/document/design-20-contract`, whose residues are adjudicated; every other
+              `document` unit, none of which is near the bound and each of which carries one or
+              two `Live` ids; the reported class; and [#203](../../issues/203).
+
+### S28 — The six commands that carry the most history stop carrying it
+Delivers: anyone opening the kit's busiest commands — the ones that track work, cut a slice, fix
+          a defect, take a pull request to merge-ready, tidy branches, and install across every
+          repository — reads what the command does now rather than the decisions that shaped it.
+Touches: `design/state/units/command/track.md`, `.../slice.md`, `.../fix.md`, `.../pr.md`,
+         `.../clean.md`, `.../install-all.md`, `design/state/decisions/*.md` (`StatedIn`),
+         `design/state-index.md` (regenerated)
+Depends on: none
+Acceptance:
+  - S28.1 For each of `unit/command/track`, `slice`, `fix`, `pr`, `clean`, and `install-all`:
+    every decision in that unit's `Live` whose terms already stand in a named section of the
+    command file its `Anchor` names carries a `StatedIn` site naming that section, and its id is
+    absent from `Live` — both in one commit, as S24.1.
+  - S28.2 A decision whose terms do not stand there keeps its `Live` id and gains no site, and
+    the pull request names each one and why.
+  - S28.3 `SiteAmbiguous`, `SiteOutOfReach`, `SiteContradictsLive`, and `DecisionUnplaced` are
+    all silent.
+  - S28.4 No sentence of any file under `.claude/commands/` changes, on S24.6's rule. A command
+    file is executable instruction, so writing a claim into one to make a site resolve changes
+    what the command does — which is why this slice touches records only.
+  - S28.5 The checker reports zero `ClosureOverBudget` findings and exits 0 with
+    `CouldNotEvaluate` empty.
+  - S28.6 Each of the six units' bounded closures is lower after than before, with the figures
+    and commits in the pull request — S26.7's rule, and no target number for the same reason.
+Out of scope: the twelve remaining command units (S29); script and document units (S26, S27);
+              any edit to a command file; the reported class; and [#203](../../issues/203).
+
+### S29 — The rest of the commands stop carrying theirs, and the pass is discharged
+Delivers: the same for every remaining command in the kit, after which no part of the kit is
+          still asking a reader to work through its own history to find out what it currently
+          does — except the handful the mechanism cannot reach at all, which this slice names
+          rather than quietly skips.
+Touches: the remaining `design/state/units/command/*.md` records, `design/state/decisions/*.md`
+         (`StatedIn`), `design/state-index.md` (regenerated)
+Depends on: S28 for the pattern rather than for anything it changes
+Acceptance:
+  - S29.1 Every active `command` unit not covered by S28 is walked on S28.1's rule: a decision in
+    its `Live` whose terms stand in a named section of its command file gains a `StatedIn` site
+    and loses its `Live` id, in one commit.
+  - S29.2 A decision whose terms do not stand there keeps its `Live` id and gains no site, and
+    the pull request names each one and why.
+  - S29.3 `SiteAmbiguous`, `SiteOutOfReach`, `SiteContradictsLive`, and `DecisionUnplaced` are
+    all silent.
+  - S29.4 No sentence of any file under `.claude/commands/` changes, on S28.4's rule.
+  - S29.5 The checker reports zero `ClosureOverBudget` findings and exits 0 with
+    `CouldNotEvaluate` empty.
+  - S29.6 The pull request states, as one list, every unit across S26–S29 whose `Live` set is
+    non-empty at the end of the pass and the reason for each — terms not stated, no reachable
+    site, or a residue S24 or S25 adjudicated. That list is what makes the commission's
+    discharge checkable, and it is the last thing this set produces.
+Out of scope: the six units S28 covers; script and document units; any edit to a command file;
+              the reported class, whose absence is what leaves every set this pass empties free
+              to refill; and [#203](../../issues/203).
 
 ### A note on counts
 
