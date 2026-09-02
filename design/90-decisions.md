@@ -9,7 +9,8 @@ The absorbed-edge todo is [#140](../../issues/140), and `/redteam`'s six finding
 against `design/10-design.md` are [#143](../../issues/143) through [#148](../../issues/148); the
 entry immediately below answers all six. The three todos that followed from that answer are
 [#151](../../issues/151), [#152](../../issues/152), and [#153](../../issues/153). The
-`StatedIn`-heading-comma todo found by S24 is [#203](../../issues/203).
+`StatedIn`-comma-grammar todo is [#203](../../issues/203) and the script-unit-with-no-contract
+todo is [#211](../../issues/211).
 ---
 
 ### 2026-08-31 — A unit's `Live` set is absorbed as a pass, and a reported class watches for the ones that stop being in flight
