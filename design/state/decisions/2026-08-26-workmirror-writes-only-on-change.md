@@ -2,6 +2,7 @@
 Date: 2026-08-26
 Anchor: 2026-08-26 — `Update-WorkMirror.ps1` writes a `WorkRef` only when a mirrored field changed
 Status: accepted
+StatedIn: contract/update-workmirror § Semantics
 
 ## Claim
 `Update-WorkMirror.ps1` writes a `WorkRef` only when a mirrored field changed — `Title`,
