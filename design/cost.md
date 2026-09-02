@@ -107,39 +107,38 @@ fifteen are not remediable by anything the mechanism has. Both are recorded here
 in a running count, because this document is what the brief's *Cost* criteria are measured
 against.
 
-## Closure sizes under the records-bounded definition (2026-09-01)
+## Closure sizes under the records-bounded definition (S23, superseding the derived table above)
 
-**Derived, not yet measured by the checker.** `design/00-brief.md`'s criterion was amended on
-2026-09-01 to bound the records and report the artifact separately; `tools/Test-DesignState.ps1`
-still implements the artifact-inclusive definition, so the figures below are the checker's own
-closures at `fcef65b` minus each artifact's size on disk, not a run of the amended meter. They
-are recorded here so the decision is checkable against a number, and they are superseded by the
-first run of the meter once the slice that changes it lands.
+**Measured, not derived.** `tools/Test-DesignState.ps1` now implements the records-bounded
+definition `design/00-brief.md` and I23 state — the closure is the sum of the unit's own record
+plus every id it names directly, and the unit's own artifact is measured and reported separately,
+never folded into the bound. The run below is `Get-DesignClosure` and `Get-UnitArtifactBytes`
+against this repository at `c760cc9`, the commit S23 measured from — the first run of the amended
+meter, replacing the arithmetic-derived table above.
 
-**Two units breach on their records; fourteen of the sixteen clear immediately.**
+**Two units breach on their records; five of the seven clear immediately.**
 
-| Unit | Closure | Artifact | Records alone | Breaches |
-|---|---|---|---|---|
-| `unit/document/agents-md` | 63,137 | 43,930 | **19,207** | yes |
-| `unit/document/design-20-contract` | 102,245 | 84,324 | **17,921** | yes |
-| `unit/script/test-designstate` | 99,964 | 88,235 | 11,729 | no |
-| `unit/document/design-10-design` | 72,008 | 63,489 | 8,519 | no |
-| `unit/document/install-md` | 36,851 | 29,284 | 7,567 | no |
-| `unit/command/track` | 22,810 | 15,974 | 6,836 | no |
-| `unit/document/design-90-decisions` | 314,809 | 313,332 | 1,477 | no |
+| Unit | Records alone (bounded) | Artifact (reported, not bounded) | Breaches |
+|---|---|---|---|
+| `unit/document/agents-md` | **19,207** | 43,930 | yes |
+| `unit/document/design-20-contract` | **17,921** | 87,366 | yes |
+| `unit/script/test-designstate` | 13,340 | 88,944 | no |
+| `unit/document/design-10-design` | 8,519 | 63,489 | no |
+| `unit/document/install-md` | 7,567 | 29,284 | no |
+| `unit/command/track` | 6,836 | 15,974 | no |
+| `unit/document/design-90-decisions` | 1,477 | 316,376 | no |
 
-`unit/document/design-20-contract` is a new breach rather than a persistent one: it measured
-15,899 bytes of records at `15990d9` and 17,921 at `fcef65b`, having crossed the ceiling on the
-`Live` edges the 2026-08-31 reconciliation added to it. That is the failure mode
-`design/10-design.md` § *Whether the ceiling can be met* names — a policy document accumulating
-decisions faster than they are absorbed — caught on the second unit rather than the first, and
-it is the case the artifact-inclusive reading could not surface because both units were already
-failing on prose nothing could shrink.
+The two record-bounded figures match the arithmetic-derived table's exactly, which is the
+evidence that the derivation was sound; the artifact figures differ from the derived ones because
+the tree has moved since `fcef65b` — three fix commits (#197, #198, #199) and this slice's own
+projection regeneration of I23's row all landed on `design/20-contract.md` and
+`tools/Test-DesignState.ps1` in between.
 
 Both breaches are absorption-remediable and neither is a reason to stop: `agents-md` carries
-17,073 bytes of `Live` decisions whose terms already stand in named `AGENTS.md` sections. The
-brief's *Abandonment* line fires on this bound only once every executed decision has been given
-its site, so it is not live until that pass has run.
+17,073 bytes of `Live` decisions whose terms already stand in named `AGENTS.md` sections, and
+`design/20-contract.md` carries the analogous gap on its own `Live` set. The brief's *Abandonment*
+line fires on this bound only once every executed decision has been given its site, so it is not
+live until that pass has run — which is what S24 and S25 do, one unit each.
 
 ## After: a `/slice` session with `design/state/` present (S15.5)
 
