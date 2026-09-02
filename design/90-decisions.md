@@ -18,6 +18,16 @@ entry immediately below answers all six. The three todos that followed from that
   `2026-08-13-gate-check-comparison-by-tier-not-literal-name` — stay in `Live` for that reason
   alone. Either the list grammar gains a quoting form, or the site addresses a heading some other
   way; that is a `/contract` question, not a slice's.
+
+- **A script unit that exposes no contract has nowhere to absorb a decision into.** A `StatedIn`
+  site resolves against a unit's own artifact or against a contract record one hop away, and a
+  `.ps1` has no Markdown headings — so for a script unit the contract record is the only site
+  there is, and a script exposing none has no site at all. Five do: `invoke-codexcommand`,
+  `invoke-donehousekeeping`, `measure-session`, `sync-kit`, `test-writesurface`. Their `Live`
+  sets can never be emptied and grow with every decision about them. None is near the ceiling
+  today, so this is a limit rather than a breach. Found while scoping S26. Whether the answer is
+  a contract record for each, a site kind that resolves against something other than a heading,
+  or an accepted exemption is a `/contract` question, not a slice's.
 ---
 
 ### 2026-08-31 — A unit's `Live` set is absorbed as a pass, and a reported class watches for the ones that stop being in flight
