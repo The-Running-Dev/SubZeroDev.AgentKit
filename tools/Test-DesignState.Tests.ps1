@@ -1651,10 +1651,15 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         Get-UnitArtifactBytes -RepoPath $script:RepoRoot -Root $root | Should -Be $agentsMdBytes
 
         $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $script:RepoRoot
+        # S24 absorbed enough of this unit's Live for its records to fit the ceiling, so the
+        # finding is present exactly when the measured closure exceeds it - and when it is, it
+        # carries the bounded figure and the artifact figure separately.
         $finding = @($result.Findings | Where-Object { $_.Subject -eq 'unit/document/agents-md' })
-        $finding.Count | Should -Be 1
-        $finding[0].Detail | Should -Match "closure is $expected bytes"
-        $finding[0].Detail | Should -Match "unit's own artifact is $agentsMdBytes bytes"
+        $finding.Count | Should -Be ([int]($expected -gt 16384))
+        if ($finding.Count -eq 1) {
+            $finding[0].Detail | Should -Match "closure is $expected bytes"
+            $finding[0].Detail | Should -Match "unit's own artifact is $agentsMdBytes bytes"
+        }
     }
 
     It 'S20.7: every non-empty retired half sits in a companion file and not in an active record' {
@@ -1715,6 +1720,41 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         ($beforeMembers | ForEach-Object { $_.Id }) | Should -Contain $decisionId
         $decisionBytes = Get-RecordFileBytes -RepoPath $script:RepoRoot -Record $byId[$decisionId]
         ($beforeBytes - $afterBytes) | Should -Be $decisionBytes
+    }
+
+    It 'S24.1/S24.4: every decision whose terms stand in AGENTS.md carries a StatedIn site naming that section and is absent from unit/document/agents-md''s Live' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+        $absorbed = @{
+            'decision/2026-08-10-frozen-md-marker'                                   = 'The design freeze'
+            'decision/2026-08-02-house-convention-path-corrected'                    = 'House conventions'
+            'decision/2026-08-03-reconciliation-ends-in-decision-not-report'         = 'Working with me'
+            'decision/2026-08-03-issues-read-human-first-agent-detail-collapsed'     = 'Tracking work'
+            'decision/2026-08-03-work-defers-to-github-track-owns-github-writes'     = 'Tracking work'
+            'decision/2026-08-04-cost-measured-by-script-taxonomy-is-policy'         = 'What should stop being model work'
+            'decision/2026-08-12-codex-vendor-alias-list-for-sol-terra'              = 'Vendor model aliases'
+            'decision/2026-08-19-marked-region-marker-declares-its-own-kind'         = 'Marked regions'
+            'decision/2026-08-24-codex-tier-resolved-from-config'                    = 'Vendor model aliases'
+            'decision/2026-08-30-force-delete-delegated-on-tip-comparison'           = 'Git and delivery'
+            'decision/2026-08-30-tier-gate-reads-environment-stamp-first'            = 'Vendor model aliases'
+        }
+        $live = @($byId['unit/document/agents-md'].Lists['Live'])
+        foreach ($id in $absorbed.Keys) {
+            $byId[$id].Lists['StatedIn'] | Should -Contain "unit/document/agents-md § $($absorbed[$id])" -Because "$id must be stated in AGENTS.md"
+            $live | Should -Not -Contain $id -Because "$id must leave Live in the same commit"
+        }
+        @($script:RealResult.Findings | Where-Object { $_.Class -eq 'DecisionUnplaced' }).Count | Should -Be 0
+    }
+
+    It 'S24.3: SiteAmbiguous, SiteOutOfReach and SiteContradictsLive are all silent against this repository' {
+        foreach ($class in 'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive') {
+            @($script:RealResult.Findings | Where-Object { $_.Class -eq $class }).Count | Should -Be 0 -Because "$class must be silent"
+        }
+    }
+
+    It 'S24.5: the checker reports no ClosureOverBudget finding for unit/document/agents-md' {
+        @($script:RealResult.Findings | Where-Object { $_.Class -eq 'ClosureOverBudget' -and $_.Subject -eq 'unit/document/agents-md' }).Count | Should -Be 0
     }
 
     It 'S22.7: ClassListDisagreement is silent - DecisionUnplaced and SupersessionCycle now land, closing the gap S21.6 left open' {

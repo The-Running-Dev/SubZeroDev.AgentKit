@@ -10,6 +10,14 @@ against `design/10-design.md` are [#143](../../issues/143) through [#148](../../
 entry immediately below answers all six. The three todos that followed from that answer are
 [#151](../../issues/151), [#152](../../issues/152), and [#153](../../issues/153).
 
+- **A `StatedIn` site cannot name a heading that contains a comma.** `StatedIn` is a list field
+  and the reader splits it on `,`, so `unit/document/agents-md § Model, effort, and review budget`
+  parses as three entries and is `RecordUnparseable`. Found by S24: three decisions whose terms
+  stand in that section — `2026-08-03-model-routing-names-families-lives-in-agents-md`,
+  `2026-08-08-tier-mismatch-gates-symmetrically`,
+  `2026-08-13-gate-check-comparison-by-tier-not-literal-name` — stay in `Live` for that reason
+  alone. Either the list grammar gains a quoting form, or the site addresses a heading some other
+  way; that is a `/contract` question, not a slice's.
 ---
 
 ### 2026-08-31 — A unit's `Live` set is absorbed as a pass, and a reported class watches for the ones that stop being in flight
