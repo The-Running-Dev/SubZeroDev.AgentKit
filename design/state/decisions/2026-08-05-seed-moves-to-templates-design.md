@@ -2,6 +2,7 @@
 Date: 2026-08-05
 Anchor: 2026-08-05 — The seed moves to `templates/design/`, and `design/` becomes the repository's own everywhere
 Status: accepted
+StatedIn: unit/document/install-md § Phase 1 — Classify
 
 ## Claim
 The kit's seed templates move to `templates/design/`; `design/` means the repository's own design docs everywhere, including in the kit itself. Moving the templates rather than the kit's own `design/` changes zero command files, since every command that touches a design document already hardcodes that path.
