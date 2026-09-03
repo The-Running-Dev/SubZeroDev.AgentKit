@@ -15,3 +15,8 @@ empty state set (I19). Regenerates before comparing, by invoking the projector w
 Normalises line endings before comparing and normalises nothing else. Writes nothing (I18) — not
 `design/`, not a record, not an issue, not git. `-Path` is optional and defaults to the
 repository root; no `-Fix`, no `-Force`, and no flag that resolves anything.
+
+Declares `LiveAlreadyStated` in its reported class list and never raises it: whether a decision's
+terms already stand at a site is a model reading prose, the ground `SemanticDisagreement` already
+stands on, not a comparison this script performs. Declaring the id without raising it is what
+lets `ClassListDisagreement` see one list against `design/20-contract.md`'s copy.
