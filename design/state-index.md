@@ -121,6 +121,7 @@ means no record exists yet, not that nothing is true.
 | Contract | Consumers |
 |---|---|
 | contract/fix | — |
+| contract/invoke-donehousekeeping | — |
 | contract/read-designstate | `unit/script/test-designstate`, `unit/script/update-designprojection` |
 | contract/resolve | `unit/command/pr` |
 | contract/test-companion | `unit/command/install-all`, `unit/command/verify`, `unit/script/sync-kit` |
@@ -239,6 +240,8 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-31-self-check-asserts-adjudicated-findings | `unit/script/test-designstate` |
 | decision/2026-09-01-ceiling-bounds-the-records-and-reports-the-artifact | `unit/document/design-00-brief`, `unit/document/design-10-design`, `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-09-01-contract-carries-the-rescoped-ceiling | `unit/document/design-20-contract`, `unit/script/test-designstate` |
+| decision/2026-09-02-list-entries-may-be-quoted | `unit/document/design-20-contract`, `unit/script/read-designstate` |
+| decision/2026-09-02-livealreadystated-is-the-reported-class | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered

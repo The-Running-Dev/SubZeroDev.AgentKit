@@ -5,7 +5,7 @@ Anchor: design/20-contract.md
 Consumes:
 Exposes:
 Binds: I22
-Live: decision/2026-08-11-documents-state-only-what-tree-cannot, decision/2026-08-19-retirement-is-status-field, decision/2026-08-19-contract-owner-stays-written-other-edges-derived, decision/2026-08-19-enforcement-states-tree-as-it-stands, decision/2026-08-19-contract-becomes-repository-scoped, decision/2026-08-19-four-open-questions-closed-unit-set-widens, decision/2026-08-19-state-set-one-file-per-record-ps1-tooling, decision/2026-08-30-contract-carries-companion-halves-and-artifact-closure, decision/2026-08-31-live-absorbed-as-a-pass-and-a-reported-class, decision/2026-08-31-invoke-donehousekeeping-gets-a-contract
+Live: decision/2026-08-11-documents-state-only-what-tree-cannot, decision/2026-08-19-retirement-is-status-field, decision/2026-08-19-contract-owner-stays-written-other-edges-derived, decision/2026-08-19-enforcement-states-tree-as-it-stands, decision/2026-08-19-contract-becomes-repository-scoped, decision/2026-08-19-four-open-questions-closed-unit-set-widens, decision/2026-08-19-state-set-one-file-per-record-ps1-tooling, decision/2026-08-30-contract-carries-companion-halves-and-artifact-closure
 Questions:
 Work:
 Evidence:

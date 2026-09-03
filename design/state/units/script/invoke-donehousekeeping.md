@@ -3,9 +3,9 @@ Kind: script
 Status: active
 Anchor: tools/Invoke-DoneHousekeeping.ps1
 Consumes:
-Exposes:
+Exposes: contract/invoke-donehousekeeping
 Binds:
-Live: decision/2026-08-08-done-housekeeping-scripts-everything-before-ask, decision/2026-08-30-force-delete-delegated-on-tip-comparison, decision/2026-08-31-invoke-donehousekeeping-gets-a-contract
+Live:
 Questions:
 Work:
 Evidence:
