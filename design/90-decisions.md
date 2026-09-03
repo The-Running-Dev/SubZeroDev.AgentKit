@@ -9,18 +9,11 @@ The absorbed-edge todo is [#140](../../issues/140), and `/redteam`'s six finding
 against `design/10-design.md` are [#143](../../issues/143) through [#148](../../issues/148); the
 entry immediately below answers all six. The three todos that followed from that answer are
 [#151](../../issues/151), [#152](../../issues/152), and [#153](../../issues/153). The
-`StatedIn`-comma-grammar todo is [#203](../../issues/203) and the script-unit-with-no-contract
-todo is [#211](../../issues/211).
+`StatedIn`-comma-grammar todo, [#203](../../issues/203), is implemented — the reader declares the
+quoted-entry production (`tools/Read-DesignState.ps1`, `Split-DesignListValue`), the contract's
+scaffold paragraph is replaced by a pointer, and the three decisions S24 left unabsorbable for
+that reason are absorbed. The script-unit-with-no-contract todo is [#211](../../issues/211).
 
-- **`tools/Read-DesignState.ps1` does not yet accept a quoted list entry.** The 2026-09-02
-  decision below contracts the form ahead of the reader; until the reader declares it, the three
-  decisions S24 left in `unit/document/agents-md`'s `Live` because their only site is
-  *Model, effort, and review budget* — `2026-08-03-model-routing-names-families-lives-in-agents-md`,
-  `2026-08-08-tier-mismatch-gates-symmetrically`,
-  `2026-08-13-gate-check-comparison-by-tier-not-literal-name` — cannot be absorbed, and a quoted
-  site written now is `RecordUnparseable`. A slice: the reader's list production, its tests with
-  a quoted entry accepted and a stray double quote rejected, the pointer that replaces the
-  contract's scaffold paragraph, and then those three absorptions. `/slices`, `opus`/`high`.
 - **`tools/Test-DesignState.ps1` does not yet declare `LiveAlreadyStated`.** The 2026-09-02
   amendment added the reported class to `design/20-contract.md` § *The divergence classes*, and
   until the checker's declared reported list carries the id `ClassListDisagreement` fires against
