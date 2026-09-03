@@ -1,6 +1,6 @@
 # Slices
 
-> **Five paths appear here, all landed.** The **defect-to-merge path** landed as S1–S3; its
+> **Six paths appear here, five of them landed.** The **defect-to-merge path** landed as S1–S3; its
 > bodies are retired to the index under `## Landed` and its design body to
 > `git show dfd1cab:design/10-design.md`. The **explicit design-state mechanism**, designed in
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, landed as
@@ -13,6 +13,9 @@
 > that pass never reached, which is every unit but the two it was scoped to — landed as
 > **S26–S29**. All seven bodies are retired to the same index; nothing performed that
 > retirement until [#120](../../issues/120), whose fix is `tools/Update-SlicesDocument.ps1`.
+> The sixth is the **detection half of the same 2026-08-31 decision** — the class that reports a
+> `Live` set quietly refilling, contracted on 2026-09-02 and not yet declared by the checker —
+> and it is outstanding as **S30**.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -50,6 +53,17 @@ is — and a script exposing no contract has none. That is why S26 ran first and
 of the four: it was the unit closest to breaching again, and the only one of the four whose
 route was not the route S24 and S25 had already proved. S27, S28, and S29 were that proved
 route applied to the units it was never pointed at.
+
+The riskiest assumption in the sixth is that **a class the script declares and never raises is
+worth declaring at all.** Every other id in the closed list earns its place by firing; this one
+earns its place by being the name a reading reports under, and a name with no raiser is exactly
+the shape of a rule that quietly stops being applied. S30 is one slice rather than two because
+the two halves fail together — declaring the id without giving `/reconcile` the instruction
+buys a green build and no detection, and writing the instruction without declaring the id
+leaves `ClassListDisagreement` firing. The bet is settled by the slice's own absorption step:
+if the class cannot be written into `contract/test-designstate` § *Semantics* tightly enough to
+leave that unit's bounded closure lower than it found it, the mechanism is adding more record
+than it retires, and that is a finding about absorption rather than a slice that failed.
 
 `/track` should be run after this document is reviewed. **Do not open issues from here.**
 
@@ -132,19 +146,84 @@ does not resolve it in the implementing session.
 
 ## Outstanding
 
-**Nothing is outstanding.** Every slice through S29 has landed and is retired to the
-`## Landed` index below (issue #120's own fix, `tools/Update-SlicesDocument.ps1`, performed
-that retirement). The 2026-08-31 absorption commission is discharged for every active unit's
-`Live` set except the five script units that expose no contract — `invoke-codexcommand`,
-`invoke-donehousekeeping`, `measure-session`, `sync-kit`, `test-writesurface` — which have no
-Markdown heading a site could resolve to at all. That is a limit of the mechanism, not
-unfinished work, and it is in `design/90-decisions.md` § *Open* for `/track` to file.
+**One slice, and it closes the 2026-08-31 commission.** Every slice through S29 has landed and
+is retired to the `## Landed` index below (issue #120's own fix,
+`tools/Update-SlicesDocument.ps1`, performed that retirement). The absorption half of the
+2026-08-31 decision is discharged for every active unit's `Live` set except the four script
+units that expose no contract and still carry one — `invoke-codexcommand`, `measure-session`,
+`sync-kit`, `test-writesurface` — which have no Markdown heading a site could resolve to at all.
+That is a limit of the mechanism, not unfinished work, and it is in `design/90-decisions.md`
+§ *Open* for `/track` to file.
 
-**One half of the 2026-08-31 decision still has not landed.** A divergence class, reported and
-never blocking, flagging a `Live` decision whose terms appear to already stand in the unit it
-is live on, is `/contract`'s to add, at `opus`/`high` — the class list in § *The divergence
-classes* does not carry it. Until it does, nothing structurally prevents an absorbed `Live` set
-from refilling; that is the standing half of the commission and remains the user's to schedule.
+**The detection half is now contracted and not yet built, which is what S30 is.** The class is
+`LiveAlreadyStated`, added to `design/20-contract.md` § *The divergence classes* by the
+2026-09-02 amendment, and that amendment said in terms that adding the row opens a
+`ClassListDisagreement` window until a slice adds the id to the checker's declared reported
+list. That window is open: run against this repository on 2026-09-03 at `c63cae8`, the checker
+reports `ClassListDisagreement`, `contract-only: [Reported:LiveAlreadyStated]`, and exits 1.
+This is the same interim state § *Interim findings are expected* describes, except that CI is
+wired and the build is red for the duration.
+
+## S30 — The check names the one thing that can quietly undo an absorption
+Delivers: Anyone maintaining this kit gets a green design-state build back, and a
+          reconciliation pass gains a named finding for the case nothing else catches — a
+          decision still being carried as unsettled by a part of the kit that has, in fact,
+          already written that decision down where its readers will meet it. Without the name,
+          a list somebody spent four slices emptying refills without anyone noticing.
+Touches: `tools/Test-DesignState.ps1`, `tools/Test-DesignState.Tests.ps1`,
+         `.claude/commands/reconcile.md`,
+         `design/state/contracts/test-designstate.md`,
+         `design/state/decisions/2026-09-02-livealreadystated-is-the-reported-class.md`,
+         `design/state/units/script/test-designstate.md`,
+         `design/state/units/command/reconcile.md`, `design/state-index.md`
+Depends on: none. The contract row landed at [#205](../../pull/205), and S29 discharged the
+            absorption half this pairs with.
+Acceptance:
+  - S30.1 `$script:ReportedClasses` in `tools/Test-DesignState.ps1` contains
+    `LiveAlreadyStated`, and a run of the checker against this repository emits no
+    `ClassListDisagreement` finding — the detail line reads `declared-only: []; contract-only:
+    []` where it read `contract-only: [Reported:LiveAlreadyStated]` before.
+  - S30.2 The checker declares the id and never raises it. A run against this repository, and a
+    run against a fixture tree containing a unit whose `Live` decision's `## Claim` text appears
+    verbatim under a heading of that unit's own `Anchor` file, each produce **zero** findings of
+    class `LiveAlreadyStated`. The second is the case a raiser would fire on, and it is what
+    proves the script is not quietly raising it.
+  - S30.3 `$script:MinimalContract` in `tools/Test-DesignState.Tests.ps1` carries the
+    `LiveAlreadyStated` row in its *Reported, never blocking* table; the near-miss test that
+    asserted "exactly the same 31 ids" asserts 32; both it and the paired fires test pass.
+  - S30.4 `.claude/commands/reconcile.md` gains one report section instructing the pass to
+    compare each active unit's `Live` against the artifact it is live on and to report each
+    apparent match under the name `LiveAlreadyStated`, with a payload of three parts — the unit
+    id, the decision id, and the candidate site in `<id> § <heading>` form — and stating that
+    the pass reports and never absorbs, so that acting on it stays the caller's step 4 of
+    `AGENTS.md` § *Writing a design-state record*. A test asserts the file contains the literal
+    `LiveAlreadyStated`; the section cites the contract rather than restating the class table.
+  - S30.5 `decision/2026-09-02-livealreadystated-is-the-reported-class` gains two `StatedIn`
+    sites — `contract/test-designstate § Semantics` and the new `unit/command/reconcile`
+    heading — each written into its target in the same commit; the id leaves
+    `unit/script/test-designstate`'s `Live`; and the checker reports no `SiteAmbiguous`,
+    `SiteOutOfReach`, or `SiteContradictsLive`.
+  - S30.6 `unit/script/test-designstate`'s bounded closure is **strictly lower after than
+    before**, and the slice states both numbers. It measured 15,054 bytes against `c63cae8`.
+    A closure that grew means the `Semantics` text added more than the absorbed record removed;
+    report that rather than trimming the record until the number moves.
+  - S30.7 `pwsh tools/Test-DesignState.ps1` exits 0 against this repository with an empty
+    findings list, and `Invoke-Pester tools/Test-DesignState.Tests.ps1` reports zero failures.
+    Two of the five failures standing at `c63cae8` are not this slice's — see *Out of scope*;
+    if they are still open when this slice lands, S30.7 is met by naming them and their issue
+    numbers, never by relaxing an assertion.
+Out of scope: **Raising the class.** The contract is explicit that the raiser is a reading and
+              the script only declares the id; putting detection in `tools/Test-DesignState.ps1`
+              would place a model's judgement of prose behind a gate, which I22 forbids and
+              which `SemanticDisagreement` already refuses for the same reason. **Acting on any
+              finding the new `/reconcile` section produces** — absorbing a `Live` decision the
+              first run of it turns up is the next pass's work; the slice's own absorption in
+              S30.5 is the mechanism's step 4 for the one decision it implements, not the start
+              of a pass. **The two unrelated red gates at `c63cae8`**: the 2026-09-03 log entry
+              with no decision record (`LogEntryUnrecorded`), and the hardcoded contract-record
+              count of 9 in `tools/Test-DesignState.Tests.ps1` that [#205](../../pull/205) made
+              10. Both are other pull requests' defects, both are `/fix`'s, and folding either
+              in makes this slice's diff unreviewable.
 
 The two notes at the end of this section outlive any one set and are kept for whatever is
 appended.
