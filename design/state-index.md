@@ -275,5 +275,6 @@ that looks old.
 | 184 | #184 | The -Watch context-size warning fires with no consequence | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
 | 211 | #211 | A script unit that exposes no contract has nowhere to absorb a decision into | — | `c63cae8f19298c5dc92a01883153c0f699c7b0c0` |
 | 219 | #219 | tools/Test-DesignState.ps1 does not yet declare LiveAlreadyStated | — | `c63cae8f19298c5dc92a01883153c0f699c7b0c0` |
+| 222 | #222 | S30 — The check names the one thing that can quietly undo an absorption | S30.1, S30.2, S30.3, S30.4, S30.5, S30.6, S30.7 | `807343133e9574d4bca6dfac63d2a6bea39f3ac0` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
