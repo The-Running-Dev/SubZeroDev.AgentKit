@@ -75,6 +75,7 @@ means no record exists yet, not that nothing is true.
 | `unit/script/test-verifyreport` | script | `tools/Test-VerifyReport.ps1` |
 | `unit/script/test-writesurface` | script | `tools/Test-WriteSurface.ps1` |
 | `unit/script/update-designprojection` | script | `tools/Update-DesignProjection.ps1` |
+| `unit/script/update-slicesdocument` | script | `tools/Update-SlicesDocument.ps1` |
 | `unit/script/update-workmirror` | script | `tools/Update-WorkMirror.ps1` |
 | `unit/script/wait-pullrequestcheck` | script | `tools/Wait-PullRequestCheck.ps1` |
 <!-- units:end -->
