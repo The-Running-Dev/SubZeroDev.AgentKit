@@ -8,7 +8,9 @@ Append-only. Newest at the top. The rejected alternatives are the point — with
 The absorbed-edge todo is [#140](../../issues/140), and `/redteam`'s six findings of 2026-08-29
 against `design/10-design.md` are [#143](../../issues/143) through [#148](../../issues/148); the
 entry immediately below answers all six. The three todos that followed from that answer are
-[#151](../../issues/151), [#152](../../issues/152), and [#153](../../issues/153).
+[#151](../../issues/151), [#152](../../issues/152), and [#153](../../issues/153). The
+`StatedIn`-comma-grammar todo is [#203](../../issues/203) and the script-unit-with-no-contract
+todo is [#211](../../issues/211).
 
 - **`tools/Read-DesignState.ps1` does not yet accept a quoted list entry.** The 2026-09-02
   decision below contracts the form ahead of the reader; until the reader declares it, the three

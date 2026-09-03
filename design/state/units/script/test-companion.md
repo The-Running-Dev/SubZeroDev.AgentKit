@@ -5,7 +5,7 @@ Anchor: tools/Test-Companion.ps1
 Consumes:
 Exposes: contract/test-companion
 Binds:
-Live: decision/2026-08-12-commands-split-core-and-companion
+Live:
 Questions:
 Work:
 Evidence: tools/Test-Companion.Tests.ps1

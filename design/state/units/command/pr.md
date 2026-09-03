@@ -5,7 +5,7 @@ Anchor: .claude/commands/pr.md
 Consumes: contract/wait-pullrequestcheck, contract/resolve
 Exposes:
 Binds:
-Live: decision/2026-08-03-pr-defers-to-repository-merge-convention, decision/2026-08-08-pr-absorbs-gates-drafts-abolished, decision/2026-08-19-pr-real-description-at-open
+Live: decision/2026-08-03-pr-defers-to-repository-merge-convention
 Questions:
 Work:
 Evidence:
