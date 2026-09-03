@@ -5,7 +5,7 @@ Anchor: .claude/commands/next.md
 Consumes:
 Exposes:
 Binds:
-Live: decision/2026-08-30-next-command-orients-and-acts
+Live:
 Questions:
 Work:
 Evidence:

@@ -5,7 +5,7 @@ Anchor: .claude/commands/refine.md
 Consumes:
 Exposes:
 Binds:
-Live: decision/2026-08-04-refine-is-a-front-door-between-stages
+Live:
 Questions:
 Work:
 Evidence:
