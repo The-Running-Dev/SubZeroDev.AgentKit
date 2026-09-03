@@ -12,13 +12,8 @@ entry immediately below answers all six. The three todos that followed from that
 `StatedIn`-comma-grammar todo, [#203](../../issues/203), is implemented — the reader declares the
 quoted-entry production (`tools/Read-DesignState.ps1`, `Split-DesignListValue`), the contract's
 scaffold paragraph is replaced by a pointer, and the three decisions S24 left unabsorbable for
-that reason are absorbed. The script-unit-with-no-contract todo is [#211](../../issues/211).
-
-- **`tools/Test-DesignState.ps1` does not yet declare `LiveAlreadyStated`.** The 2026-09-02
-  amendment added the reported class to `design/20-contract.md` § *The divergence classes*, and
-  until the checker's declared reported list carries the id `ClassListDisagreement` fires against
-  this repository. A slice: add the id to the script's declared list and the test suite's class
-  table, and give `/reconcile` the class name to report under. `/slices`, `opus`/`high`.
+that reason are absorbed. The script-unit-with-no-contract todo is [#211](../../issues/211). The
+`LiveAlreadyStated`-declaration todo is [#219](../../issues/219).
 ---
 
 ### 2026-09-02 — A list entry may be quoted, so a `StatedIn` site can name a heading that contains a comma
