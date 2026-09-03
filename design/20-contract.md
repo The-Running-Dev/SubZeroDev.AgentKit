@@ -96,7 +96,9 @@ per-kind vocabulary, citing it. What neither can state:
 - **`StatedIn` is a decision's address list, and the reach rule is what makes it honest.** Each
   site is `<id> § <heading>`, must resolve to exactly one heading (`SiteAmbiguous`), and must
   name somewhere that unit's reader already reaches — the unit's own `Anchor`, or a record
-  already one hop from it (`SiteOutOfReach`). Absent the reach rule a claim could move somewhere
+  already one hop from it (`SiteOutOfReach`). A heading that contains the list separator is
+  named by quoting the whole site — the quoting form under § *Persisted schemas*, *Grammar* — and
+  is otherwise the same site. Absent the reach rule a claim could move somewhere
   the unit's reader never opens, which shrinks the measured number without shrinking what is
   read, and a metric improvable without improving its subject has stopped being one. **Reach is
   what a reading covers, not what the budget counts, and since 2026-09-01 those are two
@@ -287,6 +289,18 @@ ownership*). What the declaration cannot say: the grammar has no permissive fall
 matching neither production, and adding one would reintroduce the silently dropped id the I12
 precedent exists for.
 
+**One production is contracted ahead of the reader declaring it, and the slice that lands it
+replaces this paragraph with a pointer** (`.claude/commands/contract.md`, *Semantics, not
+shape*): a list entry wrapped in double quotes may contain the list separator. The quotes are
+stripped and nothing else changes — a quoted entry and an unquoted one naming the same id or
+site are the same fact, and no class may treat them differently. It is one rule for every list
+field rather than a `StatedIn` form of its own, because a per-field separator is a rule every
+consumer must remember and a different separator only moves the case — a heading can contain a
+semicolon as easily as a comma. A quoted entry containing a double quote of its own is
+unparseable: there is no escape, because nothing in this repository needs one, and an escape
+form for a case that does not exist is the permissive fallback the sentence above refuses
+(`design/90-decisions.md`, 2026-09-02).
+
 **Migration story.** Nothing preceded the state set, so there is no prior data to migrate from.
 The one-time population is `design/10-design.md` § *Migrate*, and its constraint is I26: **every**
 entry in `design/90-decisions.md` is read and **not touched** — every entry as the log then
@@ -353,15 +367,15 @@ for nothing else, each carrying `Owner`, `Declaration` and `Semantics` — so a 
 `Semantics` is a restatement of the prose here, and this is the copy that governs.
 `tools/Update-WorkMirror.ps1` went without a record at S16 (`design/30-slices.md` S16.6), on the
 ground that a `Declaration` pointing at an absent file is the shape `AnchorMissing` exists to
-reject; S14 writes the file and `contract/update-workmirror` with it, so that ground no longer
-applies.
+reject; S14 wrote the file and `contract/update-workmirror` with it, so that ground no longer
+applies. `tools/Invoke-DoneHousekeeping.ps1` joined on the 2026-08-31 decision, as the one entry
+whose consumer is a rule in a document rather than another module.
 
 **No class compares the two, and this is now the only such gap in this document** — § *Artifacts
 of a unit kind* carried the other until `GlobDisagreement` closed it.
 `OwnerMismatch` checks a record's `Owner` against the units and
 `AnchorMissing` checks its `Declaration` against the tree, but nothing checks that the *set* of
-records matches the set of surfaces here, and the exemption above means the difference is not
-even a clean one to take. The `Semantics` half is further out of reach: prose against prose is a
+records matches the set of surfaces here. The `Semantics` half is further out of reach: prose against prose is a
 model judging a claim, which is `SemanticDisagreement`'s permanently reported territory. S16.1
 asserted the correspondence once at the slice; nothing holds it after, and closing the set half
 is a class this list does not yet carry.
@@ -603,6 +617,40 @@ generator. What that block cannot state:
   mirror written on an unreachable tracker asserts there is no outstanding work.
 - **Never runs while `design/FROZEN.md` exists**, because `/track` does not (`AGENTS.md`,
   *The design freeze*). The mirror going stale during a freeze is the freeze working.
+
+### `tools/Invoke-DoneHousekeeping.ps1`
+
+**The parameter list is the script's own `param` block and is not copied here.** The mechanical
+half of `/clean`, and the one entry in this section that exposes no surface to another module:
+its consumer is an authorization rule — `AGENTS.md` § *Git and delivery* delegates a force-delete
+on the strength of two of its field names — and a restatement under a delegation of a destructive
+action is the unchecked kind I15 forbids until a record resolves it (`design/90-decisions.md`,
+2026-08-31). What the block cannot state:
+
+- **`SquashMergeCandidates` lists a branch only when a merged pull request exists for it *and*
+  the local branch tip equals that pull request's `headRefOid`.** The branch named is therefore
+  exactly the commit that merged and nothing more, and that comparison — not the pull request's
+  existence — is what makes the force-delete safe to delegate. A merged pull request alone is not
+  evidence: `gh pr list --head` matches on branch name and goes on reporting the pull request
+  after commits have been pushed on top of the merged tip.
+- **A branch whose tip is not the head that merged is reported in `TipAheadOfMergedPr`, with a
+  `Reason`, and is never a force-delete candidate.** That is the case the confirmation prompt
+  this list replaced was nominally guarding and never actually checked, and it stays a separate
+  ask. A pull request reporting no `headRefOid`, or a local tip that cannot be resolved, lands
+  here too — unconfirmed is unconfirmed, whichever side failed to answer.
+- **Deletion is never inferred.** Called with neither `-DeleteBranches` nor
+  `-ForceDeleteBranches` it switches, pulls, prunes, and reports candidates, and deletes nothing.
+  `-DeleteBranches` runs `git branch -d`, never `-D`, and refuses any name this run's `--merged`
+  did not confirm. `-ForceDeleteBranches` runs `-D` and honours only a name this same run listed
+  in `SquashMergeCandidates` — never one passed in from elsewhere, however certainly merged — so
+  the evidence for a force-delete always comes from the run that performs it. A refused name is
+  reported in `Refused` with its reason, never dropped.
+- **Stops rather than routing around, and reports the reason.** A dirty tree, a current branch
+  with commits the default branch lacks and no merged pull request `gh` can find for it, and a
+  checkout of the default branch that fails each end the run with `Stopped` set, `Reason` named,
+  and every candidate list empty. `-AutoStash` is the one stop that may be converted into a
+  continue, and **the stash is never popped**: `StashRef` is reported back so the caller restores
+  it explicitly rather than having it reappear on whatever branch is checked out next.
 
 ### `.claude/commands/fix.md`
 
@@ -932,6 +980,33 @@ nothing, which is why none of them is on the list above.
 | `WorkStateDivergence` | A `WorkRef` disagrees with the tracker | Needs `gh`. A build that fails on an unauthenticated CLI reports an absent comparison as a divergence |
 | `PinAncestry` | A cited commit is not an ancestor of the default branch | A shallow CI checkout has no history to answer with, and "could not check" must not read as "checked and failed" |
 | `SemanticDisagreement` | A model judges a record's claim untrue | Permanently reported. The brief's *no formal specification of behaviour* non-goal puts it out of reach, and a build that fails on a model's opinion is a build nobody trusts |
+| `LiveAlreadyStated` | A decision in a unit's `Live` whose terms already stand somewhere that unit's reader reaches — a section of its own `Anchor`, or of a record one hop from it — with no site naming that place | Permanently reported, and by a reading rather than by the script. Whether a section states a claim is a model judging prose, which is `SemanticDisagreement`'s territory and which I22 admits nothing that needs. It names the candidate site so the caller can absorb; it never absorbs |
+
+**`LiveAlreadyStated` exists because `Live` is the one bound that is maintained rather than
+held.** `design/10-design.md` § *The orientation closure* says so: `Live` is decisions in flight
+only while each executed decision is given its site, and nothing mechanical detects a unit where
+that has stopped happening — the residual § *Failure modes* names, and the one that put
+`unit/document/agents-md` over the ceiling on its records alone. The absorption pass (S24, S25)
+fixes the number once; this class is what stops the set refilling, and neither substitutes for
+the other (`design/90-decisions.md`, 2026-08-31). It cannot block, and not for the reason the
+three above it cannot: they fail where the *environment* is missing, this one fails where the
+*judgement* is. So `tools/Test-DesignState.ps1` **declares the id and never raises it** — the
+declaration is what lets `ClassListDisagreement` see one list, and the raiser is the reading that
+compares a unit's `Live` against the artifact it is live on, which is a reconciliation pass and
+is where the 2026-08-31 breach was found. **Its payload is the unit, the decision, and the site
+the terms appear to stand at, in `StatedIn`'s own `<id> § <heading>` form**, so that acting on
+the finding is copying the payload into the record and dropping the id — step 4 of `AGENTS.md`
+§ *Writing a design-state record* in isolation — or stating in the pull request why the terms do
+not stand there, which is the shape S24.2 fixed. The candidate is held to the reach rule once
+written, by `SiteAmbiguous` and `SiteOutOfReach`, exactly as any site is; this class asserts
+nothing those two would not re-check.
+
+**Adding it opens the `ClassListDisagreement` window this document has opened before**, at the
+2026-08-30 amendment that carried eight blocking ids ahead of their detection. Until a slice adds
+`LiveAlreadyStated` to the checker's declared reported list, the check reports that one blocking
+finding against this repository and exits 1. That is the class list working as specified — the
+alternative is this document editing implementation to keep the gate green, which the 2026-09-01
+entry refused for the meter on the same ground.
 
 **Could not evaluate.** Exit 2, and **never** a pass (I19, I20).
 
@@ -1022,9 +1097,9 @@ and the tree had not moved yet. Leaving them `code` would have been the one thin
 exists to prevent: a row a reader is entitled to trust without checking, evidencing a sentence
 it does not test. S19 and S20 amended the meter and landed `HalfStatusMismatch`, so both rows
 went back to `code`. **I23 has since demoted a second time**, on the 2026-09-01 amendment that
-took the unit's own artifact out of the bound: the meter still counts it and the named test
-still asserts that it does, so the row reads `instruction` until the slice that re-scopes both
-flips it back. One row making the round trip twice is the rule working rather than the column
+took the unit's own artifact out of the bound: the meter still counted it and the named test
+still asserted that it did, so the row read `instruction` until S23 re-scoped both and flipped it
+back. One row making the round trip twice is the rule working rather than the column
 being unstable — the rule is what stands here, not either instance of it.
 
 **Which rows are `code`, and against which test, is the region's own `Enforcement` and
@@ -1057,9 +1132,8 @@ repository-scoped, so the note that said they would move has nowhere left to mov
 
 ## Unresolved
 
-**Two items.** `/slice`'s "the contract does not contain a signature you need" stop condition
-should fire on nothing else. The second is § *Which command writes a question record, and when*
-below.
+**One item.** `/slice`'s "the contract does not contain a signature you need" stop condition
+should fire on nothing else: § *Which command writes a question record, and when* below.
 
 Whether a unit's `Questions` edge survives the question being answered was an item and is
 **resolved**, by the design rather than by preference: `Questions` gains a retired half,

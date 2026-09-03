@@ -5,7 +5,7 @@ Anchor: tools/Read-DesignState.ps1
 Consumes:
 Exposes: contract/read-designstate
 Binds: I17, I24
-Live:
+Live: decision/2026-09-02-list-entries-may-be-quoted
 Questions:
 Work:
 Evidence: tools/Read-DesignState.Tests.ps1
