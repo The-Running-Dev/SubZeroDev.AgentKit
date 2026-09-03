@@ -5,7 +5,7 @@ Anchor: .claude/commands/install-code-review-agent.md
 Consumes:
 Exposes:
 Binds:
-Live: decision/2026-08-21-install-code-review-agent-writes-the-workflow-file-only
+Live:
 Questions:
 Work:
 Evidence:

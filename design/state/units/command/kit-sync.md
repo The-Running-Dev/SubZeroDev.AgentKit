@@ -5,7 +5,7 @@ Anchor: .claude/commands/kit-sync.md
 Consumes:
 Exposes:
 Binds:
-Live: decision/2026-08-08-kit-sync-new-command
+Live:
 Questions:
 Work:
 Evidence:
