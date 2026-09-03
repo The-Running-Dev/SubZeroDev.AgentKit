@@ -77,7 +77,8 @@ $script:BlockingClasses = @(
     'DecisionUnplaced', 'SupersessionCycle'
 )
 $script:ReportedClasses = @(
-    'MirrorStale', 'WorkStateDivergence', 'PinAncestry', 'SemanticDisagreement'
+    'MirrorStale', 'WorkStateDivergence', 'PinAncestry', 'SemanticDisagreement',
+    'LiveAlreadyStated'
 )
 $script:CouldNotEvaluateClasses = @(
     'StateSetAbsent', 'RecordUnparseable', 'TrackerUnavailable', 'ShallowCheckout',

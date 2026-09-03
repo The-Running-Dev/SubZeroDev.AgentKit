@@ -66,7 +66,7 @@ BeforeAll {
     }
 
     # A minimal but exact stand-in for the two sections of design/20-contract.md the checker
-    # parses about itself - the same 31 class ids Test-DesignState.ps1 declares, and a verbatim
+    # parses about itself - the same 32 class ids Test-DesignState.ps1 declares, and a verbatim
     # copy of § "Artifacts of a unit kind"'s table - so end-to-end tests below do not spuriously
     # raise ClassListDisagreement or GlobDisagreement while exercising something else entirely.
     # The glob table agrees with the enumeration over any tree by construction, which is exactly
@@ -119,6 +119,7 @@ BeforeAll {
 | `WorkStateDivergence` | x | x |
 | `PinAncestry` | x | x |
 | `SemanticDisagreement` | x | x |
+| `LiveAlreadyStated` | x | x |
 
 **Could not evaluate.**
 
@@ -1140,9 +1141,50 @@ Describe 'Test-DesignState: DecisionUnplaced and SupersessionCycle (S22)' {
     }
 }
 
+Describe 'Test-DesignState: LiveAlreadyStated (S30.1, S30.2)' {
+
+    BeforeEach {
+        Get-ChildItem $TestDrive -ErrorAction SilentlyContinue -Recurse -File |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+        New-TreeFile -RelativePath 'design/20-contract.md' -Content $script:MinimalContract
+        New-TreeFile -RelativePath 'design/90-decisions.md' -Content "# Decisions`n"
+    }
+
+    It 'S30.1: the checker declares LiveAlreadyStated in its reported class list' {
+        $script:ReportedClasses | Should -Contain 'LiveAlreadyStated'
+    }
+
+    It 'S30.2: a run against a fixture unit whose Live decision''s Claim text stands verbatim under its own Anchor''s heading raises no LiveAlreadyStated finding - the checker never raises the id it declares' {
+        New-TreeFile -RelativePath '.claude/commands/fixture.md' -Content @'
+# Fixture
+
+## Already Stated
+The claim text stands here, verbatim.
+'@
+        New-StateFile -RelativePath 'units/command/fixture.md' -Content @'
+# unit/command/fixture
+Kind: command
+Status: active
+Anchor: .claude/commands/fixture.md
+Live: decision/fixture-claim
+'@
+        New-StateFile -RelativePath 'decisions/fixture-claim.md' -Content @'
+# decision/fixture-claim
+Status: accepted
+
+## Claim
+The claim text stands here, verbatim.
+'@
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive
+
+        (@($result.Findings | Where-Object { $_.Class -eq 'LiveAlreadyStated' })).Count | Should -Be 0
+        (@($result.Reported | Where-Object { $_.Class -eq 'LiveAlreadyStated' })).Count | Should -Be 0
+    }
+}
+
 Describe 'Test-DesignState: ClassListDisagreement (S5.1)' {
 
-    It 'raises nothing when the contract document declares exactly the same 31 ids' -Tag 'NearMiss','ClassListDisagreement' {
+    It 'raises nothing when the contract document declares exactly the same 32 ids' -Tag 'NearMiss','ClassListDisagreement' {
         New-TreeFile -RelativePath 'design/20-contract.md' -Content $script:MinimalContract
         $result = Test-ClassListAgreement -ContractPath (Join-Path $TestDrive 'design/20-contract.md')
         $result.Finding | Should -BeNullOrEmpty
@@ -1755,6 +1797,41 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
 
     It 'S24.5: the checker reports no ClosureOverBudget finding for unit/document/agents-md' {
         @($script:RealResult.Findings | Where-Object { $_.Class -eq 'ClosureOverBudget' -and $_.Subject -eq 'unit/document/agents-md' }).Count | Should -Be 0
+    }
+
+    It 'S30.1/S30.2: LiveAlreadyStated never fires against this repository, in either list' {
+        (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'LiveAlreadyStated' })).Count | Should -Be 0
+        (@($script:RealResult.Reported | Where-Object { $_.Class -eq 'LiveAlreadyStated' })).Count | Should -Be 0
+    }
+
+    It 'S30.5: decision/2026-09-02-livealreadystated-is-the-reported-class carries all three StatedIn sites and has left unit/script/test-designstate''s Live' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+
+        $decisionId = 'decision/2026-09-02-livealreadystated-is-the-reported-class'
+        $byId[$decisionId].Lists['StatedIn'] | Should -Be @(
+            'unit/document/design-20-contract § The divergence classes',
+            'contract/test-designstate § Semantics',
+            'unit/command/reconcile § LiveAlreadyStated'
+        )
+        $byId['unit/script/test-designstate'].Lists['Live'] | Should -Not -Contain $decisionId
+
+        foreach ($class in 'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive') {
+            @($script:RealResult.Findings | Where-Object { $_.Class -eq $class -and ($_.Subject -match [regex]::Escape($decisionId) -or $_.Detail -match [regex]::Escape($decisionId)) }).Count | Should -Be 0
+        }
+    }
+
+    It 'S30.6: unit/script/test-designstate''s bounded closure is strictly lower after absorbing the decision than the 15,054 bytes it measured before' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+
+        $root = $byId['unit/script/test-designstate']
+        $afterMembers = Get-DesignClosure -Root $root -ById $byId
+        $afterBytes = ($afterMembers | ForEach-Object { Get-RecordFileBytes -RepoPath $script:RepoRoot -Record $_ } | Measure-Object -Sum).Sum
+
+        $afterBytes | Should -BeLessThan 15054
     }
 
     It 'S22.7: ClassListDisagreement is silent - DecisionUnplaced and SupersessionCycle now land, closing the gap S21.6 left open' {
