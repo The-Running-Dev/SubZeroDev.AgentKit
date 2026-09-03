@@ -245,6 +245,36 @@ function Get-DesignPathInfo {
     Read-DesignRecordFile so the two callers below cannot drift into two grammars for one Unit
     vocabulary. Returns @{ Scalars; Lists; Prose; Failures }.
 #>
+function Split-DesignListValue {
+    <#
+        Splits a list field's raw value into entries on `,`, except inside a double-quoted
+        entry - whose quotes are stripped - so a StatedIn site can name a heading that contains
+        the separator (design/90-decisions.md, 2026-09-02 "A list entry may be quoted..."). The
+        rule is one grammar for every list field, not a StatedIn-only form. There is no escape:
+        a double quote anywhere other than as the pair delimiting a whole entry - an unterminated
+        quote, or one embedded inside an otherwise-unquoted entry - is malformed, and the caller
+        reports the whole field line as Unparseable, the same as any other grammar failure here.
+    #>
+    param([Parameter(Mandatory)][AllowEmptyString()][string] $Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) { return @{ Entries = @(); Malformed = $false } }
+
+    $entries = [System.Collections.Generic.List[string]]::new()
+    $pattern = '^\s*(?:"([^"]*)"|([^",]*))\s*(?:,|$)'
+    $remaining = $Value
+    while ($remaining.Length -gt 0) {
+        $m = [regex]::Match($remaining, $pattern)
+        if (-not $m.Success) { return @{ Entries = @($entries); Malformed = $true } }
+        if ($m.Groups[1].Success) {
+            $entries.Add($m.Groups[1].Value)
+        } else {
+            $entries.Add($m.Groups[2].Value.Trim())
+        }
+        $remaining = $remaining.Substring($m.Length)
+    }
+    @{ Entries = @($entries); Malformed = $false }
+}
+
 function Read-DesignFieldBlock {
     param(
         # AllowEmptyString alongside AllowEmptyCollection: PowerShell's [string[]] binder rejects
@@ -323,7 +353,12 @@ function Read-DesignFieldBlock {
 
                 [void]$seen.Add($name)
                 if ($Table.List -contains $name) {
-                    $rawEntries = if ([string]::IsNullOrWhiteSpace($value)) { @() } else { @($value -split ',' | ForEach-Object { $_.Trim() }) }
+                    $split = Split-DesignListValue -Value $value
+                    if ($split.Malformed) {
+                        $failures.Add((New-DesignStateFailure -Reason 'Unparseable' -Path $RelativePath -Line $lineNumber -Text $line))
+                        continue
+                    }
+                    $rawEntries = $split.Entries
                     if ($name -eq 'StatedIn') {
                         # design/20-contract.md § "The state set": each site is `<id> § <heading>`.
                         # An entry not of that form is a parse failure (S21.1) - reported with the
