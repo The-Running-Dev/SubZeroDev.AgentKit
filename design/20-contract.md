@@ -289,17 +289,16 @@ ownership*). What the declaration cannot say: the grammar has no permissive fall
 matching neither production, and adding one would reintroduce the silently dropped id the I12
 precedent exists for.
 
-**One production is contracted ahead of the reader declaring it, and the slice that lands it
-replaces this paragraph with a pointer** (`.claude/commands/contract.md`, *Semantics, not
-shape*): a list entry wrapped in double quotes may contain the list separator. The quotes are
-stripped and nothing else changes — a quoted entry and an unquoted one naming the same id or
-site are the same fact, and no class may treat them differently. It is one rule for every list
-field rather than a `StatedIn` form of its own, because a per-field separator is a rule every
-consumer must remember and a different separator only moves the case — a heading can contain a
-semicolon as easily as a comma. A quoted entry containing a double quote of its own is
-unparseable: there is no escape, because nothing in this repository needs one, and an escape
-form for a case that does not exist is the permissive fallback the sentence above refuses
-(`design/90-decisions.md`, 2026-09-02).
+**A list entry wrapped in double quotes may contain the list separator, and the reader now
+declares the production** (`tools/Read-DesignState.ps1`, `Split-DesignListValue`), so this
+document states only why: a quoted and an unquoted entry naming the same id or site are the same
+fact, and no class may treat them differently. It is one rule for every list field rather than a
+`StatedIn` form of its own, because a per-field separator is a rule every consumer must remember
+and a different separator only moves the case — a heading can contain a semicolon as easily as a
+comma. A quoted entry containing a double quote of its own is unparseable: there is no escape,
+because nothing in this repository needs one, and an escape form for a case that does not exist
+is the permissive fallback the *Grammar* paragraph above already refuses (`design/90-decisions.md`,
+2026-09-02).
 
 **Migration story.** Nothing preceded the state set, so there is no prior data to migrate from.
 The one-time population is `design/10-design.md` § *Migrate*, and its constraint is I26: **every**
