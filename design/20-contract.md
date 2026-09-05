@@ -379,9 +379,16 @@ of a unit kind* carried the other until `GlobDisagreement` closed it.
 `OwnerMismatch` checks a record's `Owner` against the units and
 `AnchorMissing` checks its `Declaration` against the tree, but nothing checks that the *set* of
 records matches the set of surfaces here. The `Semantics` half is further out of reach: prose against prose is a
-model judging a claim, which is `SemanticDisagreement`'s permanently reported territory. S16.1
-asserted the correspondence once at the slice; nothing holds it after, and closing the set half
-is a class this list does not yet carry.
+model judging a claim, which is `SemanticDisagreement`'s permanently reported territory. **The
+set half is held by the self-check rather than by a class.** `tools/Test-DesignState.Tests.ps1`
+parses this section and asserts the correspondence in both directions on every run: each
+backticked surface path has exactly one active `Contract` record owned by the unit anchored
+there, and every active `Contract` record's owner is anchored at a path this section names. It
+asserts **no count**, and that is the load-bearing part — a hardcoded set size went stale once
+per legitimate addition and surfaced each time as a red gate on an unrelated pull request
+(`agent.md`). A test is evidence and not a divergence class, so the gap is narrowed in
+consequence rather than closed in kind: a set that diverges is caught here, and closing it on
+the closed list is a class this document still does not carry.
 
 ### `tools/Wait-PullRequestCheck.ps1`
 
@@ -916,8 +923,9 @@ draws for the class list, and the reason a mis-parse cannot narrow the checked w
 outcome is a spurious disagreement or an honest `ContractListUnreadable`, and never a clean run.
 
 **That leaves one restatement in this document that no class compares** — § *Public surface*
-against the `Contract` records. The divergence-class list has `ClassListDisagreement`; the
-id-to-path mapping has `IdCollision`; the projections have `ProjectionStale`.
+against the `Contract` records, where the self-check rather than a class is what holds it. The
+divergence-class list has `ClassListDisagreement`; the id-to-path mapping has `IdCollision`; the
+projections have `ProjectionStale`.
 
 ## Error semantics
 
