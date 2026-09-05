@@ -3,22 +3,22 @@
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parsed every *.ps1 under the repository with [System.Management.Automation.Language.Parser]::ParseFile; zero parse errors."
+      "detail": "Parsed 35 *.ps1 files with [System.Management.Automation.Language.Parser]::ParseFile; zero parse errors across all files."
     },
     {
       "name": "Run Pester tests",
       "status": "Failed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: 335 passed, 3 failed. All three failures are pre-existing and unrelated to this change - confirmed identical when the same suite is run against the pre-fix commit (84ce80d). They are the tracked, open design-state migration defects from issues #140 and #153 (the ClosureOverBudget/Enforcement-field work in flight), not anything this PR touches:\n\n=== Test-DesignState against this repository's own tree.S20.9: I23 and I30 carry Enforcement: code with Evidence naming the tests that hold them ===\nExpected strings to be the same, but they were different.\nExpected length: 4\nActual length:   11\nStrings differ at index 0.\nExpected: 'code'\nBut was:  'instruction'\n\n=== Test-DesignState against this repository's own tree.S12.5: the check reports only the adjudicated ClosureOverBudget findings against this repository, and names the largest closure and its size ===\nExpected $null or empty, because could not evaluate: [TrackerUnavailable] gh missing or unauthenticated; WorkStateDivergence not compared, but got @{Reason=TrackerUnavailable; Detail=gh missing or unauthenticated; WorkStateDivergence not compared}.\n\n=== Test-DesignState against this repository's own tree.S18.6: EnforcementUnevidenced rejects this repository's own superseded decision once its SupersededBy line is removed, and clears once it is restored ===\nExpected 1, but got 2.\n\nThe new regression test for #162 ('the per-issue gh issue view call is scoped with -R when -Repository is given') is in the 335 that passed, and was separately verified failing before the fix and passing after."
+      "detail": "Invoke-Pester -Path tools -PassThru: Total 362, Passed 359, Failed 3, Skipped 0. All three failures are in Test-DesignState.Tests.ps1 and are pre-existing, reproduced identically against the pre-PR tree via a temporary stash-and-restore: (1) 'S12.5/S25.4: the check reports zero findings against this repository and exits 0' - fails because tools/Test-DesignState.ps1 reports one blocking LogEntryUnrecorded finding for the 2026-09-03 decisions.md entry, tracked as GitHub issue #227, unrelated to this PR's changes. (2) 'S16.1/S16.2: this repository has one Contract record per design/20-contract.md Public-surface entry' - Expected 9, but got 14; this assertion hardcodes a stale count and was already wrong at the pre-PR baseline (9 expected vs 10 actual before this PR, which added 4 legitimate new Contract records per its own change, taking it to 14). (3) 'S18.6: EnforcementUnevidenced rejects this repository's own superseded decision once its SupersededBy line is removed, and clears once it is restored' - Expected 0, but got 1; reproduces identically on the pre-PR tree, unrelated to this PR's changes."
     },
     {
       "name": "Validate the core/companion split",
       "status": "Passed",
-      "detail": "./tools/Test-Companion.ps1: Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion. Exit 0."
+      "detail": "tools/Test-Companion.ps1: Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion. State: Valid. Exit code 0."
     },
     {
       "name": "Check the design state against the tree",
-      "status": "DidNotRun",
-      "reason": "./tools/Test-DesignState.ps1 exited 2. Could not evaluate (1): [TrackerUnavailable] gh missing or unauthenticated; WorkStateDivergence not compared. This session's GH_TOKEN authenticates the GitHub MCP tool, not a directly-invoked gh CLI in this sandbox (gh auth status reports 'The token in GH_TOKEN is invalid' for direct use), so the tracker-dependent half of this check cannot be evaluated locally here. The corresponding CI check on this pull request runs with a real GITHUB_TOKEN and is where the authoritative answer comes from. The rest of the check ran and reported its pre-existing findings (a known ClosureOverBudget on design/90-decisions.md, tracked by #153, and 32 non-blocking MirrorStale reports from the work mirror being behind this commit) - unrelated to this PR's change."
+      "status": "Failed",
+      "detail": "tools/Test-DesignState.ps1 exit code 1. One blocking finding: [LogEntryUnrecorded] 2026-09-03 - `/track` retires a landed slice's body, via a new mechanical script: log heading has no decision record naming it as Anchor. This finding is pre-existing (present before this PR's changes, confirmed via stash-and-restore against the pre-PR tree) and is already tracked as GitHub issue #227. 38 reported (never-blocking) findings: 36 MirrorStale entries (WorkRef mirrors stale relative to the current commit, expected since /track has not run since this PR's commit) and 2 WorkStateDivergence entries (work/183 title, work/222 state) reflecting tracker drift unrelated to this PR. Zero could-not-evaluate."
     }
   ]
 }
