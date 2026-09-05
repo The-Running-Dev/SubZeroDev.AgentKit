@@ -2,7 +2,7 @@
 Kind: command
 Status: active
 Anchor: .claude/commands/install-all.md
-Consumes: contract/test-companion
+Consumes: contract/test-companion, contract/test-writesurface
 Exposes:
 Binds:
 Live:

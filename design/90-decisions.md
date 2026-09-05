@@ -18,20 +18,21 @@ the 2026-09-03 log entry (`/track` retires a landed slice's body, via a new mech
 which left `tools/Test-DesignState.ps1` reporting a blocking `LogEntryUnrecorded`, is
 [#227](../../issues/227).
 
-Two items from `/reconcile`'s 2026-09-05 pass, both `/contract`'s at `opus`/`high` and neither
-resolved in that session. **Four scripts are invoked across a module boundary and have no
-`Contract` record** — `tools/Test-GatesCache.ps1` (by `/verify`), `tools/Test-VerifyReport.ps1`
-(by `/verify` and `/pr`), `tools/Test-WriteSurface.ps1` (by `/install-all`) and
-`tools/Update-SlicesDocument.ps1` (by `/track`) — against § *Public surface*'s claim that a
-record exists for every surface it names "and for nothing else". That is the one restatement
-the document says no class compares, now false in four places; closing it also makes
-`unit/script/test-writesurface` absorbable, removing one of the four units
-`design/30-slices.md` § *Outstanding* records as unreachable. **I18's scope needs stating**:
-`tools/Update-SlicesDocument.ps1` moves prose sections inside `design/30-slices.md` outside any
-marked region and is in no row of `design/10-design.md` § *Module boundaries*, so "no module of
-this mechanism writes outside a marked region" is currently readable two ways. The decision is
-that it is not a module of the design-state mechanism; the amendment that says so is
-`/contract`'s.
+The two items `/reconcile`'s 2026-09-05 pass staged for `/contract` — the four scripts with no
+`Contract` record, and I18's scope against `tools/Update-SlicesDocument.ps1` — are resolved by
+the entry immediately below. `design/30-slices.md` § *Outstanding* still names three of its four
+unreachable script units — `invoke-codexcommand`, `measure-session`, `sync-kit` — now that
+`test-writesurface`'s absorption is done; correcting that count is `/track`'s or a slice's, not
+this amendment's to make in a document `/contract` does not write.
+
+---
+
+### 2026-09-05 — Four scripts crossing a module boundary get `Contract` records, and `Update-SlicesDocument.ps1` is declared outside the design-state mechanism
+Context: `/reconcile`'s 2026-09-05 pass found `tools/Test-GatesCache.ps1` (invoked by `/verify`), `tools/Test-VerifyReport.ps1` (`/verify` and `/pr`), `tools/Test-WriteSurface.ps1` (`/install-all`) and `tools/Update-SlicesDocument.ps1` (`/track`) each crossing a module boundary with no `Contract` record, against § *Public surface*'s claim that a record exists for every surface it names "and for nothing else" — the one restatement the document says no class compares, false in four places. Separately, `tools/Update-SlicesDocument.ps1` moves prose sections inside `design/30-slices.md` outside any marked region and appears in no row of `design/10-design.md` § *Module boundaries*, so I18's "no module of this mechanism writes outside a marked region" was readable two ways: that the script breaches I18, or that it is simply not a module I18 binds. Both items were staged here rather than resolved in that session, on the ground that closing the first is a contract amendment and the second is a scope reading only `/contract` may settle.
+Chosen: **A `Contract` record for each of the four**, `Owner` the unit and `Declaration` the script, on the `invoke-donehousekeeping` precedent — a script whose only consumer is a rule or another command still gets a record once § *Public surface* names it. Each unit's `Exposes` is set to its new contract id, and each consuming command's `Consumes` gains the id it was missing: `/verify` gains `contract/test-gatescache` and `contract/test-verifyreport`, `/pr` gains `contract/test-verifyreport`, `/track` gains `contract/update-slicesdocument`, `/install-all` gains `contract/test-writesurface`. Writing `contract/test-writesurface`'s `Semantics` gives `decision/2026-08-12-install-all-write-surface-guard` a second site it did not have before — a script has no heading of its own to absorb into, so the site is `contract/test-writesurface § Semantics`, one hop from the unit exactly as `design/10-design.md` § *Absorption* requires — and `unit/script/test-writesurface`'s `Live` is now empty. **`tools/Update-SlicesDocument.ps1` is declared not a module of the design-state mechanism.** Its writes land in `design/30-slices.md`'s hand-authored structure by design, never through the projector and never inside a marked region; I18 binds the modules `design/10-design.md` § *Module boundaries* names, and this script was never one of them, so the ambiguity is resolved by naming what was already true rather than by carving an exception into I18's text. Both parts land in § *Public surface* under `tools/Update-SlicesDocument.ps1`'s own entry, one amendment.
+Rejected: **Leaving the four scripts without records, on the ground that they sit outside the design-state mechanism proper** — the same argument was available for `tools/Wait-PullRequestCheck.ps1` and `tools/Invoke-DoneHousekeeping.ps1`, both of which already carry records once § *Public surface* named them; the section's own claim does not carve out a mechanism boundary, so a fifth and sixth unrecorded surface would only widen a gap the document already says is the one it does not check. **Deferring `test-writesurface`'s absorption to a `/slices`-scoped pass**, the general rule for `Live` absorption — rejected because the site did not exist until this amendment creates it in the same commit, which is exactly the case `AGENTS.md` § *Writing a design-state record* step 4 and `design/10-design.md` § *Record* ("absorption also happens without a decision being made... name the site, drop the id, in the same commit") both describe rather than defer. **Amending I18's text to add an explicit script exception** — rejected because the scoping question is about which scripts are members of "this mechanism" at all, answered at the module-boundary-table level; carving an exception into the invariant's own sentence would read as a special case for one script rather than the general boundary it actually is. **Adding `tools/Update-SlicesDocument.ps1` to `design/10-design.md` § *Module boundaries* as a non-member row** — rejected as the wrong document for the reading that resolves it: the design document states what is designed, and stating a boundary condition for a script the design never included is `/contract`'s reading to record, not a design revision.
+Known and retained: `design/30-slices.md` § *Outstanding* still names four unreachable script units in its own prose; that count is now stale by one and is left uncorrected here, since `/contract`'s writing surface is this document and `design/30-slices.md`'s body is a slice-lifecycle document this command does not touch.
+Reversibility: cheap. Four new records and four field edits; removing a contract entry once written is the more expensive direction, unchanged from every other addition to § *Public surface*.
 
 ---
 

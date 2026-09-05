@@ -368,7 +368,11 @@ for nothing else, each carrying `Owner`, `Declaration` and `Semantics` — so a 
 ground that a `Declaration` pointing at an absent file is the shape `AnchorMissing` exists to
 reject; S14 wrote the file and `contract/update-workmirror` with it, so that ground no longer
 applies. `tools/Invoke-DoneHousekeeping.ps1` joined on the 2026-08-31 decision, as the one entry
-whose consumer is a rule in a document rather than another module.
+whose consumer is a rule in a document rather than another module. `tools/Test-GatesCache.ps1`,
+`tools/Test-VerifyReport.ps1`, `tools/Test-WriteSurface.ps1` and `tools/Update-SlicesDocument.ps1`
+join on the 2026-09-05 decision below, closing a gap `/reconcile` found: each crosses a module
+boundary — invoked by `/verify`, `/pr`, `/install-all` or `/track` — and none had carried a
+record since the unit itself was written.
 
 **No class compares the two, and this is now the only such gap in this document** — § *Artifacts
 of a unit kind* carried the other until `GlobDisagreement` closed it.
@@ -650,6 +654,97 @@ action is the unchecked kind I15 forbids until a record resolves it (`design/90-
   and every candidate list empty. `-AutoStash` is the one stop that may be converted into a
   continue, and **the stash is never popped**: `StashRef` is reported back so the caller restores
   it explicitly rather than having it reappear on whatever branch is checked out next.
+
+### `tools/Test-GatesCache.ps1`
+
+**The parameter list is the script's own `param` block and is not copied here.** Read or write
+`.claude/gates.json`, a cache of `/verify`'s own gate discovery keyed to a hash of the files whose
+presence or content determines what the gate list is. What the block cannot state:
+
+- **Never discovers a gate.** That stays `/verify`'s judgement call and stays owned by
+  `verify.md`. This script only remembers an answer `/verify` already worked out and says
+  whether it is still trustworthy.
+- **The manifest hash covers exactly the fixed input set `verify.md`'s own discovery table
+  reads** — the *content* of every `.github/workflows/*.yml` and of `package.json`, and the mere
+  *existence* of the known build-script paths, never their content. Anything outside that list
+  never invalidates the cache; widening it is a contract amendment, not a judgement call this
+  script makes for itself.
+- **`-Write` requires `-GatesJson` and is meant to be called once**, immediately after `/verify`
+  performs a real discovery pass by hand — never as a substitute for one.
+- **Carries no exit-code vocabulary.** Emits `Status` of `Fresh`, `Stale`, `Missing`, or
+  `Written`; a caller reads `.Status`, never the process exit code.
+
+### `tools/Test-VerifyReport.ps1`
+
+**The parameter list is the script's own `param` block and is not copied here.** Validates
+`.claude/verify-report.json` — the structured artifact `/verify` writes — before its contents are
+trusted to become a pull request's `Verified` section. What the block cannot state:
+
+- **Never decides what the gates are or whether one should have passed.** That is `/verify`'s
+  judgement, the same division `Test-DesignDrift.ps1` draws for which side of a drift is correct.
+  It only refuses to let a malformed report reach a pull request body unnoticed.
+- **Mechanically enforces three of `AGENTS.md`'s honesty rules**: every gate carries exactly one
+  outcome from the fixed vocabulary `Passed`/`Failed`/`DidNotRun`; a `Failed` gate's `detail` is
+  present and long enough to plausibly be pasted output rather than a label; a `DidNotRun` gate's
+  `reason` is present.
+- Exit codes: 0 `Valid`, 1 `Invalid` — the report parses but breaks an invariant — 2
+  `NotEvaluated` — missing, empty, or not readable JSON at all. **`NotEvaluated` takes
+  precedence**, exactly as `Test-DesignDrift.ps1`'s does: a run that could not read the artifact
+  has nothing to say about its validity, and reporting `Invalid` or `Valid` would be inventing an
+  answer.
+- Never prompts. `-Quiet` suppresses the human-readable report only; the result object is always
+  emitted.
+
+### `tools/Test-WriteSurface.ps1`
+
+**The parameter list is the script's own `param` block and is not copied here.** Checks that a
+target repository's working-tree changes fall within an allowed-prefix list, and reports the
+offending paths if not — `/install-all`'s mechanically enforced write surface. What the block
+cannot state, and what a change to it must preserve:
+
+- **Reads `git status --porcelain=v1 -uall` in `-TargetRepo`**, not a commit range —
+  `/install-all` never commits or pushes, so there is nothing to diff a range against — and runs
+  once per target immediately after that target's writes are applied.
+- **The default prefix list is the canonical, checkable enumeration of what `/install-all` may
+  write**, kept in step with `INSTALL.md` phase 1's artifact table and `.claude/kit.json`'s
+  `syncedCommit`. `.claude/settings.json` is deliberately absent from it: `INSTALL.md` requires
+  proposing its two hook keys and waiting on sign-off unconditionally, which the unattended pass
+  always skips, so a write there must be caught, never allowed through
+  (`decision/2026-08-12-install-all-write-surface-guard`).
+- Exit codes: 0 `InSurface`, 1 `OutOfSurface`, 2 `NotEvaluated` — not a git repository, or `git
+  status` itself failed. **`NotEvaluated` is never a clean pass**; "no changes" and "could not
+  ask" are different results.
+- **`-Revert` is off by default** and reverts every offending path only when passed — `git
+  checkout --` for a tracked change, delete for an untracked one. Destructive operations gate on
+  an explicit flag, never a prompt, and never run silently either.
+- `-Quiet` suppresses the human-readable report only; the result object is always emitted.
+
+### `tools/Update-SlicesDocument.ps1`
+
+**The parameter list is the script's own `param` block and is not copied here.** Retires a landed
+slice's full body out of `design/30-slices.md` § *Outstanding*, into a row under § *Landed*
+(issue #120). What the block cannot state:
+
+- **For every `### S<n> — <name>` section under § *Outstanding*, looks up a tracker issue whose
+  title begins `S<n> `** — the same match `Test-DesignDrift.ps1` uses — open or closed. A slice
+  with no issue, or an open one, is left exactly as found: **not a finding**, since `/track` is
+  what opens a missing issue and closing early is not this script's call.
+- **A slice with a closed issue is retired**: its full section is removed from § *Outstanding*,
+  and a row naming its number, name, the closed issue, the min–max range of every `S<n>.<m>` id
+  in its `Acceptance:` block, and the short SHA of the last commit that touched the file, is
+  appended to § *Landed*.
+- **Never touches the document's hand-authored prose** — the overview blockquote, a slice's
+  narrative preamble, or the "What each delivered" list — because none of that is derivable from
+  the tracker. A session running it still has to read what is left and correct any of that prose
+  the retirement made stale, by hand, in the same commit.
+- **Read-only against the tracker**: never opens, closes, or edits an issue. `-DryRun` reports
+  what would be retired without writing the file.
+- **It is not a module of the design-state mechanism, and this is the amendment that settles
+  it** (`design/90-decisions.md`, 2026-09-05). Its writes land in `design/30-slices.md`'s
+  hand-authored document structure, entirely outside any marked region — that is how the document
+  is kept by design, not the ambiguity I18's wording could otherwise be read to leave open. I18
+  binds the modules `design/10-design.md` § *Module boundaries* names, and this script is not one
+  of them.
 
 ### `.claude/commands/fix.md`
 
