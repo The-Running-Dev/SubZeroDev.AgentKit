@@ -148,8 +148,8 @@ does not resolve it in the implementing session.
 **Nothing is outstanding.** Every slice through S30 has landed and is retired to the
 `## Landed` index below (issue #120's own fix, `tools/Update-SlicesDocument.ps1`, performed
 that retirement). The absorption half of the 2026-08-31 commission is discharged for every
-active unit's `Live` set except the four script units that expose no contract and still carry
-one — `invoke-codexcommand`, `measure-session`, `sync-kit`, `test-writesurface` — which have no
+active unit's `Live` set except the three script units that expose no contract and still carry
+one — `invoke-codexcommand`, `measure-session`, `sync-kit` — which have no
 Markdown heading a site could resolve to at all. That is a limit of the mechanism, not
 unfinished work, and it is in `design/90-decisions.md` § *Open* for `/track` to file.
 
