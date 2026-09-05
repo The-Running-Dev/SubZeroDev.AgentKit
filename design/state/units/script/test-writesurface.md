@@ -3,9 +3,9 @@ Kind: script
 Status: active
 Anchor: tools/Test-WriteSurface.ps1
 Consumes:
-Exposes:
+Exposes: contract/test-writesurface
 Binds:
-Live: decision/2026-08-12-install-all-write-surface-guard
+Live:
 Questions:
 Work:
 Evidence: tools/Test-WriteSurface.Tests.ps1

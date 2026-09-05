@@ -128,7 +128,11 @@ means no record exists yet, not that nothing is true.
 | contract/test-companion | `unit/command/install-all`, `unit/command/verify`, `unit/script/sync-kit` |
 | contract/test-designdrift | `unit/command/track` |
 | contract/test-designstate | `unit/command/verify` |
+| contract/test-gatescache | `unit/command/verify` |
+| contract/test-verifyreport | `unit/command/pr`, `unit/command/verify` |
+| contract/test-writesurface | `unit/command/install-all` |
 | contract/update-designprojection | `unit/script/test-designstate` |
+| contract/update-slicesdocument | `unit/command/track` |
 | contract/update-workmirror | `unit/command/track` |
 | contract/wait-pullrequestcheck | `unit/command/pr`, `unit/command/resolve` |
 <!-- consumers:end -->
@@ -243,6 +247,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-01-contract-carries-the-rescoped-ceiling | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-09-02-list-entries-may-be-quoted | `unit/document/design-20-contract`, `unit/script/read-designstate` |
 | decision/2026-09-02-livealreadystated-is-the-reported-class | `unit/command/reconcile`, `unit/document/design-20-contract`, `unit/script/test-designstate` |
+| decision/2026-09-05-four-scripts-get-contracts-updateslicesdocument-outside-mechanism | `unit/script/test-gatescache`, `unit/script/test-verifyreport`, `unit/script/test-writesurface`, `unit/script/update-slicesdocument` |
 | decision/2026-09-05-routing-non-goal-bars-the-edit-not-the-topic | `unit/document/design-00-brief` |
 | decision/2026-09-05-track-creates-a-project-when-none-exists | `unit/command/track`, `unit/document/agents-md` |
 <!-- decision-affects:end -->

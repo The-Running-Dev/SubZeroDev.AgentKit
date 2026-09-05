@@ -3,7 +3,7 @@ Kind: script
 Status: active
 Anchor: tools/Test-VerifyReport.ps1
 Consumes:
-Exposes:
+Exposes: contract/test-verifyreport
 Binds:
 Live:
 Questions:
