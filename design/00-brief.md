@@ -127,10 +127,18 @@ checked is not finished being written.
   **without opening `design/90-decisions.md`**: contracts it consumes, contracts it exposes,
   invariants that apply to it, accepted decisions, superseded decisions, unresolved questions
   affecting it, dependent GitHub work, and implementation evidence.
-- The design state loaded to begin work on any one named unit — its own record, its companion,
-  and the one hop of records those reference — is **at most 16,384 bytes**, **excluding that
-  unit's own artifact**. Checked mechanically across every unit, with the largest one named in
-  the report. This ceiling is fixed and does not rise as the corpus grows.
+- The design state loaded to begin work on any one named unit — its own record and the one hop
+  of records that record references — is **at most 16,384 bytes**, **excluding that unit's own
+  artifact and its retired companion**. Checked mechanically across every unit, with the largest
+  one named in the report. This ceiling is fixed and does not rise as the corpus grows.
+- **The companion is excluded because retirement is what moves bytes out of the bound.** A
+  session beginning work reads the active half; the archival half is where superseded decisions
+  and retired edges go precisely so they stop being read. Counting it would make retirement move
+  bytes from one counted file to another and save nothing — which is the whole of what the
+  two-file split buys. **This is a correction, not the widening *Abandonment* below forbids.**
+  The mechanism has never counted the companion, `design/10-design.md` and `design/20-contract.md`
+  have always said it does not, and this line was the outlier that said otherwise; no measured
+  number changes, because no companion is large enough to have moved one.
 - **That unit's own artifact is measured and reported beside the bounded number on every run,
   and is itself never bounded.** It is not design state — it is what design state is *about* —
   and for any one unit it is a constant, paid for opening the file the session came to work on.
@@ -197,7 +205,9 @@ checked is not finished being written.
 - **The number has not moved and does not move: 16,384 bytes.** What was re-scoped on
   2026-09-01 is what it counts, not how much it allows — see `design/90-decisions.md` for the
   evidence that forced it. A later change that raises the number, or that quietly widens what is
-  excluded from it, is the relaxation this line forbids.
+  excluded from it, is the relaxation this line forbids. The 2026-09-05 companion correction is
+  the only exclusion added since, and § *Definition of done* above states why it is a correction
+  rather than a widening.
 
 *(The abandonment line is mine to propose and yours to strike — it is the one criterion here
 that was not derived from an answer you gave.)*

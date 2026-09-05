@@ -1095,12 +1095,13 @@ not stand there, which is the shape S24.2 fixed. The candidate is held to the re
 written, by `SiteAmbiguous` and `SiteOutOfReach`, exactly as any site is; this class asserts
 nothing those two would not re-check.
 
-**Adding it opens the `ClassListDisagreement` window this document has opened before**, at the
-2026-08-30 amendment that carried eight blocking ids ahead of their detection. Until a slice adds
-`LiveAlreadyStated` to the checker's declared reported list, the check reports that one blocking
-finding against this repository and exits 1. That is the class list working as specified — the
-alternative is this document editing implementation to keep the gate green, which the 2026-09-01
-entry refused for the meter on the same ground.
+**Adding it opened the `ClassListDisagreement` window this document has opened before**, at the
+2026-08-30 amendment that carried eight blocking ids ahead of their detection. Between this class
+being contracted and S30 declaring it, the check reported that one blocking finding against this
+repository and exited 1. That was the class list working as specified — the alternative is this
+document editing implementation to keep the gate green, which the 2026-09-01 entry refused for
+the meter on the same ground. **The window is closed**: `tools/Test-DesignState.ps1` declares the
+id and, per the row above, never raises it.
 
 **Could not evaluate.** Exit 2, and **never** a pass (I19, I20).
 
