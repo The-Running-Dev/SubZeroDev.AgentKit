@@ -1,7 +1,8 @@
 # decision/2026-08-31-self-check-asserts-adjudicated-findings
 Date: 2026-08-31
 Anchor: 2026-08-31 — The repository's own design-state self-check asserts its adjudicated finding set, not exit 0
-Status: accepted
+Status: superseded
+SupersededBy: decision/2026-09-05-self-check-asserts-a-clean-run
 StatedIn: 
 
 ## Claim

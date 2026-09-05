@@ -62,6 +62,11 @@ and preferences belong in `AGENTS.md`.
 - **Running the code beats recalling it.** A golden-test vector written from memory was
   wrong; executing the reference implementation caught it before it became the expected
   value everything else was checked against.
+- **A test that hardcodes the size of a set the design lets grow guards the wrong thing.**
+  `Test-DesignState.Tests.ps1`'s contract-record count went stale three times — 8→9, 9→10,
+  10→14 — and each staleness surfaced as a red gate on an unrelated pull request, costing a
+  triage pass to re-establish that the addition was legitimate. Assert the correspondence — a
+  record per named surface, and no more — not the cardinality.
 - **Several confident recollections were wrong.** Every claim about an external contract
   should be checked against the published spec, not remembered.
 
