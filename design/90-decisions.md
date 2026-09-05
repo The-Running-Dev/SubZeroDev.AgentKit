@@ -17,6 +17,32 @@ that reason are absorbed. The script-unit-with-no-contract todo is [#211](../../
 the 2026-09-03 log entry (`/track` retires a landed slice's body, via a new mechanical script),
 which left `tools/Test-DesignState.ps1` reporting a blocking `LogEntryUnrecorded`, is
 [#227](../../issues/227).
+
+Two items from `/reconcile`'s 2026-09-05 pass, both `/contract`'s at `opus`/`high` and neither
+resolved in that session. **Four scripts are invoked across a module boundary and have no
+`Contract` record** — `tools/Test-GatesCache.ps1` (by `/verify`), `tools/Test-VerifyReport.ps1`
+(by `/verify` and `/pr`), `tools/Test-WriteSurface.ps1` (by `/install-all`) and
+`tools/Update-SlicesDocument.ps1` (by `/track`) — against § *Public surface*'s claim that a
+record exists for every surface it names "and for nothing else". That is the one restatement
+the document says no class compares, now false in four places; closing it also makes
+`unit/script/test-writesurface` absorbable, removing one of the four units
+`design/30-slices.md` § *Outstanding* records as unreachable. **I18's scope needs stating**:
+`tools/Update-SlicesDocument.ps1` moves prose sections inside `design/30-slices.md` outside any
+marked region and is in no row of `design/10-design.md` § *Module boundaries*, so "no module of
+this mechanism writes outside a marked region" is currently readable two ways. The decision is
+that it is not a module of the design-state mechanism; the amendment that says so is
+`/contract`'s.
+
+---
+
+### 2026-09-05 — `/track` creates a project when none exists; the 2026-08-03 entry is amended to say so
+Context: `/reconcile` found `.claude/commands/track.md` § *Projects* creating a project named after the repository when none matches, against a 2026-08-03 entry whose title is *"`/track` adds issues to an existing project, and never creates one"* and whose `Rejected` list turns down creation by name. The 2026-08-04 entry *Ticking, closing, editing someone else's issue, and creating a milestone or project are all carved out now* moved creation out of the authorization rule and `Amends:` two other entries — not this one — so the behaviour changed and the entry forbidding it stayed accepted. `design/10-design.md` § *WorkRef* and `design/20-contract.md` § `tools/Update-WorkMirror.ps1` both quoted the forbidding clause as the reason `Rank` degrades, so a false premise was load-bearing in two documents.
+Chosen: **The tree is correct and the entry is amended.** `/track` creates a project named after the repository when none matches, adds every issue it opened to it, and says that it did; the board is bare, because column and field structure is a design choice a command gets generically wrong, and that half of the 2026-08-03 reasoning survives intact. Creating and adding stay the only project writes. `AGENTS.md` § *Tracking work* already carries the authorization half — *"Creating one no longer needs approval; deleting one still does"* — which is a dead letter under the old entry and is what makes the tree the side to keep. The `Rank` degradation is unchanged and its stated reason is re-pointed at the cases that actually produce a projectless repository: one the account does not own, one where the `project` scope was never granted, and one `/track` has not run in yet. `decision/2026-08-03-track-adds-to-existing-project`'s `Claim` is trimmed to its standing terms, on the 2026-08-29 precedent; the log entry itself is untouched (I26).
+Rejected: **Revert `track.md` to match the entry** — restores a decision that was made with reasons and never overturned by evidence; rejected because it makes `AGENTS.md`'s own project-creation sentence vacuous, and because the behaviour has shipped to eighteen targets, so reverting silently withdraws a board some of them may already have. **Supersede the 2026-08-03 entry rather than amend it** — cleaner lineage; rejected because most of that entry still stands, so superseding would archive live terms — matching by repository name, adding every opened issue, never removing or reordering, a missing board skipping only the project step. **Leave the contradiction and file it** — cheapest, and it leaves two design documents resting a live mechanism on a premise the tree contradicts, which is the drift this pass exists to end.
+Reversibility: cheap — one bullet in `track.md`, two rationale clauses in `design/`, one `Claim`.
+Amends: 2026-08-03 — `/track` adds issues to an existing project, and never creates one — its clause "never creates a project". The rest of that entry stands.
+Found by: `/reconcile`, which reads a decision record's `Claim` against the artifact the decision is live on. No divergence class sees this: it is the `SemanticDisagreement` residual `design/10-design.md` § *Failure modes* names as "a claim in a record is simply wrong — not detected".
+
 ---
 
 ### 2026-09-02 — A list entry may be quoted, so a `StatedIn` site can name a heading that contains a comma

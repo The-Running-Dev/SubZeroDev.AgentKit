@@ -5,7 +5,7 @@ Anchor: .claude/commands/fix.md
 Consumes:
 Exposes: contract/fix
 Binds: I6, I10, I11
-Live: decision/2026-08-08-pr-absorbs-gates-drafts-abolished, decision/2026-08-19-pr-real-description-at-open
+Live:
 Questions:
 Work:
 Evidence:

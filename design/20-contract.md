@@ -606,9 +606,9 @@ generator. What that block cannot state:
   (I28). **`MirrorStale`'s own comparison is unchanged** — it still fires for every record the
   current commit did not write, so a mirror is still stale by default and still says so.
 - **`Rank` degrades rather than failing: a project field where a project exists, otherwise
-  milestone, otherwise issue number.** `/track` "adds issues to an existing project, and never
-  creates one" (`design/90-decisions.md`, 2026-08-03), so a repository with no project is the
-  ordinary case rather than the broken one. Every step of the degradation is silent by design and
+  milestone, otherwise issue number.** A repository with no project is the ordinary case rather
+  than the broken one — the account may not own it, the `project` scope may never have been
+  granted, or `/track` may not have run in it yet. Every step of the degradation is silent by design and
   **falling through to issue number is not a finding** — but an emitted `WorkRef` never lacks a
   `Rank`, because an order that quietly disappeared would fail the brief's offline criterion
   without anything saying so.

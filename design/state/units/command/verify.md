@@ -5,7 +5,7 @@ Anchor: .claude/commands/verify.md
 Consumes: contract/test-companion, contract/test-designstate
 Exposes:
 Binds:
-Live: decision/2026-08-03-verify-discovers-gates-reports-what-did-not-run
+Live:
 Questions:
 Work:
 Evidence:

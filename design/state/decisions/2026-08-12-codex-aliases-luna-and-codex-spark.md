@@ -4,4 +4,4 @@ Anchor: 2026-08-12 — Two more Codex names added to the vendor alias list: `Lun
 Status: accepted
 
 ## Claim
-Two rows are added to the Codex vendor alias table — `Luna` at High volume, `Codex Spark` at Implementation — following the rule of adding rows rather than new columns on the primary tier table.
+`Codex Spark` is added to the Codex vendor alias table at Implementation, following the rule of adding rows rather than new columns on the primary tier table.
