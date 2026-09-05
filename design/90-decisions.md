@@ -13,12 +13,10 @@ entry immediately below answers all six. The three todos that followed from that
 quoted-entry production (`tools/Read-DesignState.ps1`, `Split-DesignListValue`), the contract's
 scaffold paragraph is replaced by a pointer, and the three decisions S24 left unabsorbable for
 that reason are absorbed. The script-unit-with-no-contract todo is [#211](../../issues/211). The
-`LiveAlreadyStated`-declaration todo is [#219](../../issues/219). The 2026-09-03 log entry
-*`/track` retires a landed slice's body, via a new mechanical script* has no decision record
-naming it as `Anchor`, so `tools/Test-DesignState.ps1` reports a blocking `LogEntryUnrecorded`
-against it; found by the 2026-09-05 brief amendment and left for its own session, because
-authoring another change's record means asserting a `StatedIn` and a `Live` for work this one
-did not do.
+`LiveAlreadyStated`-declaration todo is [#219](../../issues/219). The missing decision record for
+the 2026-09-03 log entry (`/track` retires a landed slice's body, via a new mechanical script),
+which left `tools/Test-DesignState.ps1` reporting a blocking `LogEntryUnrecorded`, is
+[#227](../../issues/227).
 ---
 
 ### 2026-09-02 — A list entry may be quoted, so a `StatedIn` site can name a heading that contains a comma
