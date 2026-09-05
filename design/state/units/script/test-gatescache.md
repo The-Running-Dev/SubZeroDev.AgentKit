@@ -3,7 +3,7 @@ Kind: script
 Status: active
 Anchor: tools/Test-GatesCache.ps1
 Consumes:
-Exposes:
+Exposes: contract/test-gatescache
 Binds:
 Live:
 Questions:

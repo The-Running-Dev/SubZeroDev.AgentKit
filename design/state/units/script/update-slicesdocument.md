@@ -3,7 +3,7 @@ Kind: script
 Status: active
 Anchor: tools/Update-SlicesDocument.ps1
 Consumes:
-Exposes:
+Exposes: contract/update-slicesdocument
 Binds:
 Live:
 Questions:

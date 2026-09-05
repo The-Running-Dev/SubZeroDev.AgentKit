@@ -2,7 +2,7 @@
 Kind: command
 Status: active
 Anchor: .claude/commands/verify.md
-Consumes: contract/test-companion, contract/test-designstate
+Consumes: contract/test-companion, contract/test-designstate, contract/test-gatescache, contract/test-verifyreport
 Exposes:
 Binds:
 Live:
