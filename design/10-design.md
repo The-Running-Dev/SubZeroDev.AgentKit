@@ -385,7 +385,8 @@ The brief's 16,384-byte ceiling is only checkable if "the state loaded to begin 
 *defined set*. It is:
 
 > **closure(U) = the active record of U, plus the record of every id that record names
-> directly, plus U's own artifact.** One hop. Not transitive. The companion is not in it.
+> directly.** One hop. Not transitive. The companion is not in it, and neither is U's own
+> artifact: that is measured and reported beside the bounded figure, never inside it (I23).
 
 Five consequences, all load-bearing:
 
@@ -426,7 +427,8 @@ Five consequences, all load-bearing:
   openable and the closure is a sum of whole files. A representation where records share a
   file would make the metric understate the load, because a reader opens the file. It is the
   same argument that puts the retired halves in their own file rather than lower down in the
-  same one, and the same argument that puts the artifact in.
+  same one. It is also the argument that keeps the artifact in the *report* — what a reader
+  opens must be stated — rather than in the bound, which is a different question.
 
 Nothing is filtered at measurement time. The closure has no exclusion clause left, because
 *Every reference sits in the half its referent's state requires* removed the need for one.
@@ -527,8 +529,10 @@ by any other means.
 
 **The meter now reads the tree, and that is a widening worth naming.** Resolving a site's
 heading and sizing a unit's artifact both need the checkout, which the validator already
-needed, and the second is no longer incidental — the artifact is a term in the sum. It is not a read of a projection, so it does not close the loop, and it needs nothing
-but the checkout, so it does not disturb the blocking rule below.
+needed, and the second is no longer incidental — the artifact is measured on its own and
+reported beside the sum rather than counted inside it (I23). It is not a read of a projection,
+so it does not close the loop, and it needs nothing but the checkout, so it does not disturb
+the blocking rule below.
 
 **Two boundary conditions the rest of the kit imposes.**
 
@@ -654,7 +658,7 @@ brief's scope answer expressed as a flow.
 | Line endings differ but content does not | Normalise before comparing | **Not a finding** | Nothing |
 | A decision anchor resolves to zero or two headings | Heading scan of the log | Finding, blocking | The anchor and the count |
 | A log entry has no decision record | Set difference against the log's headings | Finding, blocking | The entry's heading |
-| A closure exceeds the ceiling | The meter | Finding, blocking | The unit, its size, and its largest contributor — usually the artifact |
+| A closure exceeds the ceiling | The meter | Finding, blocking | The unit, its bounded size, its largest contributor — **always a record** — and that unit's own artifact size, named separately and never folded into the bounded one |
 | An invariant enforced by `code` has no evidence | Field check | Finding, blocking | The invariant id |
 | `gh` absent or unauthenticated | Non-zero exit on first call | **Could not evaluate** for tracker classes only; the rest of the run completes | Named as a comparison that did not happen |
 | A shallow CI checkout | No history for `merge-base` | **Could not evaluate** for ancestry, and never a pass | That ancestry was not checked, and why |
