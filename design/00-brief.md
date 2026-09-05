@@ -96,7 +96,10 @@ one of them looks trivial, and including when a session is already touching that
 - **Model routing and tier policy are not changed.** The table in `AGENTS.md` (*Model, effort,
   and review budget*), the vendor alias list, and *Command routing* are not this project's to
   edit. Spending less reasoning is the goal; redefining which model does what is a different
-  project.
+  project. **This bars the edit, not the topic.** Taking a command's mechanical half out of a
+  session altogether — so that no model runs it, rather than a cheaper one — is that different
+  project's to define, and this line neither authorises it here nor forecloses it there.
+  Whichever project makes such a change owns the *Command routing* edit it implies.
 - **No formal specification of behaviour.** No specification language, model checking, proofs,
   or executable specification of what the software does. Assertions about *references and
   existence* — this path exists, this id is present, this commit is an ancestor — are in scope;
