@@ -192,10 +192,10 @@ true, and it is the only reading under which the brief's two work-state lines do
 contradict each other.
 
 `Rank` degrades rather than failing: a project field where a project exists, otherwise
-milestone then issue number. `/track` "adds issues to an existing project, and never creates
-one" (`design/90-decisions.md`, 2026-08-03), so a repository with no project must still
-produce an order, and an order that silently disappeared would break the offline criterion
-without saying so.
+milestone then issue number. A repository with no project is an ordinary state rather than a
+broken one — the account may not own it, the `project` scope may never have been granted, or
+`/track` may not have run in it yet — so a mirror written there must still produce an order,
+and an order that silently disappeared would break the offline criterion without saying so.
 
 ### Marked region
 
