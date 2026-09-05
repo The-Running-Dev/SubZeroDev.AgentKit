@@ -1,6 +1,6 @@
 # Slices
 
-> **Six paths appear here, five of them landed.** The **defect-to-merge path** landed as S1–S3; its
+> **Six paths appear here, all landed.** The **defect-to-merge path** landed as S1–S3; its
 > bodies are retired to the index under `## Landed` and its design body to
 > `git show dfd1cab:design/10-design.md`. The **explicit design-state mechanism**, designed in
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, landed as
@@ -14,8 +14,7 @@
 > **S26–S29**. All seven bodies are retired to the same index; nothing performed that
 > retirement until [#120](../../issues/120), whose fix is `tools/Update-SlicesDocument.ps1`.
 > The sixth is the **detection half of the same 2026-08-31 decision** — the class that reports a
-> `Live` set quietly refilling, contracted on 2026-09-02 and not yet declared by the checker —
-> and it is outstanding as **S30**.
+> `Live` set quietly refilling, contracted on 2026-09-02 — and it landed as **S30**.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -146,87 +145,17 @@ does not resolve it in the implementing session.
 
 ## Outstanding
 
-**One slice, and it closes the 2026-08-31 commission.** Every slice through S29 has landed and
-is retired to the `## Landed` index below (issue #120's own fix,
-`tools/Update-SlicesDocument.ps1`, performed that retirement). The absorption half of the
-2026-08-31 decision is discharged for every active unit's `Live` set except the four script
-units that expose no contract and still carry one — `invoke-codexcommand`, `measure-session`,
-`sync-kit`, `test-writesurface` — which have no Markdown heading a site could resolve to at all.
-That is a limit of the mechanism, not unfinished work, and it is in `design/90-decisions.md`
-§ *Open* for `/track` to file.
+**Nothing is outstanding.** Every slice through S30 has landed and is retired to the
+`## Landed` index below (issue #120's own fix, `tools/Update-SlicesDocument.ps1`, performed
+that retirement). The absorption half of the 2026-08-31 commission is discharged for every
+active unit's `Live` set except the four script units that expose no contract and still carry
+one — `invoke-codexcommand`, `measure-session`, `sync-kit`, `test-writesurface` — which have no
+Markdown heading a site could resolve to at all. That is a limit of the mechanism, not
+unfinished work, and it is in `design/90-decisions.md` § *Open* for `/track` to file.
 
-**The detection half is now contracted and not yet built, which is what S30 is.** The class is
-`LiveAlreadyStated`, added to `design/20-contract.md` § *The divergence classes* by the
-2026-09-02 amendment, and that amendment said in terms that adding the row opens a
-`ClassListDisagreement` window until a slice adds the id to the checker's declared reported
-list. That window is open: run against this repository on 2026-09-03 at `c63cae8`, the checker
-reports `ClassListDisagreement`, `contract-only: [Reported:LiveAlreadyStated]`, and exits 1.
-This is the same interim state § *Interim findings are expected* describes, except that CI is
-wired and the build is red for the duration.
-
-## S30 — The check names the one thing that can quietly undo an absorption
-Delivers: Anyone maintaining this kit gets a green design-state build back, and a
-          reconciliation pass gains a named finding for the case nothing else catches — a
-          decision still being carried as unsettled by a part of the kit that has, in fact,
-          already written that decision down where its readers will meet it. Without the name,
-          a list somebody spent four slices emptying refills without anyone noticing.
-Touches: `tools/Test-DesignState.ps1`, `tools/Test-DesignState.Tests.ps1`,
-         `.claude/commands/reconcile.md`,
-         `design/state/contracts/test-designstate.md`,
-         `design/state/decisions/2026-09-02-livealreadystated-is-the-reported-class.md`,
-         `design/state/units/script/test-designstate.md`,
-         `design/state/units/command/reconcile.md`, `design/state-index.md`
-Depends on: none. The contract row landed at [#205](../../pull/205), and S29 discharged the
-            absorption half this pairs with.
-Acceptance:
-  - S30.1 `$script:ReportedClasses` in `tools/Test-DesignState.ps1` contains
-    `LiveAlreadyStated`, and a run of the checker against this repository emits no
-    `ClassListDisagreement` finding — the detail line reads `declared-only: []; contract-only:
-    []` where it read `contract-only: [Reported:LiveAlreadyStated]` before.
-  - S30.2 The checker declares the id and never raises it. A run against this repository, and a
-    run against a fixture tree containing a unit whose `Live` decision's `## Claim` text appears
-    verbatim under a heading of that unit's own `Anchor` file, each produce **zero** findings of
-    class `LiveAlreadyStated`. The second is the case a raiser would fire on, and it is what
-    proves the script is not quietly raising it.
-  - S30.3 `$script:MinimalContract` in `tools/Test-DesignState.Tests.ps1` carries the
-    `LiveAlreadyStated` row in its *Reported, never blocking* table; the near-miss test that
-    asserted "exactly the same 31 ids" asserts 32; both it and the paired fires test pass.
-  - S30.4 `.claude/commands/reconcile.md` gains one report section instructing the pass to
-    compare each active unit's `Live` against the artifact it is live on and to report each
-    apparent match under the name `LiveAlreadyStated`, with a payload of three parts — the unit
-    id, the decision id, and the candidate site in `<id> § <heading>` form — and stating that
-    the pass reports and never absorbs, so that acting on it stays the caller's step 4 of
-    `AGENTS.md` § *Writing a design-state record*. A test asserts the file contains the literal
-    `LiveAlreadyStated`; the section cites the contract rather than restating the class table.
-  - S30.5 `decision/2026-09-02-livealreadystated-is-the-reported-class` gains two `StatedIn`
-    sites — `contract/test-designstate § Semantics` and the new `unit/command/reconcile`
-    heading — each written into its target in the same commit; the id leaves
-    `unit/script/test-designstate`'s `Live`; and the checker reports no `SiteAmbiguous`,
-    `SiteOutOfReach`, or `SiteContradictsLive`.
-  - S30.6 `unit/script/test-designstate`'s bounded closure is **strictly lower after than
-    before**, and the slice states both numbers. It measured 15,054 bytes against `c63cae8`.
-    A closure that grew means the `Semantics` text added more than the absorbed record removed;
-    report that rather than trimming the record until the number moves.
-  - S30.7 `pwsh tools/Test-DesignState.ps1` exits 0 against this repository with an empty
-    findings list, and `Invoke-Pester tools/Test-DesignState.Tests.ps1` reports zero failures.
-    Two of the five failures standing at `c63cae8` are not this slice's — see *Out of scope*;
-    if they are still open when this slice lands, S30.7 is met by naming them and their issue
-    numbers, never by relaxing an assertion.
-Out of scope: **Raising the class.** The contract is explicit that the raiser is a reading and
-              the script only declares the id; putting detection in `tools/Test-DesignState.ps1`
-              would place a model's judgement of prose behind a gate, which I22 forbids and
-              which `SemanticDisagreement` already refuses for the same reason. **Acting on any
-              finding the new `/reconcile` section produces** — absorbing a `Live` decision the
-              first run of it turns up is the next pass's work; the slice's own absorption in
-              S30.5 is the mechanism's step 4 for the one decision it implements, not the start
-              of a pass. **The two unrelated red gates at `c63cae8`**: the 2026-09-03 log entry
-              with no decision record (`LogEntryUnrecorded`), and the hardcoded contract-record
-              count of 9 in `tools/Test-DesignState.Tests.ps1` that [#205](../../pull/205) made
-              10. Both are other pull requests' defects, both are `/fix`'s, and folding either
-              in makes this slice's diff unreviewable.
-
-The two notes at the end of this section outlive any one set and are kept for whatever is
-appended.
+The detection half of the same commission — the `LiveAlreadyStated` class, added to
+`design/20-contract.md` § *The divergence classes* by the 2026-09-02 amendment — landed as S30:
+the checker declares the id and `/reconcile` raises it.
 
 ### A note on counts
 
@@ -275,6 +204,7 @@ repository during S5–S11, not a defect, and it is why S12 rather than S5 carri
 | **S27** | The architecture document and the installation guide stop carrying theirs | [#208](../../issues/208), closed | S27.1–S27.6 | `060ca3f` |
 | **S28** | The six commands that carry the most history stop carrying it | [#209](../../issues/209), closed | S28.1–S28.6 | `060ca3f` |
 | **S29** | The rest of the commands stop carrying theirs, and the pass is discharged | [#210](../../issues/210), closed | S29.1–S29.6 | `060ca3f` |
+| **S30** | The check names the one thing that can quietly undo an absorption | [#222](../../issues/222), closed | S30.1–S30.7 | `8073431` |
 
 What each delivered, in one line, because the index is the only place a reader now meets
 them:
