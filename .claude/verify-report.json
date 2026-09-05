@@ -18,7 +18,7 @@
     {
       "name": "Check the design state against the tree",
       "status": "Failed",
-      "detail": "tools/Test-DesignState.ps1 exit code 1. One blocking finding: [LogEntryUnrecorded] 2026-09-03 - `/track` retires a landed slice's body, via a new mechanical script: log heading has no decision record naming it as Anchor. This finding is pre-existing (present before this PR's changes, confirmed via stash-and-restore against the pre-PR tree) and is already tracked as GitHub issue #227. 38 reported (never-blocking) findings: 36 MirrorStale entries (WorkRef mirrors stale relative to the current commit, expected since /track has not run since this PR's commit) and 2 WorkStateDivergence entries (work/183 title, work/222 state) reflecting tracker drift unrelated to this PR. Zero could-not-evaluate."
+      "detail": "tools/Test-DesignState.ps1 exit code 1. One blocking finding: [LogEntryUnrecorded] 2026-09-03 - `/track` retires a landed slice's body, via a new mechanical script: log heading has no decision record naming it as Anchor. This finding is pre-existing (present before this PR's changes, confirmed via stash-and-restore against the pre-PR tree) and is already tracked as GitHub issue #227. 37 reported (never-blocking) MirrorStale findings - WorkRef mirrors stale relative to the current commit, expected since /track has not re-run since this branch's last commit. Zero WorkStateDivergence and zero could-not-evaluate at the current head (after fast-forwarding onto an upstream main merge that landed while this PR was open, which itself refreshed the mirror for two previously-divergent entries)."
     }
   ]
 }
