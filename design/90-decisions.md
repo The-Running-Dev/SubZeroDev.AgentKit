@@ -28,6 +28,19 @@ unreachable script units — `invoke-codexcommand`, `measure-session`, `sync-kit
 `test-writesurface`'s absorption is done; correcting that count is `/track`'s or a slice's, not
 this amendment's to make in a document `/contract` does not write.
 
+`/clean` cannot run inside a `.claude/worktrees/` session: `tools/Invoke-DoneHousekeeping.ps1`
+checks out the default branch as its first step, and `git checkout main` there fails with
+`fatal: 'main' is already used by worktree at '<primary checkout>'`, because a branch can only be
+checked out in one worktree at a time. The script reports `Stopped: true`, but with a `Reason` of
+`CheckoutFailed` that `.claude/commands/clean.md` § *Run the mechanical half* does not document —
+only `UnmergedCurrentBranch` is named there. Found 2026-09-05 by `/next` inside worktree
+`elegant-leavitt-4b0ad8`, working branch `feature/nexr-1cf27e`, running against merged PR #235's
+leftover branch `track/refresh-and-script-count-fix`; nothing was deleted or stashed. Todo, not a
+decision: `/clean` (or the script it calls) needs a worktree-aware path — running the `--merged`
+comparison and delete against the default branch's ref without checking it out — or `.claude/commands/clean.md`
+needs to document `CheckoutFailed` as a third hard-stop `Reason` alongside a note that worktree
+sessions should hand this off to the primary checkout instead.
+
 ---
 
 ### 2026-09-05 — § *Failure modes* gets the eight missing rows rather than becoming a pointer
