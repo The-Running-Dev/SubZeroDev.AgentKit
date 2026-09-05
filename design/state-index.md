@@ -250,6 +250,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-05-brief-ceiling-excludes-the-retired-companion | `unit/document/design-00-brief` |
 | decision/2026-09-05-four-scripts-get-contracts-updateslicesdocument-outside-mechanism | `unit/script/test-gatescache`, `unit/script/test-verifyreport`, `unit/script/test-writesurface`, `unit/script/update-slicesdocument` |
 | decision/2026-09-05-routing-non-goal-bars-the-edit-not-the-topic | `unit/document/design-00-brief` |
+| decision/2026-09-05-self-check-asserts-a-clean-run | `unit/script/test-designstate` |
 | decision/2026-09-05-track-creates-a-project-when-none-exists | `unit/command/track`, `unit/document/agents-md` |
 <!-- decision-affects:end -->
 
