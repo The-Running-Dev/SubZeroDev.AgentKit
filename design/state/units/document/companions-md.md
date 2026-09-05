@@ -5,7 +5,7 @@ Anchor: .claude/COMPANIONS.md
 Consumes:
 Exposes:
 Binds:
-Live: decision/2026-08-12-commands-split-core-and-companion
+Live:
 Questions:
 Work:
 Evidence:

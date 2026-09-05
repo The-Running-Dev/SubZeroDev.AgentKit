@@ -650,6 +650,7 @@ brief's scope answer expressed as a flow.
 |---|---|---|---|
 | A record names an id that does not exist | Graph validation | Finding, blocking | The referring record, the missing id |
 | A record's anchor names a path not in the tree | `Test-Path` | Finding, blocking | Both, and which of the two is wrong is **the user's call** |
+| A contract's owner is not the unique active unit whose `Exposes` names it — nobody, or two | Set comparison against the units | Finding, blocking | The contract, its owner, and every unit exposing it |
 | A tree artifact of a unit kind has no record | Set difference, both directions | Finding, blocking | The unrecorded artifact |
 | A record's line does not parse | The reader | **Could not evaluate**, exit 2 | The file and line, verbatim. Never dropped |
 | A companion exists with no active record, or duplicates a field the active record carries | File pairing | Finding, blocking | Both files |
@@ -661,17 +662,24 @@ brief's scope answer expressed as a flow.
 | A `SupersededBy` chain revisits a decision, or a decision names itself | Chain walk with a visited set | Finding, blocking | The cycle, in order |
 | An id appears in both halves of one edge | Set intersection per edge across the pair of files | Finding, blocking | The record, the edge, and the id |
 | A marked region is unbalanced or nested | Marker scan | Finding, blocking | The document and the marker |
+| An id is duplicated, renumbered, disagrees with its file path, or appears in both marker forms | Id scan across the state set | Finding, blocking | Every file claiming it |
 | A projection differs from its regeneration | Regenerate to memory, compare | Finding, blocking | A diff of the region |
 | Line endings differ but content does not | Normalise before comparing | **Not a finding** | Nothing |
 | A decision anchor resolves to zero or two headings | Heading scan of the log | Finding, blocking | The anchor and the count |
 | A log entry has no decision record | Set difference against the log's headings | Finding, blocking | The entry's heading |
+| The checker's declared class ids differ from `design/20-contract.md`'s list | Set difference, both directions | Finding, blocking | Both sets, and the difference in each direction |
+| For a globbed unit kind, the contract's patterns and the checker's enumeration resolve to different file sets | Expand both against the checkout, compare the sets | Finding, blocking | The kind, the direction, and the paths |
 | A closure exceeds the ceiling | The meter | Finding, blocking | The unit, its bounded size, its largest contributor — **always a record** — and that unit's own artifact size, named separately and never folded into the bounded one |
 | An invariant enforced by `code` has no evidence | Field check | Finding, blocking | The invariant id |
 | `gh` absent or unauthenticated | Non-zero exit on first call | **Could not evaluate** for tracker classes only; the rest of the run completes | Named as a comparison that did not happen |
 | A shallow CI checkout | No history for `merge-base` | **Could not evaluate** for ancestry, and never a pass | That ancestry was not checked, and why |
+| The projector is absent or exits non-zero | Non-zero exit from `-DryRun` | **Could not evaluate** for the projection comparison, never clean | That the regeneration did not happen, so staleness is uncomputed rather than absent |
+| A list `design/20-contract.md` is canonical for cannot be read or parsed | The parse of that section | **Could not evaluate** for the class it feeds, never an empty difference | Which list, and which class is left uncomputed. Read-and-disagrees is a finding; cannot-read is not |
 | The tracker moved during a mirror refresh | Not detected | Mirror is stale, which is its normal state | `MirroredAt`, so staleness is visible rather than inferred |
+| A `WorkRef` disagrees with the tracker | Compare the mirrored fields against `gh` | **Reported, never blocking** — it needs the network, and an absent comparison must not read as a divergence | The record, the field, and both values |
 | The state set is absent entirely | Zero records | **Could not evaluate**, exit 2. Never clean | That nothing was checked — the I8 shape |
 | `design/FROZEN.md` exists | File exists | Downgrade blocking to reported; exit 2 still stands | The count downgraded, and the marker's `Frozen because` and `Lifts when` **verbatim** |
+| A decision in a unit's `Live` whose terms already stand somewhere that unit's reader reaches, with no site naming that place | **A reading, not a check** — `/reconcile` compares a unit's `Live` against the artifact it is live on | **Reported, never blocking.** The checker declares the id and never raises it | The unit, the decision, and the candidate site in `StatedIn`'s own form |
 | A claim in a record is simply wrong | **Not detected** | Nothing | Nothing — see below |
 | A site's section is reworded and stops stating its decision | **Not detected** | Nothing | Nothing — see below |
 

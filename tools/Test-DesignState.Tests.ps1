@@ -1897,12 +1897,49 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
     }
 
     It 'S16.1/S16.2: this repository has one Contract record per design/20-contract.md Public-surface entry, and OwnerMismatch reports none' {
-        # S14 wrote tools/Update-WorkMirror.ps1 and contract/update-workmirror with it, so the
-        # S16.6 exclusion (a Declaration pointing at an absent file) no longer applies - the
-        # count grew from 8 to 9 with it.
+        # This asserted a hardcoded count, which went stale three times as the section
+        # legitimately grew - 8 to 9 at S14, to 10 on 2026-08-31, to 14 on 2026-09-05 - and
+        # each staleness surfaced as a red gate on an unrelated pull request. The number was
+        # never the property worth defending; the correspondence is, and design/20-contract.md
+        # states it in both directions: "a record exists for every surface named below and for
+        # nothing else". A surface entry is a ### heading under ## Public surface whose text
+        # begins with a backticked path; the other headings there are prose about the section.
         $graph = Read-DesignStateGraph -Path $script:RepoRoot
-        $contracts = @($graph.Records | Where-Object { $_.Kind -eq 'Contract' })
-        $contracts.Count | Should -Be 9
+        $contractText = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'design/20-contract.md')
+
+        $surfacePaths = [System.Collections.Generic.List[string]]::new()
+        $inSection = $false
+        foreach ($line in $contractText) {
+            if ($line -match '^## Public surface\s*$') { $inSection = $true; continue }
+            if ($inSection -and $line -match '^## ') { break }
+            if (-not $inSection) { continue }
+            if ($line -match '^### `([^`]+)`') { $surfacePaths.Add($Matches[1]) }
+        }
+        $surfacePaths.Count | Should -BeGreaterThan 0 -Because 'the Public-surface section must be readable at all'
+
+        $unitByAnchor = @{}
+        foreach ($unit in $graph.Records | Where-Object { $_.Kind -eq 'Unit' -and $_.Scalars['Status'] -eq 'active' }) {
+            $anchor = $unit.Scalars['Anchor']
+            if ($anchor) { $unitByAnchor[$anchor] = $unit.Id }
+        }
+
+        $contracts = @($graph.Records | Where-Object { $_.Kind -eq 'Contract' -and $_.Scalars['Status'] -eq 'active' })
+        $ownerIds = @($contracts | ForEach-Object { $_.Scalars['Owner'] })
+
+        # Every named surface has exactly one Contract record, owned by the unit anchored there.
+        foreach ($path in $surfacePaths) {
+            $unitId = $unitByAnchor[$path]
+            $unitId | Should -Not -BeNullOrEmpty -Because "design/20-contract.md names $path as public surface, so an active unit must be anchored there"
+            $owned = @($ownerIds | Where-Object { $_ -eq $unitId })
+            $owned.Count | Should -Be 1 -Because "$path has $($owned.Count) Contract records; the section claims exactly one"
+        }
+
+        # And nothing else does - no Contract record whose owner's artifact the section does not name.
+        foreach ($contract in $contracts) {
+            $ownerAnchor = ($graph.Records | Where-Object { $_.Id -eq $contract.Scalars['Owner'] }).Scalars['Anchor']
+            $surfacePaths | Should -Contain $ownerAnchor -Because "$($contract.Id) is owned by a unit anchored at $ownerAnchor, which design/20-contract.md's Public-surface section does not name"
+        }
+
         (@($script:RealResult.Findings | Where-Object { $_.Class -eq 'OwnerMismatch' })).Count | Should -Be 0
     }
 
