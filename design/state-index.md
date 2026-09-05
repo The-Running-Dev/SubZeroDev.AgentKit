@@ -279,13 +279,9 @@ that looks old.
 <!-- outstanding:start -->
 | Rank | Issue | Title | Criteria | Mirrored at |
 |---|---|---|---|---|
-| 29 | #140 | The absorbed edge is decided and not implemented | — | `5c4534e7e41773cfb17d44e042c73e0519be287d` |
-| 151 | #151 | Five decision records exist with no unit naming them, and a new rule would flag each as a finding | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
-| 152 | #152 | question/answered-question-unit-edge is recorded open despite being answered on 2026-08-29 | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
-| 153 | #153 | ClosureOverBudget is green for a reason now known to be wrong | — | `34440ed6c5da92717d61318f22eb60a36fca3681` |
 | 183 | #183 | Housekeeping commands (/clean, /next) run as full model sessions for work that is already scripted | — | `17c678ac80b8fbb9c6fa3b7f2567a62e7369ce08` |
 | 184 | #184 | The -Watch context-size warning fires with no consequence | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
 | 211 | #211 | A script unit that exposes no contract has nowhere to absorb a decision into | — | `c63cae8f19298c5dc92a01883153c0f699c7b0c0` |
-| 219 | #219 | tools/Test-DesignState.ps1 does not yet declare LiveAlreadyStated | — | `c63cae8f19298c5dc92a01883153c0f699c7b0c0` |
+| 239 | #239 | C:/Program Files/Git/clean stops with an undocumented reason, and offers no path forward, when run from inside a worktree session | — | `90a9ebc7ecdb257a3351fb474d01d7c9685ecf84` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
