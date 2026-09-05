@@ -16,7 +16,10 @@ that reason are absorbed. The script-unit-with-no-contract todo is [#211](../../
 `LiveAlreadyStated`-declaration todo is [#219](../../issues/219). The missing decision record for
 the 2026-09-03 log entry (`/track` retires a landed slice's body, via a new mechanical script),
 which left `tools/Test-DesignState.ps1` reporting a blocking `LogEntryUnrecorded`, is
-[#227](../../issues/227).
+[#227](../../issues/227), and it is written —
+`decision/2026-09-03-track-retires-a-landed-slice-via-a-script`, absorbed at both its sites
+rather than held in any unit's `Live`, and the checker now reports zero findings against this
+repository for the first time since the ceiling was re-scoped.
 
 The two items `/reconcile`'s 2026-09-05 pass staged for `/contract` — the four scripts with no
 `Contract` record, and I18's scope against `tools/Update-SlicesDocument.ps1` — are resolved by
