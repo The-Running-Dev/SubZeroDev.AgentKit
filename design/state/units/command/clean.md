@@ -11,4 +11,4 @@ Work:
 Evidence:
 
 ## Owns
-Switches back to the default branch, deletes local branches already merged into it, prunes stale remote-tracking refs, and hands off to `/track`.
+Switches back to the default branch, deletes local branches already merged into it, prunes stale remote-tracking refs, and hands off to `/next`.
