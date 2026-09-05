@@ -438,11 +438,18 @@ document: it would be a second copy of a measurement, and it is the copy that ro
 
 ### Whether the ceiling can be met
 
-It is not met today, and the remaining gap is a bookkeeping one that absorption closes. That is
-a different answer from the previous revision's, and the thing that changed is the criterion's
-scope rather than any measurement: the brief now bounds the records and reports the artifact,
-where before it bounded their sum. This section states the shape of the problem; the
-measurement itself belongs to the checker and to `design/cost.md`, not here.
+It can be, and the two things that make it meetable have both now happened. Neither moved the
+ceiling: the criterion's scope changed on 2026-09-01 — the brief bounds the records and reports
+the artifact, where before it bounded their sum — and the absorption this section calls the
+remediable half of the gap was then performed. Both were named here in advance rather than
+discovered afterwards, which is what this section was written to make checkable. This section
+states the shape of the problem; the measurement itself belongs to the checker and to
+`design/cost.md`, not here.
+
+**Whether it is met on any given day is the checker's to say.** A number written down here would
+be a second copy of a measurement, and it is the copy that rots — as the previous revision's
+flat "it is not met today" did, surviving both the re-scope and the absorption that falsified
+it.
 
 **The artifact dominated every reading, and no number for it belongs here** — the checker names
 the largest closure and its largest contributor on every run, and a figure written down is the
