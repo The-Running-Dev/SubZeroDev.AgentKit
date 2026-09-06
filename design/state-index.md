@@ -61,12 +61,15 @@ means no record exists yet, not that nothing is true.
 | `unit/document/template-20-contract` | document | `templates/design/20-contract.md` |
 | `unit/document/template-30-slices` | document | `templates/design/30-slices.md` |
 | `unit/document/template-90-decisions` | document | `templates/design/90-decisions.md` |
+| `unit/script/get-nextorientation` | script | `tools/Get-NextOrientation.ps1` |
 | `unit/script/invoke-codexcommand` | script | `tools/Invoke-CodexCommand.ps1` |
 | `unit/script/invoke-donehousekeeping` | script | `tools/Invoke-DoneHousekeeping.ps1` |
+| `unit/script/invoke-housekeeping` | script | `tools/Invoke-Housekeeping.ps1` |
 | `unit/script/measure-session` | script | `tools/Measure-Session.ps1` |
 | `unit/script/new-designdocs` | script | `tools/New-DesignDocs.ps1` |
 | `unit/script/new-reducedprompt` | script | `tools/New-ReducedPrompt.ps1` |
 | `unit/script/read-designstate` | script | `tools/Read-DesignState.ps1` |
+| `unit/script/repoaliases` | script | `tools/RepoAliases.ps1` |
 | `unit/script/sync-kit` | script | `tools/Sync-Kit.ps1` |
 | `unit/script/test-companion` | script | `tools/Test-Companion.ps1` |
 | `unit/script/test-designdrift` | script | `tools/Test-DesignDrift.ps1` |
@@ -122,7 +125,7 @@ means no record exists yet, not that nothing is true.
 | Contract | Consumers |
 |---|---|
 | contract/fix | — |
-| contract/invoke-donehousekeeping | — |
+| contract/invoke-donehousekeeping | `unit/script/invoke-housekeeping` |
 | contract/read-designstate | `unit/script/test-designstate`, `unit/script/update-designprojection` |
 | contract/resolve | `unit/command/pr` |
 | contract/test-companion | `unit/command/install-all`, `unit/command/verify`, `unit/script/sync-kit` |
@@ -255,6 +258,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-05-routing-non-goal-bars-the-edit-not-the-topic | `unit/document/design-00-brief` |
 | decision/2026-09-05-self-check-asserts-a-clean-run | `unit/script/test-designstate` |
 | decision/2026-09-05-track-creates-a-project-when-none-exists | `unit/command/track`, `unit/document/agents-md` |
+| decision/2026-09-06-clean-and-next-mechanical-halves-run-from-a-shell-alias | `unit/command/clean`, `unit/command/next`, `unit/script/get-nextorientation`, `unit/script/invoke-housekeeping`, `unit/script/repoaliases` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered
