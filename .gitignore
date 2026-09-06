@@ -13,3 +13,7 @@ Thumbs.db
 # graphify — regenerable and expensive; never commit
 graphify-out/
 .graphify_*
+
+# Videowright (videos/)
+videos/node_modules/
+videos/.env
