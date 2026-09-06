@@ -1,5 +1,5 @@
 import { defineSegment } from "videowright";
-import { sceneFrameHTML, animateSceneFrame, SCENE_EASE } from "../components/scene-frame";
+import { sceneFrameHTML, animateSceneFrame, SCENE_EASE } from "../../components/scene-frame";
 
 let host: HTMLElement | null = null;
 
