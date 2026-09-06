@@ -321,3 +321,17 @@ Where `design/state/` does not exist, none of this applies — write the decisio
 - Do not add commentary about your reasoning process to the docs.
 - Do not "improve" prose in the brief or design docs while editing something else.
 - Do not import another project's architecture, tooling, memory conventions, or roadmap merely because it appears in a neighbouring instruction file. Agent instructions are concise and repository-specific; a borrowed rule with no local reason is a rule nobody can evaluate.
+
+<!-- videowright:start -->
+*Auto-managed by Videowright installer. Edits inside this block will be overwritten on re-install. Add your own context outside the markers.*
+
+The folder `videos/` in this project is a [Videowright](https://github.com/scosman/videowright) project -- a library for composing animated explainer videos in HTML/CSS/JS.
+
+For any video-related work, use the `videowright` skill (loaded automatically from `.claude/skills/videowright` or `.agents/skills/videowright`). It has full guidance on segments, voiceovers, styles, and the dev server.
+
+Key paths:
+- `videos/videowright.config.ts` -- project config and default style.
+- `videos/videos/` -- one folder per video.
+- `videos/styles/` -- design tokens and shared styling.
+- `videos/segments/`, `videos/components/`, `videos/transitions/` -- shared building blocks.
+<!-- videowright:end -->

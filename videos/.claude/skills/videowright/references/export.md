@@ -1,0 +1,145 @@
+# Export
+
+## When this is loaded
+
+You were routed here from the intent dispatch table because the user wants to export a video to MP4.
+
+Videowright has one command for producing video output:
+
+- **`render`** -- deterministic frame-by-frame MP4 export via Playwright + ffmpeg. This is the only command that produces an MP4 file.
+
+For screen recording, use the dev server and your own screen-capture software (see below).
+
+## `videowright render`
+
+Deterministic frame-by-frame export. The player runs in render mode with no wall-clock dependence.
+
+```bash
+npx videowright render
+npx videowright render videos/my_video/timeline.ts
+```
+
+### How it works
+
+1. Boots a Vite server with the render entry point.
+2. Launches headless Chromium via Playwright.
+3. Navigates to the render page and waits for render mode to initialize.
+4. Validates all segments' `advances` arrays.
+5. Builds a frame schedule from advances (converts seconds to frame indices at the target fps).
+6. Captures each frame via CDP screenshot and fires `renderAdvance()` at scheduled frame boundaries.
+7. Pipes frames to ffmpeg for MP4 encoding.
+
+### Characteristics
+
+- **Mode**: render (`ctx.mode === 'render'`). All timer primitives are virtualized; `clock()` returns deterministic time based on frame count.
+- **Default fps**: 60.
+- **Determinism**: Fully deterministic -- frames are byte-identical across runs.
+- **Best for**: Final exports, CI pipelines, videos where reproducibility matters.
+
+## Screen Recording
+
+For screen recording, use `videowright dev` and open the video view in a browser. The download modal (accessible via the download icon in the top bar or on homepage cards) provides instructions for screen recording:
+
+1. Open the video in the dev server.
+2. Press **H** or click the hide-HUD tab to hide the HUD.
+3. Use **← →** keys to advance manually and **Space** to play/pause.
+4. Run your screen-capture software over the browser window.
+
+## Render options
+
+| Flag | Default | Purpose |
+|---|---|---|
+| `--width <n>` | `1920` | Video width in pixels. |
+| `--height <n>` | `1080` | Video height in pixels. |
+| `--fps <n>` | `60` | Frames per second. |
+| `--output <path>` | `output.mp4` | Output file path (relative to cwd). |
+| `--audio-track <id>` | | Use audio track from `audio/tracks/<id>/`. |
+| `--audio-track none` | | Disable audio (ignore `default_audio_track`). |
+| `--verbose` | off | Show progress, frame counts, timing, ffmpeg output on error. |
+
+### Positional argument
+
+`render` accepts an optional positional argument -- either a slug (directory name under `videos/`) or a path to a `timeline.ts`. When no argument is given:
+- **Single video**: renders it automatically.
+- **Multiple videos**: prompts for selection (interactive TTY) or lists slug commands (non-interactive/CI).
+- **No videos**: errors with guidance.
+
+## Dependencies
+
+### ffmpeg
+
+`render` requires `ffmpeg` installed and available on `PATH`. The CLI auto-detects it. If ffmpeg is not found, the command errors with a clear message.
+
+Install ffmpeg:
+- **macOS**: `brew install ffmpeg`
+- **Ubuntu/Debian**: `sudo apt install ffmpeg`
+- **Windows**: Download from https://ffmpeg.org/download.html
+
+### Playwright / Chromium
+
+`render` uses Playwright to launch headless Chromium. Playwright is a dev dependency of Videowright. If Chromium is not installed, Playwright will prompt to install it:
+
+```bash
+npx playwright install chromium
+```
+
+## Audio
+
+When an audio track is active, `render` muxes the audio file into the output MP4 via ffmpeg:
+
+- The audio file is added as a second input to ffmpeg alongside the frame pipe.
+- Audio is encoded as AAC at 192kbps.
+- The `-shortest` flag bounds output to the shorter of video and audio.
+- The audio track's `Timing` object drives segment advances, so video and audio durations should match.
+
+### Audio track selection
+
+```bash
+# Use a specific audio track
+npx videowright render --audio-track v1
+
+# Suppress audio (ignore default_audio_track)
+npx videowright render --audio-track none
+
+# No flag: use default_audio_track from timeline.ts if set, otherwise silent
+npx videowright render
+```
+
+If no audio track is active (no `--audio-track` flag and no `default_audio_track`), the output is silent.
+
+## Output
+
+The default output path is `output.mp4` in the current working directory. A suggested convention is to place exports inside the video's folder at `videos/<name>/exports/`:
+
+```bash
+npx videowright render --output videos/demo/exports/final.mp4
+```
+
+The output is an H.264-encoded MP4 with `yuv420p` pixel format (widely compatible).
+
+## Advances validation
+
+`render` validates every segment's `advances` array before starting capture:
+
+- Every segment referenced in the timeline must have a non-empty `advances` array.
+- Values must be positive and monotonically increasing.
+
+If validation fails, the command errors with a message identifying which segment has the problem.
+
+### Coherence checks during capture
+
+During rendering, the driver checks for coherence issues:
+
+- **Segment transitioned too early**: A segment moved to the next segment before all its advances were fired. Fix: remove unused entries from the `advances` array.
+- **Segment parked after all advances**: All advances fired but the segment is still waiting (stuck on `waitForNext`). Fix: add more entries to the `advances` array.
+
+## Common gotchas
+
+| Issue | Explanation |
+|---|---|
+| Video looks different from dev mode | `render` uses render mode where all timing is driven by the deterministic virtual clock. If a segment branches on `ctx.mode`, its behavior may differ. Test in both modes. |
+| ffmpeg not found | Install ffmpeg and ensure it is on your PATH. |
+| Chromium not installed | Run `npx playwright install chromium`. |
+| Export takes a long time | `render` at 60fps captures every frame individually. A 30-second video = 1800 frames. Use `--verbose` to see progress. |
+| `advances` validation error | Check that every segment has a valid `advances` array. See [authoring_segment.md](authoring_segment.md) for how advances maps to `waitForNext`/`hold` calls. |
+| Output file already exists | `render` overwrites the output file (`-y` flag to ffmpeg). |
