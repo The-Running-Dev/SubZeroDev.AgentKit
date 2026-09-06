@@ -8,7 +8,7 @@
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Result=Passed, TotalCount=365, PassedCount=365, FailedCount=0, SkippedCount=0, NotRunCount=0, Duration=00:02:34.31."
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Result=Passed, TotalCount=365, PassedCount=365, FailedCount=0, SkippedCount=0, NotRunCount=0, Duration=00:03:39.68."
     },
     {
       "name": "Validate the core/companion split",
