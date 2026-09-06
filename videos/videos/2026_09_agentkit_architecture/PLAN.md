@@ -141,6 +141,12 @@ No spoken voiceover. Below is the on-screen text script, organized by segment �
 ### 2026-09-07 — Voiceover dropped, on-screen text instead
 - User declined ElevenLabs (not free); no other VO provider available. Revised audio intent to no voiceover. Script content will be authored directly as on-screen typography in each segment instead of a spoken track or a separate caption overlay (Videowright has no native subtitle/caption feature). SFX intent unchanged (Openverse). This also means timing comes from each segment's own `advances` array rather than an audio-synced `Timing`.
 
+### 2026-09-07 — First full render + frame spot-check found and fixed one segment bug
+- Ran the first full `videowright render` (1920x1080@60fps, 575s, 34,500 frames) to `exports/final.mp4`. Succeeded (exit 0), verified via ffprobe: exactly 575.000000s, h264 1920x1080@60fps + AAC audio.
+- Spot-checked 15 extracted frames (one per segment, via `ffmpeg -ss <t> -frames:v 1`) rather than exhaustively reviewing all 34,500 — render mode is deterministic so a representative sample is sufficient to catch authoring bugs (dev mode's real-time playback isn't reliable for this, see previous log entry). 14 of 15 looked correct and matched the script/design intent closely.
+- Found one real bug in `pipeline.ts`: the closing-lines transition faded out `heading`/`nodes`/`wrap`/`legend`/`leader`/`callout` but omitted the `connectors` (the SVG arrow lines between nodes) from the fade-out list, so faint connector lines remained visible behind the two closing text lines. One-line fix: added `...connectors` to the `wholeDiagram` fade-out array.
+- Re-ran the full render after the fix (same command). Result verified in the next log entry.
+
 ### 2026-09-07 — Dev-server verification: hit and fixed 3 upstream videowright@0.1.1 bugs
 - Ran `npx videowright dev` to visually verify before rendering (per create_or_edit_video.md Step 7). Hit three real bugs in the installed package, all fixed — full writeup in `../../README.md`:
   1. `src/cli/entry/views/video_view.ts` imports sibling `src/index.js`/`src/timeline/resolveTiming.js` that the npm package's `files` allowlist never shipped (only `dist/` + `src/cli/entry`). Fixed with re-export shims in `node_modules/videowright/src/`.

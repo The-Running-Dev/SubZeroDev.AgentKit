@@ -216,6 +216,7 @@ export default defineSegment({
 		const wholeDiagram: Element[] = [
 			heading,
 			...nodes,
+			...connectors,
 			wrap,
 			wrapLabel,
 			legend,
