@@ -3,7 +3,7 @@ import {
 	animateSceneFrame,
 	SCENE_EASE,
 	sceneFrameHTML,
-} from "../components/scene-frame";
+} from "../../components/scene-frame";
 
 let host: HTMLElement | null = null;
 
