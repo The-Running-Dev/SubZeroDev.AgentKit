@@ -19,6 +19,10 @@ Run this command's housekeeping as soon as a merge is on the table — either be
 
 The handoff at the end is part of the same automatic behaviour. `/next` follows every run — it is not asked for, and it is not conditional on how much this run cleaned up. It used to be `/track`, unconditionally, and that is what made the pair self-triggering: `/track` opened a pull request for its own mirror refresh, the merge put a merge back on the table, and this command fired again. `/next` breaks that by *checking what is owed* before running anything.
 
+## No model needed for the ordinary case
+
+Everything below through *Delete the confirmed candidates* is a fact-and-apply sequence a person can run from a terminal without opening a session at all: `tools/Invoke-Housekeeping.ps1` (or `Invoke-AgentKitClean` after dot-sourcing `tools/RepoAliases.ps1` into a PowerShell profile) discovers candidates and deletes every one this same run confirms, then reports `Escalate:true` and stops applying anything the moment `Invoke-DoneHousekeeping.ps1` itself surfaces a judgement case — `Stopped`, a `TipAheadOfMergedPr` entry, or a `Refused` deletion. It never opens a session on escalation; a person reads the report and decides whether to (`design/90-decisions.md`, 2026-09-06, issue #183). This section still describes the same mechanics for the session-driven path, which remains available and is what runs the judgement calls the script hands back.
+
 ## Run the mechanical half
 
 Everything through building the candidate list has no judgement call in it — dirty-tree check, default-branch resolution, the unmerged-current-branch check, the switch, the prune, `--merged`, and the `gh` cross-check for squash-merges are all facts, not decisions. `tools/Invoke-DoneHousekeeping.ps1 -RepoRoot <repo> -AutoStash` does all of it in one call and deletes nothing:
