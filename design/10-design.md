@@ -649,11 +649,11 @@ brief's scope answer expressed as a flow.
 | Failure | Detection | Response | User sees |
 |---|---|---|---|
 | A record names an id that does not exist | Graph validation | Finding, blocking | The referring record, the missing id |
-| A record's anchor names a path not in the tree | `Test-Path` | Finding, blocking | Both, and which of the two is wrong is **the user's call** |
+| An active record carries a tree pointer naming a path not in the tree — a unit's anchor, a contract's declaration, or any `Evidence` entry | `Test-Path`, per pointer | Finding, blocking | The record, the field, and the path. Which of the two is wrong is **the user's call** |
 | A contract's owner is not the unique active unit whose `Exposes` names it — nobody, or two | Set comparison against the units | Finding, blocking | The contract, its owner, and every unit exposing it |
 | A tree artifact of a unit kind has no record | Set difference, both directions | Finding, blocking | The unrecorded artifact |
 | A record's line does not parse | The reader | **Could not evaluate**, exit 2 | The file and line, verbatim. Never dropped |
-| A companion exists with no active record, or duplicates a field the active record carries | File pairing | Finding, blocking | Both files |
+| A companion exists with no active record, or a field sits in the file its half does not belong to — a retired half in the active record, or an active field in the companion | File pairing | Finding, blocking | Both files, the field, and which side it belongs on |
 | A reference sits in a half its referent's status does not allow, in either direction | The half/status table | Finding, blocking | The record, the half, the referent, and the status that contradicts it |
 | A `StatedIn` site resolves to zero or two headings | Heading scan of the site's file | Finding, blocking | The decision, the site, and the count |
 | A `StatedIn` site is not somewhere the named unit's reader already reaches | Reach check against the unit's anchor and its one-hop records | Finding, blocking | The decision, the site, and the unit |
@@ -670,7 +670,7 @@ brief's scope answer expressed as a flow.
 | The checker's declared class ids differ from `design/20-contract.md`'s list | Set difference, both directions | Finding, blocking | Both sets, and the difference in each direction |
 | For a globbed unit kind, the contract's patterns and the checker's enumeration resolve to different file sets | Expand both against the checkout, compare the sets | Finding, blocking | The kind, the direction, and the paths |
 | A closure exceeds the ceiling | The meter | Finding, blocking | The unit, its bounded size, its largest contributor — **always a record** — and that unit's own artifact size, named separately and never folded into the bounded one |
-| An invariant enforced by `code` has no evidence | Field check | Finding, blocking | The invariant id |
+| A conditionally-required field is absent on a record whose own `Status` or `Enforcement` requires it — an invariant with `Enforcement: code` and no `Evidence`, a decision `superseded` with no `SupersededBy`, a question `answered` with no `AnsweredBy` | Field check, per condition | Finding, blocking | The record, the absent field, and the value that required it |
 | `gh` absent or unauthenticated | Non-zero exit on first call | **Could not evaluate** for tracker classes only; the rest of the run completes | Named as a comparison that did not happen |
 | A shallow CI checkout | No history for `merge-base` | **Could not evaluate** for ancestry, and never a pass | That ancestry was not checked, and why |
 | The projector is absent or exits non-zero | Non-zero exit from `-DryRun` | **Could not evaluate** for the projection comparison, never clean | That the regeneration did not happen, so staleness is uncomputed rather than absent |
