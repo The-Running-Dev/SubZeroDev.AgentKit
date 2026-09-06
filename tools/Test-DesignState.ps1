@@ -1670,7 +1670,7 @@ function Invoke-DesignStateCheck {
     $adoptedRecordCount = @($graph.Records | Where-Object { $_.Kind -ne 'WorkRef' }).Count
     if ($graph.Root -eq '' -or $adoptedRecordCount -eq 0) {
         $couldNotEvaluate.Add((New-CouldNotEvaluate -Reason 'StateSetAbsent' -Detail 'design/state/ is missing or holds no records other than WorkRef mirrors'))
-        return New-DesignStateResult -Findings @() -Reported @() -CouldNotEvaluate @($couldNotEvaluate) -ExitCode 2 -LargestClosure $null -ReportLines @('StateSetAbsent: nothing to check.')
+        return New-DesignStateResult -Findings @($blockingFindings) -Reported @() -CouldNotEvaluate @($couldNotEvaluate) -ExitCode 2 -LargestClosure $null -ReportLines @('StateSetAbsent: nothing to check.')
     }
 
     $records = @($graph.Records)
