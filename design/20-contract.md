@@ -1120,7 +1120,7 @@ id and, per the row above, never raises it.
 | `TrackerUnavailable` | `gh` missing or unauthenticated | Report the tracker classes as not compared; the rest of the run completes |
 | `ShallowCheckout` | No history for `merge-base` | Report that ancestry was not checked, and why. Never a pass |
 | `ProjectorFailed` | `Update-DesignProjection.ps1 -DryRun` non-zero or absent | Report `ProjectionStale` as uncomputed, not as clean |
-| `ContractListUnreadable` | A list this document is canonical for cannot be read or parsed — the divergence classes above, or § *Invariants* | Report the class it feeds as uncomputed: `ClassListDisagreement` for the first, `UnrecordedArtifact`'s invariant half for the second. **Read-and-disagrees is a finding; cannot-read is not** |
+| `ContractListUnreadable` | Any of the three lists this document is canonical for cannot be read or parsed — the divergence classes above, § *Artifacts of a unit kind*'s glob table, or § *Invariants* | Report the class it feeds as uncomputed: `ClassListDisagreement` for the first, `GlobDisagreement` for the second, `UnrecordedArtifact`'s invariant half for the third. **Read-and-disagrees is a finding; cannot-read is not** |
 
 ### The freeze
 

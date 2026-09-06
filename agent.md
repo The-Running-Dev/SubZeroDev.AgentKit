@@ -23,6 +23,12 @@ and preferences belong in `AGENTS.md`.
   pass over a spec set found twelve inconsistencies, including a functional bug where a
   derived-path list omitted a field, making one section's behaviour impossible under
   another's rules.
+- **Checking a table for *missing* rows has not checked the table.** A row also goes stale by
+  *narrowing*: the class it names widens, the row does not, and a pass hunting absent rows
+  sees nothing wrong. Three rows of `design/10-design.md` § *Failure modes* survived the
+  2026-09-05 pass that added eight missing ones to that same table — one of them naming a
+  defect shape (`RecordPairMalformed` as field *duplication*) the checker has never had — and
+  cost a whole further reconciliation, re-deriving every row against the script, to find.
 - **Search the concept, not the phrasing you just edited.** Striking a requirement from
   seven places, a grep for the exact removed phrase returned clean — it could not match the
   same requirement worded differently, and six stale statements survived a check reported as
