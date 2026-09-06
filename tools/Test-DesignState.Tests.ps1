@@ -1542,6 +1542,22 @@ Describe 'Test-DesignState: end-to-end (S5.2, S5.3, S5.4, S5.9)' {
         (@($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'StateSetAbsent' })).Count | Should -Be 1
     }
 
+    It '#244: a ClassListDisagreement finding survives the StateSetAbsent short-circuit rather than being discarded' {
+        # A contract whose Blocking table omits the ClassListDisagreement row itself - it is a
+        # tree fact the script's own $script:BlockingClasses declares that the contract's copy
+        # then disagrees with, computed before the StateSetAbsent early return regardless of
+        # whether design/state/ holds any records.
+        $missingClassListId = $script:MinimalContract -replace '(?m)^\| `ClassListDisagreement` \| x \| x \|\r?\n', ''
+        New-TreeFile -RelativePath 'design/20-contract.md' -Content $missingClassListId
+
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive
+
+        $result.ExitCode | Should -Be 2
+        (@($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'StateSetAbsent' })).Count | Should -Be 1
+        $result.Findings.Count | Should -Be 1
+        $result.Findings[0].Class | Should -Be 'ClassListDisagreement'
+    }
+
     It '#113: design/state/ holding only WorkRef records still yields StateSetAbsent, not UnrecordedArtifact' {
         New-StateFile -RelativePath 'work/1.md' -Content @'
 # work/1
