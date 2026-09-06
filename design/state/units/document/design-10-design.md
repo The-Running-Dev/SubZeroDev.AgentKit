@@ -5,7 +5,7 @@ Anchor: design/10-design.md
 Consumes:
 Exposes:
 Binds: I27
-Live: decision/2026-08-29-claims-trimmed-to-standing-terms, decision/2026-08-05-design-filled-for-one-path-scoped-brief-unwritten, decision/2026-08-19-contract-owner-stays-written-other-edges-derived, decision/2026-08-19-record-ids-kind-prefixed-slugs, decision/2026-08-19-state-set-one-file-per-record-ps1-tooling
+Live: decision/2026-08-29-claims-trimmed-to-standing-terms, decision/2026-08-19-record-ids-kind-prefixed-slugs, decision/2026-08-19-state-set-one-file-per-record-ps1-tooling
 Questions:
 Work:
 Evidence:
