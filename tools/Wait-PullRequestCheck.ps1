@@ -138,7 +138,14 @@ function Get-PullRequestHead {
     if ($result.ExitCode -eq 4)    { return New-GhLookupResult -Failure 'GhUnavailable' }
     if ($result.ExitCode -ne 0)    { return New-GhLookupResult -Failure 'PullRequestMissing' }
 
-    New-GhLookupResult -HeadSha ($result.Text | ConvertFrom-Json).headRefOid
+    try {
+        New-GhLookupResult -HeadSha ($result.Text | ConvertFrom-Json).headRefOid
+    }
+    catch {
+        # gh reported success but its output isn't usable - treated the same as gh itself
+        # being unavailable, since there is no answer to report either way.
+        New-GhLookupResult -Failure 'GhUnavailable'
+    }
 }
 
 function Get-PullRequestChecks {
@@ -160,7 +167,14 @@ function Get-PullRequestChecks {
         return New-GhLookupResult -Failure 'PullRequestMissing'
     }
 
-    New-GhLookupResult -Checks @($result.Text | ConvertFrom-Json)
+    try {
+        New-GhLookupResult -Checks @($result.Text | ConvertFrom-Json)
+    }
+    catch {
+        # gh reported success but its output isn't usable - treated the same as gh itself
+        # being unavailable, since there is no answer to report either way.
+        New-GhLookupResult -Failure 'GhUnavailable'
+    }
 }
 
 function Invoke-Wait {
