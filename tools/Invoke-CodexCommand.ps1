@@ -48,6 +48,14 @@
     strongest local Codex profile, but vendor diversity is the caller's call to make before
     running it.
 
+    /unfreeze is the one command this script does not run as a single `codex` invocation.
+    Its own procedure needs a deep-reasoning reconcile phase and an implementation-tier
+    track phase "in this same session" (.claude/commands/unfreeze.md), but Codex profiles
+    cannot switch mid-session - so this script chains two separate `codex` processes ('author'
+    then 'builder') instead of picking one profile for the whole run (issue #253). The human
+    still runs `./tools/Invoke-CodexCommand.ps1 unfreeze` once; nothing prompts them between
+    the two processes.
+
 .PARAMETER Command
     The command name, with or without a leading slash (e.g. 'kit-help' or '/kit-help').
 
@@ -125,7 +133,8 @@ $commandProfiles = [ordered]@{
     'clean'            = 'quick'
     'install-code-review-agent' = 'builder'
     'freeze'           = 'builder'
-    'unfreeze'         = 'builder'     # its own reconcile/track sub-phases pick their own profile
+    # 'unfreeze' is deliberately absent here - it needs two profiles in one run (see the
+    # special case below, issue #253), which a single entry in this table cannot express.
 }
 
 # Mirrors codex/PROFILES.md's "Codex 0.134.0 and later" per-file values. --profile is not
@@ -161,6 +170,7 @@ if ($List) {
             Tier     = $profileTiers[$_.Value]
         }
     } | Format-Table -AutoSize
+    Write-Output "/unfreeze runs two processes, not one - 'author'/high for its reconcile phase, then 'builder'/medium for its track phase. See -Command unfreeze -WhatIf."
     return
 }
 
@@ -169,8 +179,88 @@ if (-not $Command) {
 }
 
 $normalized = $Command.TrimStart('/')
+
+# /unfreeze's own procedure (.claude/commands/unfreeze.md, Phase 2 and Phase 3) requires its
+# reconcile phase at deep-reasoning tier and its track phase at implementation tier, "in this
+# same session." Codex profiles cannot switch mid-session (codex/PROFILES.md), so one `codex`
+# invocation can never satisfy both halves - issue #253. This chains two separate `codex`
+# processes instead, so the human still runs this script once and nothing prompts them
+# in between: the reconcile half is a real 'author' session, the track half a real 'builder'
+# session, and each is stamped with its own tier exactly as a standalone /reconcile or /track
+# invocation would be.
+if ($normalized -eq 'unfreeze') {
+    $reconcilePrompt = @'
+Run /unfreeze's Phase 1 and Phase 2 per .claude/commands/unfreeze.md: report `Frozen because`
+and `Lifts when` verbatim from design/FROZEN.md, delete that file, then run
+.claude/commands/reconcile.md in full against the now-unfrozen tree. If reconciliation touched
+design/, stage those files by name and commit them together with the marker's own deletion -
+one commit, not two, per AGENTS.md's Git and delivery section. Stop after that commit (or after
+confirming nothing needed committing) and report what reconcile found and changed. Do not run
+Phase 3 (/track) - a second, separately-launched process runs it next.
+'@
+    $trackPrompt = @'
+Continuing /unfreeze (.claude/commands/unfreeze.md): its Phase 1 (delete design/FROZEN.md) and
+Phase 2 (/reconcile) already ran to completion in a prior process - read its last commit to see
+what changed. Run .claude/commands/track.md in full, per unfreeze.md's Phase 3. Then produce
+unfreeze.md's Report: state the freeze is lifted, what /reconcile found and changed, and what
+/track synced. If /track surfaced something needing a decision, stop and ask rather than
+resolving it inline.
+'@
+
+    $reconcileConfig = $profileConfig['author']
+    $trackConfig = $profileConfig['builder']
+
+    $reconcileArgs = @(
+        '-m', $reconcileConfig.Model,
+        '-c', "model_reasoning_effort=$($reconcileConfig.Effort)",
+        '-a', $reconcileConfig.Approval,
+        '-s', $reconcileConfig.Sandbox
+    ) + $CodexArgs + @($reconcilePrompt)
+
+    $trackArgs = @(
+        '-m', $trackConfig.Model,
+        '-c', "model_reasoning_effort=$($trackConfig.Effort)",
+        '-a', $trackConfig.Approval,
+        '-s', $trackConfig.Sandbox,
+        $trackPrompt
+    )
+
+    $reconcileStamp = [ordered]@{
+        AGENTKIT_TIER    = $profileTiers['author']
+        AGENTKIT_MODEL   = $reconcileConfig.Model
+        AGENTKIT_EFFORT  = $reconcileConfig.Effort
+        AGENTKIT_COMMAND = '/unfreeze-reconcile'
+        AGENTKIT_PROFILE = 'author'
+    }
+    $trackStamp = [ordered]@{
+        AGENTKIT_TIER    = $profileTiers['builder']
+        AGENTKIT_MODEL   = $trackConfig.Model
+        AGENTKIT_EFFORT  = $trackConfig.Effort
+        AGENTKIT_COMMAND = '/unfreeze-track'
+        AGENTKIT_PROFILE = 'builder'
+    }
+
+    if ($WhatIf) {
+        $reconcileStampText = ($reconcileStamp.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ' '
+        $trackStampText = ($trackStamp.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ' '
+        Write-Output "$reconcileStampText codex $($reconcileArgs -join ' ')"
+        Write-Output "$trackStampText codex $($trackArgs -join ' ')"
+        return
+    }
+
+    foreach ($entry in $reconcileStamp.GetEnumerator()) { Set-Item -Path "Env:$($entry.Key)" -Value $entry.Value }
+    & codex @reconcileArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "/unfreeze's reconcile phase (codex process 1 of 2, 'author' profile) exited $LASTEXITCODE - stopping before the track phase runs against a possibly-incomplete reconcile."
+    }
+
+    foreach ($entry in $trackStamp.GetEnumerator()) { Set-Item -Path "Env:$($entry.Key)" -Value $entry.Value }
+    & codex @trackArgs
+    exit $LASTEXITCODE
+}
+
 if (-not $commandProfiles.Contains($normalized)) {
-    $known = ($commandProfiles.Keys | ForEach-Object { "/$_" }) -join ', '
+    $known = (@($commandProfiles.Keys) + 'unfreeze' | Sort-Object | ForEach-Object { "/$_" }) -join ', '
     throw "No profile mapping for '/$normalized'. Known commands: $known. Pass --profile to codex directly for anything else."
 }
 
