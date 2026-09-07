@@ -288,5 +288,8 @@ that looks old.
 |---|---|---|---|---|
 | 184 | #184 | The -Watch context-size warning fires with no consequence | — | `a7c07d98a25663facc862f4cc2d88e36dd6003bf` |
 | 211 | #211 | A script unit that exposes no contract has nowhere to absorb a decision into | — | `c63cae8f19298c5dc92a01883153c0f699c7b0c0` |
+| 248 | #248 | No command commissions the SemanticDisagreement reading | — | `ad8e94ab2332012c117968e8ae8c47ff6e4a8a65` |
+| 249 | #249 | No gate reaches videos/, so a clean checkout install+render is unverified | — | `ad8e94ab2332012c117968e8ae8c47ff6e4a8a65` |
+| 250 | #250 | Test-DesignState.ps1 cannot detect an unclaimed projected marked region | — | `ad8e94ab2332012c117968e8ae8c47ff6e4a8a65` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
