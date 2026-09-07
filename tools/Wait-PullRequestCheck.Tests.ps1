@@ -173,6 +173,34 @@ Describe 'Wait-PullRequestCheck' {
         ($pending.Count -gt 0) | Should -Be $true
     }
 
+    It '#254: malformed JSON from the head-SHA lookup reports GhUnavailable instead of throwing' {
+        Mock gh {
+            if ($args[1] -eq 'view') { 'not valid json' }
+            elseif ($args[1] -eq 'checks') { '[{"name":"build","bucket":"pass"}]' }
+        }
+
+        { Invoke-Wait -PullRequest 9 -HeadSha 'abc123' -PollSeconds 0 } | Should -Not -Throw
+
+        $r = Invoke-Wait -PullRequest 9 -HeadSha 'abc123' -PollSeconds 0
+        $r.State | Should -Be 'NotEvaluated'
+        $r.Failure | Should -Be 'GhUnavailable'
+        Get-WaitExitCode -State $r.State | Should -Be 2
+    }
+
+    It '#254: malformed JSON from the checks lookup reports GhUnavailable instead of throwing' {
+        Mock gh {
+            if ($args[1] -eq 'view') { '{"headRefOid":"abc123"}' }
+            elseif ($args[1] -eq 'checks') { 'not valid json' }
+        }
+
+        { Invoke-Wait -PullRequest 9 -HeadSha 'abc123' -PollSeconds 0 } | Should -Not -Throw
+
+        $r = Invoke-Wait -PullRequest 9 -HeadSha 'abc123' -PollSeconds 0
+        $r.State | Should -Be 'NotEvaluated'
+        $r.Failure | Should -Be 'GhUnavailable'
+        Get-WaitExitCode -State $r.State | Should -Be 2
+    }
+
     It 'S1.10: zero checks configured yields NoChecksConfigured, never Passed, exit 2' {
         Mock gh {
             if ($args[1] -eq 'view') { '{"headRefOid":"abc123"}' }
