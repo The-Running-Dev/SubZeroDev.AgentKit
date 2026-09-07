@@ -680,15 +680,19 @@ brief's scope answer expressed as a flow.
 | The state set is absent entirely | Zero records | **Could not evaluate**, exit 2. Never clean | That nothing was checked — the I8 shape |
 | `design/FROZEN.md` exists | File exists | Downgrade blocking to reported; exit 2 still stands | The count downgraded, and the marker's `Frozen because` and `Lifts when` **verbatim** |
 | A decision in a unit's `Live` whose terms already stand somewhere that unit's reader reaches, with no site naming that place | **A reading, not a check** — `/reconcile` compares a unit's `Live` against the artifact it is live on | **Reported, never blocking.** The checker declares the id and never raises it | The unit, the decision, and the candidate site in `StatedIn`'s own form |
-| A claim in a record is simply wrong | **Not detected** | Nothing | Nothing — see below |
+| A claim in a record is untrue | **A reading, not a check** — the class is declared so `ClassListDisagreement` sees one list, and the script never raises it | **Reported, never blocking** | The record and the claim |
 | A site's section is reworded and stops stating its decision | **Not detected** | Nothing | Nothing — see below |
 
-**The last two rows are the residual risk and it is irreducible.** Every mechanical property of
-the state set is checked; the *truth* of a standing claim, and whether a section still says what
-a `StatedIn` site says it says, are both behavioural assertions, which the brief's non-goals
-put permanently out of scope. What the design buys is that a wrong claim is now wrong in **one
-addressable place** rather than distributed across a corpus, so a human who finds it fixes it
-once. That is a smaller promise than "the design cannot be wrong", and it is the honest one.
+**The last two rows are where the mechanism stops, and the line between them matters.** Every
+mechanical property of the state set is checked. The *truth* of a standing claim is not — but it
+has a declared class, `SemanticDisagreement`, raised the way `LiveAlreadyStated` is, by a model
+reading prose rather than by the script. A build that failed on a model's opinion is a build
+nobody trusts, which is why that class is permanently reported and why the brief's *no formal
+specification of behaviour* non-goal is what puts it there. Whether a section still says what a
+`StatedIn` site says it says is not detected at all. What the design buys either way is that a
+wrong claim is now wrong in **one addressable place** rather than distributed across a corpus, so
+a human who finds it fixes it once. That is a smaller promise than "the design cannot be wrong",
+and it is the honest one.
 
 **Absorption's residual is narrower than it first looks, and worth stating precisely.** A
 section that is *deleted* or *renamed* is caught, because the pointer stops resolving. What is

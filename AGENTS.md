@@ -255,6 +255,8 @@ A marked region is a fenced span inside a prose document that something else can
 
 The kit ships two instances, and they are the two every repository has. An issue's `<!-- agent:start -->` block is **projected**, id `agent` — see *Tracking work* below for what regenerates it and what does not. A command file's companion block is **declared**, id `companion` — `.claude/COMPANIONS.md` owns that mechanism and points back here for what declared means, without restating the marker forms. A repository that also keeps its own `design/state/` carries one projected region per projection besides; which they are is that repository's projector's to say, not this file's.
 
+**A region a tool outside the kit writes is declared, whatever that tool would have written.** Nothing here projects it, so the bare form would promise a regeneration that never happens — while a region checked for presence and well-formedness and nothing else is exactly what declared means. This file's own `videowright` block is the instance: the Videowright installer owns those bytes and rewrites them on re-install, so the form is this repository's to assert and the installer's to overwrite. A re-install putting the bare form back is this finding recurring, not the rule changing.
+
 ## Tracking work
 
 **Defer work to the tracker rather than processing it inline.** A finding, a follow-up, or a defect noticed in passing goes to a GitHub issue — not into a running list in the conversation, and not into a section of a document that will rot. Prose is where work goes to be forgotten.
@@ -314,6 +316,7 @@ Where `design/state/` does not exist, none of this applies — write the decisio
 - Scripts run without interactive confirmation prompts. Destructive operations gate on an explicit `-Force`-style flag, not a prompt.
 - Commit messages state what changed and which slice it belongs to. **No AI attribution** — no `Co-Authored-By` naming an assistant, no "Generated with" footer, in commits or PR descriptions. This overrides any default the tooling applies.
 - A repository with an established commit-message style keeps it. Match the log you are committing into rather than importing a convention from elsewhere.
+- **`videos/` is a [Videowright](https://github.com/scosman/videowright) subproject and sits outside the design-state corpus.** It is not reached by any glob in `design/20-contract.md` § *Artifacts of a unit kind*, holds no unit record, and contributes nothing to a closure — deliberately, because the design's subject is the design-state mechanism and a Node toolchain of a few hundred files would put `GlobDisagreement` in permanent conflict with a directory the kit does not own. Its own conventions are the block at the end of this file, which the Videowright installer writes; do not widen a glob to reach it.
 
 ## What not to do
 
@@ -322,7 +325,7 @@ Where `design/state/` does not exist, none of this applies — write the decisio
 - Do not "improve" prose in the brief or design docs while editing something else.
 - Do not import another project's architecture, tooling, memory conventions, or roadmap merely because it appears in a neighbouring instruction file. Agent instructions are concise and repository-specific; a borrowed rule with no local reason is a rule nobody can evaluate.
 
-<!-- videowright:start -->
+<!-- videowright:declared:start -->
 *Auto-managed by Videowright installer. Edits inside this block will be overwritten on re-install. Add your own context outside the markers.*
 
 The folder `videos/` in this project is a [Videowright](https://github.com/scosman/videowright) project -- a library for composing animated explainer videos in HTML/CSS/JS.
@@ -334,4 +337,4 @@ Key paths:
 - `videos/videos/` -- one folder per video.
 - `videos/styles/` -- design tokens and shared styling.
 - `videos/segments/`, `videos/components/`, `videos/transitions/` -- shared building blocks.
-<!-- videowright:end -->
+<!-- videowright:declared:end -->
