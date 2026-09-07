@@ -89,6 +89,27 @@ function Invoke-Git {
     return [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = ($out -join "`n") }
 }
 
+function Get-RepoNameWithOwner {
+    # `gh pr list` resolves its target repository from the process's own cwd unless told
+    # otherwise, which is exactly the leak #255 reports - every `gh` call below must be
+    # pinned to -RepoRoot's own remote via -R, not left to fall back to wherever the
+    # process happens to be sitting. Read from the remote URL rather than `gh repo view`
+    # so this stays a `git` call, consistent with everything else in this file, and does
+    # not need `gh` to already be scoped correctly to answer the question of how to scope it.
+    param([string]$WorkingDir)
+    $urlResult = Invoke-Git -GitArgs @('remote', 'get-url', 'origin') -WorkingDir $WorkingDir
+    if ($urlResult.ExitCode -ne 0) { return $null }
+    $url = $urlResult.Output.Trim()
+    if ($url -match '[:/]([^/:]+/[^/]+?)(\.git)?$') { return $Matches[1] }
+    return $null
+}
+
+$repoNameWithOwner = Get-RepoNameWithOwner -WorkingDir $repoRootResolved
+# Absent only when -RepoRoot has no `origin` remote to resolve from (e.g. a bare local
+# fixture) - falls back to `gh`'s own cwd-based resolution rather than failing outright,
+# the same shape every other best-effort `gh` call in this file already has.
+$ghRepoArgs = if ($repoNameWithOwner) { @('-R', $repoNameWithOwner) } else { @() }
+
 function Get-WorktreeBlockingPath {
     # `git branch -d` refuses a branch checked out in another worktree with
     # "cannot delete branch '<name>' used by worktree at '<path>'" - distinct from
@@ -153,7 +174,7 @@ if ($currentBranch -and $currentBranch -ne $DefaultBranch) {
         # Unmerged relative to a genuine three-dot merge check does not by itself mean
         # abandoned work - a squash-merged PR looks identical to git. Cross-check gh before
         # trusting this as a stop condition.
-        $prCheck = & gh pr list --state merged --head $currentBranch --json number,url 2>$null
+        $prCheck = & gh pr list @ghRepoArgs --state merged --head $currentBranch --json number,url 2>$null
         $mergedPr = $null
         if ($LASTEXITCODE -eq 0 -and $prCheck) {
             $parsed = $prCheck | ConvertFrom-Json
@@ -219,7 +240,7 @@ $mergedBranches = @(($mergedResult.Output -split "`n") |
 $candidates = [System.Collections.Generic.List[object]]::new()
 foreach ($branch in $mergedBranches) {
     $prInfo = $null
-    $prCheck = & gh pr list --state merged --head $branch --json number,url 2>$null
+    $prCheck = & gh pr list @ghRepoArgs --state merged --head $branch --json number,url 2>$null
     if ($LASTEXITCODE -eq 0 -and $prCheck) {
         $parsed = @($prCheck | ConvertFrom-Json)
         if ($parsed.Count -gt 0) { $prInfo = $parsed[0].url }
@@ -248,7 +269,7 @@ $allBranches = @(($allBranchesResult.Output -split "`n") |
 $squashMergeCandidates = [System.Collections.Generic.List[object]]::new()
 $tipAheadOfMergedPr = [System.Collections.Generic.List[object]]::new()
 foreach ($branch in $allBranches) {
-    $prCheck = & gh pr list --state merged --head $branch --json number,url,mergeCommit,headRefOid 2>$null
+    $prCheck = & gh pr list @ghRepoArgs --state merged --head $branch --json number,url,mergeCommit,headRefOid 2>$null
     if ($LASTEXITCODE -ne 0 -or -not $prCheck) { continue }
     $parsed = @($prCheck | ConvertFrom-Json)
     if ($parsed.Count -eq 0) { continue }
