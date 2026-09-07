@@ -113,5 +113,5 @@ No `generate.sh` for BYO assets.
 |---|---|
 | User provides a stereo file | Fine. ffmpeg handles stereo. Note in `notes` if relevant to mixing. |
 | File is very short (< 0.1s) | Warn that the SFX may be too short to be audible in the mix. Proceed if user confirms. |
-| File is very long (> 30s) | Not typical for SFX. Confirm the user wants a long ambient texture, not a music track. Suggest using [../music/music.md](../music/music.md) for longer audio if appropriate. |
+| File is very long (> 30s) | Not typical for SFX. Confirm the user wants a long ambient texture, not a music track. Suggest using [../../music/music.md](../../music/music.md) for longer audio if appropriate. |
 | User wants to replace after approval | Cannot edit in place. Source a new version in a new slug folder and update audio plan cues. |
