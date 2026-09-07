@@ -216,6 +216,29 @@ Describe 'Invoke-DoneHousekeeping' {
         }
     }
 
+    Context 'a step after the stash was created throws' {
+
+        It 'still reports StashRef instead of losing the stash reference to an unhandled throw' {
+            # No origin remote and no -DefaultBranch: 'git remote show origin' fails, so the
+            # default-branch resolution at line ~165 throws "Could not resolve the default
+            # branch..." - a step that runs strictly after the stash is pushed. Before the
+            # fix, that throw propagates straight out of the script and the caller never
+            # learns the stash reference; a stray untracked file is left in $TestDrive with
+            # nothing pointing back at it.
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-poststash-throw')
+            Set-Content -LiteralPath (Join-Path $repo 'dirty.txt') -Value 'uncommitted' -Encoding utf8NoBOM
+
+            $result = & $script:ScriptPath -RepoRoot $repo -AutoStash
+
+            $result | Should -Not -BeNullOrEmpty
+            $result.Stopped | Should -Be $true
+            $result.Stashed | Should -Be $true
+            $result.StashRef | Should -Not -BeNullOrEmpty
+            $stashList = (& git -C $repo stash list) -join "`n"
+            $stashList | Should -Match 'Invoke-DoneHousekeeping auto-stash'
+        }
+    }
+
     Context 'invoked while the process cwd is a different repository than -RepoRoot' {
 
         BeforeEach {
