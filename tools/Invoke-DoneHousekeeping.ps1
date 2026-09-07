@@ -153,6 +153,13 @@ if ($statusResult.Output.Trim()) {
     $stashRef = 'stash@{0}'
 }
 
+# Everything from here on runs after a stash may already have been pushed above - a bare
+# throw from any of it (an unresolvable default branch, an unexpected git/gh failure) would
+# otherwise propagate straight out of the script before the result object carrying StashRef
+# is ever built, silently losing the caller's only pointer back to the stashed work (#256).
+# Catch anything that escapes the steps below and still return a result naming the stash.
+try {
+
 if (-not $DefaultBranch) {
     $remoteInfo = Invoke-Git -GitArgs @('remote', 'show', 'origin') -WorkingDir $repoRootResolved
     $headLine = ($remoteInfo.Output -split "`n") | Where-Object { $_ -match 'HEAD branch:\s*(\S+)' }
@@ -365,4 +372,25 @@ foreach ($branch in $ForceDeleteBranches) {
     Refused        = @($refused)
     Stashed        = $stashed
     StashRef       = $stashRef
+}
+
+} catch {
+    # Whatever ran after the stash threw before building its own result object - report
+    # the failure the same shape every other stop condition uses, so the stash reference
+    # is never lost even on a path this script did not anticipate.
+    [pscustomobject]@{
+        Stopped        = $true
+        Reason         = 'UnhandledError'
+        Detail         = $_.Exception.Message
+        DefaultBranch  = $DefaultBranch
+        Pulled         = $false
+        PrunedCount    = 0
+        Candidates     = @()
+        SquashMergeCandidates = @()
+        TipAheadOfMergedPr    = @()
+        Deleted        = @()
+        Refused        = @()
+        Stashed        = $stashed
+        StashRef       = $stashRef
+    }
 }
