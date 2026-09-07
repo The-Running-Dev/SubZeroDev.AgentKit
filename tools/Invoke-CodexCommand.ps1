@@ -6,10 +6,17 @@
     a mismatch caused by launching on whatever config the shell happened to have open.
 
 .DESCRIPTION
-    codex/PROFILES.md defines three profiles - architect (Sol, deep reasoning), builder
-    (Terra, implementation), quick (Codex Spark, high volume) - but nothing picks one from
-    a command name. AGENTS.md's *Command routing* table names a tier per command; this
-    script is that lookup.
+    codex/PROFILES.md defines four profiles - architect (Sol, deep reasoning, read-only),
+    author (Sol, deep reasoning, workspace-write), builder (Terra, implementation), quick
+    (Codex Spark, implementation) - but nothing picks one from a command name. AGENTS.md's
+    *Command routing* table names a tier per command; this script is that lookup.
+
+    architect and author share a model and effort and differ only in sandbox mode: architect
+    is read-only, for the two deep-reasoning commands that must never touch the tree
+    (/brief-check, /redteam); author is workspace-write, for the deep-reasoning commands
+    whose normal work is writing to design/ (/design, /contract, /slices, /reconcile). A
+    single read-only 'architect' used to back all of these (issue #252) and blocked every
+    one of them except /redteam and /brief-check from doing its job.
 
     It does NOT launch via `codex --profile <name>`. That flag layers
     `$CODEX_HOME/<name>.config.toml` on top of the base user config (`codex --help`), and
@@ -91,17 +98,18 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # Mirrors AGENTS.md's *Command routing* table. Tier -> profile per codex/PROFILES.md:
-# deep reasoning -> architect, implementation -> builder, high volume -> quick.
+# deep reasoning (read-only) -> architect, deep reasoning (writes design/) -> author,
+# implementation -> builder or quick.
 # Where routing names two tiers for one command (a decide phase and a mechanical phase),
 # this maps to the tier of the phase that runs first / gates the rest.
 $commandProfiles = [ordered]@{
-    'brief-check'      = 'architect'
-    'design'           = 'architect'
-    'contract'         = 'architect'
-    'slices'           = 'architect'
+    'brief-check'      = 'architect'   # writes nothing (brief-check.md, *Re-run*)
+    'design'           = 'author'      # writes design/10-design.md
+    'contract'         = 'author'      # writes design/20-contract.md
+    'slices'           = 'author'      # writes design/30-slices.md
     'redteam'          = 'architect'   # strongest local profile; vendor diversity is on the caller
     'slice'            = 'builder'
-    'reconcile'        = 'architect'   # deciding which side is correct gates the mechanical edits
+    'reconcile'        = 'author'      # deciding which side is correct gates its own mechanical edits
     'make-human-docs'  = 'builder'
     'track'            = 'builder'
     'verify'           = 'builder'
@@ -123,9 +131,10 @@ $commandProfiles = [ordered]@{
 # Mirrors codex/PROFILES.md's "Codex 0.134.0 and later" per-file values. --profile is not
 # used to load these (see .DESCRIPTION) - keep this table in sync with PROFILES.md by hand.
 $profileConfig = [ordered]@{
-    'architect' = @{ Model = 'gpt-5.6-sol';         Effort = 'xhigh';  Approval = 'on-request'; Sandbox = 'read-only' }
+    'architect' = @{ Model = 'gpt-5.6-sol';         Effort = 'high';   Approval = 'on-request'; Sandbox = 'read-only' }
+    'author'    = @{ Model = 'gpt-5.6-sol';         Effort = 'high';   Approval = 'on-request'; Sandbox = 'workspace-write' }
     'builder'   = @{ Model = 'gpt-5.6-terra';       Effort = 'medium'; Approval = 'on-request'; Sandbox = 'workspace-write' }
-    'quick'     = @{ Model = 'gpt-5.3-codex-spark'; Effort = 'low';    Approval = 'on-request'; Sandbox = 'workspace-write' }
+    'quick'     = @{ Model = 'gpt-5.3-codex-spark'; Effort = 'medium'; Approval = 'on-request'; Sandbox = 'workspace-write' }
 }
 
 # The tier each profile resolves to, spelled exactly as AGENTS.md's *Model, effort, and
@@ -134,6 +143,7 @@ $profileConfig = [ordered]@{
 # file the sandbox puts out of reach - see $tierEnvironment below.
 $profileTiers = [ordered]@{
     'architect' = 'Deep reasoning'
+    'author'    = 'Deep reasoning'
     'builder'   = 'Implementation'
     'quick'     = 'Implementation'
 }
