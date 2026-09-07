@@ -8,7 +8,7 @@
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests completed in 214.13s. Tests Passed: 375, Failed: 0, Skipped: 0, NotRun: 0."
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests completed in 198.69s. Tests Passed: 377, Failed: 0, Skipped: 0, NotRun: 0."
     },
     {
       "name": "Validate the core/companion split",
@@ -18,7 +18,7 @@
     {
       "name": "Check the design state against the tree",
       "status": "Passed",
-      "detail": "Findings (0). Reported (41), all class MirrorStale on work/* records (e.g. work/112: MirroredAt '4a0b8ab8230b3c80377ddd86d54d9ffde94b2cd4' is not the current commit '01ab8ddc231292055252a05e54a48a8fa3e10393') - non-blocking, expected after any commit since the work mirror was last refreshed. Could not evaluate (0). Largest closure: unit/script/test-designstate, 13633 bytes (ceiling 16384). Exit code 0."
+      "detail": "Findings (0). Reported (41), all class MirrorStale on work/* records (e.g. work/112: MirroredAt '4a0b8ab8230b3c80377ddd86d54d9ffde94b2cd4' is not the current commit 'c5471f15ab2b068baff8883b969bab263079e441') - non-blocking, expected after any commit since the work mirror was last refreshed. Could not evaluate (0). Largest closure: unit/script/test-designstate, 13633 bytes (ceiling 16384). Exit code 0."
     }
   ]
 }
