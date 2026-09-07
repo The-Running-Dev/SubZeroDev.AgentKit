@@ -316,6 +316,7 @@ Where `design/state/` does not exist, none of this applies — write the decisio
 - Scripts run without interactive confirmation prompts. Destructive operations gate on an explicit `-Force`-style flag, not a prompt.
 - Commit messages state what changed and which slice it belongs to. **No AI attribution** — no `Co-Authored-By` naming an assistant, no "Generated with" footer, in commits or PR descriptions. This overrides any default the tooling applies.
 - A repository with an established commit-message style keeps it. Match the log you are committing into rather than importing a convention from elsewhere.
+- **`videos/` is a [Videowright](https://github.com/scosman/videowright) subproject and sits outside the design-state corpus.** It is not reached by any glob in `design/20-contract.md` § *Artifacts of a unit kind*, holds no unit record, and contributes nothing to a closure — deliberately, because the design's subject is the design-state mechanism and a Node toolchain of a few hundred files would put `GlobDisagreement` in permanent conflict with a directory the kit does not own. Its own conventions are the block at the end of this file, which the Videowright installer writes; do not widen a glob to reach it.
 
 ## What not to do
 
