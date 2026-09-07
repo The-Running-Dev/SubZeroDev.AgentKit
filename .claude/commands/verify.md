@@ -59,9 +59,10 @@ their local equivalents:
 | `Run Pester tests` | `Invoke-Pester -Path tools -Output Detailed -PassThru` |
 | `Validate the core/companion split` | `./tools/Test-Companion.ps1` |
 | `Check the design state against the tree` | `./tools/Test-DesignState.ps1` |
+| `Typecheck videos/` | `cd videos && npx tsc --noEmit` |
 
 A repository can gain, lose, or rename flagged steps over time — re-derive this table from
-the workflow files rather than trusting a memorized list; the four rows above describe this
+the workflow files rather than trusting a memorized list; the five rows above describe this
 repository's steps as of this writing, not a fixed schema.
 
 **Two of those steps exit 2 as well as 0 and 1, and 2 is not a failure — it is the third

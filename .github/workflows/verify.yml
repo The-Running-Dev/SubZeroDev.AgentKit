@@ -80,3 +80,36 @@ jobs:
         run: |
           ./tools/Test-DesignState.ps1 | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  videos:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: videos
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Runs videos/scripts/patch-videowright.sh as its postinstall step, so a
+      # patch that silently no-ops (#261) is caught here rather than only
+      # locally.
+      - name: Install videos/ dependencies
+        shell: bash
+        run: npm ci
+
+      # verification: true
+      - name: Typecheck videos/
+        shell: bash
+        run: npx tsc --noEmit
+
+      # Non-blocking: biome's default ruleset flags ~90 pre-existing findings
+      # in videos/ (tracked in #270) that are out of scope for wiring this
+      # gate up. This step reports them without failing the build until that
+      # follow-up lands.
+      - name: Lint videos/ (report only)
+        shell: bash
+        continue-on-error: true
+        run: npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts

@@ -1,22 +1,26 @@
 {
-  "manifestHash": "fa9083b8a69fbd21b8ec72183c9316c844a42c736b8f568cfa9175c412dd54eb",
-  "generated": "2026-08-27",
+  "manifestHash": "614ecab8312d0ef796e15fb44b69a0186307a197b1c5fd40565b792d7f44105a",
+  "generated": "2026-09-07",
   "gates": [
     {
       "name": "Parse-check PowerShell scripts",
-      "command": "parse"
+      "command": "Parse every *.ps1 with Parser.ParseFile"
     },
     {
       "name": "Run Pester tests",
-      "command": "pester"
+      "command": "Invoke-Pester -Path tools -Output Detailed -PassThru"
     },
     {
       "name": "Validate the core/companion split",
-      "command": "companion"
+      "command": "./tools/Test-Companion.ps1"
     },
     {
       "name": "Check the design state against the tree",
-      "command": "design-state"
+      "command": "./tools/Test-DesignState.ps1"
+    },
+    {
+      "name": "Typecheck videos/",
+      "command": "cd videos && npx tsc --noEmit"
     }
   ]
 }
