@@ -68,6 +68,23 @@ exit 0
         Set-Content -LiteralPath (Join-Path $BinDir 'gh.ps1') -Value $stub -Encoding utf8NoBOM
         $BinDir
     }
+
+    function New-ArgLoggingGh {
+        # Logs every argument list `gh` is invoked with, one line per call, to
+        # $env:FAKE_GH_ARGS_LOG - used to prove which repository a `gh pr list` call was
+        # scoped to (via -R) rather than which JSON it answered with. Always answers '[]'
+        # so the script's own candidate logic never depends on the stub's payload.
+        param([Parameter(Mandatory)][string] $BinDir)
+        New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
+        $stub = @'
+param()
+Add-Content -LiteralPath $env:FAKE_GH_ARGS_LOG -Value ($args -join ' ')
+Write-Output '[]'
+exit 0
+'@
+        Set-Content -LiteralPath (Join-Path $BinDir 'gh.ps1') -Value $stub -Encoding utf8NoBOM
+        $BinDir
+    }
 }
 
 Describe 'Invoke-DoneHousekeeping' {
@@ -196,6 +213,46 @@ Describe 'Invoke-DoneHousekeeping' {
             $result.Reason | Should -Be 'CheckoutFailed'
             $result.Detail | Should -Match "used by worktree"
             (& git -C $wt branch --show-current).Trim() | Should -Be 'fix/foo'
+        }
+    }
+
+    Context 'invoked while the process cwd is a different repository than -RepoRoot' {
+
+        BeforeEach {
+            $script:SavedPath = $env:PATH
+            $script:SavedLocation = Get-Location
+            $script:Bin = New-ArgLoggingGh -BinDir (Join-Path $TestDrive ([guid]::NewGuid().ToString('n')))
+            $env:PATH = "$script:Bin$([IO.Path]::PathSeparator)$env:PATH"
+            $script:ArgsLog = Join-Path $TestDrive ([guid]::NewGuid().ToString('n') + '.log')
+            New-Item -ItemType File -Path $script:ArgsLog -Force | Out-Null
+            $env:FAKE_GH_ARGS_LOG = $script:ArgsLog
+        }
+
+        AfterEach {
+            $env:PATH = $script:SavedPath
+            Set-Location $script:SavedLocation
+            Remove-Item Env:FAKE_GH_ARGS_LOG -ErrorAction SilentlyContinue
+        }
+
+        It 'scopes every gh pr list call to -RepoRoot''s own remote, not the ambient cwd''s' {
+            $ambientRepo = New-GitRepo -Path (Join-Path $TestDrive 'repo-ambient')
+            & git -C $ambientRepo remote add origin 'https://github.com/ownerA/repoA.git' | Out-Null
+
+            $targetRepo = New-GitRepo -Path (Join-Path $TestDrive 'repo-target')
+            & git -C $targetRepo remote add origin 'https://github.com/ownerB/repoB.git' | Out-Null
+            $wt = Join-Path $TestDrive 'wt-target-candidate'
+            New-MergedWorktreeBranch -RepoPath $targetRepo -WorktreePath $wt
+
+            Set-Location $ambientRepo
+            $result = & $script:ScriptPath -RepoRoot $targetRepo -DefaultBranch main -SkipPull
+
+            $result.Stopped | Should -Be $false
+            $logLines = @(Get-Content -LiteralPath $script:ArgsLog)
+            $logLines.Count | Should -BeGreaterThan 0
+            foreach ($line in $logLines) {
+                $line | Should -Match ([regex]::Escape('-R ownerB/repoB'))
+                $line | Should -Not -Match ([regex]::Escape('ownerA/repoA'))
+            }
         }
     }
 }
