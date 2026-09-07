@@ -65,3 +65,50 @@ Describe 'Invoke-CodexCommand tier stamping' {
         }
     }
 }
+
+Describe 'Invoke-CodexCommand resolved effort and sandbox match AGENTS.md (issue #252)' {
+    <#
+      Before this fix, every deep-reasoning command shared one 'architect' profile that was
+      sandboxed read-only - correct for /redteam and /brief-check, which write nothing, but
+      wrong for /design, /contract, /slices, and /reconcile, whose normal work is writing to
+      design/. The same profile also defaulted to 'xhigh' effort where AGENTS.md's tier table
+      requires 'high'. Separately, /kit-help and /clean resolved 'low' effort against an
+      implementation-tier requirement of 'medium'. These assert against AGENTS.md's tables
+      directly (not against $commandProfiles/$profileConfig) so a future edit to either table
+      without the other still fails here.
+    #>
+
+    BeforeAll {
+        function Get-Resolved($name) {
+            $result = & $script:ScriptPath -Command $name -WhatIf
+            [pscustomobject]@{
+                Effort  = if ($result -match 'model_reasoning_effort=(\S+)') { $Matches[1] } else { $null }
+                Sandbox = if ($result -match '-s (\S+)') { $Matches[1] } else { $null }
+            }
+        }
+    }
+
+    It 'never defaults a deep-reasoning command to xhigh effort' {
+        foreach ($name in 'brief-check', 'design', 'contract', 'slices', 'redteam', 'reconcile') {
+            (Get-Resolved $name).Effort | Should -Be 'high' -Because "/$name is deep-reasoning tier, which defaults to 'high' per AGENTS.md - xhigh is for one escalated question, not a profile default"
+        }
+    }
+
+    It 'gives implementation-tier housekeeping commands medium effort, not low' {
+        foreach ($name in 'kit-help', 'clean') {
+            (Get-Resolved $name).Effort | Should -Be 'medium' -Because "/$name is implementation tier per AGENTS.md's Command routing table"
+        }
+    }
+
+    It 'keeps /redteam and /brief-check read-only' {
+        foreach ($name in 'redteam', 'brief-check') {
+            (Get-Resolved $name).Sandbox | Should -Be 'read-only' -Because "/$name writes nothing and should never be able to touch the tree"
+        }
+    }
+
+    It 'gives design-document-writing deep-reasoning commands a writable sandbox' {
+        foreach ($name in 'design', 'contract', 'slices', 'reconcile') {
+            (Get-Resolved $name).Sandbox | Should -Be 'workspace-write' -Because "/$name writes to design/ as its normal work"
+        }
+    }
+}
