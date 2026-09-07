@@ -32,26 +32,10 @@ make here.
 found 2026-09-05 by `/next` inside worktree `elegant-leavitt-4b0ad8`, is filed as
 [#239](../../issues/239).
 
-No command commissions the `SemanticDisagreement` reading, found 2026-09-07 by `/reconcile`. The
-class is declared in `tools/Test-DesignState.ps1`, carries a row in `design/20-contract.md`
-§ *The divergence classes* and now one in `design/10-design.md` § *Failure modes*, and nothing
-anywhere tells a pass to produce it — where `LiveAlreadyStated` has `.claude/commands/reconcile.md`
-§ *LiveAlreadyStated* doing exactly that. Either a command acquires the reading, or the class is
-documented as declared-for-list-parity and raised by nobody; both are command-file or contract
-changes rather than a table row.
-
-No gate reaches `videos/`, found 2026-09-07 by `/reconcile`. `.claude/gates.json` carries parse,
-pester, companion and design-state, all scoped to `tools/*.ps1` and the design corpus; the
-Videowright subproject ships biome, vitest and playwright and none of them runs in CI. Its
-`postinstall` rewrites files inside `node_modules/videowright` to work around three upstream
-bugs and, by the patch script's own header, is lost on every fresh `npm install` — so a clean
-checkout that installs and renders is not known to work, and nothing would say so.
-
-`tools/Test-DesignState.ps1` cannot detect a projected marked region that no projector claims,
-found 2026-09-07 by `/reconcile` against `AGENTS.md`'s `videowright` block. `Get-MarkedRegions`
-checks balance and form-collision only, so a bare-form region in any document-glob file passes
-whether or not anything renders it — the projector's registry is the set it would have to be
-compared against, and `RegionMissing` today runs only the other way, from a target to a document.
+The three 2026-09-07 `/reconcile` findings — no command commissions the `SemanticDisagreement`
+reading, no gate reaches `videos/`, and `tools/Test-DesignState.ps1` cannot detect a projected
+marked region that no projector claims — are filed as [#248](../../issues/248),
+[#249](../../issues/249), and [#250](../../issues/250).
 
 ---
 
