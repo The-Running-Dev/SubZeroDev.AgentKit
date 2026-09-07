@@ -1,6 +1,6 @@
 # Design pipeline — agent kit
 
-Eight stages. Most end in a committed artifact; the two review gates deliberately write nothing. The artifact is the handoff, not the conversation.
+Eight stages. Most end in a committed artifact; the two review gates deliberately keep a verdict out of the design doc — `/brief-check` writes nothing at all, `/redteam` writes only a findings file under `design/redteam/`, never back into `design/10-design.md` itself. The artifact is the handoff, not the conversation.
 
 ## Layout
 
@@ -61,7 +61,7 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | 0 Brief | — | `00-brief.md` |
 | 1 Interrogate | `/brief-check` | nothing |
 | 2 Design | `/design` | `10-design.md`, `90-decisions.md` |
-| 3 Red team | `/redteam` | nothing |
+| 3 Red team | `/redteam` | `design/redteam/<date>-<target>.md` |
 | 4 Contract | `/contract` | `20-contract.md` |
 | 5 Slices | `/slices` | `30-slices.md` |
 | 6 Implement | `/slice [S<n>]` | code + tests |
