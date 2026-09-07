@@ -259,6 +259,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-05-self-check-asserts-a-clean-run | `unit/script/test-designstate` |
 | decision/2026-09-05-track-creates-a-project-when-none-exists | `unit/command/track`, `unit/document/agents-md` |
 | decision/2026-09-06-clean-and-next-mechanical-halves-run-from-a-shell-alias | `unit/command/clean`, `unit/command/next`, `unit/script/get-nextorientation`, `unit/script/invoke-housekeeping`, `unit/script/repoaliases` |
+| decision/2026-09-07-externally-written-region-is-declared | `unit/document/agents-md` |
 | decision/2026-09-07-failure-modes-carries-semanticdisagreement | `unit/document/design-10-design` |
 <!-- decision-affects:end -->
 
