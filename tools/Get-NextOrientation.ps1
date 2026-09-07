@@ -45,16 +45,42 @@ function Invoke-Gh {
     finally { Pop-Location }
 }
 
+function Get-RepoNameWithOwner {
+    # Mirrors Invoke-DoneHousekeeping.ps1's helper of the same name (#255's other root
+    # cause): a gate script that falls back to `gh`'s own cwd-based repo resolution needs
+    # that resolution pinned to -RepoRoot, not left to whatever the process cwd is.
+    param([string]$WorkingDir)
+    $urlResult = & git -C $WorkingDir remote get-url origin 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $urlResult) { return $null }
+    $url = ($urlResult | Select-Object -First 1).Trim()
+    if ($url -match '[:/]([^/:]+/[^/]+?)(\.git)?$') { return $Matches[1] }
+    return $null
+}
+
 function Invoke-GateScript {
     # Test-DesignDrift.ps1 and Test-DesignState.ps1 both `exit` with a code, so they are read
     # as external processes rather than dot-sourced - the same reason Measure-Session.Tests.ps1
     # and this repository's other tools scripts invoke each other with `&`, never `.`.
-    param([string]$Path)
+    #
+    # Two things leaked to the ambient process cwd instead of $WorkingDir (#255): each
+    # script's own internal `git`/`gh` calls that assume they're running from the repo they
+    # should check (fixed by Push-Location, the same guard Invoke-Gh above already uses),
+    # and Test-DesignState.ps1's `-Path` default plus Test-DesignDrift.ps1's `-Repository`
+    # default, both of which resolve from cwd unless passed explicitly - fixed by passing
+    # $WorkingDir and its resolved owner/repo through $ExtraArgs at each call site below.
+    param([string]$Path, [string]$WorkingDir, [hashtable]$ExtraArgs = @{})
     if (-not (Test-Path -LiteralPath $Path)) {
         return [pscustomobject]@{ Ran = $false; ExitCode = $null; Output = $null }
     }
-    $output = & $Path *>&1 | Out-String
-    return [pscustomobject]@{ Ran = $true; ExitCode = $LASTEXITCODE; Output = $output.TrimEnd() }
+    Push-Location $WorkingDir
+    try {
+        # A hashtable splat, not an array one - array splatting binds positionally and
+        # would hand the target script's own -Path a literal "-Path" string instead of
+        # matching it by name.
+        $output = & $Path @ExtraArgs *>&1 | Out-String
+        return [pscustomobject]@{ Ran = $true; ExitCode = $LASTEXITCODE; Output = $output.TrimEnd() }
+    }
+    finally { Pop-Location }
 }
 
 $status = & git -C $repoRootResolved status --short --branch
@@ -67,8 +93,11 @@ $frozenPath = Join-Path $repoRootResolved 'design/FROZEN.md'
 $frozen = Test-Path -LiteralPath $frozenPath
 $frozenContent = if ($frozen) { Get-Content -LiteralPath $frozenPath -Raw } else { $null }
 
-$drift = Invoke-GateScript -Path (Join-Path $repoRootResolved 'tools/Test-DesignDrift.ps1')
-$state = Invoke-GateScript -Path (Join-Path $repoRootResolved 'tools/Test-DesignState.ps1')
+$repoNameWithOwner = Get-RepoNameWithOwner -WorkingDir $repoRootResolved
+$driftExtraArgs = if ($repoNameWithOwner) { @{ Repository = $repoNameWithOwner } } else { @{} }
+
+$drift = Invoke-GateScript -Path (Join-Path $repoRootResolved 'tools/Test-DesignDrift.ps1') -WorkingDir $repoRootResolved -ExtraArgs $driftExtraArgs
+$state = Invoke-GateScript -Path (Join-Path $repoRootResolved 'tools/Test-DesignState.ps1') -WorkingDir $repoRootResolved -ExtraArgs @{ Path = $repoRootResolved }
 
 [pscustomobject]@{
     RepoRoot      = $repoRootResolved
