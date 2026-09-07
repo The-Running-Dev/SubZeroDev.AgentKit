@@ -57,6 +57,12 @@ path = sys.argv[1]
 with open(path, "r", encoding="utf-8") as f:
     src = f.read()
 
+def apply_patch(text, old, new, description):
+    if old not in text:
+        print(f"error: pattern not found for {description} -- upstream videowright likely changed; patch needs updating", file=sys.stderr)
+        sys.exit(1)
+    return text.replace(old, new, 1)
+
 helper = '''// PATCHED (upstream bug workaround, videowright@0.1.1): globals.timelinePath
 // and globals.consumerRoot are raw Node filesystem paths (backslashes on
 // Windows). They get JSON.stringified straight into a virtual module that
@@ -76,15 +82,17 @@ function toBrowserFsUrl(p) {
 }
 const VIRTUAL_GLOBALS_ID = "virtual:vw-globals";'''
 
-src = src.replace('const VIRTUAL_GLOBALS_ID = "virtual:vw-globals";', helper, 1)
+src = apply_patch(src, 'const VIRTUAL_GLOBALS_ID = "virtual:vw-globals";', helper, "fix 2 helper insertion")
 
-src = src.replace(
+src = apply_patch(
+    src,
     'lines.push(`export const timelinePath = ${JSON.stringify(globals.timelinePath)};`);\n            lines.push(`export const consumerRoot = ${JSON.stringify(globals.consumerRoot)};`);',
     'lines.push(`export const timelinePath = ${JSON.stringify(globals.timelinePath ? toBrowserFsUrl(globals.timelinePath) : globals.timelinePath)};`);\n            lines.push(`export const consumerRoot = ${JSON.stringify(globals.consumerRoot ? toBrowserFsUrl(globals.consumerRoot) : globals.consumerRoot)};`)',
-    1,
+    "fix 2 globalsVirtualModulePlugin",
 )
 
-src = src.replace(
+src = apply_patch(
+    src,
     '            return `export default ${JSON.stringify(projectInfo)};`;',
     '''            // PATCHED (same upstream bug as globalsVirtualModulePlugin above):
             // each video's timelinePath is a raw Node filesystem path; convert
@@ -97,7 +105,7 @@ src = src.replace(
                 })),
             };
             return `export default ${JSON.stringify(browserProjectInfo)};`;''',
-    1,
+    "fix 2 projectVirtualModulePlugin",
 )
 
 with open(path, "w", encoding="utf-8") as f:
