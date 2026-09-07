@@ -3,22 +3,22 @@
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parsed all 39 *.ps1 files under the repository with [System.Management.Automation.Language.Parser]::ParseFile - no parse errors."
+      "detail": "All *.ps1 files under the repository parsed cleanly via [System.Management.Automation.Language.Parser]::ParseFile with no errors."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Result=Passed, TotalCount=365, PassedCount=365, FailedCount=0, SkippedCount=0, NotRunCount=0, Duration=00:03:39.68."
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests completed in 214.13s. Tests Passed: 375, Failed: 0, Skipped: 0, NotRun: 0."
     },
     {
       "name": "Validate the core/companion split",
       "status": "Passed",
-      "detail": "tools/Test-Companion.ps1: Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion. State=Valid, Findings={}, exit 0."
+      "detail": "Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion. State: Valid. Exit code 0."
     },
     {
       "name": "Check the design state against the tree",
       "status": "Passed",
-      "detail": "tools/Test-DesignState.ps1: Findings (0). Reported (40): 38 MirrorStale + 2 WorkStateDivergence entries, all pre-existing work/ mirror staleness unrelated to this change (work/183, work/239 mirrored State disagrees with tracker; the rest have a stale MirroredAt commit). Could not evaluate (0). Exit code: 0."
+      "detail": "Findings (0). Reported (41), all class MirrorStale on work/* records (e.g. work/112: MirroredAt '4a0b8ab8230b3c80377ddd86d54d9ffde94b2cd4' is not the current commit '01ab8ddc231292055252a05e54a48a8fa3e10393') - non-blocking, expected after any commit since the work mirror was last refreshed. Could not evaluate (0). Largest closure: unit/script/test-designstate, 13633 bytes (ceiling 16384). Exit code 0."
     }
   ]
 }
