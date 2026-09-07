@@ -112,3 +112,34 @@ Describe 'Invoke-CodexCommand resolved effort and sandbox match AGENTS.md (issue
         }
     }
 }
+
+Describe 'Invoke-CodexCommand /unfreeze two-process chain (issue #253)' {
+    <#
+      unfreeze.md requires its reconcile phase at deep-reasoning tier and its track phase at
+      implementation tier "in this same session," but a single Codex profile can't switch
+      mid-session. Before this fix, /unfreeze mapped to one profile ('builder') for the whole
+      run, so its reconcile phase could never actually reach deep-reasoning tier. The fix
+      chains two separate `codex` invocations instead of picking one profile.
+    #>
+
+    BeforeAll {
+        $script:UnfreezeWhatIf = & $script:ScriptPath -Command 'unfreeze' -WhatIf
+    }
+
+    It 'emits two codex invocations, not one' {
+        ($script:UnfreezeWhatIf | Measure-Object).Count | Should -Be 2
+    }
+
+    It 'runs the first (reconcile) process at deep-reasoning tier with a writable sandbox' {
+        $script:UnfreezeWhatIf[0] | Should -Match 'AGENTKIT_TIER=Deep reasoning'
+        $script:UnfreezeWhatIf[0] | Should -Match '-s workspace-write'
+    }
+
+    It 'runs the second (track) process at implementation tier' {
+        $script:UnfreezeWhatIf[1] | Should -Match 'AGENTKIT_TIER=Implementation'
+    }
+
+    It 'still resolves /unfreeze without a $commandProfiles entry throwing "no profile mapping"' {
+        { & $script:ScriptPath -Command 'unfreeze' -WhatIf } | Should -Not -Throw
+    }
+}
