@@ -3,12 +3,12 @@
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parsed 61 *.ps1 files under the repository via [System.Management.Automation.Language.Parser]::ParseFile. Failed: False. No parse errors reported for any file."
+      "detail": "Parsed 40 *.ps1 files under the repository (excluding node_modules) via [System.Management.Automation.Language.Parser]::ParseFile. No parse errors reported for any file."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru. Tests completed in 159.39s. Tests Passed: 378, Failed: 0, Skipped: 0, NotRun: 0."
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru. Tests completed in 165.8s. Tests Passed: 378, Failed: 0, Skipped: 0, NotRun: 0."
     },
     {
       "name": "Validate the core/companion split",
