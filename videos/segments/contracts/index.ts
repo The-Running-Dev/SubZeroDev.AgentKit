@@ -97,15 +97,17 @@ export default defineSegment({
 	},
 
 	async play(ctx) {
-		animateSceneFrame(host!);
+		const h = host;
+		if (!h) throw new Error("contracts: play() called before mount()");
+		animateSceneFrame(h);
 		const opts = { fill: "forwards" as const, easing: SCENE_EASE };
 
-		const heading = host!.querySelector('[data-ref="heading"]') as HTMLElement;
-		const vline = host!.querySelector('[data-ref="vline"]') as HTMLElement;
-		const leader = host!.querySelector('[data-ref="leader"]') as HTMLElement;
-		const callout = host!.querySelector('[data-ref="callout"]') as HTMLElement;
-		const closing = host!.querySelector('[data-ref="closing"]') as HTMLElement;
-		const closingRule = host!.querySelector('[data-ref="closingRule"]') as HTMLElement;
+		const heading = h.querySelector('[data-ref="heading"]') as HTMLElement;
+		const vline = h.querySelector('[data-ref="vline"]') as HTMLElement;
+		const leader = h.querySelector('[data-ref="leader"]') as HTMLElement;
+		const callout = h.querySelector('[data-ref="callout"]') as HTMLElement;
+		const closing = h.querySelector('[data-ref="closing"]') as HTMLElement;
+		const closingRule = h.querySelector('[data-ref="closingRule"]') as HTMLElement;
 
 		// Phase 1: heading
 		heading.animate(
@@ -123,8 +125,8 @@ export default defineSegment({
 			duration: 900,
 		});
 		LEVELS.forEach((_, i) => {
-			const tick = host!.querySelector(`[data-ref="tick${i}"]`) as HTMLElement;
-			const level = host!.querySelector(`[data-ref="level${i}"]`) as HTMLElement;
+			const tick = h.querySelector(`[data-ref="tick${i}"]`) as HTMLElement;
+			const level = h.querySelector(`[data-ref="level${i}"]`) as HTMLElement;
 			const delay = 200 + i * 500;
 			tick.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], {
 				...opts,

@@ -108,13 +108,15 @@ export default defineSegment({
 	},
 
 	async play(ctx) {
-		animateSceneFrame(host!);
+		const h = host;
+		if (!h) throw new Error("orientation: play() called before mount()");
+		animateSceneFrame(h);
 		const opts = { fill: "forwards" as const, easing: SCENE_EASE };
 
-		const heading = host!.querySelector('[data-ref="heading"]') as HTMLElement;
-		const diagramPhase = host!.querySelector('[data-ref="diagramPhase"]') as HTMLElement;
-		const statPhase = host!.querySelector('[data-ref="statPhase"]') as HTMLElement;
-		const calloutPhase = host!.querySelector('[data-ref="calloutPhase"]') as HTMLElement;
+		const heading = h.querySelector('[data-ref="heading"]') as HTMLElement;
+		const diagramPhase = h.querySelector('[data-ref="diagramPhase"]') as HTMLElement;
+		const statPhase = h.querySelector('[data-ref="statPhase"]') as HTMLElement;
+		const calloutPhase = h.querySelector('[data-ref="calloutPhase"]') as HTMLElement;
 
 		// ---- Beat 1: heading (~3s) ----
 		heading.animate(
@@ -128,7 +130,7 @@ export default defineSegment({
 
 		// ---- Beat 2: closure diagram draws (~10s) ----
 		diagramPhase.animate([{ opacity: 0 }, { opacity: 1 }], { ...opts, duration: 300 });
-		const unitBox = host!.querySelector('[data-ref="unitBox"]') as HTMLElement;
+		const unitBox = h.querySelector('[data-ref="unitBox"]') as HTMLElement;
 		unitBox.animate(
 			[
 				{ opacity: 0, transform: "scale(0.85)" },
@@ -144,8 +146,8 @@ export default defineSegment({
 			{ line: "link-i28", node: "node-i28" },
 		];
 		for (const l of links) {
-			const line = host!.querySelector(`[data-ref="${l.line}"]`) as SVGLineElement;
-			const node = host!.querySelector(`[data-ref="${l.node}"]`) as HTMLElement;
+			const line = h.querySelector(`[data-ref="${l.line}"]`) as SVGLineElement;
+			const node = h.querySelector(`[data-ref="${l.node}"]`) as HTMLElement;
 			line.animate([{ strokeDashoffset: 600 }, { strokeDashoffset: 0 }], {
 				...opts,
 				duration: 400,
@@ -160,10 +162,10 @@ export default defineSegment({
 			await ctx.hold(500);
 		}
 
-		const bracketLine = host!.querySelector('[data-ref="bracketLine"]') as SVGLineElement;
-		const bracketTickL = host!.querySelector('[data-ref="bracketTickL"]') as SVGLineElement;
-		const bracketTickR = host!.querySelector('[data-ref="bracketTickR"]') as SVGLineElement;
-		const bracketLabel = host!.querySelector('[data-ref="bracketLabel"]') as HTMLElement;
+		const bracketLine = h.querySelector('[data-ref="bracketLine"]') as SVGLineElement;
+		const bracketTickL = h.querySelector('[data-ref="bracketTickL"]') as SVGLineElement;
+		const bracketTickR = h.querySelector('[data-ref="bracketTickR"]') as SVGLineElement;
+		const bracketLabel = h.querySelector('[data-ref="bracketLabel"]') as HTMLElement;
 		bracketLine.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], {
 			...opts,
 			duration: 500,
@@ -180,7 +182,7 @@ export default defineSegment({
 			delay: 500,
 		});
 
-		const excluded = host!.querySelector('[data-ref="excluded"]') as HTMLElement;
+		const excluded = h.querySelector('[data-ref="excluded"]') as HTMLElement;
 		excluded.animate([{ opacity: 0 }, { opacity: 1 }], { ...opts, duration: 400, delay: 300 });
 		await ctx.hold(1300);
 		await ctx.hold(7000); // hold the drawn closure diagram
@@ -189,13 +191,13 @@ export default defineSegment({
 		diagramPhase.animate([{ opacity: 1 }, { opacity: 0 }], { ...opts, duration: 350 });
 		statPhase.animate([{ opacity: 0 }, { opacity: 1 }], { ...opts, duration: 400, delay: 250 });
 
-		const dimtopLine = host!.querySelector('[data-ref="dimtopLine"]') as SVGLineElement;
-		const dimtopTickL = host!.querySelector('[data-ref="dimtopTickL"]') as SVGLineElement;
-		const dimtopTickR = host!.querySelector('[data-ref="dimtopTickR"]') as SVGLineElement;
-		const dimbotLine = host!.querySelector('[data-ref="dimbotLine"]') as SVGLineElement;
-		const dimbotTickL = host!.querySelector('[data-ref="dimbotTickL"]') as SVGLineElement;
-		const dimbotTickR = host!.querySelector('[data-ref="dimbotTickR"]') as SVGLineElement;
-		const statCaption = host!.querySelector('[data-ref="statCaption"]') as HTMLElement;
+		const dimtopLine = h.querySelector('[data-ref="dimtopLine"]') as SVGLineElement;
+		const dimtopTickL = h.querySelector('[data-ref="dimtopTickL"]') as SVGLineElement;
+		const dimtopTickR = h.querySelector('[data-ref="dimtopTickR"]') as SVGLineElement;
+		const dimbotLine = h.querySelector('[data-ref="dimbotLine"]') as SVGLineElement;
+		const dimbotTickL = h.querySelector('[data-ref="dimbotTickL"]') as SVGLineElement;
+		const dimbotTickR = h.querySelector('[data-ref="dimbotTickR"]') as SVGLineElement;
+		const statCaption = h.querySelector('[data-ref="statCaption"]') as HTMLElement;
 
 		dimtopLine.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], {
 			...opts,
