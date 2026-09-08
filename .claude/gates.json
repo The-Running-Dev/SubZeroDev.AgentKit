@@ -1,10 +1,10 @@
 {
-  "manifestHash": "614ecab8312d0ef796e15fb44b69a0186307a197b1c5fd40565b792d7f44105a",
-  "generated": "2026-09-07",
+  "manifestHash": "e1d6006a2519067ec99f3ce04d8f56809b22b376ea8a783cdf1f09f057acb48b",
+  "generated": "2026-09-08",
   "gates": [
     {
       "name": "Parse-check PowerShell scripts",
-      "command": "Parse every *.ps1 with Parser.ParseFile"
+      "command": "parse-ps1"
     },
     {
       "name": "Run Pester tests",
@@ -20,7 +20,11 @@
     },
     {
       "name": "Typecheck videos/",
-      "command": "cd videos && npx tsc --noEmit"
+      "command": "cd videos; npx tsc --noEmit"
+    },
+    {
+      "name": "Lint videos/",
+      "command": "cd videos; npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts"
     }
   ]
 }

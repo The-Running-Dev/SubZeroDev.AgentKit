@@ -44,7 +44,7 @@ function outerNodeHTML(s: Spoke): string {
     </div>`;
 }
 
-function edgeLineHTML(s: Spoke, i: number): string {
+function edgeLineHTML(s: Spoke, _i: number): string {
 	return `<line data-ref="edge-${s.key}" x1="${CENTER.x}" y1="${CENTER.y}" x2="${s.x}" y2="${s.y}" stroke="var(--cyan)" stroke-width="2" stroke-dasharray="1000" stroke-dashoffset="1000" />`;
 }
 
@@ -174,14 +174,16 @@ export default defineSegment({
 	},
 
 	async play(ctx) {
-		animateSceneFrame(host!);
+		const h = host;
+		if (!h) throw new Error("design-state: play() called before mount()");
+		animateSceneFrame(h);
 		const opts = { fill: "forwards" as const, easing: SCENE_EASE };
 
-		const heading = host!.querySelector('[data-ref="heading"]') as HTMLElement;
-		const graphPhase = host!.querySelector('[data-ref="graphPhase"]') as HTMLElement;
-		const recordPhase = host!.querySelector('[data-ref="recordPhase"]') as HTMLElement;
-		const splitPhase = host!.querySelector('[data-ref="splitPhase"]') as HTMLElement;
-		const quotePhase = host!.querySelector('[data-ref="quotePhase"]') as HTMLElement;
+		const heading = h.querySelector('[data-ref="heading"]') as HTMLElement;
+		const graphPhase = h.querySelector('[data-ref="graphPhase"]') as HTMLElement;
+		const recordPhase = h.querySelector('[data-ref="recordPhase"]') as HTMLElement;
+		const splitPhase = h.querySelector('[data-ref="splitPhase"]') as HTMLElement;
+		const quotePhase = h.querySelector('[data-ref="quotePhase"]') as HTMLElement;
 
 		// ---- Beat 1: heading + graph (~25s) ----
 		heading.animate(
@@ -193,7 +195,7 @@ export default defineSegment({
 		);
 		await ctx.hold(700);
 
-		const unitNode = host!.querySelector('[data-ref="node-unit"]') as HTMLElement;
+		const unitNode = h.querySelector('[data-ref="node-unit"]') as HTMLElement;
 		unitNode.animate(
 			[
 				{ opacity: 0, transform: "translate(-50%, -50%) scale(0.6)" },
@@ -204,9 +206,9 @@ export default defineSegment({
 		await ctx.hold(700);
 
 		for (const s of SPOKES) {
-			const edge = host!.querySelector(`[data-ref="edge-${s.key}"]`) as SVGLineElement;
-			const node = host!.querySelector(`[data-ref="node-${s.key}"]`) as HTMLElement;
-			const label = host!.querySelector(`[data-ref="edgelabel-${s.key}"]`) as HTMLElement;
+			const edge = h.querySelector(`[data-ref="edge-${s.key}"]`) as SVGLineElement;
+			const node = h.querySelector(`[data-ref="node-${s.key}"]`) as HTMLElement;
+			const label = h.querySelector(`[data-ref="edgelabel-${s.key}"]`) as HTMLElement;
 
 			edge.animate([{ strokeDashoffset: 1000 }, { strokeDashoffset: 0 }], {
 				...opts,
@@ -237,7 +239,7 @@ export default defineSegment({
 			duration: 500,
 			delay: 300,
 		});
-		const recordCaption = host!.querySelector('[data-ref="recordCaption"]') as HTMLElement;
+		const recordCaption = h.querySelector('[data-ref="recordCaption"]') as HTMLElement;
 		recordCaption.animate([{ opacity: 0 }, { opacity: 1 }], {
 			...opts,
 			duration: 400,
@@ -247,7 +249,7 @@ export default defineSegment({
 
 		const rows = ["row-kind", "row-consumes", "row-binds", "row-live"];
 		for (const r of rows) {
-			const row = host!.querySelector(`[data-ref="${r}"]`) as HTMLElement;
+			const row = h.querySelector(`[data-ref="${r}"]`) as HTMLElement;
 			row.animate(
 				[
 					{ opacity: 0, transform: "translateY(10px)" },
@@ -267,9 +269,9 @@ export default defineSegment({
 			duration: 500,
 			delay: 300,
 		});
-		const divider = host!.querySelector('[data-ref="divider"]') as HTMLElement;
-		const colLeft = host!.querySelector('[data-ref="colLeft"]') as HTMLElement;
-		const colRight = host!.querySelector('[data-ref="colRight"]') as HTMLElement;
+		const divider = h.querySelector('[data-ref="divider"]') as HTMLElement;
+		const colLeft = h.querySelector('[data-ref="colLeft"]') as HTMLElement;
+		const colRight = h.querySelector('[data-ref="colRight"]') as HTMLElement;
 		divider.animate(
 			[
 				{ transform: "translateX(-50%) scaleY(0)" },
