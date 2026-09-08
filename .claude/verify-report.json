@@ -3,27 +3,27 @@
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parsed 40 *.ps1 files under the repository (excluding node_modules) via [System.Management.Automation.Language.Parser]::ParseFile. No parse errors reported for any file."
+      "detail": "Parse check OK - all *.ps1 files parsed cleanly (Parser.ParseFile over every *.ps1, zero parse errors)"
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru. Tests completed in 161.54s. Tests Passed: 378, Failed: 0, Skipped: 0, NotRun: 0."
+      "detail": "Tests completed in 255.75s\nTests Passed: 380, Failed: 0, Skipped: 0, NotRun: 0"
     },
     {
       "name": "Validate the core/companion split",
       "status": "Passed",
-      "detail": "Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion. State: Valid. Findings: {}. Exit code 0."
+      "detail": "Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion. State: Valid, Findings: {}"
     },
     {
       "name": "Check the design state against the tree",
       "status": "Passed",
-      "detail": "Findings (0). Reported (41), all class MirrorStale on work/* records (e.g. work/112, work/113, work/116 ... work/33) - non-blocking, pre-existing work-mirror staleness unrelated to this change. Could not evaluate (0). Largest closure: unit/script/test-designstate, 13633 bytes (ceiling 16384), largest contributor contract/test-designstate, unit's own artifact 88986 bytes. Exit code 0."
+      "detail": "Exit code: 0. Findings: {} (zero blocking findings). Reported: 37 non-blocking MirrorStale entries, pre-existing and unrelated to this change (work mirror timestamps trail the current commit). Largest closure: unit/script/test-designstate, 13633 bytes (ceiling 16384)."
     },
     {
       "name": "Typecheck videos/",
       "status": "Passed",
-      "detail": "cd videos && npx tsc --noEmit. Exit code 0, no diagnostics emitted."
+      "detail": "npx tsc --noEmit exited 0 with no errors, after npm ci installed videos/'s dependencies (node_modules was absent in this worktree; CI's own 'Install videos/ dependencies' step is the same prerequisite, not itself the gated step)."
     }
   ]
 }
