@@ -341,4 +341,27 @@ Describe 'Measure-Session -Watch' {
 
         ($output -join ' ') | Should -Match 'Context is 200 tokens'
     }
+
+    It 'names a directive action at the ordinary threshold, not a suggestion' {
+        $transcript = New-TranscriptFile -Name 'watch-past.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"model":"claude-sonnet-5","usage":{"input_tokens":150,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
+        )
+        $payload = (@{ transcript_path = $transcript } | ConvertTo-Json -Compress)
+
+        $output = $payload | pwsh -NoProfile -File $script:ScriptPath -Watch -WarnAtTokens 100
+
+        ($output -join ' ') | Should -Match 'Finish this step, then end the session'
+        ($output -join ' ') | Should -Not -Match 'consider'
+    }
+
+    It 'escalates the action when context is well past -WarnAtTokens' {
+        $transcript = New-TranscriptFile -Name 'watch-well-past.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"model":"claude-sonnet-5","usage":{"input_tokens":300,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
+        )
+        $payload = (@{ transcript_path = $transcript } | ConvertTo-Json -Compress)
+
+        $output = $payload | pwsh -NoProfile -File $script:ScriptPath -Watch -WarnAtTokens 100
+
+        ($output -join ' ') | Should -Match 'Stop here'
+    }
 }
