@@ -91,15 +91,17 @@ export default defineSegment({
 	},
 
 	async play(ctx) {
-		animateSceneFrame(host!);
+		const h = host;
+		if (!h) throw new Error("retirement-absorption: play() called before mount()");
+		animateSceneFrame(h);
 		const opts = { fill: "forwards" as const, easing: SCENE_EASE };
 
-		const heading = host!.querySelector('[data-ref="heading"]') as HTMLElement;
-		const leftCol = host!.querySelector('[data-ref="leftCol"]') as HTMLElement;
-		const rightCol = host!.querySelector('[data-ref="rightCol"]') as HTMLElement;
-		const divider = host!.querySelector('[data-ref="divider"]') as HTMLElement;
-		const diagram = host!.querySelector('[data-ref="diagram"]') as HTMLElement;
-		const quotePhase = host!.querySelector('[data-ref="quotePhase"]') as HTMLElement;
+		const heading = h.querySelector('[data-ref="heading"]') as HTMLElement;
+		const leftCol = h.querySelector('[data-ref="leftCol"]') as HTMLElement;
+		const rightCol = h.querySelector('[data-ref="rightCol"]') as HTMLElement;
+		const divider = h.querySelector('[data-ref="divider"]') as HTMLElement;
+		const diagram = h.querySelector('[data-ref="diagram"]') as HTMLElement;
+		const quotePhase = h.querySelector('[data-ref="quotePhase"]') as HTMLElement;
 
 		// ---- Beat 1: heading (~3s) ----
 		heading.animate(
@@ -124,10 +126,10 @@ export default defineSegment({
 		leftCol.animate([{ opacity: 0 }, { opacity: 1 }], { ...opts, duration: 300, delay: 200 });
 		await ctx.hold(600);
 
-		const leftArrowLine = host!.querySelector('[data-ref="left-arrow-line"]') as SVGLineElement;
-		const leftArrowHead = host!.querySelector('[data-ref="left-arrow-head"]') as SVGPathElement;
-		const leftBox2 = host!.querySelector('[data-ref="left-box2"]') as HTMLElement;
-		const leftCaption = host!.querySelector('[data-ref="left-caption"]') as HTMLElement;
+		const leftArrowLine = h.querySelector('[data-ref="left-arrow-line"]') as SVGLineElement;
+		const leftArrowHead = h.querySelector('[data-ref="left-arrow-head"]') as SVGPathElement;
+		const leftBox2 = h.querySelector('[data-ref="left-box2"]') as HTMLElement;
+		const leftCaption = h.querySelector('[data-ref="left-caption"]') as HTMLElement;
 
 		leftArrowLine.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], {
 			...opts,
@@ -163,10 +165,10 @@ export default defineSegment({
 		rightCol.animate([{ opacity: 0 }, { opacity: 1 }], { ...opts, duration: 300 });
 		await ctx.hold(600);
 
-		const rightArrowLine = host!.querySelector('[data-ref="right-arrow-line"]') as SVGLineElement;
-		const rightArrowHead = host!.querySelector('[data-ref="right-arrow-head"]') as SVGPathElement;
-		const rightBox2 = host!.querySelector('[data-ref="right-box2"]') as HTMLElement;
-		const rightCaption = host!.querySelector('[data-ref="right-caption"]') as HTMLElement;
+		const rightArrowLine = h.querySelector('[data-ref="right-arrow-line"]') as SVGLineElement;
+		const rightArrowHead = h.querySelector('[data-ref="right-arrow-head"]') as SVGPathElement;
+		const rightBox2 = h.querySelector('[data-ref="right-box2"]') as HTMLElement;
+		const rightCaption = h.querySelector('[data-ref="right-caption"]') as HTMLElement;
 
 		rightArrowLine.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], {
 			...opts,

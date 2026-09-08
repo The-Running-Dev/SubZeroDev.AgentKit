@@ -106,6 +106,8 @@ export default defineSegment({
 	},
 
 	async play(ctx) {
+		const h = host;
+		if (!h) throw new Error("example: play() called before mount()");
 		if (!host) return;
 		animateSceneFrame(host);
 
@@ -129,7 +131,7 @@ export default defineSegment({
 		strip.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: "forwards" });
 		const stepMs = 1600;
 		NODES.forEach((_, i) => {
-			const node = host!.querySelector(`[data-ref="node${i}"]`) as HTMLElement;
+			const node = h.querySelector(`[data-ref="node${i}"]`) as HTMLElement;
 			node.animate(
 				[
 					{ transform: "scale(1)", borderColor: MUTED, color: MUTED, boxShadow: "0 0 0 rgba(255,136,0,0)" },
@@ -139,7 +141,7 @@ export default defineSegment({
 				{ duration: 500, delay: i * stepMs, fill: "forwards", easing: SCENE_EASE },
 			);
 			if (i < NODES.length - 1) {
-				const line = host!.querySelector(`[data-ref="line${i}"]`) as HTMLElement;
+				const line = h.querySelector(`[data-ref="line${i}"]`) as HTMLElement;
 				line.animate([{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], {
 					...opts,
 					duration: 250,

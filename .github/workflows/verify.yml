@@ -105,11 +105,7 @@ jobs:
         shell: bash
         run: npx tsc --noEmit
 
-      # Non-blocking: biome's default ruleset flags ~90 pre-existing findings
-      # in videos/ (tracked in #270) that are out of scope for wiring this
-      # gate up. This step reports them without failing the build until that
-      # follow-up lands.
-      - name: Lint videos/ (report only)
+      # verification: true
+      - name: Lint videos/
         shell: bash
-        continue-on-error: true
         run: npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts

@@ -95,14 +95,16 @@ export default defineSegment({
 	},
 
 	async play(ctx) {
-		animateSceneFrame(host!);
+		const h = host;
+		if (!h) throw new Error("model-routing: play() called before mount()");
+		animateSceneFrame(h);
 		const opts = { fill: "forwards" as const, easing: SCENE_EASE };
 
-		const heading = host!.querySelector('[data-ref="heading"]') as HTMLElement;
-		const boxA = host!.querySelector('[data-ref="boxA"]') as HTMLElement;
-		const boxB = host!.querySelector('[data-ref="boxB"]') as HTMLElement;
-		const stat = host!.querySelector('[data-ref="stat"]') as HTMLElement;
-		const annotation = host!.querySelector('[data-ref="annotation"]') as HTMLElement;
+		const heading = h.querySelector('[data-ref="heading"]') as HTMLElement;
+		const boxA = h.querySelector('[data-ref="boxA"]') as HTMLElement;
+		const boxB = h.querySelector('[data-ref="boxB"]') as HTMLElement;
+		const stat = h.querySelector('[data-ref="stat"]') as HTMLElement;
+		const annotation = h.querySelector('[data-ref="annotation"]') as HTMLElement;
 
 		// Phase 1: heading
 		heading.animate(

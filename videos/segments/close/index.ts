@@ -62,12 +62,14 @@ export default defineSegment({
 	},
 
 	async play(ctx) {
+		const h = host;
+		if (!h) throw new Error("close: play() called before mount()");
 		if (!host) return;
 		animateSceneFrame(host);
 
 		const opts = { fill: "forwards" as const, easing: SCENE_EASE };
 		const recaps = RECAP_LINES.map(
-			(_, i) => host!.querySelector(`[data-ref="recap${i}"]`) as HTMLElement,
+			(_, i) => h.querySelector(`[data-ref="recap${i}"]`) as HTMLElement,
 		);
 		const finalBox = host.querySelector('[data-ref="finalBox"]') as HTMLElement;
 		const tag = host.querySelector('[data-ref="tag"]') as HTMLElement;

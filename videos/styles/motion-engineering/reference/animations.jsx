@@ -35,13 +35,13 @@ const Easing = {
   easeInOutQuart: (t) => (t < 0.5 ? 8 * t * t * t * t : 1 - 8 * (--t) * t * t * t),
 
   // Expo
-  easeInExpo:  (t) => (t === 0 ? 0 : Math.pow(2, 10 * (t - 1))),
-  easeOutExpo: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+  easeInExpo:  (t) => (t === 0 ? 0 : 2 ** (10 * (t - 1))),
+  easeOutExpo: (t) => (t === 1 ? 1 : 1 - 2 ** (-10 * t)),
   easeInOutExpo: (t) => {
     if (t === 0) return 0;
     if (t === 1) return 1;
-    if (t < 0.5) return 0.5 * Math.pow(2, 20 * t - 10);
-    return 1 - 0.5 * Math.pow(2, -20 * t + 10);
+    if (t < 0.5) return 0.5 * 2 ** (20 * t - 10);
+    return 1 - 0.5 * 2 ** (-20 * t + 10);
   },
 
   // Sine
@@ -52,7 +52,7 @@ const Easing = {
   // Back (overshoot)
   easeOutBack: (t) => {
     const c1 = 1.70158, c3 = c1 + 1;
-    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+    return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2;
   },
   easeInBack: (t) => {
     const c1 = 1.70158, c3 = c1 + 1;
@@ -61,8 +61,8 @@ const Easing = {
   easeInOutBack: (t) => {
     const c1 = 1.70158, c2 = c1 * 1.525;
     return t < 0.5
-      ? (Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
-      : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
+      ? ((2 * t) ** 2 * ((c2 + 1) * 2 * t - c2)) / 2
+      : ((2 * t - 2) ** 2 * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
   },
 
   // Elastic
@@ -70,7 +70,7 @@ const Easing = {
     const c4 = (2 * Math.PI) / 3;
     if (t === 0) return 0;
     if (t === 1) return 1;
-    return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+    return 2 ** (-10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
   },
 };
 
@@ -137,7 +137,7 @@ function Sprite({ start = 0, end = Infinity, children, keepMounted = false }) {
 
   const duration = end - start;
   const localTime = Math.max(0, time - start);
-  const progress = duration > 0 && isFinite(duration)
+  const progress = duration > 0 && Number.isFinite(duration)
     ? clamp(localTime / duration, 0, 1)
     : 0;
 
@@ -325,7 +325,7 @@ function Stage({
   height = 720,
   duration = 10,
   background = '#f6f4ef',
-  fps = 60,
+  fps: _fps = 60,
   loop = true,
   autoplay = true,
   persistKey = 'animstage',
@@ -333,8 +333,8 @@ function Stage({
 }) {
   const [time, setTime] = React.useState(() => {
     try {
-      const v = parseFloat(localStorage.getItem(persistKey + ':t') || '0');
-      return isFinite(v) ? clamp(v, 0, duration) : 0;
+      const v = parseFloat(localStorage.getItem(`${persistKey}:t`) || '0');
+      return Number.isFinite(v) ? clamp(v, 0, duration) : 0;
     } catch { return 0; }
   });
   const [playing, setPlaying] = React.useState(autoplay);
@@ -348,7 +348,7 @@ function Stage({
 
   // Persist playhead
   React.useEffect(() => {
-    try { localStorage.setItem(persistKey + ':t', String(time)); } catch {}
+    try { localStorage.setItem(`${persistKey}:t`, String(time)); } catch {}
   }, [time, persistKey]);
 
   // Auto-scale to fit viewport
@@ -514,6 +514,23 @@ function PlaybackBar({ time, duration, playing, onPlayPause, onReset, onSeek, on
     onHover(null);
   };
 
+  const onTrackKeyDown = (e) => {
+    const step = duration > 0 ? duration * 0.02 : 1;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      onSeek(clamp(time - step, 0, duration));
+      e.preventDefault();
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      onSeek(clamp(time + step, 0, duration));
+      e.preventDefault();
+    } else if (e.key === 'Home') {
+      onSeek(0);
+      e.preventDefault();
+    } else if (e.key === 'End') {
+      onSeek(duration);
+      e.preventDefault();
+    }
+  };
+
   React.useEffect(() => {
     if (!dragging) return;
     const onUp = () => setDragging(false);
@@ -558,18 +575,18 @@ function PlaybackBar({ time, duration, playing, onPlayPause, onReset, onSeek, on
       flexShrink: 0,
     }}>
       <IconButton onClick={onReset} title="Return to start (0)">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M3 2v10M12 2L5 7l7 5V2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round"/>
         </svg>
       </IconButton>
       <IconButton onClick={onPlayPause} title="Play/pause (space)">
         {playing ? (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <rect x="3" y="2" width="3" height="10" fill="currentColor"/>
             <rect x="8" y="2" width="3" height="10" fill="currentColor"/>
           </svg>
         ) : (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M3 2l9 5-9 5V2z" fill="currentColor"/>
           </svg>
         )}
@@ -589,9 +606,17 @@ function PlaybackBar({ time, duration, playing, onPlayPause, onReset, onSeek, on
       {/* Scrub track */}
       <div
         ref={trackRef}
+        role="slider"
+        tabIndex={0}
+        aria-label="Playback position"
+        aria-valuemin={0}
+        aria-valuemax={duration}
+        aria-valuenow={time}
+        aria-valuetext={fmt(time)}
         onMouseMove={onTrackMove}
         onMouseLeave={onTrackLeave}
         onMouseDown={onTrackDown}
+        onKeyDown={onTrackKeyDown}
         style={{
           flex: 1,
           height: 22,
@@ -641,6 +666,7 @@ function IconButton({ children, onClick, title }) {
   const [hover, setHover] = React.useState(false);
   return (
     <button
+      type="button"
       onClick={onClick}
       title={title}
       onMouseEnter={() => setHover(true)}

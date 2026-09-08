@@ -148,15 +148,17 @@ export default defineSegment({
 	},
 
 	async play(ctx) {
-		animateSceneFrame(host!);
+		const h = host;
+		if (!h) throw new Error("session-boundaries: play() called before mount()");
+		animateSceneFrame(h);
 		const opts = { fill: "forwards" as const, easing: SCENE_EASE };
 
-		const heading = host!.querySelector('[data-ref="heading"]') as HTMLElement;
-		const callout = host!.querySelector('[data-ref="callout"]') as HTMLElement;
-		const incident = host!.querySelector('[data-ref="incident"]') as HTMLElement;
-		const incidentLine = host!.querySelector('[data-ref="incidentLine"]') as HTMLElement;
-		const closing = host!.querySelector('[data-ref="closing"]') as HTMLElement;
-		const closingRule = host!.querySelector('[data-ref="closingRule"]') as HTMLElement;
+		const heading = h.querySelector('[data-ref="heading"]') as HTMLElement;
+		const callout = h.querySelector('[data-ref="callout"]') as HTMLElement;
+		const incident = h.querySelector('[data-ref="incident"]') as HTMLElement;
+		const incidentLine = h.querySelector('[data-ref="incidentLine"]') as HTMLElement;
+		const closing = h.querySelector('[data-ref="closing"]') as HTMLElement;
+		const closingRule = h.querySelector('[data-ref="closingRule"]') as HTMLElement;
 
 		// Phase 1: heading
 		heading.animate(
@@ -170,8 +172,8 @@ export default defineSegment({
 
 		// Phase 2: five boundary rows, staggered ~500ms apart
 		ROWS.forEach((_, i) => {
-			const row = host!.querySelector(`[data-ref="row${i}"]`) as HTMLElement;
-			const line = host!.querySelector(`[data-ref="line${i}"]`) as HTMLElement;
+			const row = h.querySelector(`[data-ref="row${i}"]`) as HTMLElement;
+			const line = h.querySelector(`[data-ref="line${i}"]`) as HTMLElement;
 			row.animate(
 				[
 					{ opacity: 0, transform: "translateY(10px)" },
