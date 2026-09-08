@@ -476,8 +476,18 @@ if ($Watch) {
         # The number growing is itself the signal, a one-shot warning is read
         # once and forgotten, and the alternative is a state file whose failure
         # modes cost more than the repetition does.
+        #
+        # "Consider finishing up" measured at 0% effect over a full week (issue
+        # #184): 70 of 324 sessions crossed this threshold and none ended early
+        # because of it. The action is now a directive, not a suggestion, and it
+        # escalates with severity instead of repeating the same wording louder.
         $severity = if ($context -ge ($WarnAtTokens * 2L)) { 'well past' } else { 'past' }
-        '[session-watch] Context is {0:N0} tokens and every further turn pays it again ({1} the {2:N0} threshold). AGENTS.md puts a session boundary at each artifact handoff - consider finishing this step and starting fresh.' -f $context, $severity, $WarnAtTokens
+        $action = if ($severity -eq 'well past') {
+            'Stop here: finish only what is already in flight and move anything further to a fresh session.'
+        } else {
+            'Finish this step, then end the session - do not start the next step here.'
+        }
+        '[session-watch] Context is {0:N0} tokens and every further turn pays it again ({1} the {2:N0} threshold). AGENTS.md treats the artifact you are about to produce as the handoff point: {3}' -f $context, $severity, $WarnAtTokens, $action
         exit 0
     }
     catch { exit 0 }
