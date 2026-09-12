@@ -248,7 +248,7 @@ it rested on has changed.
 Migration story: not applicable, and any future proposal to persist any of this needs its
 own decision-log entry naming what stops a stale record being trusted.
 
-### The state set
+### Where each record lives
 
 `design/state/`, one file per record, UTF-8, LF.
 

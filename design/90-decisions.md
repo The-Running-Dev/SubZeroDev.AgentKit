@@ -37,6 +37,13 @@ reading, no gate reaches `videos/`, and `tools/Test-DesignState.ps1` cannot dete
 marked region that no projector claims — are filed as [#248](../../issues/248),
 [#249](../../issues/249), and [#250](../../issues/250).
 
+`design/20-contract.md` carried two `### The state set` headings — the field-semantics section
+under § *Types* and the id-to-path table under § *Persisted schemas* — which made every site in
+that document naming either of them unresolvable. `SiteAmbiguous` only fires once a `StatedIn`
+actually names one, so a duplicate heading sits latent until an absorption trips over it, as one
+did on 2026-09-12. Nothing checks heading uniqueness inside a document whose sites are addressed
+by heading.
+
 `unit/script/test-designstate`'s closure measures 14,037 bytes against the 16,384-byte
 ceiling, so 2,347 bytes of headroom. The 2026-09-12 contract amendment for
 [#277](../../issues/277) added 1,412 of them — 962 for
@@ -1052,3 +1059,23 @@ Known and retained: nothing proves a clean checkout can render. `videos/package.
 gate is install, typecheck and lint, and the render path is exercised only by a human running it.
 Reversibility: cheap for the record. Removing the CI job is a separate and larger call this entry
 does not make.
+
+### 2026-09-12 — The id-to-path table is renamed `Where each record lives`, and heading uniqueness is a latent hazard
+Context: Absorbing `decision/2026-08-19-contract-owner-stays-written-other-edges-derived` into
+`design/20-contract.md` § *The state set* — where the #279 amendment had written its standing terms
+— produced a blocking `SiteAmbiguous`: the document carried **two** `### The state set` headings,
+the field-semantics section under § *Types* and the id-to-path table under § *Persisted schemas*.
+A site is `<id> § <heading>`, so neither section could be named at all.
+Chosen: **The § *Persisted schemas* one is renamed to `Where each record lives`.** It is the
+cheaper of the two by a wide margin and the choice is evidence-based rather than aesthetic: four
+citations in `tools/` and one in this log name § *The state set*, and every one of them means the
+field-semantics section under § *Types* — the site grammar, the every-list-field-present rule, the
+rendering half of retirement. Nothing anywhere cites the table by name.
+Rejected: **Renaming the § *Types* one**, which invalidates five live citations across two scripts,
+their tests and this log, to spare a section nothing cites. **Naming a different, unique site for
+the absorption** — the terms stand where they stand, and picking a further-off heading to dodge a
+duplicate leaves the duplicate in place for the next absorption to hit.
+Known and retained: nothing checks heading uniqueness within a document. `SiteAmbiguous` fires only
+once a `StatedIn` names a duplicated heading, so the hazard is latent until an absorption trips
+over it — which is how this one surfaced. Staged under § *Open*.
+Reversibility: cheap. One heading.
