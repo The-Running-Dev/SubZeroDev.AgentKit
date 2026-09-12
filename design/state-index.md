@@ -296,9 +296,10 @@ that looks old.
 |---|---|---|---|---|
 | 211 | #211 | A script unit that exposes no contract has nowhere to absorb a decision into | — | `c63cae8f19298c5dc92a01883153c0f699c7b0c0` |
 | 248 | #248 | No command commissions the SemanticDisagreement reading | — | `ad8e94ab2332012c117968e8ae8c47ff6e4a8a65` |
-| 249 | #249 | No gate reaches videos/, so a clean checkout install+render is unverified | — | `ad8e94ab2332012c117968e8ae8c47ff6e4a8a65` |
 | 250 | #250 | Test-DesignState.ps1 cannot detect an unclaimed projected marked region | — | `ad8e94ab2332012c117968e8ae8c47ff6e4a8a65` |
 | 258 | #258 | Design-state record for the Codex launcher describes a --profile invocation it no longer uses | — | `8c5ae4188b591c32dafa5023a035e6b358a3e5e2` |
 | 259 | #259 | Contract text says "five conditions above" where the table it refers to lists six | — | `8c5ae4188b591c32dafa5023a035e6b358a3e5e2` |
+| 277 | #277 | Design state cannot model a repository whose invariants are owned by compilation units | — | `35f2cd8b46a6d0f358642938e1b1d48b1d03041d` |
+| 281 | #281 | Nothing checks heading uniqueness in a document whose sites are addressed by heading | — | `35f2cd8b46a6d0f358642938e1b1d48b1d03041d` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
