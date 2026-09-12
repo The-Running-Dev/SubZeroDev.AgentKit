@@ -40,8 +40,21 @@ brief's *no round-trip* non-goal expressed structurally rather than as a promise
 
 ### Unit
 
-The addressable thing design state is *about*. Four kinds, and they are the kinds the tree
-already has: **command**, **script**, **document**, **invariant**. No new decomposition.
+The addressable thing design state is *about*. Five kinds: **command**, **script**,
+**document**, **invariant**, **component**. The first four are the kinds *this* repository's
+tree has; `component` is the kind an application repository's tree has and this one does not —
+an assembly, a module, a package. It is here because the kit installs into repositories that
+are not made of commands and scripts, and an invariant owned by a compilation unit had no
+owner that could exist.
+
+**The vocabulary is closed, and a repository declares a kind's contents rather than its
+existence.** `design/20-contract.md` § *Artifacts of a unit kind* already carries a glob per
+kind, per repository; `component`'s glob is a project file and is that repository's to write.
+What a repository may not do is invent a kind, because the kind segment of an id is parsed
+before any record is read — a vocabulary learned from a document would put a prose parse
+upstream of every record in the state set, and the reader depends on nothing today. That
+direction is the one *Module boundaries* calls acyclic, and it is cheaper to ship one more
+fixed kind than to widen it.
 
 A unit is **one record in two files**: the *active record*, which is everything true now, and
 its *retired companion*, which holds the halves that have left the working set. One id, one
@@ -51,7 +64,7 @@ deletion* below. The active record carries:
 | Field | Type | Notes |
 |---|---|---|
 | `Id` | stable string | Assigned once. **Never reused, never renumbered** — the criterion-id precedent in `AGENTS.md` (*Tracking work*) applies to every id in this system |
-| `Kind` | command \| script \| document \| invariant | |
+| `Kind` | command \| script \| document \| invariant \| component | |
 | `Status` | `active` \| `retired` | Retirement's representation. A retired record keeps its id resolvable, leaves every closure, and stops having its `Anchor` checked against the tree |
 | `Anchor` | tree path, or an invariant number | A **checked** restatement, not a copy — see *Every restatement is either forbidden or checked* below |
 | `Owns` | one sentence | What this unit is responsible for. The only free prose in the record and deliberately capped |
@@ -108,10 +121,31 @@ be trusted without checking. That distinction becomes a field.
 |---|---|---|
 | `Id` | `I<n>` | The existing numbering is never renumbered |
 | `Statement` | one sentence | |
-| `Owner` | unit id | |
 | `Enforcement` | `code` \| `instruction` | |
 | `Evidence` | tree pointer | **Required when `Enforcement` is `code`**, and its absence is a finding. An invariant claimed to be mechanically enforced with nothing pointing at the mechanism is the claim this field exists to stop |
-| `BoundBy` | — | **Derived.** Never written |
+| `BoundBy` | — | **Derived**, and the only statement of who holds this invariant. Never written |
+
+**There is no `Owner`, and that is what makes the cardinality question disappear.** An
+invariant used to name exactly one owning unit, which could express neither of the two shapes a
+real invariant routinely takes: one held *jointly*, where the guarantee is precisely that two
+units agree, and one held by nothing, which is a consequence of other rules recorded so a
+reader does not mistake it for a gap. `Unit.Binds` is already the forward edge and `BoundBy` is
+already derived from it, so zero, one, several and all fall out of the existing mechanism with
+no cardinality rule, no new field, and no second way of saying the same thing.
+
+**An empty `BoundBy` is not a finding, and the contrast with a decision is deliberate.** *A
+decision nothing names is an interrupted write* forbids an empty `Decision.Affects`, because an
+accepted decision reachable only from the log is the state the brief's first done criterion
+exists to forbid. An invariant bound by nothing is the opposite: a real and intentional state,
+the one *enforced by nothing* case, and requiring a holder would force the recording session to
+invent one. It is the same line already drawn for questions.
+
+**The cost is an offline read, and it is paid in the projection rather than the record.** An
+invariant record read entirely alone no longer names its holders — `AGENTS.md`'s § *Invariants*
+projection does, which is the one way a derived fact is permitted to appear and the reason the
+marked-region mechanism carries its weight. A written `Owners` list would have kept the record
+self-sufficient at the cost of a second copy of an edge the unit already states, which is the
+copy that rots.
 
 ### Decision
 
@@ -230,6 +264,14 @@ about the contract rather than about the units. It is therefore the second copy,
 *checked* kind rather than the forbidden kind: a blocking class compares it against the unique
 active unit whose `Exposes` names that contract. That check is also the only mechanical
 enforcement "exactly one" has ever had.
+
+**An invariant's holders are derived and a contract's owner is not, and the asymmetry is the
+check rather than the offline read.** "Exactly one owner" is a statement *about the contract*
+that nothing else in the state set expresses, and the written field is what a blocking class
+compares against the exposing units. An invariant makes no such claim — zero, one and several
+are all legitimate — so there is nothing for a written field to be checked against, and an
+unchecked restatement is the forbidden kind. The offline cost is real and lands on the
+projection, which is where *Derived* already sends every other reverse edge.
 
 **`Decision.StatedIn` is not a reverse edge and does not join it.** It points *forward*, at a
 place in the corpus, exactly as `Decision.Anchor` points forward at the log heading that
@@ -664,6 +706,7 @@ brief's scope answer expressed as a flow.
 | A marked region is unbalanced or nested | Marker scan | Finding, blocking | The document and the marker |
 | An id is duplicated, renumbered, disagrees with its file path, or appears in both marker forms | Id scan across the state set | Finding, blocking | Every file claiming it |
 | A projection differs from its regeneration | Regenerate to memory, compare | Finding, blocking | A diff of the region |
+| An invariant no unit's `Binds` names | Empty derived `BoundBy` | **Not a finding** — the *enforced by nothing* case is a real state | Nothing |
 | Line endings differ but content does not | Normalise before comparing | **Not a finding** | Nothing |
 | A decision anchor resolves to zero or two headings | Heading scan of the log | Finding, blocking | The anchor and the count |
 | A log entry has no decision record | Set difference against the log's headings | Finding, blocking | The entry's heading |
@@ -822,6 +865,32 @@ field is present. **A depth cap**, cheaper to implement and it reports the wrong
 legitimate chain and a two-element cycle are indistinguishable to it. **Nothing**, on the
 argument that no cycle has been written: true today, and the reason to add the check now rather
 than after one exists and needs a human to reconstruct which claim was meant to stand.
+
+**Invariant ownership: derive it from `Unit.Binds`, and delete the field.** Forced by an
+application repository where a third of real invariants were unrepresentable — measured over the
+44 that motivated it, 34 name one unit, 8 name two, one names all, and one names none, so the
+single-owner field failed on ten of them and the two shapes it could not express were the
+joint guarantee and the deliberate non-enforcement. Rejected: **making `Owner` a list**, which
+is what the defect literally asks for and keeps the record self-sufficient offline, and which
+puts the field back inside the closure on the many side — `Owner` is a scalar the closure
+already follows as one hop, so an invariant held by every unit would pull every unit into its
+own closure and breach the ceiling by construction, needing a suppression rule that is a second
+mechanism for a fact `Binds` already carries. **A `Scope` scalar beside a singular `Owner`** —
+`one | several | all | none` — smaller against the checker and two fields encoding one fact,
+with the `several` case still unable to say *which* several. **Leaving it singular and
+declaring application repositories out of scope**, which is what the tree does today and is
+foreclosed by the brief's compatibility promise: the subsystem installs cleanly, reports it has
+nothing to check, and stays that way silently, which is the I8 shape the whole design refuses.
+
+**A fifth unit kind, `component`, shipped fixed rather than declared per repository.** Rejected:
+**letting the contract's `Kind` table define which kinds exist**, the fully general answer and
+the one a second application repository would want, which makes the reader parse a prose table
+before it can resolve the kind segment of any id — a new edge from a document into the one
+module that today depends on nothing, and a parse failure in that table would take every record
+with it. **Reusing the `script` kind for a project file**, which needs no change at all and
+makes every such id say `script` and mean `assembly`, permanently, with exclusion lists that do
+not transfer. **A kind per language or build system**, which is an enumeration the kit cannot
+close and would have it tracking toolchains it does not own.
 
 **Storage granularity: one file per record.** Rejected: grouping records into a document per
 unit kind, which gives a human offline seven files to read instead of a few hundred and was
