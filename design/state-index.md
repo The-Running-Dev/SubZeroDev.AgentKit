@@ -267,6 +267,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-12-ghunavailable-covers-unreadable-output | `unit/document/design-20-contract`, `unit/script/wait-pullrequestcheck` |
 | decision/2026-09-12-invariant-holders-are-derived-from-binds | `unit/document/design-10-design`, `unit/script/read-designstate`, `unit/script/test-designstate` |
 | decision/2026-09-12-unhandlederror-is-a-fourth-stop | `unit/document/design-20-contract`, `unit/script/invoke-donehousekeeping` |
+| decision/2026-09-12-videos-is-gated-but-not-rendered | `unit/document/agents-md` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered

@@ -1021,3 +1021,34 @@ contract that enumerates three stops reads as a closed list to anyone writing a 
 which is what a reader tracing a red run would rather see, and is not a closed set; writing it
 would promise an enumeration the next unanticipated failure breaks.
 Reversibility: cheap. One bullet.
+
+### 2026-09-12 — `videos/` is gated by its own CI job, and rendering is knowingly outside that gate
+Context: `/reconcile` found that `videos/` had been gated with no entry recording the choice. Three
+pull requests landed it — [#271](../../issues/271) added a `videos` CI job running `npm ci` and a
+typecheck, [#269](../../issues/269) made `scripts/patch-videowright.sh` fail loudly instead of
+silently no-opping, and [#276](../../issues/276) cleared the lint debt and dropped
+`continue-on-error` so the lint step blocks. The 2026-09-07 entry's *Known and retained* — "the
+subtree is ungated. `.claude/gates.json` carries four gates" — has been false since, and
+[#249](../../issues/249), which staged the question, asked for exactly this entry as its own
+completion criterion.
+Chosen: **The entry is written after the fact and the tree is left as it stands**, the same way the
+2026-09-07 entry was: the work is shipped and the defect was that the reasoning was never recorded.
+`videos/` is reached by one CI job and nothing else, and **rendering is deliberately not gated**.
+Sitting outside the design-state corpus and sitting outside CI are separate facts and are now
+decided separately — the corpus boundary is unchanged, no unit record, no glob widened, no closure
+contribution. `AGENTS.md` § *House conventions* states it, beside the boundary the 2026-09-07 entry
+put there.
+Rejected: **Gating the render too**, which is literally what #249 asked — "a clean checkout
+install+render is unverified" — and the only thing that would prove the subtree actually works. It
+puts a browser-driven job producing minutes of video on every pull request, for a subtree the
+design has no view on, to catch a class of failure the patch risk was never about. **Leaving it
+ungated per the 2026-09-07 entry**, foreclosed by that entry's own staging of the gap under
+§ *Open* and by the three pull requests that have already landed. **Editing the 2026-09-07 entry's
+*Known and retained* clause to say the subtree is now gated** — the log is append-only and that
+clause was true when written; a later entry is how the log records a change, not a retroactive
+edit.
+Known and retained: nothing proves a clean checkout can render. `videos/package.json` declares
+`dev`, `render` and `postinstall` and no test script, so there is no suite to wire either — the
+gate is install, typecheck and lint, and the render path is exercised only by a human running it.
+Reversibility: cheap for the record. Removing the CI job is a separate and larger call this entry
+does not make.
