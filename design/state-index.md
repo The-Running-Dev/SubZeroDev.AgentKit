@@ -262,6 +262,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-07-externally-written-region-is-declared | `unit/document/agents-md` |
 | decision/2026-09-07-failure-modes-carries-semanticdisagreement | `unit/document/design-10-design` |
 | decision/2026-09-07-videos-is-a-subproject-outside-the-corpus | `unit/document/agents-md` |
+| decision/2026-09-12-277-amendment-stands-unimplemented | `unit/document/design-20-contract` |
 | decision/2026-09-12-component-is-a-fifth-unit-kind | `unit/document/design-10-design`, `unit/script/read-designstate` |
 | decision/2026-09-12-component-row-enumerates | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-09-12-ghunavailable-covers-unreadable-output | `unit/document/design-20-contract`, `unit/script/wait-pullrequestcheck` |

@@ -37,6 +37,11 @@ reading, no gate reaches `videos/`, and `tools/Test-DesignState.ps1` cannot dete
 marked region that no projector claims — are filed as [#248](../../issues/248),
 [#249](../../issues/249), and [#250](../../issues/250).
 
+[#277](../../issues/277) has no slice. `design/30-slices.md` ends at S29, and the two 2026-09-12
+decisions it answers are implemented by nothing — the reader's kind vocabulary, the invariant
+schema, the § *Invariants* projection and the `component` glob feed are four changes across three
+modules against a settled contract, which is a slice rather than a fix. `/slices` owns adding it.
+
 `design/20-contract.md` carried two `### The state set` headings — the field-semantics section
 under § *Types* and the id-to-path table under § *Persisted schemas* — which made every site in
 that document naming either of them unresolvable. `SiteAmbiguous` only fires once a `StatedIn`
@@ -1079,3 +1084,31 @@ Known and retained: nothing checks heading uniqueness within a document. `SiteAm
 once a `StatedIn` names a duplicated heading, so the hazard is latent until an absorption trips
 over it — which is how this one surfaced. Staged under § *Open*.
 Reversibility: cheap. One heading.
+
+### 2026-09-12 — The #277 amendment stands unimplemented, and the `component` row's interval hazard is named rather than hedged
+Context: `/reconcile` found `design/10-design.md` and `design/20-contract.md` describing three
+behaviours nothing implements, all from the 2026-09-12 amendment: an invariant with no `Owner`
+(`tools/Read-DesignState.ps1` still declares the scalar and all 31 records carry it), § *Invariants*'
+`Held by` column (the projector renders `Owner` from the written field), and a `component` glob cell
+(`component` is absent from the reader's kind vocabulary, and a filled cell earns a blocking
+`GlobDisagreement` from a checker that enumerates no such kind).
+Chosen: **Neither document changes, and the gap closes in #277's implementing slice.** The
+amendment leads the implementation deliberately — `e4b2214` and `8e75a7f` say so in their own commit
+messages — the decisions behind it are accepted and recorded, and reverting a document to match a
+tree that is merely behind relitigates a signed-off decision. The one hazard worth acting on is the
+`component` row, because "a target fills this cell and changes nothing else" is not merely
+unimplemented but actively false: a repository following it red-gates itself. That is recorded as a
+comment on #277, where the implementing session reads it.
+Rejected: **A not-yet clause in § *Artifacts of a unit kind*** saying the checker does not honour
+the row at this SHA. It is the most direct fix for the trap and it puts shipped-status into a
+document that states what is contracted; the clause is stale the moment the slice lands, and nothing
+checks it, so it becomes the kind of rot § *Single ownership* exists to prevent. **Reverting the
+three statements until the code catches up**, which keeps document and tree in lockstep and
+discards a decision the user has already signed off. **Implementing it here** — four changes across
+three modules is a slice, not a reconciliation, and *One slice at a time* binds.
+Known and retained: between this commit and #277's slice, a repository that declares a `component`
+glob gets a blocking finding with the contract telling it the declaration was free. The exposure is
+narrow — `templates/design/20-contract.md` ships no glob table, so no installed target inherits the
+row — but a reader using this repository's contract as the reference for how to declare a component
+will hit it, which is how #277 arose in the first place.
+Reversibility: cheap. Nothing was edited.
