@@ -684,6 +684,13 @@ action is the unchecked kind I15 forbids until a record resolves it (`design/90-
   and every candidate list empty. `-AutoStash` is the one stop that may be converted into a
   continue, and **the stash is never popped**: `StashRef` is reported back so the caller restores
   it explicitly rather than having it reappear on whatever branch is checked out next.
+- **A step that fails in a way this script did not anticipate is a fourth stop, not an
+  exception.** Anything thrown after the stash — or, on a clean tree, after the switch — ends the
+  run with `Reason` `UnhandledError` and `Detail` carrying the message, in the same shape the
+  three named stops use. The shape is what matters rather than the diagnosis: `StashRef` rides on
+  it, so work set aside by `-AutoStash` is never lost to a path nobody enumerated, which is the
+  one failure mode a delegation resting on this script's field names cannot tolerate. The named
+  three stay named because a caller branches on them; this one is deliberately the residue.
 
 ### `tools/Test-GatesCache.ps1`
 

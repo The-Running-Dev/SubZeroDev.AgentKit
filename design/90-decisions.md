@@ -1003,3 +1003,21 @@ throwing or reporting `PullRequestMissing` on unusable output: the first loses t
 list the `WaitResult` exists to carry, and the second asserts something about the pull request that
 nothing established.
 Reversibility: cheap. One table cell and one paragraph.
+
+### 2026-09-12 — `UnhandledError` is a contracted fourth stop, not an unlisted implementation path
+Context: `/reconcile` found `design/20-contract.md` § `tools/Invoke-DoneHousekeeping.ps1`
+enumerating three stop conditions — dirty tree, unmerged current branch, failed checkout — while
+`tools/Invoke-DoneHousekeeping.ps1` has returned a fourth, `UnhandledError`, since #256's fix
+(`22a92cd`). `.claude/commands/clean.md` already documents it; only the contract was behind.
+Chosen: **The contract's bullet widens to name it**, stated as the residue rather than as a fourth
+enumerated condition. The distinction is what the record has to carry: the three named stops are
+named because a caller branches on them, and this one exists so that `StashRef` survives a path
+nobody enumerated — the one failure mode `AGENTS.md` § *Git and delivery*'s force-delete
+delegation, which rests on this script's field names, cannot tolerate.
+Rejected: **Leaving it out as an implementation detail**, on the reading that a catch-all is not a
+contracted condition. It is one here: the result shape on that path is load-bearing, and a
+contract that enumerates three stops reads as a closed list to anyone writing a caller.
+**Enumerating the underlying causes instead** — an unresolvable default branch, a `gh` failure —
+which is what a reader tracing a red run would rather see, and is not a closed set; writing it
+would promise an enumeration the next unanticipated failure breaks.
+Reversibility: cheap. One bullet.
