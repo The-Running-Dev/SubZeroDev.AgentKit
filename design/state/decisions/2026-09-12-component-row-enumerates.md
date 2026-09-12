@@ -2,7 +2,7 @@
 Date: 2026-09-12
 Anchor: 2026-09-12 — The `component` row enumerates, and `GlobDisagreement` has nothing to compare for that kind
 Status: accepted
-StatedIn: unit/document/design-20-contract § Documents that carry surface
+StatedIn: unit/document/design-20-contract § Documents that carry surface, contract/test-designstate § Semantics
 
 ## Claim
 `component` is the one unit kind the checker does not enumerate, so § *Artifacts of a unit kind*'s
