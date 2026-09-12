@@ -46,8 +46,8 @@ modules against a settled contract, which is a slice rather than a fix. `/slices
 under § *Types* and the id-to-path table under § *Persisted schemas* — which made every site in
 that document naming either of them unresolvable. `SiteAmbiguous` only fires once a `StatedIn`
 actually names one, so a duplicate heading sits latent until an absorption trips over it, as one
-did on 2026-09-12. Nothing checks heading uniqueness inside a document whose sites are addressed
-by heading.
+did on 2026-09-12. That nothing checks heading uniqueness inside a document whose sites are
+addressed by heading is filed as [#281](../../issues/281).
 
 `unit/script/test-designstate`'s closure measures 14,037 bytes against the 16,384-byte
 ceiling, so 2,347 bytes of headroom. The 2026-09-12 contract amendment for
