@@ -5,7 +5,7 @@ Anchor: tools/Wait-PullRequestCheck.ps1
 Consumes:
 Exposes: contract/wait-pullrequestcheck
 Binds: I2, I7, I8
-Live:
+Live: decision/2026-09-12-ghunavailable-covers-unreadable-output
 Questions:
 Work:
 Evidence: tools/Wait-PullRequestCheck.Tests.ps1
