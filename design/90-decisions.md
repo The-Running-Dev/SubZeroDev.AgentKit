@@ -37,11 +37,24 @@ reading, no gate reaches `videos/`, and `tools/Test-DesignState.ps1` cannot dete
 marked region that no projector claims — are filed as [#248](../../issues/248),
 [#249](../../issues/249), and [#250](../../issues/250).
 
-`unit/script/test-designstate`'s closure has 320 bytes of headroom left against the 16,384-byte
-ceiling. The 2026-09-12 contract amendment for [#277](../../issues/277) added 1,412 of them — 962
-for `decision/2026-09-12-component-row-enumerates`, 404 to `contract/test-designstate`, 46 to the
-unit record — and the two #277 decisions now in that unit's `Live` are absorbable only once the
-checker carries their terms, which is the implementation #277 already tracks. Until then the next
+[#277](../../issues/277) has no slice. `design/30-slices.md` ends at S29, and the two 2026-09-12
+decisions it answers are implemented by nothing — the reader's kind vocabulary, the invariant
+schema, the § *Invariants* projection and the `component` glob feed are four changes across three
+modules against a settled contract, which is a slice rather than a fix. `/slices` owns adding it.
+
+`design/20-contract.md` carried two `### The state set` headings — the field-semantics section
+under § *Types* and the id-to-path table under § *Persisted schemas* — which made every site in
+that document naming either of them unresolvable. `SiteAmbiguous` only fires once a `StatedIn`
+actually names one, so a duplicate heading sits latent until an absorption trips over it, as one
+did on 2026-09-12. Nothing checks heading uniqueness inside a document whose sites are addressed
+by heading.
+
+`unit/script/test-designstate`'s closure measures 14,037 bytes against the 16,384-byte
+ceiling, so 2,347 bytes of headroom. The 2026-09-12 contract amendment for
+[#277](../../issues/277) added 1,412 of them — 962 for
+`decision/2026-09-12-component-row-enumerates`, 404 to `contract/test-designstate`, 46 to the
+unit record — and the one #277 decision now in that unit's `Live` is absorbable only once the
+checker carries its terms, which is the implementation #277 already tracks. Until then the next
 decision to land on that unit breaches the ceiling, and that is a sequencing constraint on #277's
 slice rather than a defect to fix here.
 
@@ -982,3 +995,120 @@ whose contents the kit is not entitled to know. § *Public surface*'s "no class 
 paragraph now names two gaps rather than one.
 Reversibility: cheap. The rule is one paragraph and one checker branch; reverting it returns
 `component` to a declared-but-unchecked kind.
+
+### 2026-09-12 — `GhUnavailable` covers `gh` returning output that cannot be read as the answer
+Context: `/reconcile` found `design/20-contract.md` § *Error semantics* describing `GhUnavailable`
+as "`gh` missing or unauthenticated" while `tools/Wait-PullRequestCheck.ps1` has raised it on a
+third condition since #254's fix (`0792723`): `gh` exits 0 and emits output `ConvertFrom-Json`
+cannot read. That fix amended no document, so the contract has described a narrower condition set
+than the code raises ever since.
+Chosen: **The contract's cell widens to match the code.** The three conditions are one failure to
+the caller — no answer exists — and the fix is right: it fails closed, and I2 is untouched because
+the script still refuses to report an outcome it did not establish. A sentence below the table
+states why the third joins the other two rather than reading as `PullRequestMissing`.
+Rejected: **A distinct `GhUnreadable` failure**, which names the cause precisely and is what a
+reader tracing a red gate would rather see. It adds a value to a closed vocabulary that `/pr` and
+`/resolve` both branch on, so it is a public-interface change for `/contract` with every caller to
+update, for a case whose correct handling is identical to `GhUnavailable`'s — the caller reports a
+gate that did not run either way. **Leaving the code to match the narrow cell**, which would mean
+throwing or reporting `PullRequestMissing` on unusable output: the first loses the partial check
+list the `WaitResult` exists to carry, and the second asserts something about the pull request that
+nothing established.
+Reversibility: cheap. One table cell and one paragraph.
+
+### 2026-09-12 — `UnhandledError` is a contracted fourth stop, not an unlisted implementation path
+Context: `/reconcile` found `design/20-contract.md` § `tools/Invoke-DoneHousekeeping.ps1`
+enumerating three stop conditions — dirty tree, unmerged current branch, failed checkout — while
+`tools/Invoke-DoneHousekeeping.ps1` has returned a fourth, `UnhandledError`, since #256's fix
+(`22a92cd`). `.claude/commands/clean.md` already documents it; only the contract was behind.
+Chosen: **The contract's bullet widens to name it**, stated as the residue rather than as a fourth
+enumerated condition. The distinction is what the record has to carry: the three named stops are
+named because a caller branches on them, and this one exists so that `StashRef` survives a path
+nobody enumerated — the one failure mode `AGENTS.md` § *Git and delivery*'s force-delete
+delegation, which rests on this script's field names, cannot tolerate.
+Rejected: **Leaving it out as an implementation detail**, on the reading that a catch-all is not a
+contracted condition. It is one here: the result shape on that path is load-bearing, and a
+contract that enumerates three stops reads as a closed list to anyone writing a caller.
+**Enumerating the underlying causes instead** — an unresolvable default branch, a `gh` failure —
+which is what a reader tracing a red run would rather see, and is not a closed set; writing it
+would promise an enumeration the next unanticipated failure breaks.
+Reversibility: cheap. One bullet.
+
+### 2026-09-12 — `videos/` is gated by its own CI job, and rendering is knowingly outside that gate
+Context: `/reconcile` found that `videos/` had been gated with no entry recording the choice. Three
+pull requests landed it — [#271](../../issues/271) added a `videos` CI job running `npm ci` and a
+typecheck, [#269](../../issues/269) made `scripts/patch-videowright.sh` fail loudly instead of
+silently no-opping, and [#276](../../issues/276) cleared the lint debt and dropped
+`continue-on-error` so the lint step blocks. The 2026-09-07 entry's *Known and retained* — "the
+subtree is ungated. `.claude/gates.json` carries four gates" — has been false since, and
+[#249](../../issues/249), which staged the question, asked for exactly this entry as its own
+completion criterion.
+Chosen: **The entry is written after the fact and the tree is left as it stands**, the same way the
+2026-09-07 entry was: the work is shipped and the defect was that the reasoning was never recorded.
+`videos/` is reached by one CI job and nothing else, and **rendering is deliberately not gated**.
+Sitting outside the design-state corpus and sitting outside CI are separate facts and are now
+decided separately — the corpus boundary is unchanged, no unit record, no glob widened, no closure
+contribution. `AGENTS.md` § *House conventions* states it, beside the boundary the 2026-09-07 entry
+put there.
+Rejected: **Gating the render too**, which is literally what #249 asked — "a clean checkout
+install+render is unverified" — and the only thing that would prove the subtree actually works. It
+puts a browser-driven job producing minutes of video on every pull request, for a subtree the
+design has no view on, to catch a class of failure the patch risk was never about. **Leaving it
+ungated per the 2026-09-07 entry**, foreclosed by that entry's own staging of the gap under
+§ *Open* and by the three pull requests that have already landed. **Editing the 2026-09-07 entry's
+*Known and retained* clause to say the subtree is now gated** — the log is append-only and that
+clause was true when written; a later entry is how the log records a change, not a retroactive
+edit.
+Known and retained: nothing proves a clean checkout can render. `videos/package.json` declares
+`dev`, `render` and `postinstall` and no test script, so there is no suite to wire either — the
+gate is install, typecheck and lint, and the render path is exercised only by a human running it.
+Reversibility: cheap for the record. Removing the CI job is a separate and larger call this entry
+does not make.
+
+### 2026-09-12 — The id-to-path table is renamed `Where each record lives`, and heading uniqueness is a latent hazard
+Context: Absorbing `decision/2026-08-19-contract-owner-stays-written-other-edges-derived` into
+`design/20-contract.md` § *The state set* — where the #279 amendment had written its standing terms
+— produced a blocking `SiteAmbiguous`: the document carried **two** `### The state set` headings,
+the field-semantics section under § *Types* and the id-to-path table under § *Persisted schemas*.
+A site is `<id> § <heading>`, so neither section could be named at all.
+Chosen: **The § *Persisted schemas* one is renamed to `Where each record lives`.** It is the
+cheaper of the two by a wide margin and the choice is evidence-based rather than aesthetic: four
+citations in `tools/` and one in this log name § *The state set*, and every one of them means the
+field-semantics section under § *Types* — the site grammar, the every-list-field-present rule, the
+rendering half of retirement. Nothing anywhere cites the table by name.
+Rejected: **Renaming the § *Types* one**, which invalidates five live citations across two scripts,
+their tests and this log, to spare a section nothing cites. **Naming a different, unique site for
+the absorption** — the terms stand where they stand, and picking a further-off heading to dodge a
+duplicate leaves the duplicate in place for the next absorption to hit.
+Known and retained: nothing checks heading uniqueness within a document. `SiteAmbiguous` fires only
+once a `StatedIn` names a duplicated heading, so the hazard is latent until an absorption trips
+over it — which is how this one surfaced. Staged under § *Open*.
+Reversibility: cheap. One heading.
+
+### 2026-09-12 — The #277 amendment stands unimplemented, and the `component` row's interval hazard is named rather than hedged
+Context: `/reconcile` found `design/10-design.md` and `design/20-contract.md` describing three
+behaviours nothing implements, all from the 2026-09-12 amendment: an invariant with no `Owner`
+(`tools/Read-DesignState.ps1` still declares the scalar and all 31 records carry it), § *Invariants*'
+`Held by` column (the projector renders `Owner` from the written field), and a `component` glob cell
+(`component` is absent from the reader's kind vocabulary, and a filled cell earns a blocking
+`GlobDisagreement` from a checker that enumerates no such kind).
+Chosen: **Neither document changes, and the gap closes in #277's implementing slice.** The
+amendment leads the implementation deliberately — `e4b2214` and `8e75a7f` say so in their own commit
+messages — the decisions behind it are accepted and recorded, and reverting a document to match a
+tree that is merely behind relitigates a signed-off decision. The one hazard worth acting on is the
+`component` row, because "a target fills this cell and changes nothing else" is not merely
+unimplemented but actively false: a repository following it red-gates itself. That is recorded as a
+comment on #277, where the implementing session reads it.
+Rejected: **A not-yet clause in § *Artifacts of a unit kind*** saying the checker does not honour
+the row at this SHA. It is the most direct fix for the trap and it puts shipped-status into a
+document that states what is contracted; the clause is stale the moment the slice lands, and nothing
+checks it, so it becomes the kind of rot § *Single ownership* exists to prevent. **Reverting the
+three statements until the code catches up**, which keeps document and tree in lockstep and
+discards a decision the user has already signed off. **Implementing it here** — four changes across
+three modules is a slice, not a reconciliation, and *One slice at a time* binds.
+Known and retained: between this commit and #277's slice, a repository that declares a `component`
+glob gets a blocking finding with the contract telling it the declaration was free. The exposure is
+narrow — `templates/design/20-contract.md` ships no glob table, so no installed target inherits the
+row — but a reader using this repository's contract as the reference for how to declare a component
+will hit it, which is how #277 arose in the first place.
+Reversibility: cheap. Nothing was edited.

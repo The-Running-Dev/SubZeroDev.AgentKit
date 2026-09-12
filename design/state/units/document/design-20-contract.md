@@ -5,7 +5,7 @@ Anchor: design/20-contract.md
 Consumes:
 Exposes:
 Binds: I22
-Live: decision/2026-08-11-documents-state-only-what-tree-cannot, decision/2026-08-19-retirement-is-status-field, decision/2026-08-19-contract-owner-stays-written-other-edges-derived, decision/2026-08-19-contract-becomes-repository-scoped, decision/2026-08-19-four-open-questions-closed-unit-set-widens, decision/2026-08-19-state-set-one-file-per-record-ps1-tooling, decision/2026-08-30-contract-carries-companion-halves-and-artifact-closure
+Live: decision/2026-09-12-277-amendment-stands-unimplemented, decision/2026-09-12-record-files-heading-renamed, decision/2026-08-11-documents-state-only-what-tree-cannot, decision/2026-08-19-retirement-is-status-field, decision/2026-08-19-contract-becomes-repository-scoped, decision/2026-08-19-four-open-questions-closed-unit-set-widens, decision/2026-08-19-state-set-one-file-per-record-ps1-tooling, decision/2026-08-30-contract-carries-companion-halves-and-artifact-closure
 Questions:
 Work:
 Evidence:
