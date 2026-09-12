@@ -141,8 +141,8 @@ the one *enforced by nothing* case, and requiring a holder would force the recor
 invent one. It is the same line already drawn for questions.
 
 **The cost is an offline read, and it is paid in the projection rather than the record.** An
-invariant record read entirely alone no longer names its holders — `AGENTS.md`'s § *Invariants*
-projection does, which is the one way a derived fact is permitted to appear and the reason the
+invariant record read entirely alone no longer names its holders — `design/20-contract.md`'s
+§ *Invariants* projection does, which is the one way a derived fact is permitted to appear and the reason the
 marked-region mechanism carries its weight. A written `Owners` list would have kept the record
 self-sufficient at the cost of a second copy of an edge the unit already states, which is the
 copy that rots.
