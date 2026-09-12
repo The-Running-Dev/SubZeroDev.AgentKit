@@ -37,11 +37,12 @@ reading, no gate reaches `videos/`, and `tools/Test-DesignState.ps1` cannot dete
 marked region that no projector claims — are filed as [#248](../../issues/248),
 [#249](../../issues/249), and [#250](../../issues/250).
 
-`unit/script/test-designstate`'s closure has 320 bytes of headroom left against the 16,384-byte
-ceiling. The 2026-09-12 contract amendment for [#277](../../issues/277) added 1,412 of them — 962
-for `decision/2026-09-12-component-row-enumerates`, 404 to `contract/test-designstate`, 46 to the
-unit record — and the two #277 decisions now in that unit's `Live` are absorbable only once the
-checker carries their terms, which is the implementation #277 already tracks. Until then the next
+`unit/script/test-designstate`'s closure measures 14,037 bytes against the 16,384-byte
+ceiling, so 2,347 bytes of headroom. The 2026-09-12 contract amendment for
+[#277](../../issues/277) added 1,412 of them — 962 for
+`decision/2026-09-12-component-row-enumerates`, 404 to `contract/test-designstate`, 46 to the
+unit record — and the one #277 decision now in that unit's `Live` is absorbable only once the
+checker carries its terms, which is the implementation #277 already tracks. Until then the next
 decision to land on that unit breaches the ceiling, and that is a sequencing constraint on #277's
 slice rather than a defect to fix here.
 
@@ -982,3 +983,23 @@ whose contents the kit is not entitled to know. § *Public surface*'s "no class 
 paragraph now names two gaps rather than one.
 Reversibility: cheap. The rule is one paragraph and one checker branch; reverting it returns
 `component` to a declared-but-unchecked kind.
+
+### 2026-09-12 — `GhUnavailable` covers `gh` returning output that cannot be read as the answer
+Context: `/reconcile` found `design/20-contract.md` § *Error semantics* describing `GhUnavailable`
+as "`gh` missing or unauthenticated" while `tools/Wait-PullRequestCheck.ps1` has raised it on a
+third condition since #254's fix (`0792723`): `gh` exits 0 and emits output `ConvertFrom-Json`
+cannot read. That fix amended no document, so the contract has described a narrower condition set
+than the code raises ever since.
+Chosen: **The contract's cell widens to match the code.** The three conditions are one failure to
+the caller — no answer exists — and the fix is right: it fails closed, and I2 is untouched because
+the script still refuses to report an outcome it did not establish. A sentence below the table
+states why the third joins the other two rather than reading as `PullRequestMissing`.
+Rejected: **A distinct `GhUnreadable` failure**, which names the cause precisely and is what a
+reader tracing a red gate would rather see. It adds a value to a closed vocabulary that `/pr` and
+`/resolve` both branch on, so it is a public-interface change for `/contract` with every caller to
+update, for a case whose correct handling is identical to `GhUnavailable`'s — the caller reports a
+gate that did not run either way. **Leaving the code to match the narrow cell**, which would mean
+throwing or reporting `PullRequestMissing` on unusable output: the first loses the partial check
+list the `WaitResult` exists to carry, and the second asserts something about the pull request that
+nothing established.
+Reversibility: cheap. One table cell and one paragraph.

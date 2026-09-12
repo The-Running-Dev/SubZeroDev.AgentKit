@@ -991,8 +991,14 @@ projections have `ProjectionStale`.
 | `TimedOut` | A check is still non-terminal at `-TimeoutSeconds` | Yes | Report the named checks as did-not-run. **Do not resolve** |
 | `UnknownBucket` | A bucket outside the known sets | No | Stop. Report the bucket verbatim; the set needs widening deliberately |
 | `NoChecksConfigured` | The pull request reports zero checks | No | Report that nothing was evaluated. **Do not resolve.** A repository with no CI cannot satisfy I1 by this route, and the honest answer is that the evidence does not exist rather than that it was favourable |
-| `GhUnavailable` | `gh` missing or unauthenticated | No | Report as a gate that did not run, per `/verify` |
+| `GhUnavailable` | `gh` missing, unauthenticated, or returning output that cannot be read as the answer | No | Report as a gate that did not run, per `/verify` |
 | `PullRequestMissing` | No such PR | No | Stop |
+
+**`GhUnavailable` is about the answer, not about the process.** `gh` absent, `gh` refusing to
+authenticate, and `gh` exiting 0 with output that will not parse are one failure to the caller:
+no answer exists, and the honest report is a gate that did not run. Reading the third as
+`PullRequestMissing` would assert something about the pull request that nothing established,
+which is the direction I2 forbids everywhere else in this script.
 
 `State = Failed` is **not** an error — the script succeeded at determining that a check
 failed. It exits 1 so a caller can branch on it, and the failing checks are in `.Failed`
