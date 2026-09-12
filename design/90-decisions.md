@@ -908,3 +908,42 @@ Chosen: The entry is written after the fact and the tree is left as it stands �
 Rejected: **Widen the `document` or `script` glob to reach `videos/`** — brings a few hundred files of Node toolchain the kit does not maintain into a corpus whose subject is the design-state mechanism, and puts `GlobDisagreement` in permanent conflict with a directory that changes for reasons the design has no view on. **Give `videos/` a unit record without widening a glob** — `UnrecordedArtifact` takes its difference against the glob, so a record with no glob behind it is a unit nothing can check the existence of, which is the dangling edge the unit set exists to prevent. **State it in `design/00-brief.md` § *Non-goals*** — conceptually the cleanest home, and it would have meant authoring a non-goal, which that file reserves to the user.
 Known and retained: the subtree is ungated. `.claude/gates.json` carries four gates — parse, pester, companion, design-state — and none reaches `videos/`, whose `postinstall` runs `bash scripts/patch-videowright.sh` to rewrite files inside `node_modules/videowright` around three upstream bugs, a patch its own header records as lost on every fresh `npm install`. That is staged under § *Open* rather than fixed here, per *One slice at a time*.
 Reversibility: cheap for the record — one line in `AGENTS.md`, this entry, and its record. Removing the subproject itself is a separate and larger decision this entry does not make.
+
+### 2026-09-12 — An invariant's holders are derived from `Unit.Binds`; `Invariant.Owner` is deleted
+Context: Populating `design/state/invariants/` in an application repository produced 44 blocking
+`UnresolvedId` findings against a clean baseline (#277, from `SubZeroDev.HotCorners` #88). Of the
+44 invariants, 34 name one unit, 8 name two, one names all, and one names none — so a third were
+unrepresentable under a single-valued `Owner`, and the two shapes it could not express were the
+joint guarantee and the invariant deliberately enforced by nothing.
+Chosen: Delete `Invariant.Owner`. `Unit.Binds` is already the forward edge and `Invariant.BoundBy`
+is already derived from it, so zero, one, several and all follow with no cardinality rule. An
+empty `BoundBy` is explicitly not a finding, on the line already drawn for questions rather than
+the one drawn for decisions. `Contract.Owner` is untouched: `Test-OwnerMismatch` filters
+`Kind -eq 'Contract'` and never reads an invariant's, so #277's stop condition does not trigger.
+Rejected: Making `Owner` a list — what the defect literally asks for, and it puts the field back
+inside the closure, which follows `Owner` as a scalar hop; an invariant held by every unit would
+pull every unit into its own closure and breach the 16,384-byte ceiling by construction, needing
+a suppression rule that is a second mechanism for a fact `Binds` already carries. A `Scope`
+scalar beside a singular `Owner` — two fields encoding one fact, with `several` still unable to
+name which several. Leaving it singular and declaring application repositories out of scope —
+today's behaviour, foreclosed by the brief's compatibility promise, and the I8 shape: the
+subsystem installs, reports nothing to check, and stays silent.
+Reversibility: cheap — the field is deleted, and every fact it carried is recoverable from
+`Binds`.
+
+### 2026-09-12 — `component` is a fifth unit kind, shipped fixed rather than declared per repository
+Context: The kit's four unit kinds are its own artifact shapes. An application repository's
+invariants are owned by compilation units — assemblies, modules, packages — which no kind could
+express, so every such invariant named an owner that could not exist (#277, second wall).
+Chosen: Add `component` to the closed kind vocabulary in `tools/Read-DesignState.ps1`. A
+repository declares the kind's *contents* — its glob in `design/20-contract.md` § *Artifacts of a
+unit kind* — and never its existence.
+Rejected: Letting the contract's `Kind` table define which kinds exist, the fully general answer,
+which makes the reader parse a prose table before resolving the kind segment of any id — a new
+edge from a document into the one module that depends on nothing today, and a parse failure in
+that table would take every record with it. Reusing the `script` kind for a project file, which
+needs no change and makes every such id say `script` and mean `assembly`, permanently, with
+exclusion lists that do not transfer. A kind per language or build system, an enumeration the kit
+cannot close.
+Reversibility: cheap while no repository has written `component` records; expensive afterwards,
+because ids are never renumbered.

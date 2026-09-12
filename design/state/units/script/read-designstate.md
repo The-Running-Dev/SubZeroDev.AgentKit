@@ -5,7 +5,7 @@ Anchor: tools/Read-DesignState.ps1
 Consumes:
 Exposes: contract/read-designstate
 Binds: I17, I24
-Live: decision/2026-09-02-list-entries-may-be-quoted
+Live: decision/2026-09-02-list-entries-may-be-quoted, decision/2026-09-12-component-is-a-fifth-unit-kind, decision/2026-09-12-invariant-holders-are-derived-from-binds
 Questions:
 Work:
 Evidence: tools/Read-DesignState.Tests.ps1
