@@ -61,7 +61,16 @@ per-kind vocabulary, citing it. What neither can state:
   file.** All four are derived. A file carrying any of them is a parse finding, not a value to be
   believed (I17). The grammar has no production for them, which is what makes the check free
   rather than a rule someone remembers. **`Contract.Owner` is the one reverse edge that is
-  written**, and `OwnerMismatch` is what makes it a binding rather than a second copy.
+  written**, and `OwnerMismatch` is what makes it a binding rather than a second copy. **An
+  invariant names no owner at all**, so `BoundBy` is the whole statement of who holds one, and
+  zero, one, several and every unit fall out of `Unit.Binds` with no cardinality rule to enforce
+  and no second copy to reconcile. **The asymmetry with `Contract.Owner` is the check, not the
+  offline read.** *Exactly one owner* is a claim about the contract that `OwnerMismatch` compares
+  against the exposing units; an invariant makes no equivalent claim, so a written field would
+  have nothing to be checked against, and an unchecked restatement is the forbidden kind. What it
+  costs is that an invariant record read alone no longer names its holders, and that cost lands on
+  the projections — `bound-by`, and § *Invariants*' own `Held by` column below — which is where
+  *Derived* already sends every other reverse edge.
 - **`Status` is retirement, and a retired record is still resolvable.** Keeping the id
   resolvable is the entire reason retirement exists rather than deletion (I16). What retirement
   changes is two things and only
@@ -120,7 +129,13 @@ per-kind vocabulary, citing it. What neither can state:
   has established the second meaning. The asymmetry is deliberate and is not an oversight to be
   tidied: an open question blocking nothing yet is a real state — it is what § *Unresolved* below
   holds — and requiring a unit would force the noticing session to invent an affected one in
-  order to record the question at all.
+  order to record the question at all. **An empty `BoundBy` sits on the question's side of that
+  line rather than the decision's.** An invariant no unit's `Binds` names is the *enforced by
+  nothing* case — a rule that follows from other rules, recorded so a reader does not mistake it
+  for a gap — which is a real and intended state, not an interrupted write, and requiring a holder
+  would force the recording session to invent one. **No class fires on it, and the absence of a
+  class is what says so**: there is no `InvariantUnbound`, and the list below being closed is what
+  makes that a rule rather than an omission.
 - **`SupersededBy` chains terminate, and they terminate in an `accepted` decision.** A chain
   that revisits a decision leaves a history with no standing claim anywhere in it while every id
   in it resolves, so no other class sees it (`SupersessionCycle`). The walk carries a visited
@@ -129,8 +144,8 @@ per-kind vocabulary, citing it. What neither can state:
 - **A unit of kind `invariant` is one record, not two.** The `Invariant` fields specialise the
   `Unit` fields on the same record; `Anchor` is the invariant number itself, per the `Unit`
   table's own allowance, and is the one anchor whose resolution check is well-formedness and
-  uniqueness rather than `Test-Path`. The load-bearing pointers on such a record are `Owner`
-  and `Evidence`.
+  uniqueness rather than `Test-Path`. The load-bearing pointer on such a record is `Evidence`.
+  **There is no `Owner`**, and who holds the invariant is derived from every unit's `Binds`.
 - **`Owns`, `Semantics`, `Statement`, `Claim` and `Text` carry no per-field *length* limit.**
   The closure ceiling is the only budget, and it is enforced at the closure, not the field. A
   per-field cap invented here would be a number nothing derived and everything had to obey. The
@@ -374,8 +389,11 @@ join on the 2026-09-05 decision below, closing a gap `/reconcile` found: each cr
 boundary — invoked by `/verify`, `/pr`, `/install-all` or `/track` — and none had carried a
 record since the unit itself was written.
 
-**No class compares the two, and this is now the only such gap in this document** — § *Artifacts
-of a unit kind* carried the other until `GlobDisagreement` closed it.
+**No class compares the two** — § *Artifacts of a unit kind* carried the other until
+`GlobDisagreement` closed it, and reopened a narrower one for `component` alone when that kind
+turned out to have no second source to compare against. The two are different sizes and are named
+separately for that reason: this one is a whole section against a whole record set, that one is a
+single row nothing enumerates.
 `OwnerMismatch` checks a record's `Owner` against the units and
 `AnchorMissing` checks its `Declaration` against the tree, but nothing checks that the *set* of
 records matches the set of surfaces here. The `Semantics` half is further out of reach: prose against prose is a
@@ -536,7 +554,12 @@ three-list report.
   `Get-*GlobFiles` functions stay the authority for which artifacts `UnrecordedArtifact` checks;
   `GlobDisagreement` expands the parsed patterns separately and compares the two file sets. That
   ordering is the whole safety argument — a mis-parse can report a disagreement or report
-  `ContractListUnreadable`, and can never narrow the world being checked.
+  `ContractListUnreadable`, and can never narrow the world being checked. **`component` is the
+  single exception and is named here rather than left to be found in the table**: that kind has no
+  enumerator to be a second source, so its parsed patterns are what `UnrecordedArtifact` reads.
+  The safety argument survives one-sidedly — an unreadable row is `ContractListUnreadable` and
+  leaves that half uncomputed, never clean — and what it forfeits is stated in § *Artifacts of a
+  unit kind*, which is where the exception is decided.
 - **Writes nothing** (I18) — not `design/`, not a record, not an issue, not git. Which side of
   a divergence is wrong is the user's call, and a checker that resolved one would be making it.
 - **`-Path` is optional and defaults to the current directory**, the same default `Test-Companion.ps1`'s
@@ -867,6 +890,7 @@ today, and the glob is a rule a reader can check rather than one they have to kn
 | script | `tools/*.ps1` | `*.Tests.ps1` |
 | document | `design/*.md`, `templates/design/*.md`, `*.md`, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md`, `CLAUDE.md` |
 | invariant | not a tree path | — |
+| component | none in this repository | — |
 
 **Both cells carry patterns and nothing else, because `GlobDisagreement` reads them.** A pattern
 is repository-relative and wildcards only the final segment, so `*.md` is the repository root and
@@ -881,6 +905,13 @@ cannot cost a check its input:
 - **The `invariant` row has no pattern in either cell**, which is what excludes it from the
   comparison. Its set is **every `I<n>` row in § *Invariants* below**, and nothing is excluded from
   it: a rule the kit binds itself to is a unit whether or not any document quotes it.
+- **The `component` row is empty because this repository has none**, not because the kind is
+  excluded from anything. It is the one kind whose contents are wholly a target's to declare — an
+  assembly, a module, a package — and the kit ships the kind and never the pattern
+  (`design/10-design.md` § *Unit*). An empty cell and an absent row are the same fact here and to
+  the parser both: the kind's artifact set is empty, and no artifact of it can go unrecorded.
+  **A target fills this cell and changes nothing else**, which is the whole of what declaring a
+  component amounts to.
 
 **The invariant kind has no glob because it has no artifact, and § *Invariants* is what stands
 in for one.** Every row there is a rule the kit binds itself to, and a rule is a unit whether or
@@ -906,7 +937,8 @@ is adding a record; the row follows.
 `Get-DocumentGlobFiles`, `Get-CommandGlobFiles`, `Get-ScriptGlobFiles`, and
 `Get-ContractInvariantIds` for the invariant kind — citing this section by name. That is the
 exception *Single ownership* allows for a repeated fact: the canonical copy is named, and named
-from both ends.
+from both ends. **`component` has no function of its own and will not acquire one**, for the
+reason the exception below gives — there is nothing for a second copy to be a copy *of*.
 
 **`GlobDisagreement` is what makes this table's canonical claim true rather than asserted.** A
 glob widened in the script and not here, or here and not in the script, would otherwise diverge
@@ -917,13 +949,35 @@ text**: the parsed patterns are expanded against the checkout and compared with 
 `Get-*GlobFiles` functions return, so an exclusion applied at the wrong level or a directory
 quietly skipped is caught even where the tokens match.
 
-**The parsed patterns only ever compare. They never feed `UnrecordedArtifact`.** The script stays
-the enumerator and this document stays the policy — the same division § *The divergence classes*
-draws for the class list, and the reason a mis-parse cannot narrow the checked world. Its worst
-outcome is a spurious disagreement or an honest `ContractListUnreadable`, and never a clean run.
+**The parsed patterns only ever compare, for every kind the checker enumerates. They never feed
+`UnrecordedArtifact`.** The script stays the enumerator and this document stays the policy — the
+same division § *The divergence classes* draws for the class list, and the reason a mis-parse
+cannot narrow the checked world. Its worst outcome is a spurious disagreement or an honest
+`ContractListUnreadable`, and never a clean run.
 
-**That leaves one restatement in this document that no class compares** — § *Public surface*
-against the `Contract` records, where the self-check rather than a class is what holds it. The
+**`component` is the one kind the checker does not enumerate, and for it this table *is* the
+enumeration.** The kit cannot ship a `Get-ComponentGlobFiles`: where an assembly or a package
+lives is a fact about the target's build, and guessing at one would be the kit tracking
+toolchains it does not own. So for this kind alone the parsed patterns feed `UnrecordedArtifact`
+directly, and `GlobDisagreement` has nothing to compare them with — which is a fact about the
+kind, not an exemption the checker carries. **The alternative was worse in the one way that
+matters**: leaving the rule intact means a target may declare its component glob, write no
+records, and receive a clean run over an empty world — the I8 shape the kind was added to remove,
+reintroduced one level down.
+
+**What the exception does not weaken is the failure direction, and what it does cost is said
+here because nothing else will report it.** A component row that cannot be read is
+`ContractListUnreadable` and leaves `UnrecordedArtifact`'s component half **uncomputed**, exactly
+as an unreadable class list or § *Invariants* does, so a mis-parse still cannot buy a clean run.
+What is lost is the second source: a component row that parses cleanly and names the wrong
+directory narrows that kind's checked world silently, and no class sees it. That is the same
+position the `invariant` kind has always been in, arrived at the same way — a parsed source with
+no independent copy — and it is the price of a kind whose contents the kit is not entitled to
+know.
+
+**That leaves two restatements in this document that no class compares** — § *Public surface*
+against the `Contract` records, where the self-check rather than a class is what holds it, and the
+`component` row above, where nothing holds it at all. The
 divergence-class list has `ClassListDisagreement`; the id-to-path mapping has `IdCollision`; the
 projections have `ProjectionStale`.
 
@@ -980,7 +1034,7 @@ list.
 | `DecisionUnplaced` | `Decision.Affects` derives empty — an accepted decision no `Live` names and no site places, or a superseded one no `Archival` names | The decision, its status, and that it is an interrupted write |
 | `SupersessionCycle` | A `SupersededBy` chain revisits a decision, or a decision names itself | The cycle, in order |
 | `ClassListDisagreement` | The checker's declared class ids differ from this document's list | Both sets, and the difference in each direction |
-| `GlobDisagreement` | For a globbed unit kind, the file set § *Artifacts of a unit kind*'s patterns resolve to differs from the set the checker's enumeration returns | The kind, the direction, and the paths |
+| `GlobDisagreement` | For a unit kind the checker enumerates independently, the file set § *Artifacts of a unit kind*'s patterns resolve to differs from the set that enumeration returns | The kind, the direction, and the paths |
 
 **`ClosureOverBudget` carries the excluded term, and that is why its payload has four parts
 rather than three.** The report line names the artifact beside the bounded figure for the
@@ -995,7 +1049,12 @@ miss definition drift — the very complaint two paragraphs below. Resolving bot
 checkout instead means the table is checked for what it *means*, and it is what qualifies the
 class as blocking under I22 on the rule's own terms: expansion needs the checkout and nothing
 else. The `invariant` kind is outside the comparison because it has no pattern in either cell,
-which is a fact about the table rather than an exemption the checker carries.
+which is a fact about the table rather than an exemption the checker carries. **`component` is
+outside it for a different reason, and the two must not be collapsed into one.** It may carry
+patterns, and there is simply no second set to compare them with — so a target that fills its
+component row gets `UnrecordedArtifact` from those patterns and `GlobDisagreement` from nothing.
+Reading the two as one exemption would suggest a component glob is unchecked policy like the
+invariant row; it is the opposite, and the only source of that kind's checked world.
 
 **What a set comparison cannot see, stated rather than left to be found: an exclusion that
 excludes nothing in this checkout.** `*-local.md` is the standing example — the cell's own reason
@@ -1147,6 +1206,14 @@ kind*, and the checker parses the section to take that difference. A row with no
 whole section, a single projected region, and it is regenerated, never hand-edited. Adding an
 invariant means writing its record first; there is no canonical-copy area left for a row to
 wait in.
+
+**The `Held by` column renders the derived `BoundBy`, not a written field**, and it is where the
+offline cost of deleting `Invariant.Owner` is paid. An invariant nothing binds renders `—` there,
+which shows the *enforced by nothing* case rather than hiding it, and an invariant several units
+bind renders all of them — neither shape had a representation while the field was a scalar. It
+renders the same edge `design/state-index.md`'s `bound-by` region does, and two projections of one
+edge cannot drift apart: both regenerate from the same records and `ProjectionStale` compares
+each against its regeneration.
 
 <!-- invariants:start -->
 | | Statement | Owner | Enforcement | Evidence |

@@ -37,6 +37,14 @@ reading, no gate reaches `videos/`, and `tools/Test-DesignState.ps1` cannot dete
 marked region that no projector claims — are filed as [#248](../../issues/248),
 [#249](../../issues/249), and [#250](../../issues/250).
 
+`unit/script/test-designstate`'s closure has 320 bytes of headroom left against the 16,384-byte
+ceiling. The 2026-09-12 contract amendment for [#277](../../issues/277) added 1,412 of them — 962
+for `decision/2026-09-12-component-row-enumerates`, 404 to `contract/test-designstate`, 46 to the
+unit record — and the two #277 decisions now in that unit's `Live` are absorbable only once the
+checker carries their terms, which is the implementation #277 already tracks. Until then the next
+decision to land on that unit breaches the ceiling, and that is a sequencing constraint on #277's
+slice rather than a defect to fix here.
+
 ---
 
 ### 2026-09-05 — § *Failure modes* gets the eight missing rows rather than becoming a pointer
@@ -947,3 +955,30 @@ exclusion lists that do not transfer. A kind per language or build system, an en
 cannot close.
 Reversibility: cheap while no repository has written `component` records; expensive afterwards,
 because ids are never renumbered.
+
+### 2026-09-12 — The `component` row enumerates, and `GlobDisagreement` has nothing to compare for that kind
+Context: `component` was added as a fixed kind whose contents a repository declares in
+`design/20-contract.md` § *Artifacts of a unit kind* (the entry above). That table has until now
+only ever *compared*: the `Get-*GlobFiles` enumerations are what `UnrecordedArtifact` reads, and
+the parsed patterns exist so `GlobDisagreement` can catch either side drifting. The kit cannot
+ship a `Get-ComponentGlobFiles`, because where an assembly or a package lives is a fact about the
+target's build. So `component` arrives with no second source, and nothing in `design/10-design.md`
+says which half it keeps.
+Chosen: For `component` alone, the parsed patterns feed `UnrecordedArtifact` directly, and
+`GlobDisagreement` is not evaluated for that kind — stated as a fact about the kind rather than an
+exemption the checker carries. The failure direction is unchanged: an unreadable component row is
+`ContractListUnreadable` and leaves that half uncomputed, never clean.
+Rejected: **Leaving the compare-only rule intact**, which keeps the guarantee that a mis-parse can
+never narrow the checked world — and lets a target declare a component glob, write no records, and
+receive a clean run over an empty world, which is the I8 shape `component` was added to remove,
+reintroduced one level down. **Shipping a default component glob** — `**/*.csproj` or similar — so
+there is something to compare against: the kit would be asserting a build layout it does not own,
+and a target whose layout differs gets a permanent `GlobDisagreement` it cannot fix without
+editing the kit.
+Known and retained: a component row that parses cleanly and names the wrong directory narrows that
+kind's checked world silently, and no class sees it. That is the `invariant` kind's position
+reached the same way — a parsed source with no independent copy — and it is the price of a kind
+whose contents the kit is not entitled to know. § *Public surface*'s "no class compares the two"
+paragraph now names two gaps rather than one.
+Reversibility: cheap. The rule is one paragraph and one checker branch; reverting it returns
+`component` to a declared-but-unchecked kind.
