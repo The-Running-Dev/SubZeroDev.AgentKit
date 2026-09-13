@@ -1108,3 +1108,22 @@ narrow — `templates/design/20-contract.md` ships no glob table, so no installe
 row — but a reader using this repository's contract as the reference for how to declare a component
 will hit it, which is how #277 arose in the first place.
 Reversibility: cheap. Nothing was edited.
+
+### 2026-09-13 — The #277 interval is closed: S31–S32 implemented the amendment the 2026-09-12 entry left standing
+Amends: the entry above, whose standing claim — that both design documents describe behaviours the
+tree does not have — became untrue when S31 and S32 landed.
+Context: `/reconcile` found `decision/2026-09-12-277-amendment-stands-unimplemented` still in
+`unit/document/design-20-contract`'s `Live` after S31 ([#285](../../issues/285)) and S32
+([#286](../../issues/286)) shipped all three behaviours it named as missing. A claim about an
+interval that has ended, left in force, briefs every session orienting on that unit with a gap
+that does not exist — a `SemanticDisagreement` nothing else would raise.
+Chosen: **Supersede it with a decision recording that the interval closed**, stated in
+`design/30-slices.md` § *Landed*, where S31 and S32 already stand as landed; the superseded id
+moves to `design-20-contract`'s `Archival`. Neither design document changes, as the superseded
+entry predicted.
+Rejected: **Leaving it `Live`**, which keeps a false claim inside that unit's bounded closure
+until something else happens to supersede it. **Superseding it but keeping the new decision `Live`
+on `design-20-contract`**, which swaps one id for another, shrinks nothing, and leaves a permanent
+`Live` entry for a fact that already stands in the slices index. **Deleting the record**, which
+retirement-is-relocation forbids and which leaves the log entry with no record.
+Reversibility: cheap. Two records and one `Live`/`Archival` move.
