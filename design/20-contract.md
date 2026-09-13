@@ -277,8 +277,8 @@ Keys, and what the mapping cannot state:
   unit is**, so a `retired/` file with no record beside its parent directory, and a field in the
   file its half does not belong to, are both `RecordPairMalformed` rather than a stray file to
   ignore.
-- **A `retired/` directory is a location, never a kind.** The four unit kinds are the design's
-  and this segment adds no fifth; a path naming a kind that is not one of the four is a parse
+- **A `retired/` directory is a location, never a kind.** The five unit kinds are the design's
+  and this segment adds no sixth; a path naming a kind that is not one of the five is a parse
   failure, unchanged, and `retired` never resolves as one.
 - **`design/state/` sits inside `design/` for one reason: the kit's own `design/` is never
   installed into a target.** `INSTALL.md`, phase 1, holds the artifact list and is not copied

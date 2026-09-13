@@ -533,6 +533,34 @@ function Expand-ContractGlobPattern {
 }
 
 <#
+    Expands a glob table row's patterns against the checkout and filters out its excluded set,
+    per design/20-contract.md § "Artifacts of a unit kind" - "an exclusion carrying a wildcard is
+    matched against the basename; one without is a repository-relative path". Shared by
+    GlobDisagreement, which compares this against the checker's own enumeration, and
+    UnrecordedArtifact's component half, which has no enumeration to compare against and so
+    takes this set directly (S32.2-S32.4).
+#>
+function Get-ContractGlobResolvedFiles {
+    param(
+        [Parameter(Mandatory)][string] $RepoPath,
+        [Parameter(Mandatory)] $Spec
+    )
+
+    $resolved = [System.Collections.Generic.SortedSet[string]]::new()
+    foreach ($pattern in $Spec.Glob) {
+        [string[]] $hits = Expand-ContractGlobPattern -RepoPath $RepoPath -Pattern $pattern
+        foreach ($hit in $hits) { [void]$resolved.Add($hit) }
+    }
+    ,@($resolved | Where-Object {
+        $path = $_
+        $leaf = [IO.Path]::GetFileName($path)
+        -not (@($Spec.Excluded) | Where-Object {
+            if ($_ -match '[*?]') { $leaf -like $_ } else { $path -eq $_ }
+        })
+    })
+}
+
+<#
     GlobDisagreement. design/20-contract.md § "The divergence classes" - the file set the
     contract's patterns resolve to, against the set the checker's own enumeration returns, per
     globbed kind and in both directions.
@@ -572,26 +600,10 @@ function Test-GlobDisagreement {
         }
         $spec = $parsed.Kinds[$kind]
 
-        $resolved = [System.Collections.Generic.SortedSet[string]]::new()
-        foreach ($pattern in $spec.Glob) {
-            # Expand-ContractGlobPattern and the Get-*GlobFiles enumerations all emit `,@(...)`,
-            # a single object that *is* an array. Both sides are cast flat before comparing;
-            # without it the set difference compares arrays and reports every path as divergent.
-            [string[]] $hits = Expand-ContractGlobPattern -RepoPath $RepoPath -Pattern $pattern
-            foreach ($hit in $hits) { [void]$resolved.Add($hit) }
-        }
-        # An exclusion carrying a wildcard is matched against the basename; one without is a
-        # repository-relative path. That is the table's own stated grammar, and matching it
-        # exactly is the point - a matcher looser than the enumeration would report a
-        # disagreement of its own making rather than the one in the tree.
-        $contractSide = @($resolved | Where-Object {
-            $path = $_
-            $leaf = [IO.Path]::GetFileName($path)
-            -not (@($spec.Excluded) | Where-Object {
-                if ($_ -match '[*?]') { $leaf -like $_ } else { $path -eq $_ }
-            })
-        })
-
+        # Expand-ContractGlobPattern and the Get-*GlobFiles enumerations all emit `,@(...)`, a
+        # single object that *is* an array. Both sides are cast flat before comparing; without it
+        # the set difference compares arrays and reports every path as divergent.
+        [string[]] $contractSide = Get-ContractGlobResolvedFiles -RepoPath $RepoPath -Spec $spec
         [string[]] $checkerSide = & $enumerators[$kind]
 
         [string[]] $onlyContract = @($contractSide | Where-Object { $_ -notin $checkerSide })
@@ -606,7 +618,11 @@ function Test-GlobDisagreement {
         }
     }
 
+    # 'component' is the one kind the checker does not enumerate, and for it the contract's own
+    # table *is* the enumeration (design/20-contract.md § "Artifacts of a unit kind") - so a
+    # component row carrying patterns is never a disagreement, whether or not it has patterns.
     foreach ($kind in @($parsed.Kinds.Keys | Sort-Object)) {
+        if ($kind -eq 'component') { continue }
         if (-not $enumerators.ContainsKey($kind)) {
             $findings.Add((New-DesignFinding -Class 'GlobDisagreement' -Subject $kind `
                 -Detail "design/20-contract.md § Artifacts of a unit kind carries patterns for the $kind kind and the checker enumerates no such kind" -Blocking $true))
@@ -620,13 +636,14 @@ function Test-UnrecordedArtifact {
     param(
         [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records,
         [Parameter(Mandatory)][string] $RepoPath,
-        [AllowNull()][string[]] $InvariantIds
+        [AllowNull()][string[]] $InvariantIds,
+        [AllowNull()] $ComponentGlobResult
     )
 
     $findings = [System.Collections.Generic.List[object]]::new()
     $units = @($Records | Where-Object { $_.Kind -eq 'Unit' -and $_.Scalars['Status'] -eq 'active' })
 
-    $byUnitKind = @{ command = @(); script = @(); document = @() }
+    $byUnitKind = @{ command = @(); script = @(); document = @(); component = @() }
     foreach ($u in $units) {
         $k = $u.Scalars['Kind']
         if ($byUnitKind.ContainsKey($k)) { $byUnitKind[$k] += $u }
@@ -638,7 +655,23 @@ function Test-UnrecordedArtifact {
         document = (Get-DocumentGlobFiles -RepoPath $RepoPath)
     }
 
-    foreach ($kind in 'command', 'script', 'document') {
+    # 'component' has no Get-*GlobFiles enumerator - the contract's own table *is* the
+    # enumeration for this kind (design/20-contract.md § "Artifacts of a unit kind"). Its glob is
+    # fed in only when $ComponentGlobResult parsed cleanly and the row actually carries a
+    # pattern: a failed parse leaves this half uncomputed (the caller records
+    # ContractListUnreadable, S32.5) and an absent or empty row leaves this kind's artifact set
+    # empty (S32.6) - neither case enters the diff loop below.
+    $kindsToCheck = [System.Collections.Generic.List[string]]::new()
+    $kindsToCheck.AddRange([string[]]@('command', 'script', 'document'))
+    if ($null -ne $ComponentGlobResult -and -not $ComponentGlobResult.Failure) {
+        $componentSpec = $ComponentGlobResult.Kinds['component']
+        if ($null -ne $componentSpec -and @($componentSpec.Glob).Count -gt 0) {
+            $kindGlobs['component'] = Get-ContractGlobResolvedFiles -RepoPath $RepoPath -Spec $componentSpec
+            $kindsToCheck.Add('component')
+        }
+    }
+
+    foreach ($kind in $kindsToCheck) {
         $anchors = @($byUnitKind[$kind] | ForEach-Object { $_.Scalars['Anchor'] })
         $files = @($kindGlobs[$kind])
 
@@ -1649,6 +1682,7 @@ function Invoke-DesignStateCheck {
     $contractPath = Join-Path $RepoPath 'design/20-contract.md'
     $classListResult = Test-ClassListAgreement -ContractPath $contractPath
     $invariantSet = Get-ContractInvariantIds -ContractPath $contractPath
+    $componentGlobResult = Get-ContractGlobPatterns -ContractPath $contractPath
 
     $graph = Read-DesignStateGraph -Path $RepoPath
 
@@ -1656,6 +1690,9 @@ function Invoke-DesignStateCheck {
     if ($classListResult.CouldNotEvaluate) { $couldNotEvaluate.Add($classListResult.CouldNotEvaluate) }
     if ($invariantSet.Failure) {
         $couldNotEvaluate.Add((New-CouldNotEvaluate -Reason 'ContractListUnreadable' -Detail "$($invariantSet.Failure): $contractPath; UnrecordedArtifact's invariant half is uncomputed, not clean"))
+    }
+    if ($componentGlobResult.Failure) {
+        $couldNotEvaluate.Add((New-CouldNotEvaluate -Reason 'ContractListUnreadable' -Detail "$($componentGlobResult.Failure): $contractPath; UnrecordedArtifact's component half is uncomputed, not clean"))
     }
 
     $blockingFindings = [System.Collections.Generic.List[object]]::new()
@@ -1684,7 +1721,7 @@ function Invoke-DesignStateCheck {
     $blockingFindings.AddRange((Test-UnresolvedId -ById $byId -Records $records))
     $blockingFindings.AddRange((Test-AnchorMissing -Records $records -RepoPath $RepoPath))
     $blockingFindings.AddRange((Test-OwnerMismatch -Records $records))
-    $blockingFindings.AddRange((Test-UnrecordedArtifact -Records $records -RepoPath $RepoPath -InvariantIds $invariantSet.Ids))
+    $blockingFindings.AddRange((Test-UnrecordedArtifact -Records $records -RepoPath $RepoPath -InvariantIds $invariantSet.Ids -ComponentGlobResult $componentGlobResult))
     $blockingFindings.AddRange((Test-RecordIdCollision -Records $records))
     $blockingFindings.AddRange((Test-DecisionAnchors -Records $records -LogPath (Join-Path $RepoPath 'design/90-decisions.md')))
     $blockingFindings.AddRange((Test-EnforcementUnevidenced -Records $records))

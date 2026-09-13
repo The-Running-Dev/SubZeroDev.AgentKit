@@ -126,14 +126,18 @@ function New-DesignStateFailure {
     other unrecognised field would.
 #>
 #
-# The four unit kinds (design/10-design.md § Unit) - used to validate the <kind> path segment
+# The five unit kinds (design/10-design.md § Unit) - used to validate the <kind> path segment
 # under design/state/units/, for both the active (3-segment) and companion (4-segment, retired/)
 # shapes alike (design/20-contract.md, S20.3). 'invariant' is a legal value here even though no
 # unit of that kind is ever persisted under units/ today - invariant records live under the
 # separate design/state/invariants/ scheme and never gain a companion (S20's Out of scope) - the
 # set is the Kind scalar's own vocabulary, not a survey of what the checkout currently holds.
+# 'component' is a target's own compilation units - an assembly, a module, a package - and the
+# kit ships the kind and never a pattern for it (design/20-contract.md § "Artifacts of a unit
+# kind"). 'assembly' and every other synonym stay unrecognised: this list is the one place the
+# vocabulary is read from (S32.1).
 #
-$script:UnitKinds = @('command', 'script', 'document', 'invariant')
+$script:UnitKinds = @('command', 'script', 'document', 'invariant', 'component')
 
 $script:FieldTables = @{
     Unit      = @{

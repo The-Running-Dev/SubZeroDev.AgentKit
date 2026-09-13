@@ -181,6 +181,29 @@ Bound by two units.
         $content | Should -Match '\*\*I901\*\* \| Bound by two units\. \| `unit/command/a`, `unit/command/b` \| instruction \| — \|'
     }
 
+    It 'S32.7: an invariant bound only by a component unit''s Binds renders that unit''s id in Held by' {
+        New-StateFile -RelativePath 'units/component/app.md' -Content @'
+# unit/component/app
+Kind: component
+Status: active
+Anchor: src/App.csproj
+Binds: I902
+'@
+        New-StateFile -RelativePath 'invariants/I902.md' -Content @'
+# I902
+Kind: invariant
+Status: active
+Anchor: I902
+Enforcement: instruction
+
+## Statement
+Bound by a component.
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $content = (Get-InvariantsProjectionContent -Records $graph.Records) -join "`n"
+        $content | Should -Match '\*\*I902\*\* \| Bound by a component\. \| `unit/component/app` \| instruction \| — \|'
+    }
+
     It 'S7.10: the agent projection renders from a WorkRef''s own fields and calls no gh' {
         Mock -CommandName gh -MockWith { throw 'gh must never be called by the projector' }
         $record = New-DesignRecord -Id 'work/7' -Kind 'WorkRef' -Path 'design/state/work/7.md' `
