@@ -117,7 +117,8 @@ function New-DesignStateFailure {
     One closed vocabulary per top-level kind, built from design/10-design.md § Data model. An
     Invariant record specialises the Unit fields on the same record (design/20-contract.md,
     "A unit of kind invariant is one record, not two"), so its table is the Unit table plus
-    Owner, Enforcement and Statement rather than a fresh one.
+    Enforcement and Statement rather than a fresh one. There is no Owner: who holds an
+    invariant is derived from every unit's Binds (design/10-design.md § Invariant).
 
     Consumers, BoundBy and Affects are deliberately absent from every table - they are derived
     reverse edges and design/10-design.md is explicit that writing one is forbidden (I17). Their
@@ -149,7 +150,7 @@ $script:FieldTables = @{
         Prose  = @('Owns')
     }
     Invariant = @{
-        Scalar = @('Kind', 'Status', 'Anchor', 'Owner', 'Enforcement')
+        Scalar = @('Kind', 'Status', 'Anchor', 'Enforcement')
         List   = @('Consumes', 'Exposes', 'Binds', 'Live', 'Archival', 'Questions', 'Work', 'Evidence')
         Prose  = @('Statement')
     }

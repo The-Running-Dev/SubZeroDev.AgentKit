@@ -214,6 +214,38 @@ Affects: unit/command/track
         }
     }
 
+    It 'S31.1: an Owner line on an Invariant record is unparseable, reported verbatim by file and line; the same line on a Contract still parses' {
+        New-StateFile -RelativePath 'invariants/I900.md' -Content @'
+# I900
+Kind: invariant
+Status: active
+Anchor: I900
+Owner: unit/command/nobody
+Enforcement: instruction
+'@
+        New-StateFile -RelativePath 'contracts/x.md' -Content @'
+# contract/x
+Status: active
+Owner: unit/command/nobody
+Declaration: prose
+'@
+
+        $graph = Read-DesignStateGraph -Path $TestDrive
+
+        $hit = @($graph.Failures | Where-Object { $_.Path -eq 'design/state/invariants/I900.md' })
+        $hit.Count | Should -Be 1
+        $hit[0].Reason | Should -Be 'Unparseable'
+        $hit[0].Line | Should -Be 5
+        $hit[0].Text | Should -Be 'Owner: unit/command/nobody'
+
+        $invariant = $graph.Records | Where-Object { $_.Id -eq 'I900' }
+        $invariant.Scalars.ContainsKey('Owner') | Should -BeFalse
+
+        $contract = $graph.Records | Where-Object { $_.Id -eq 'contract/x' }
+        $contract.Scalars['Owner'] | Should -Be 'unit/command/nobody'
+        @($graph.Failures | Where-Object { $_.Path -eq 'design/state/contracts/x.md' }).Count | Should -Be 0
+    }
+
     It 'S21.1: Decision.StatedIn parses as a list field whose every entry is an id section-mark heading pair' {
         New-StateFile -RelativePath 'decisions/2026-08-01-x.md' -Content @'
 # decision/2026-08-01-x

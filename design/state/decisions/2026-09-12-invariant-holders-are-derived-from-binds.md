@@ -2,7 +2,7 @@
 Date: 2026-09-12
 Anchor: 2026-09-12 — An invariant's holders are derived from `Unit.Binds`; `Invariant.Owner` is deleted
 Status: accepted
-StatedIn: unit/document/design-10-design § Invariant
+StatedIn: unit/document/design-10-design § Invariant, contract/read-designstate § Semantics, contract/test-designstate § Semantics
 
 ## Claim
 An invariant names no owner. `Unit.Binds` is the forward edge and `Invariant.BoundBy` is derived
