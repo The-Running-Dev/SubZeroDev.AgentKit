@@ -1015,7 +1015,7 @@ which is the direction I2 forbids everywhere else in this script.
 failed. It exits 1 so a caller can branch on it, and the failing checks are in `.Failed`
 with their buckets.
 
-No bare `throw` of a string, and no terminating error for any of the five conditions above:
+No bare `throw` of a string, and no terminating error for any of the six conditions above:
 each returns a `WaitResult` carrying the reason, because a caller that gets an exception
 loses the partial check list, which is the part worth reporting.
 
