@@ -301,5 +301,7 @@ that looks old.
 | 259 | #259 | Contract text says "five conditions above" where the table it refers to lists six | — | `8c5ae4188b591c32dafa5023a035e6b358a3e5e2` |
 | 277 | #277 | Design state cannot model a repository whose invariants are owned by compilation units | — | `35f2cd8b46a6d0f358642938e1b1d48b1d03041d` |
 | 281 | #281 | Nothing checks heading uniqueness in a document whose sites are addressed by heading | — | `35f2cd8b46a6d0f358642938e1b1d48b1d03041d` |
+| 285 | #285 | S31 — An invariant stops naming one owner, and says who holds it however many do | S31.1, S31.2, S31.3, S31.4, S31.5, S31.6, S31.7, S31.8 | `9777a9d9394594556ad19e07aa1a032487d2f1f7` |
+| 286 | #286 | S32 — A project made of assemblies, modules or packages can record them as parts of its design | S32.1, S32.2, S32.3, S32.4, S32.5, S32.6, S32.7, S32.8 | `9777a9d9394594556ad19e07aa1a032487d2f1f7` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->
