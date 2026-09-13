@@ -378,3 +378,42 @@ Describe 'Read-DesignState against this repository''s own state set' -Skip:$scri
         }
     }
 }
+
+Describe 'Read-DesignState: the component unit kind (S32.1)' {
+
+    BeforeEach {
+        Get-ChildItem (Join-Path $TestDrive 'design') -ErrorAction SilentlyContinue -Recurse -File |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'a record at units/component/app.md with Kind: component parses with zero unparseable lines' {
+        New-StateFile -RelativePath 'units/component/app.md' -Content @'
+# unit/component/app
+Kind: component
+Status: active
+Anchor: src/App.csproj
+'@
+
+        $graph = Read-DesignStateGraph -Path $TestDrive
+
+        $graph.Failures.Count | Should -Be 0
+        $graph.Records.Count | Should -Be 1
+        $graph.Records[0].Id | Should -Be 'unit/component/app'
+        $graph.Records[0].Scalars['Kind'] | Should -Be 'component'
+    }
+
+    It 'the same record at units/assembly/app.md is still a parse failure - the vocabulary names component, not assembly' {
+        New-StateFile -RelativePath 'units/assembly/app.md' -Content @'
+# unit/assembly/app
+Kind: assembly
+Status: active
+Anchor: src/App.csproj
+'@
+
+        $graph = Read-DesignStateGraph -Path $TestDrive
+
+        $graph.Records.Count | Should -Be 0
+        $graph.Failures.Count | Should -Be 1
+        $graph.Failures[0].Reason | Should -Be 'UnrecognisedLocation'
+    }
+}
