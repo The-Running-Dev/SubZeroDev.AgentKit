@@ -20,7 +20,8 @@ Parses `design/20-contract.md`'s glob table only to compare, for every kind it e
 independently; `component` is the single exception, having no enumerator to be a second source, so
 that kind's parsed patterns are what `UnrecordedArtifact` reads and `GlobDisagreement` is not
 evaluated for it. An unreadable component row is `ContractListUnreadable` and leaves that half
-uncomputed, never clean.
+uncomputed, never clean. An empty or absent component row is an empty artifact set, not an
+uncomputed one: every active `component` record is anchored outside it and is `UnrecordedArtifact`.
 
 Declares `LiveAlreadyStated` in its reported class list and never raises it: whether a decision's
 terms already stand at a site is a model reading prose, the ground `SemanticDisagreement` already
