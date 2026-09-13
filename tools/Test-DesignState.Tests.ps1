@@ -505,6 +505,128 @@ Describe 'Test-DesignState: UnrecordedArtifact' {
     }
 }
 
+Describe 'Test-DesignState: the component kind (S32)' {
+
+    BeforeAll {
+        $script:ComponentRoot = Join-Path $TestDrive 'componentfixture'
+        New-Item -ItemType Directory -Path (Join-Path $script:ComponentRoot 'src') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $script:ComponentRoot 'src/App.csproj') -Value 'x' -Encoding utf8NoBOM
+
+        $script:ComponentTable = @'
+| Kind | Glob | Excluded |
+|---|---|---|
+| command | `.claude/commands/*.md` | `*-local.md` |
+| script | `tools/*.ps1` | `*.Tests.ps1` |
+| document | `design/*.md`, `templates/design/*.md`, `*.md`, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md`, `CLAUDE.md` |
+| component | `src/*.csproj` | — |
+'@
+
+        function New-ComponentContract {
+            param([Parameter(Mandatory)][string] $Name, [Parameter(Mandatory)][string] $Table)
+            $full = Join-Path $TestDrive "componentcontracts/$Name.md"
+            New-Item -ItemType Directory -Path (Split-Path $full -Parent) -Force | Out-Null
+            Set-Content -LiteralPath $full -Value $Table -Encoding utf8NoBOM
+            $full
+        }
+
+        function New-ComponentUnit {
+            param([string] $Anchor = 'src/App.csproj')
+            New-Record -Id 'unit/component/app' -Scalars @{ Status = 'active'; Kind = 'component'; Anchor = $Anchor }
+        }
+    }
+
+    It 'S32.2: zero GlobDisagreement and zero UnrecordedArtifact when the fixture agrees' -Tag 'NearMiss','UnrecordedArtifact','GlobDisagreement' {
+        $path = New-ComponentContract -Name 'agree' -Table $script:ComponentTable
+        $parsed = Get-ContractGlobPatterns -ContractPath $path
+        $unit = New-ComponentUnit
+
+        $globResult = Test-GlobDisagreement -RepoPath $script:ComponentRoot -ContractPath $path
+        $globResult.Findings | Should -BeNullOrEmpty
+        $globResult.CouldNotEvaluate | Should -BeNullOrEmpty
+
+        $findings = Test-UnrecordedArtifact -Records @($unit) -RepoPath $script:ComponentRoot -ComponentGlobResult $parsed
+        (@($findings | Where-Object { $_.Subject -in @('src/App.csproj', 'unit/component/app') })).Count | Should -Be 0
+    }
+
+    It 'S32.3: removing the component record yields exactly one UnrecordedArtifact naming src/App.csproj and the component kind' -Tag 'Fires','UnrecordedArtifact' {
+        $path = New-ComponentContract -Name 'no-record' -Table $script:ComponentTable
+        $parsed = Get-ContractGlobPatterns -ContractPath $path
+
+        $findings = Test-UnrecordedArtifact -Records @() -RepoPath $script:ComponentRoot -ComponentGlobResult $parsed
+
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'src/App.csproj'
+        $findings[0].Detail | Should -Match "kind 'component'"
+    }
+
+    It 'S32.4: an Anchor the pattern does not reach fires for both the record and the unrecorded file' -Tag 'Fires','UnrecordedArtifact' {
+        $path = New-ComponentContract -Name 'wrong-anchor' -Table $script:ComponentTable
+        $parsed = Get-ContractGlobPatterns -ContractPath $path
+        New-Item -ItemType Directory -Path (Join-Path $script:ComponentRoot 'lib') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $script:ComponentRoot 'lib/Other.csproj') -Value 'x' -Encoding utf8NoBOM
+        try {
+            $unit = New-ComponentUnit -Anchor 'lib/Other.csproj'
+            $findings = Test-UnrecordedArtifact -Records @($unit) -RepoPath $script:ComponentRoot -ComponentGlobResult $parsed
+
+            $subjects = @($findings | ForEach-Object { $_.Subject })
+            $subjects | Should -Contain 'unit/component/app'
+            $subjects | Should -Contain 'src/App.csproj'
+        } finally {
+            Remove-Item -LiteralPath (Join-Path $script:ComponentRoot 'lib/Other.csproj') -Force
+        }
+    }
+
+    It 'S32.5: an unreadable glob table leaves the component half uncomputed - never a clean run, never an empty set' -Tag 'NearMiss','UnrecordedArtifact' {
+        $parsed = Get-ContractGlobPatterns -ContractPath (Join-Path $TestDrive 'componentcontracts/absent.md')
+        $parsed.Failure | Should -Not -BeNullOrEmpty
+
+        $unit = New-ComponentUnit
+        $findings = Test-UnrecordedArtifact -Records @($unit) -RepoPath $script:ComponentRoot -ComponentGlobResult $parsed
+        (@($findings | Where-Object { $_.Subject -in @('src/App.csproj', 'unit/component/app') })).Count | Should -Be 0
+    }
+
+    It 'S32.6: a component row with no pattern, and no component row at all, both produce zero findings attributable to component' -Tag 'NearMiss','UnrecordedArtifact','GlobDisagreement' {
+        $emptyRowTable = @'
+| Kind | Glob | Excluded |
+|---|---|---|
+| document | `*.md` | — |
+| component | none in this repository | — |
+'@
+        $path1 = New-ComponentContract -Name 'empty-component-row' -Table $emptyRowTable
+        $parsed1 = Get-ContractGlobPatterns -ContractPath $path1
+        $parsed1.Failure | Should -BeNullOrEmpty
+        $parsed1.Kinds.Keys | Should -Not -Contain 'component'
+
+        $noRowTable = @'
+| Kind | Glob | Excluded |
+|---|---|---|
+| document | `*.md` | — |
+'@
+        $path2 = New-ComponentContract -Name 'no-component-row' -Table $noRowTable
+        $parsed2 = Get-ContractGlobPatterns -ContractPath $path2
+        $parsed2.Failure | Should -BeNullOrEmpty
+        $parsed2.Kinds.Keys | Should -Not -Contain 'component'
+
+        $unit = New-ComponentUnit
+        foreach ($parsed in @($parsed1, $parsed2)) {
+            $findings = Test-UnrecordedArtifact -Records @($unit) -RepoPath $script:ComponentRoot -ComponentGlobResult $parsed
+            (@($findings | Where-Object { $_.Subject -eq 'unit/component/app' })).Count | Should -Be 0
+        }
+
+        $globResult = Test-GlobDisagreement -RepoPath $script:ComponentRoot -ContractPath $path1
+        @($globResult.Findings | Where-Object { $_.Subject -eq 'component' }) | Should -BeNullOrEmpty
+        $globResult.CouldNotEvaluate | Should -BeNullOrEmpty
+    }
+
+    It 'S32.7: UnresolvedId does not fire for an invariant bound only by a component unit''s Binds' -Tag 'NearMiss','UnresolvedId' {
+        $unit = New-Record -Id 'unit/component/app' -Scalars @{ Status = 'active'; Kind = 'component'; Anchor = 'src/App.csproj' } -Lists @{ Binds = @('I902') }
+        $inv = New-Record -Id 'I902' -Kind 'Invariant' -Scalars @{ Status = 'active'; Anchor = 'I902'; Kind = 'invariant' }
+        $byId = @{ 'unit/component/app' = $unit; 'I902' = $inv }
+        $findings = Test-UnresolvedId -ById $byId -Records @($unit, $inv)
+        $findings.Count | Should -Be 0
+    }
+}
+
 Describe 'Test-DesignState: Get-ContractInvariantIds' {
 
     It 'reads every invariant row of the Invariants section and stops at the next section' {
