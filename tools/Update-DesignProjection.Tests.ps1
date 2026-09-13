@@ -59,7 +59,6 @@ Syncs design/ into issues.
 Kind: invariant
 Status: active
 Anchor: I28
-Owner: unit/command/track
 Enforcement: instruction
 
 ## Statement
@@ -136,11 +135,50 @@ Describe 'Update-DesignProjection: rendering' {
         $content | Should -Match '\| question/answered-one \| — \| `unit/command/answered` \|'
     }
 
-    It 'S7.1: invariants renders Statement, Owner, Enforcement and Evidence from the record' {
+    It 'S7.1/S31.4: invariants renders Statement, the derived Held by, Enforcement and Evidence from the record' {
         New-UnitFixture
         $graph = Read-DesignStateGraph -Path $TestDrive
         $content = (Get-InvariantsProjectionContent -Records $graph.Records) -join "`n"
         $content | Should -Match '\*\*I28\*\* \| GitHub is the authority\. \| `unit/command/track` \| instruction \| — \|'
+    }
+
+    It 'S31.4: an invariant no unit''s Binds names renders `—` for Held by, and one bound by two units renders both' {
+        New-StateFile -RelativePath 'units/command/a.md' -Content @'
+# unit/command/a
+Kind: command
+Status: active
+Binds: I901
+'@
+        New-StateFile -RelativePath 'units/command/b.md' -Content @'
+# unit/command/b
+Kind: command
+Status: active
+Binds: I901
+'@
+        New-StateFile -RelativePath 'invariants/I900.md' -Content @'
+# I900
+Kind: invariant
+Status: active
+Anchor: I900
+Enforcement: instruction
+
+## Statement
+Bound by nothing.
+'@
+        New-StateFile -RelativePath 'invariants/I901.md' -Content @'
+# I901
+Kind: invariant
+Status: active
+Anchor: I901
+Enforcement: instruction
+
+## Statement
+Bound by two units.
+'@
+        $graph = Read-DesignStateGraph -Path $TestDrive
+        $content = (Get-InvariantsProjectionContent -Records $graph.Records) -join "`n"
+        $content | Should -Match '\*\*I900\*\* \| Bound by nothing\. \| — \| instruction \| — \|'
+        $content | Should -Match '\*\*I901\*\* \| Bound by two units\. \| `unit/command/a`, `unit/command/b` \| instruction \| — \|'
     }
 
     It 'S7.10: the agent projection renders from a WorkRef''s own fields and calls no gh' {
@@ -486,7 +524,6 @@ Syncs design/ into issues.
 Kind: invariant
 Status: active
 Anchor: I28
-Owner: unit/command/track
 Enforcement: instruction
 
 ## Statement

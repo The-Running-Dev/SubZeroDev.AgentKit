@@ -10,4 +10,5 @@ matched by a production or reported (I24). Reads. Writes nothing, ever (I18). An
 `design/state/` is a graph with `Root` empty and zero records, not an error — deciding what
 absence means is the checker's, not the reader's. Invoked as a script, not imported as a
 module, because `INSTALL.md` and `tools/Sync-Kit.ps1` both treat `tools/*.ps1` as the kit-owned
-glob and a `.psm1` would not ship.
+glob and a `.psm1` would not ship. An Invariant record's field vocabulary carries no `Owner` —
+that name parses only on a Contract record; who holds an invariant is `Unit.Binds` naming it.
