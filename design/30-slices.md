@@ -16,11 +16,9 @@
 > The sixth is the **detection half of the same 2026-08-31 decision** — the class that reports a
 > `Live` set quietly refilling, contracted on 2026-09-02 — and it landed as **S30**.
 >
-> **A seventh is outstanding**: the **2026-09-12 amendment answering [#277](../../issues/277)** —
-> an invariant names no owner, and `component` is a fifth unit kind — which `design/10-design.md`
-> and `design/20-contract.md` already state and the tree does not yet implement
-> (`design/90-decisions.md`, 2026-09-12, *The #277 amendment stands unimplemented*). It is
-> **S31–S32**, under `## Outstanding`.
+> The seventh is the **2026-09-12 amendment answering [#277](../../issues/277)** — an invariant
+> names no owner, and `component` is a fifth unit kind — landed as **S31–S32**, retired to the
+> same index.
 
 The riskiest assumption in the first path was that a check result can be tied to a named head
 SHA reliably enough to gate an irreversible action on it — S1 did nothing else, so that was
@@ -163,8 +161,8 @@ does not resolve it in the implementing session.
 
 ## Outstanding
 
-**S31 and S32 are outstanding**, both implementing #277. Before them, every slice through S30 has
-landed and is retired to the `## Landed` index below (issue #120's own fix, `tools/Update-SlicesDocument.ps1`, performed
+**Nothing is outstanding.** Every slice through S32 has landed and is retired to the
+`## Landed` index below (issue #120's own fix, `tools/Update-SlicesDocument.ps1`, performed
 that retirement). The absorption half of the 2026-08-31 commission is discharged for every
 active unit's `Live` set except the three script units that expose no contract and still carry
 one — `invoke-codexcommand`, `measure-session`, `sync-kit` — which have no Markdown heading a
@@ -190,107 +188,6 @@ The checker lands at S5 and CI is not wired until S12. Between those two points 
 reports real blocking findings on every run — unrecorded artifacts, unresolved ids, stale
 projections — because the migration is deliberately partial. That is the designed state of the
 repository during S5–S11, not a defect, and it is why S12 rather than S5 carries the CI wiring.
-
-### S31 — An invariant stops naming one owner, and says who holds it however many do
-
-Delivers: Someone recording the rules their project binds itself to can now record a rule that
-two parts of the project hold together, one that every part holds, and one that nothing holds
-because it follows from other rules — and the design contract's table of rules shows exactly who
-holds each one, instead of forcing every rule to name a single owner that often does not exist.
-
-Touches: `tools/Read-DesignState.ps1` and its tests; `tools/Update-DesignProjection.ps1` and its
-tests; `tools/Test-DesignState.Tests.ps1` wherever a fixture writes an invariant `Owner`; every
-record under `design/state/invariants/`; `design/state/units/document/retired/agents-md.md`;
-`design/state/units/script/read-designstate.md` and `test-designstate.md`; the
-`contract/read-designstate` and `contract/test-designstate` records;
-`decision/2026-09-12-invariant-holders-are-derived-from-binds`; the regenerated
-`invariants` region of `design/20-contract.md` and `design/state-index.md`.
-
-Depends on: none
-
-Acceptance:
-  - S31.1 An invariant record containing an `Owner:` line is reported by `tools/Read-DesignState.ps1`
-    as an unparseable line naming the file, the line number and the line's text verbatim (I24), and
-    `tools/Test-DesignState.ps1` run over a fixture holding that record exits 2. The same line on a
-    `Contract` record still parses, and `OwnerMismatch`'s existing Pester cases pass unchanged.
-  - S31.2 No file under `design/state/invariants/` contains a line beginning `Owner:`, verified by a
-    search over that directory returning zero matches.
-  - S31.3 `design/state/units/document/retired/agents-md.md`'s `Bound` line names `I3` and `I4`,
-    the holder their deleted `Owner` lines recorded, and the checker reports no `HalfStatusMismatch`
-    or `HalfOverlap` for either id.
-  - S31.4 `Get-InvariantsProjectionContent`'s header row is
-    `| | Statement | Held by | Enforcement | Evidence |`. Against a fixture with three active
-    invariants — one bound by no unit, one by exactly one unit, one by two units — the `Held by` cell
-    renders `—`, that one unit's id, and both units' ids respectively; regenerating twice produces
-    identical bytes (I25).
-  - S31.5 For every active invariant in this repository, the set of ids in its `Held by` cell equals
-    the set in the same invariant's row of `design/state-index.md`'s `bound-by` region, asserted by
-    a test that parses both regions after a real regeneration.
-  - S31.6 A fixture invariant record that no unit's `Binds` names, with `Enforcement:
-    instruction`, produces zero findings of any class and zero could-not-evaluate entries — the
-    *enforced by nothing* case (`design/20-contract.md` § *The state set*).
-  - S31.7 `decision/2026-09-12-invariant-holders-are-derived-from-binds` is absent from both
-    `unit/script/read-designstate`'s and `unit/script/test-designstate`'s `Live`, each unit reached
-    by a `StatedIn` site the checker accepts with no `SiteAmbiguous`, `SiteOutOfReach` or
-    `SiteContradictsLive`.
-  - S31.8 After `tools/Update-DesignProjection.ps1` (a real run) then `tools/Test-DesignState.ps1`
-    against this repository: exit 0, zero blocking findings, and
-    `unit/script/test-designstate`'s bounded closure below 14,037 bytes — its figure at `ed25608` —
-    with the before and after figures stated in the pull request.
-
-Out of scope: the `component` unit kind and anything in the glob table (S32).
-`Contract.Owner`, `OwnerMismatch`, and I31, which the amendment deliberately leaves untouched. A
-check for duplicate headings ([#281](../../issues/281)), which needs a new class and so a contract
-amendment first. Rewording any invariant's `Statement` while its record is open for the `Owner`
-deletion.
-
-### S32 — A project made of assemblies, modules or packages can record them as parts of its design
-
-Delivers: Someone installing the kit into an application — rather than a repository of commands
-and scripts — can declare where their compilation units live and record each one as a part of
-the design, so the rules those units hold resolve instead of failing, and a unit they forgot to
-record is reported instead of passing silently.
-
-Touches: `tools/Read-DesignState.ps1` and its tests; `tools/Test-DesignState.ps1` and its tests;
-`design/state/units/script/read-designstate.md`; the `contract/read-designstate` record;
-`decision/2026-09-12-component-is-a-fifth-unit-kind`.
-
-Depends on: S31
-
-Acceptance:
-  - S32.1 A record at `design/state/units/component/<slug>.md` with `Kind: component` and id
-    `unit/component/<slug>` parses with zero unparseable lines; the same record with `Kind:
-    assembly` at `design/state/units/assembly/<slug>.md` is still a parse failure, and the kind
-    vocabulary is read from nothing but `tools/Read-DesignState.ps1` itself.
-  - S32.2 A fixture repository whose glob table's `component` row has `src/*.csproj` in its Glob
-    cell and nothing in its Excluded cell, containing `src/App.csproj` and one active component record anchored there, produces zero
-    `GlobDisagreement` and zero `UnrecordedArtifact` findings.
-  - S32.3 The same fixture with the component record removed produces exactly one
-    `UnrecordedArtifact` finding, whose subject is `src/App.csproj` and whose detail names the
-    `component` kind.
-  - S32.4 The same fixture with the record's `Anchor` changed to `lib/Other.csproj` (a file that
-    exists and the pattern does not reach) produces an `UnrecordedArtifact` finding whose subject is
-    the record's id, and one for `src/App.csproj`.
-  - S32.5 A fixture whose glob table cannot be parsed yields `ContractListUnreadable` in the
-    could-not-evaluate list, naming the component half of `UnrecordedArtifact` as uncomputed, and
-    exit 2 — never a clean run and never an empty component set.
-  - S32.6 A fixture whose component row carries no pattern — this repository's own `none in this
-    repository` cell — and a fixture with no component row at all both produce zero findings and
-    zero could-not-evaluate entries attributable to `component`.
-  - S32.7 In the S32.2 fixture, an invariant bound only by the component unit's `Binds` produces no
-    `UnresolvedId` finding and renders that unit's id in the `invariants` projection's `Held by`
-    cell — #277's own completion condition.
-  - S32.8 `decision/2026-09-12-component-is-a-fifth-unit-kind` is absent from
-    `unit/script/read-designstate`'s `Live`, reached by a `StatedIn` site the checker accepts; then,
-    after a real regeneration, `tools/Test-DesignState.ps1` against this repository exits 0 with
-    zero blocking findings and no `ClosureOverBudget`, and `unit/script/test-designstate`'s bounded
-    closure before and after is stated in the pull request.
-
-Out of scope: a `Get-ComponentGlobFiles` enumerator or any default component glob, which
-`design/90-decisions.md` (2026-09-12, *The `component` row enumerates*) rejected. Adding a glob
-table to `templates/design/20-contract.md`. Any unit kind beyond `component`, or a kind vocabulary
-read from a document. Recording any real repository's components, including
-`SubZeroDev.HotCorners`'. Filling this repository's own component row.
 
 ## Landed
 
@@ -326,6 +223,8 @@ read from a document. Recording any real repository's components, including
 | **S28** | The six commands that carry the most history stop carrying it | [#209](../../issues/209), closed | S28.1–S28.6 | `060ca3f` |
 | **S29** | The rest of the commands stop carrying theirs, and the pass is discharged | [#210](../../issues/210), closed | S29.1–S29.6 | `060ca3f` |
 | **S30** | The check names the one thing that can quietly undo an absorption | [#222](../../issues/222), closed | S30.1–S30.7 | `8073431` |
+| **S31** | An invariant stops naming one owner, and says who holds it however many do | [#285](../../issues/285), closed | S31.1–S31.8 | `26108ba` |
+| **S32** | A project made of assemblies, modules or packages can record them as parts of its design | [#286](../../issues/286), closed | S32.1–S32.8 | `26108ba` |
 
 What each delivered, in one line, because the index is the only place a reader now meets
 them:
