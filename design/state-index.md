@@ -270,6 +270,8 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-12-record-files-heading-renamed | `unit/document/design-20-contract` |
 | decision/2026-09-12-unhandlederror-is-a-fourth-stop | `unit/document/design-20-contract`, `unit/script/invoke-donehousekeeping` |
 | decision/2026-09-12-videos-is-gated-but-not-rendered | `unit/document/agents-md` |
+| decision/2026-09-13-277-interval-closed | `unit/document/design-30-slices` |
+| decision/2026-09-13-component-records-checked-without-a-row | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered

@@ -1,7 +1,8 @@
 # decision/2026-09-12-277-amendment-stands-unimplemented
 Date: 2026-09-12
 Anchor: 2026-09-12 — The #277 amendment stands unimplemented, and the `component` row's interval hazard is named rather than hedged
-Status: accepted
+Status: superseded
+SupersededBy: decision/2026-09-13-277-interval-closed
 StatedIn:
 
 ## Claim

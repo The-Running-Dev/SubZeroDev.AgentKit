@@ -917,6 +917,10 @@ cannot cost a check its input:
   assembly, a module, a package — and the kit ships the kind and never the pattern
   (`design/10-design.md` § *Unit*). An empty cell and an absent row are the same fact here and to
   the parser both: the kind's artifact set is empty, and no artifact of it can go unrecorded.
+  **The other direction still runs.** A `component` record's `Anchor` lies outside that empty set,
+  so it is `UnrecordedArtifact` exactly as a record outside any other kind's glob is — a target
+  that writes component records without declaring where its components live is told so, not
+  handed a clean run. Only an unreadable row leaves the half uncomputed.
   **A target fills this cell and changes nothing else**, which is the whole of what declaring a
   component amounts to.
 

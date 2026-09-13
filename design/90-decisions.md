@@ -54,6 +54,12 @@ addressed by heading is filed as [#281](../../issues/281).
 once S31 and S32 implemented [#277](../../issues/277) and absorbed its decision out of the unit's
 `Live` — the sequencing constraint this paragraph flagged is resolved.
 
+`tools/Test-DesignState.ps1`'s `UnrecordedArtifact` skips the record-to-glob direction for
+`component` when § *Artifacts of a unit kind*'s row is empty or absent, so a target's component
+records go unchecked until it declares a glob, and `tools/Test-DesignState.Tests.ps1`'s S32.6
+asserts the skip. The 2026-09-13 entry below decided the code changes to match the contract; it is
+a defect for `/fix`, which inverts S32.6's record half.
+
 ---
 
 ### 2026-09-05 — § *Failure modes* gets the eight missing rows rather than becoming a pointer
@@ -1108,3 +1114,42 @@ narrow — `templates/design/20-contract.md` ships no glob table, so no installe
 row — but a reader using this repository's contract as the reference for how to declare a component
 will hit it, which is how #277 arose in the first place.
 Reversibility: cheap. Nothing was edited.
+
+### 2026-09-13 — The #277 interval is closed: S31–S32 implemented the amendment the 2026-09-12 entry left standing
+Amends: the entry above, whose standing claim — that both design documents describe behaviours the
+tree does not have — became untrue when S31 and S32 landed.
+Context: `/reconcile` found `decision/2026-09-12-277-amendment-stands-unimplemented` still in
+`unit/document/design-20-contract`'s `Live` after S31 ([#285](../../issues/285)) and S32
+([#286](../../issues/286)) shipped all three behaviours it named as missing. A claim about an
+interval that has ended, left in force, briefs every session orienting on that unit with a gap
+that does not exist — a `SemanticDisagreement` nothing else would raise.
+Chosen: **Supersede it with a decision recording that the interval closed**, stated in
+`design/30-slices.md` § *Landed*, where S31 and S32 already stand as landed; the superseded id
+moves to `design-20-contract`'s `Archival`. Neither design document changes, as the superseded
+entry predicted.
+Rejected: **Leaving it `Live`**, which keeps a false claim inside that unit's bounded closure
+until something else happens to supersede it. **Superseding it but keeping the new decision `Live`
+on `design-20-contract`**, which swaps one id for another, shrinks nothing, and leaves a permanent
+`Live` entry for a fact that already stands in the slices index. **Deleting the record**, which
+retirement-is-relocation forbids and which leaves the log entry with no record.
+Reversibility: cheap. Two records and one `Live`/`Archival` move.
+
+### 2026-09-13 — A `component` record is checked against its kind's glob even when no glob is declared
+Context: `/reconcile` found `tools/Test-DesignState.ps1`'s `UnrecordedArtifact` skipping the
+`component` kind entirely when § *Artifacts of a unit kind*'s row is empty or absent — neither
+direction runs — and S32.6 asserting that skip. `design/10-design.md` § *Failure modes* states the
+class as a set difference in both directions, and the contract calls an empty row an empty artifact
+set, which a record's `Anchor` lies outside. The contract spelled out only the artifact-to-record
+direction, which is the ambiguity S32 resolved the other way without logging it.
+Chosen: **The code changes to match the design.** With the row empty or absent, every active
+`component` record fires `UnrecordedArtifact` until the glob is declared; only an unreadable row
+leaves the half uncomputed. The contract now states the second direction outright, and the defect
+is staged under § *Open* for `/fix`, which inverts S32.6's record half.
+Rejected: **Amending the contract to match the code** — an undeclared row checks nothing but
+`AnchorMissing`. Cheapest, and it is the silent narrowing the `component` exception was written to
+refuse: a target writes records, forgets the row, adds a project file, and is never told.
+**Firing a separate finding for "records without a declared glob"**, which is a new class on a
+closed list for a case the existing class already describes.
+Known and retained: until the fix lands, the contract describes a check the tree does not make.
+This repository has no `component` records, so nothing here is misreported in the interval.
+Reversibility: cheap. One contract sentence and one test assertion.
