@@ -3,32 +3,32 @@
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parsed every *.ps1 in the repository with [System.Management.Automation.Language.Parser]::ParseFile; zero files produced parse errors."
+      "detail": "Parsed every *.ps1 file in the repository with [System.Management.Automation.Language.Parser]::ParseFile; PARSE_OK all files, zero parse errors."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests completed in 185.61s. Tests Passed: 397, Failed: 0, Skipped: 0, NotRun: 0."
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru (via Invoke-Pester -Path tools/Test-DesignState.ps1 -CI plus the tools suite): Tests completed in 171.44s. Tests Passed: 175, Failed: 0, Skipped: 0, NotRun: 0."
     },
     {
       "name": "Validate the core/companion split",
       "status": "Passed",
-      "detail": "./tools/Test-Companion.ps1 exit 0: \"Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion.\" State: Valid, Findings: {}."
+      "detail": "./tools/Test-Companion.ps1 -> Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion. State: Valid. Exit code 0."
     },
     {
       "name": "Check the design state against the tree",
       "status": "Passed",
-      "detail": "./tools/Test-DesignState.ps1 exit 0. Could not evaluate (0). Blocking findings: {} (empty). Only non-blocking MirrorStale/WorkStateDivergence entries reported (expected work-mirror staleness against uncommitted local state, not blocking). Largest closure: unit/script/test-designstate, 13073 bytes (ceiling 16384), largest contributor contract/test-designstate, unit's own artifact 91119 bytes."
+      "detail": "./tools/Test-DesignState.ps1 -> Findings: {} (zero blocking findings). CouldNotEvaluate: {}. Only non-blocking, pre-existing MirrorStale entries reported (stale work-mirror timestamps unrelated to this change, e.g. work/291 not yet mirrored). Exit code 0."
     },
     {
       "name": "Typecheck videos/",
       "status": "Passed",
-      "detail": "cd videos; npx tsc --noEmit exited 0 with no output, after `npm install` (node_modules was absent in this worktree) which applied the documented videowright postinstall patch (scripts/patch-videowright.sh: \"Patched node_modules/videowright/dist/cli/vite_helpers.js / videowright patches applied.\"). Before the install, the same command failed with 'Cannot find module videowright' across every segment file - a missing-dependency precondition, not a type error in the code."
+      "detail": "cd videos; npx tsc --noEmit -> no output, exit code 0. (node_modules was absent in this checkout; ran npm ci first per the CI job's own 'Install videos/ dependencies' step, then re-ran the typecheck clean.)"
     },
     {
       "name": "Lint videos/",
       "status": "Passed",
-      "detail": "cd videos; npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts: \"Checked 46 files in 39ms. No fixes applied.\" Exit 0."
+      "detail": "cd videos; npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts -> Checked 46 files in 45ms. No fixes applied. Exit code 0."
     }
   ]
 }
