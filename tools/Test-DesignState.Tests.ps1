@@ -585,7 +585,7 @@ Describe 'Test-DesignState: the component kind (S32)' {
         (@($findings | Where-Object { $_.Subject -in @('src/App.csproj', 'unit/component/app') })).Count | Should -Be 0
     }
 
-    It 'S32.6: a component row with no pattern, and no component row at all, both produce zero findings attributable to component' -Tag 'NearMiss','UnrecordedArtifact','GlobDisagreement' {
+    It 'S32.6: a component row with no pattern, and no component row at all, both fire UnrecordedArtifact for the active record against the resulting empty artifact set' -Tag 'Fires','UnrecordedArtifact','NearMiss','GlobDisagreement' {
         $emptyRowTable = @'
 | Kind | Glob | Excluded |
 |---|---|---|
@@ -610,7 +610,9 @@ Describe 'Test-DesignState: the component kind (S32)' {
         $unit = New-ComponentUnit
         foreach ($parsed in @($parsed1, $parsed2)) {
             $findings = Test-UnrecordedArtifact -Records @($unit) -RepoPath $script:ComponentRoot -ComponentGlobResult $parsed
-            (@($findings | Where-Object { $_.Subject -eq 'unit/component/app' })).Count | Should -Be 0
+            $componentFindings = @($findings | Where-Object { $_.Subject -eq 'unit/component/app' })
+            $componentFindings.Count | Should -Be 1
+            $componentFindings[0].Detail | Should -Match "not matched by the 'component' glob"
         }
 
         $globResult = Test-GlobDisagreement -RepoPath $script:ComponentRoot -ContractPath $path1

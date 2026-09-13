@@ -657,18 +657,21 @@ function Test-UnrecordedArtifact {
 
     # 'component' has no Get-*GlobFiles enumerator - the contract's own table *is* the
     # enumeration for this kind (design/20-contract.md § "Artifacts of a unit kind"). Its glob is
-    # fed in only when $ComponentGlobResult parsed cleanly and the row actually carries a
-    # pattern: a failed parse leaves this half uncomputed (the caller records
-    # ContractListUnreadable, S32.5) and an absent or empty row leaves this kind's artifact set
-    # empty (S32.6) - neither case enters the diff loop below.
+    # fed in whenever $ComponentGlobResult parsed cleanly: a failed parse leaves this half
+    # uncomputed (the caller records ContractListUnreadable, S32.5), but an absent or empty row is
+    # a parsed, empty artifact set - the record half still runs against it, so an active
+    # component record with no glob declared is UnrecordedArtifact rather than a clean run
+    # (S32.6; design/20-contract.md § "Artifacts of a unit kind").
     $kindsToCheck = [System.Collections.Generic.List[string]]::new()
     $kindsToCheck.AddRange([string[]]@('command', 'script', 'document'))
     if ($null -ne $ComponentGlobResult -and -not $ComponentGlobResult.Failure) {
         $componentSpec = $ComponentGlobResult.Kinds['component']
-        if ($null -ne $componentSpec -and @($componentSpec.Glob).Count -gt 0) {
-            $kindGlobs['component'] = Get-ContractGlobResolvedFiles -RepoPath $RepoPath -Spec $componentSpec
-            $kindsToCheck.Add('component')
+        $kindGlobs['component'] = if ($null -ne $componentSpec -and @($componentSpec.Glob).Count -gt 0) {
+            Get-ContractGlobResolvedFiles -RepoPath $RepoPath -Spec $componentSpec
+        } else {
+            @()
         }
+        $kindsToCheck.Add('component')
     }
 
     foreach ($kind in $kindsToCheck) {
