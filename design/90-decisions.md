@@ -57,8 +57,8 @@ once S31 and S32 implemented [#277](../../issues/277) and absorbed its decision 
 `tools/Test-DesignState.ps1`'s `UnrecordedArtifact` skips the record-to-glob direction for
 `component` when § *Artifacts of a unit kind*'s row is empty or absent, so a target's component
 records go unchecked until it declares a glob, and `tools/Test-DesignState.Tests.ps1`'s S32.6
-asserts the skip. The 2026-09-13 entry below decided the code changes to match the contract; it is
-a defect for `/fix`, which inverts S32.6's record half.
+asserted the skip. The 2026-09-13 entry below decided the code changes to match the contract; it
+was filed as [#291](../../issues/291) and is implemented, inverting S32.6's record half.
 
 ---
 
