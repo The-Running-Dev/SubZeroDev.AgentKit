@@ -37,10 +37,11 @@ reading, no gate reaches `videos/`, and `tools/Test-DesignState.ps1` cannot dete
 marked region that no projector claims — are filed as [#248](../../issues/248),
 [#249](../../issues/249), and [#250](../../issues/250).
 
-[#277](../../issues/277) has no slice. `design/30-slices.md` ends at S29, and the two 2026-09-12
-decisions it answers are implemented by nothing — the reader's kind vocabulary, the invariant
-schema, the § *Invariants* projection and the `component` glob feed are four changes across three
-modules against a settled contract, which is a slice rather than a fix. `/slices` owns adding it.
+[#277](../../issues/277) is implemented — S31 and S32 (`design/30-slices.md`, landed and retired,
+[#285](../../issues/285) and [#286](../../issues/286)) added the `component` unit kind, derived
+invariant holders from `Unit.Binds` in place of the single-valued `Owner`, and updated the
+§ *Invariants* projection and glob feed accordingly. The checker reports zero `UnresolvedId`
+findings against this repository.
 
 `design/20-contract.md` carried two `### The state set` headings — the field-semantics section
 under § *Types* and the id-to-path table under § *Persisted schemas* — which made every site in
@@ -49,14 +50,9 @@ actually names one, so a duplicate heading sits latent until an absorption trips
 did on 2026-09-12. That nothing checks heading uniqueness inside a document whose sites are
 addressed by heading is filed as [#281](../../issues/281).
 
-`unit/script/test-designstate`'s closure measures 14,037 bytes against the 16,384-byte
-ceiling, so 2,347 bytes of headroom. The 2026-09-12 contract amendment for
-[#277](../../issues/277) added 1,412 of them — 962 for
-`decision/2026-09-12-component-row-enumerates`, 404 to `contract/test-designstate`, 46 to the
-unit record — and the one #277 decision now in that unit's `Live` is absorbable only once the
-checker carries its terms, which is the implementation #277 already tracks. Until then the next
-decision to land on that unit breaches the ceiling, and that is a sequencing constraint on #277's
-slice rather than a defect to fix here.
+`unit/script/test-designstate`'s closure landed at 13,073 bytes against the 16,384-byte ceiling
+once S31 and S32 implemented [#277](../../issues/277) and absorbed its decision out of the unit's
+`Live` — the sequencing constraint this paragraph flagged is resolved.
 
 ---
 
