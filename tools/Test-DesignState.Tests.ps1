@@ -136,7 +136,7 @@ BeforeAll {
 
 ## Invariants
 
-| | Statement | Owner | Enforcement | Evidence |
+| | Statement | Held by | Enforcement | Evidence |
 |---|---|---|---|---|
 
 ## Unresolved
@@ -514,12 +514,12 @@ Describe 'Test-DesignState: Get-ContractInvariantIds' {
 ## Invariants
 
 <!-- invariants:start -->
-| | Statement | Owner | Enforcement | Evidence |
+| | Statement | Held by | Enforcement | Evidence |
 |---|---|---|---|---|
 | **I3** | x | y | instruction | - |
 <!-- invariants:end -->
 
-| | Statement | Owner | Enforcement | Evidence |
+| | Statement | Held by | Enforcement | Evidence |
 |---|---|---|---|---|
 | **I1** | x | y | code | z |
 | **I2** | x | y | code | z |
@@ -654,7 +654,6 @@ Status: active
 Kind: invariant
 Status: active
 Anchor: I900
-Owner: unit/command/s23-no-anchor
 Enforcement: instruction
 '@
         $graph = Read-DesignStateGraph -Path $TestDrive
@@ -1603,6 +1602,43 @@ Binds: I999
         ($null -eq $result.CouldNotEvaluate) | Should -BeFalse
     }
 
+    It 'S31.1: an Owner line on an Invariant record is RecordUnparseable and exits 2' {
+        New-StateFile -RelativePath 'invariants/I900.md' -Content @'
+# I900
+Kind: invariant
+Status: active
+Anchor: I900
+Owner: unit/command/nobody
+Enforcement: instruction
+'@
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive
+
+        (@($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'RecordUnparseable' -and $_.Detail -match 'Owner: unit/command/nobody' })).Count | Should -Be 1
+        $result.ExitCode | Should -Be 2
+    }
+
+    It 'S31.6: an invariant no unit''s Binds names, Enforcement instruction, produces zero findings and zero could-not-evaluate entries' {
+        # A row must exist in the contract's Invariants section, or UnrecordedArtifact fires for
+        # this active invariant record having no row (§ "Artifacts of a unit kind") - a defect in
+        # this fixture, not the property S31.6 is about.
+        $withRow = $script:MinimalContract -replace '(\| \| Statement \| Held by \| Enforcement \| Evidence \|\r?\n\|---\|---\|---\|---\|---\|\r?\n)', "`$1| **I900** | Bound by nothing. | — | instruction | — |`n"
+        New-TreeFile -RelativePath 'design/20-contract.md' -Content $withRow
+        New-StateFile -RelativePath 'invariants/I900.md' -Content @'
+# I900
+Kind: invariant
+Status: active
+Anchor: I900
+Enforcement: instruction
+
+## Statement
+Bound by nothing.
+'@
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive
+
+        (@($result.Findings | Where-Object { $_.Subject -eq 'I900' })).Count | Should -Be 0
+        (@($result.CouldNotEvaluate | Where-Object { $_.Detail -match 'I900' })).Count | Should -Be 0
+    }
+
     It 'S5.3: exit code is 2 (could-not-evaluate) even when a blocking finding also exists, in a run with records' {
         New-StateFile -RelativePath 'units/command/a.md' -Content @'
 # unit/command/a
@@ -1848,6 +1884,79 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         $afterBytes = ($afterMembers | ForEach-Object { Get-RecordFileBytes -RepoPath $script:RepoRoot -Record $_ } | Measure-Object -Sum).Sum
 
         $afterBytes | Should -BeLessThan 15054
+    }
+
+    It 'S31.7: decision/2026-09-12-invariant-holders-are-derived-from-binds is absent from read-designstate''s and test-designstate''s Live, reached by an accepted StatedIn site' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+
+        $decisionId = 'decision/2026-09-12-invariant-holders-are-derived-from-binds'
+        $byId['unit/script/read-designstate'].Lists['Live'] | Should -Not -Contain $decisionId
+        $byId['unit/script/test-designstate'].Lists['Live'] | Should -Not -Contain $decisionId
+
+        foreach ($class in 'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive') {
+            @($script:RealResult.Findings | Where-Object { $_.Class -eq $class -and ($_.Subject -match [regex]::Escape($decisionId) -or $_.Detail -match [regex]::Escape($decisionId)) }).Count | Should -Be 0
+        }
+    }
+
+    It 'S31.8: unit/script/test-designstate''s bounded closure after the S31 absorption is below 14,037 bytes - its figure at ed25608' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+
+        $root = $byId['unit/script/test-designstate']
+        $members = Get-DesignClosure -Root $root -ById $byId
+        $bytes = ($members | ForEach-Object { Get-RecordFileBytes -RepoPath $script:RepoRoot -Record $_ } | Measure-Object -Sum).Sum
+
+        $bytes | Should -BeLessThan 14037
+    }
+
+    It 'S31.3: agents-md''s retired companion binds I3 and I4, the holders their deleted Owner lines recorded, with no HalfStatusMismatch or HalfOverlap' {
+        $graph = Read-DesignStateGraph -Path $script:RepoRoot
+        $byId = @{}
+        foreach ($r in $graph.Records) { $byId[$r.Id] = $r }
+
+        $byId['unit/document/agents-md'].Lists['Bound'] | Should -Be @('I3', 'I4')
+
+        foreach ($class in 'HalfStatusMismatch', 'HalfOverlap') {
+            @($script:RealResult.Findings | Where-Object { $_.Class -eq $class -and $_.Subject -eq 'unit/document/agents-md' }).Count | Should -Be 0
+        }
+    }
+
+    It 'S31.5: for every active invariant, the Held by ids in the invariants projection match design/state-index.md''s bound-by region' {
+        $contractText = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'design/20-contract.md') -Raw
+        $indexText = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'design/state-index.md') -Raw
+
+        function Get-RegionRows {
+            param([string] $Text, [string] $Id)
+            $startMarker = "<!-- $Id`:start -->"
+            $endMarker = "<!-- $Id`:end -->"
+            $start = $Text.IndexOf($startMarker)
+            $end = $Text.IndexOf($endMarker)
+            $body = $Text.Substring($start + $startMarker.Length, $end - $start - $startMarker.Length)
+            @($body -split "`n" | Where-Object { $_ -match '^\|' })
+        }
+
+        $invariantRows = @(Get-RegionRows -Text $contractText -Id 'invariants' | Where-Object { $_ -match '\*\*(I\d+)\*\*' })
+        $boundByRows = @(Get-RegionRows -Text $indexText -Id 'bound-by' | Where-Object { $_ -match '^\|\s*(I\d+)\s*\|' })
+
+        $heldBy = @{}
+        foreach ($row in $invariantRows) {
+            if ($row -notmatch '\*\*(I\d+)\*\*\s*\|\s*[^|]*\|\s*([^|]*)\|') { continue }
+            $heldBy[$Matches[1]] = ($Matches[2].Trim())
+        }
+        $boundBy = @{}
+        foreach ($row in $boundByRows) {
+            if ($row -notmatch '^\|\s*(I\d+)\s*\|\s*([^|]*)\|') { continue }
+            $boundBy[$Matches[1]] = ($Matches[2].Trim())
+        }
+
+        $heldBy.Keys.Count | Should -BeGreaterThan 0
+        foreach ($id in $heldBy.Keys) {
+            $boundBy.ContainsKey($id) | Should -BeTrue -Because "bound-by should carry a row for $id"
+            $heldBy[$id] | Should -Be $boundBy[$id] -Because "$id's Held by must equal its bound-by row"
+        }
     }
 
     It 'S22.7: ClassListDisagreement is silent - DecisionUnplaced and SupersessionCycle now land, closing the gap S21.6 left open' {

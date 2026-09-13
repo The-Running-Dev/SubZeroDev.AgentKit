@@ -1229,7 +1229,7 @@ edge cannot drift apart: both regenerate from the same records and `ProjectionSt
 each against its regeneration.
 
 <!-- invariants:start -->
-| | Statement | Owner | Enforcement | Evidence |
+| | Statement | Held by | Enforcement | Evidence |
 |---|---|---|---|---|
 | **I1** | No thread is resolved unless its class is `Defect`, its fix is in a commit reachable from `HeadSha`, and the `WaitResult` for that SHA has `State = Passed`. | `unit/command/resolve` | instruction | — |
 | **I2** | `Wait-PullRequestCheck.ps1` never reports `Passed` or `Failed` for a SHA that was not the pull request's head at the moment it read the checks. | `unit/script/wait-pullrequestcheck` | code | tools/Wait-PullRequestCheck.Tests.ps1 |

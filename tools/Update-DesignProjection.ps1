@@ -209,18 +209,24 @@ function Get-QuestionAffectsProjectionContent {
 }
 
 function Get-InvariantsProjectionContent {
+    <#
+        S31.4. `Held by` renders the derived BoundBy - Unit.Binds naming the invariant - not a
+        written field (design/10-design.md § Invariant, "There is no Owner"). An invariant no
+        unit's Binds names renders `—`, the *enforced by nothing* case, rather than hiding it.
+    #>
     param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records)
     $invariants = @($Records | Where-Object { $_.Kind -eq 'Invariant' -and $_.Scalars['Status'] -eq 'active' } | Sort-Object { [int]($_.Id -replace '^I', '') })
+    $units = @($Records | Where-Object { $_.Kind -eq 'Unit' })
     $lines = [System.Collections.Generic.List[string]]::new()
-    $lines.Add('| | Statement | Owner | Enforcement | Evidence |')
+    $lines.Add('| | Statement | Held by | Enforcement | Evidence |')
     $lines.Add('|---|---|---|---|---|')
     foreach ($inv in $invariants) {
         $statement = ($inv.Prose['Statement'] -replace '\s*\n\s*', ' ').Trim()
-        $owner = $inv.Scalars['Owner']
+        $binders = @($units | Where-Object { $_.Lists.ContainsKey('Binds') -and $inv.Id -in $_.Lists['Binds'] } | ForEach-Object { $_.Id })
         $enforcement = $inv.Scalars['Enforcement']
         $evidence = @(if ($inv.Lists.ContainsKey('Evidence')) { @($inv.Lists['Evidence'] | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) } else { @() })
         $evidenceCell = if ($evidence.Count -eq 0) { '—' } else { ($evidence -join ', ') }
-        $lines.Add("| **$($inv.Id)** | $statement | ``$owner`` | $enforcement | $evidenceCell |")
+        $lines.Add("| **$($inv.Id)** | $statement | $(Format-IdList -Ids $binders) | $enforcement | $evidenceCell |")
     }
     ,@($lines)
 }

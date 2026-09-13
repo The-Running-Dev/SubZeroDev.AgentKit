@@ -26,3 +26,7 @@ Declares `LiveAlreadyStated` in its reported class list and never raises it: whe
 terms already stand at a site is a model reading prose, the ground `SemanticDisagreement` already
 stands on, not a comparison this script performs. Declaring the id without raising it is what
 lets `ClassListDisagreement` see one list against `design/20-contract.md`'s copy.
+
+`OwnerMismatch` checks only `Contract.Owner`. An invariant's holders are never checked against a
+written field, because it has none — the `invariants` projection's `Held by` column renders the
+derived `BoundBy` instead.
