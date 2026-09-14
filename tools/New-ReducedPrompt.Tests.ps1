@@ -16,10 +16,10 @@ BeforeAll {
     function New-Fixture {
         param([string]$Root)
 
-        New-Item -ItemType Directory -Path (Join-Path $Root '.claude/commands') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $Root 'skills/slice') -Force | Out-Null
         New-Item -ItemType Directory -Path (Join-Path $Root 'design') -Force | Out-Null
 
-        Set-Content -LiteralPath (Join-Path $Root '.claude/commands/slice.md') -Encoding utf8NoBOM -Value @'
+        Set-Content -LiteralPath (Join-Path $Root 'skills/slice/SKILL.md') -Encoding utf8NoBOM -Value @'
 ---
 description: fixture
 ---
@@ -172,7 +172,7 @@ Describe 'New-ReducedPrompt against this repository''s own slice.md and AGENTS.m
         New-Fixture -Root $script:Root
         $repoRoot = Split-Path $PSScriptRoot -Parent
         Copy-Item -LiteralPath (Join-Path $repoRoot 'AGENTS.md') -Destination (Join-Path $script:Root 'AGENTS.md') -Force
-        Copy-Item -LiteralPath (Join-Path $repoRoot '.claude/commands/slice.md') -Destination (Join-Path $script:Root '.claude/commands/slice.md') -Force
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'skills/slice/SKILL.md') -Destination (Join-Path $script:Root 'skills/slice/SKILL.md') -Force
     }
 
     It 'carries the Output discipline section, bounded at the next heading' {

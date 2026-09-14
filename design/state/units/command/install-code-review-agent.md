@@ -1,7 +1,7 @@
 # unit/command/install-code-review-agent
 Kind: command
 Status: active
-Anchor: .claude/commands/install-code-review-agent.md
+Anchor: skills/install-code-review-agent/SKILL.md
 Consumes:
 Exposes:
 Binds:

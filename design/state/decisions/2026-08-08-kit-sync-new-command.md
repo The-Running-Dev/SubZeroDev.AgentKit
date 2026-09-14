@@ -5,4 +5,4 @@ Status: accepted
 StatedIn: unit/command/kit-sync § Clone or update `~/.agent-kit`, unit/command/kit-sync § Reconcile
 
 ## Claim
-`.claude/commands/kit-sync.md` maintains a single shared checkout at `~/.agent-kit`, fast-forwarded on later runs and never reset, with the branch remembered as a field on `.claude/kit.json`. Once current, it reads `INSTALL.md` from that checkout and follows it exactly against the current repository, inheriting every classification and the phase 3 sign-off gate rather than restating them.
+`skills/kit-sync/SKILL.md` maintains a single shared checkout at `~/.agent-kit`, fast-forwarded on later runs and never reset, with the branch remembered as a field on `.claude/kit.json`. Once current, it reads `INSTALL.md` from that checkout and follows it exactly against the current repository, inheriting every classification and the phase 3 sign-off gate rather than restating them.

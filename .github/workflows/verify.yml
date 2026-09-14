@@ -71,7 +71,7 @@ jobs:
       # the design state.
       #
       # The flag sits on the line immediately above `- name:`, which is where
-      # .claude/commands/verify.md says discovery looks for it.
+      # skills/verify/SKILL.md says discovery looks for it.
       # verification: true
       - name: Check the design state against the tree
         shell: pwsh

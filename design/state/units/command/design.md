@@ -1,7 +1,7 @@
 # unit/command/design
 Kind: command
 Status: active
-Anchor: .claude/commands/design.md
+Anchor: skills/design/SKILL.md
 Consumes:
 Exposes:
 Binds:

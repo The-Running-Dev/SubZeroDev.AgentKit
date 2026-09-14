@@ -1,7 +1,7 @@
 # unit/command/fix
 Kind: command
 Status: active
-Anchor: .claude/commands/fix.md
+Anchor: skills/fix/SKILL.md
 Consumes:
 Exposes: contract/fix
 Binds: I6, I10, I11

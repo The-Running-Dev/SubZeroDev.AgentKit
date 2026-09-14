@@ -5,4 +5,4 @@ Status: accepted
 StatedIn: unit/command/redteam § Stopping rule, unit/document/agents-md § Command routing
 
 ## Claim
-`.claude/commands/redteam.md` owns a `## Stopping rule`: one invocation is one pass, at most one pass per materially changed revision, the command never self-recommends another, and findings are adjudicated one at a time and classified as defect, accepted risk, brief conflict, or not sustained. `AGENTS.md` carries one cross-cutting line — never recommend re-running a phase gate — for when `redteam.md` itself is not loaded.
+`skills/redteam/SKILL.md` owns a `## Stopping rule`: one invocation is one pass, at most one pass per materially changed revision, the command never self-recommends another, and findings are adjudicated one at a time and classified as defect, accepted risk, brief conflict, or not sustained. `AGENTS.md` carries one cross-cutting line — never recommend re-running a phase gate — for when `redteam.md` itself is not loaded.

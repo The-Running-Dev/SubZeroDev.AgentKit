@@ -109,14 +109,14 @@ Describe 'Sync-Kit' {
                 $kit = New-GitRepo -Path (Join-Path $TestDrive "kit-$Name")
                 $target = New-GitRepo -Path (Join-Path $TestDrive "target-$Name")
 
-                $baseSha = Add-GitCommit -Path $kit -RelPath '.claude/commands/slice.md' -Content "core body`n" -Message 'base'
+                $baseSha = Add-GitCommit -Path $kit -RelPath 'skills/slice/SKILL.md' -Content "core body`n" -Message 'base'
                 Write-KitJson -TargetRepo $target -RecordedSha $baseSha
 
-                $dir = Join-Path $target '.claude/commands'
+                $dir = Join-Path $target 'skills/slice'
                 New-Item -ItemType Directory -Path $dir -Force | Out-Null
-                [System.IO.File]::WriteAllText((Join-Path $dir 'slice.md'), $TargetCoreText, [System.Text.UTF8Encoding]::new($false))
+                [System.IO.File]::WriteAllText((Join-Path $dir 'SKILL.md'), $TargetCoreText, [System.Text.UTF8Encoding]::new($false))
 
-                Add-GitCommit -Path $kit -RelPath '.claude/commands/slice.md' -Content "core body`nnew upstream line`n" -Message 'head' | Out-Null
+                Add-GitCommit -Path $kit -RelPath 'skills/slice/SKILL.md' -Content "core body`nnew upstream line`n" -Message 'head' | Out-Null
 
                 [pscustomobject]@{ Kit = $kit; Target = $target; BaseSha = $baseSha; CommandsDir = $dir }
             }
@@ -127,7 +127,7 @@ Describe 'Sync-Kit' {
 
             $report = & $script:ScriptPath -TargetRepo $f.Target -KitRoot $f.Kit -RecordedSha $f.BaseSha -DryRun
 
-            ($report | Where-Object Path -eq '.claude/commands/slice.md').Status | Should -Be 'WouldUpdated'
+            ($report | Where-Object Path -eq 'skills/slice/SKILL.md').Status | Should -Be 'WouldUpdated'
         }
 
         It 'an edited core with no companion is Unmigrated-Blocked and is not overwritten' {
@@ -135,35 +135,35 @@ Describe 'Sync-Kit' {
 
             $report = & $script:ScriptPath -TargetRepo $f.Target -KitRoot $f.Kit -RecordedSha $f.BaseSha
 
-            $row = $report | Where-Object Path -eq '.claude/commands/slice.md'
+            $row = $report | Where-Object Path -eq 'skills/slice/SKILL.md'
             $row.Status | Should -Be 'Unmigrated-Blocked'
-            $row.Detail | Should -Match 'slice-local\.md'
+            $row.Detail | Should -Match 'SKILL-local\.md'
             # Not a dry run: the point is that the local edit survived a real sync.
-            [System.IO.File]::ReadAllText((Join-Path $f.CommandsDir 'slice.md')) | Should -Be "core body, locally edited`n"
+            [System.IO.File]::ReadAllText((Join-Path $f.CommandsDir 'SKILL.md')) | Should -Be "core body, locally edited`n"
         }
 
         It 'an edited core with a companion beside it is Superseded - taken outright, and said so' {
             $f = New-CorePair -Name 'core-superseded' -TargetCoreText "core body, locally edited`n"
-            [System.IO.File]::WriteAllText((Join-Path $f.CommandsDir 'slice-local.md'), "## vocabulary`n`nUnits, not slices.`n", [System.Text.UTF8Encoding]::new($false))
+            [System.IO.File]::WriteAllText((Join-Path $f.CommandsDir 'SKILL-local.md'), "## vocabulary`n`nUnits, not slices.`n", [System.Text.UTF8Encoding]::new($false))
 
             $report = & $script:ScriptPath -TargetRepo $f.Target -KitRoot $f.Kit -RecordedSha $f.BaseSha
 
-            ($report | Where-Object Path -eq '.claude/commands/slice.md').Status | Should -Be 'Superseded'
-            [System.IO.File]::ReadAllText((Join-Path $f.CommandsDir 'slice.md')) | Should -Be "core body`nnew upstream line`n"
+            ($report | Where-Object Path -eq 'skills/slice/SKILL.md').Status | Should -Be 'Superseded'
+            [System.IO.File]::ReadAllText((Join-Path $f.CommandsDir 'SKILL.md')) | Should -Be "core body`nnew upstream line`n"
         }
 
         It 'a frontmatter-only companion is absent, so the core stays Unmigrated-Blocked' {
             $f = New-CorePair -Name 'core-fm-only' -TargetCoreText "core body, locally edited`n"
-            [System.IO.File]::WriteAllText((Join-Path $f.CommandsDir 'slice-local.md'), "---`ndescription: reserved`n---`n`n", [System.Text.UTF8Encoding]::new($false))
+            [System.IO.File]::WriteAllText((Join-Path $f.CommandsDir 'SKILL-local.md'), "---`ndescription: reserved`n---`n`n", [System.Text.UTF8Encoding]::new($false))
 
             $report = & $script:ScriptPath -TargetRepo $f.Target -KitRoot $f.Kit -RecordedSha $f.BaseSha -DryRun
 
-            ($report | Where-Object Path -eq '.claude/commands/slice.md').Status | Should -Be 'Unmigrated-Blocked'
+            ($report | Where-Object Path -eq 'skills/slice/SKILL.md').Status | Should -Be 'Unmigrated-Blocked'
         }
 
         It 'the companion itself is never in scope - the kit ships none, so nothing reads or writes it' {
             $f = New-CorePair -Name 'core-companion-untouched' -TargetCoreText "core body`n"
-            $companion = Join-Path $f.CommandsDir 'slice-local.md'
+            $companion = Join-Path $f.CommandsDir 'SKILL-local.md'
             [System.IO.File]::WriteAllText($companion, "## vocabulary`n`nUnits, not slices.`n", [System.Text.UTF8Encoding]::new($false))
 
             $report = & $script:ScriptPath -TargetRepo $f.Target -KitRoot $f.Kit -RecordedSha $f.BaseSha
@@ -203,7 +203,7 @@ Describe 'Sync-Kit' {
                 Pop-Location
             }
 
-            ($report | Where-Object Path -eq '.claude/commands/slice.md').Status | Should -Be 'WouldUpdated'
+            ($report | Where-Object Path -eq 'skills/slice/SKILL.md').Status | Should -Be 'WouldUpdated'
         }
     }
 

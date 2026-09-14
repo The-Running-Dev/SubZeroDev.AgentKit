@@ -18,7 +18,7 @@
     This is the canonical, checkable list of what /install-all is allowed to write - keep it
     in step with INSTALL.md's phase 1 artifact table and .claude/kit.json/`syncedCommit`
     (AGENTS.md, "A document states only what the tree cannot": the list lives here, once,
-    and .claude/commands/install-all.md points at this file rather than repeating it).
+    and skills/install-all/SKILL.md points at this file rather than repeating it).
     `.claude/settings.json` is deliberately absent - INSTALL.md requires proposing its two
     hook keys and waiting on sign-off unconditionally, which /install-all's unattended pass
     always skips (install-all.md, phase 2's "named fork with no default" list), so a write
@@ -67,7 +67,7 @@ function Get-DefaultAllowedPrefixes {
         'AGENTS.md'
         'CLAUDE.md'
         'agent.md'
-        '.claude/commands/'
+        'skills/'
         'tools/'
         'design/'
         '.github/ISSUE_TEMPLATE/'

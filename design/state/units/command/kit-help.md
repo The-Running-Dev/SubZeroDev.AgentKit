@@ -1,7 +1,7 @@
 # unit/command/kit-help
 Kind: command
 Status: active
-Anchor: .claude/commands/kit-help.md
+Anchor: skills/kit-help/SKILL.md
 Consumes:
 Exposes:
 Binds:

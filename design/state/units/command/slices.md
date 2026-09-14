@@ -1,7 +1,7 @@
 # unit/command/slices
 Kind: command
 Status: active
-Anchor: .claude/commands/slices.md
+Anchor: skills/slices/SKILL.md
 Consumes:
 Exposes:
 Binds:

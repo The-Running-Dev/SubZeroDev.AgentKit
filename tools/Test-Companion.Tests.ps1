@@ -42,8 +42,9 @@ BeforeAll {
     function New-Fixture {
         param([Parameter(Mandatory)][string] $Name, [switch] $NoCompanionsDoc)
         $repo = Join-Path $TestDrive $Name
-        New-Item -ItemType Directory -Path (Join-Path $repo '.claude/commands') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $repo 'skills') -Force | Out-Null
         if (-not $NoCompanionsDoc) {
+            New-Item -ItemType Directory -Path (Join-Path $repo '.claude') -Force | Out-Null
             [System.IO.File]::WriteAllText((Join-Path $repo '.claude/COMPANIONS.md'), $script:CompanionsDoc, [System.Text.UTF8Encoding]::new($false))
         }
         $repo
@@ -65,26 +66,26 @@ BeforeAll {
             [string] $CompanionPath,
             [int] $BlockCount = 1
         )
-        if (-not $CompanionPath) { $CompanionPath = ".claude/commands/$Name-local.md" }
+        if (-not $CompanionPath) { $CompanionPath = "skills/$Name/SKILL-local.md" }
         $cats = ($Categories | ForEach-Object { "``$_``" }) -join ', '
         $block = @(
             '<!-- companion:declared:start -->'
             "**Per-repo companion:** ``$CompanionPath``. Read it now, if it exists — an absent,"
             'empty, or frontmatter-only file is no companion, and this file then stands alone.'
             "It may override: $cats. It may never override anything in"
-            '[`.claude/COMPANIONS.md`](../COMPANIONS.md) § *Never*, which is also where these categories are defined.'
+            '[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.'
             '<!-- companion:declared:end -->'
         ) -join "`n"
 
         $body = @("---", "description: fixture $Name", "---", "")
         for ($i = 0; $i -lt $BlockCount; $i++) { $body += @($block, '') }
         $body += @("Do the $Name thing.", '')
-        Write-Fixture -Repo $Repo -RelPath ".claude/commands/$Name.md" -Content (($body -join "`n"))
+        Write-Fixture -Repo $Repo -RelPath "skills/$Name/SKILL.md" -Content (($body -join "`n"))
     }
 
     function New-CoreWithoutBlock {
         param([Parameter(Mandatory)][string] $Repo, [Parameter(Mandatory)][string] $Name)
-        Write-Fixture -Repo $Repo -RelPath ".claude/commands/$Name.md" -Content "---`ndescription: fixture $Name`n---`n`nDo the $Name thing.`n"
+        Write-Fixture -Repo $Repo -RelPath "skills/$Name/SKILL.md" -Content "---`ndescription: fixture $Name`n---`n`nDo the $Name thing.`n"
     }
 
     # The bare form means projected (AGENTS.md, *Marked regions*), so a core still carrying it
@@ -93,11 +94,11 @@ BeforeAll {
         param([Parameter(Mandatory)][string] $Repo, [Parameter(Mandatory)][string] $Name)
         $block = @(
             '<!-- companion:start -->'
-            "**Per-repo companion:** ``.claude/commands/$Name-local.md``."
+            "**Per-repo companion:** ``skills/$Name/SKILL-local.md``."
             'It may override: `vocabulary`.'
             '<!-- companion:end -->'
         ) -join "`n"
-        Write-Fixture -Repo $Repo -RelPath ".claude/commands/$Name.md" -Content "---`ndescription: fixture $Name`n---`n`n$block`n`nDo the $Name thing.`n"
+        Write-Fixture -Repo $Repo -RelPath "skills/$Name/SKILL.md" -Content "---`ndescription: fixture $Name`n---`n`n$block`n`nDo the $Name thing.`n"
     }
 }
 
@@ -125,7 +126,7 @@ Describe 'Test-Companion — positive cases' {
     It 'a companion overriding only declared categories is Valid' {
         $repo = New-Fixture -Name 'valid-companion'
         New-Core -Repo $repo -Name 'slice' -Categories @('vocabulary', 'document-map')
-        Write-Fixture -Repo $repo -RelPath '.claude/commands/slice-local.md' -Content @"
+        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content @"
 ## vocabulary
 
 Slices are units here; their ids are ``W<n>``.
@@ -175,7 +176,7 @@ Describe 'Test-Companion — absence is not an override' {
     It 'an empty companion is absent, not an override' {
         $repo = New-Fixture -Name 'absent-empty'
         New-Core -Repo $repo -Name 'slice'
-        Write-Fixture -Repo $repo -RelPath '.claude/commands/slice-local.md' -Content ''
+        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content ''
 
         $r = Invoke-CompanionCheck -TargetRepo $repo
         $r.AbsentCount | Should -Be 1
@@ -185,7 +186,7 @@ Describe 'Test-Companion — absence is not an override' {
     It 'a whitespace-only companion is absent' {
         $repo = New-Fixture -Name 'absent-whitespace'
         New-Core -Repo $repo -Name 'slice'
-        Write-Fixture -Repo $repo -RelPath '.claude/commands/slice-local.md' -Content "  `n`n`t`n"
+        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content "  `n`n`t`n"
 
         $r = Invoke-CompanionCheck -TargetRepo $repo
         $r.AbsentCount | Should -Be 1
@@ -195,7 +196,7 @@ Describe 'Test-Companion — absence is not an override' {
     It 'a frontmatter-only companion is absent' {
         $repo = New-Fixture -Name 'absent-frontmatter'
         New-Core -Repo $repo -Name 'slice'
-        Write-Fixture -Repo $repo -RelPath '.claude/commands/slice-local.md' -Content "---`ndescription: reserved`n---`n`n"
+        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content "---`ndescription: reserved`n---`n`n"
 
         $r = Invoke-CompanionCheck -TargetRepo $repo
         $r.AbsentCount | Should -Be 1
@@ -239,7 +240,7 @@ Describe 'Test-Companion — negative cases, one per rule' {
 
     It 'WrongCompanionPath — the block names another command''s companion' {
         $repo = New-Fixture -Name 'neg-wrong-path'
-        New-Core -Repo $repo -Name 'slice' -CompanionPath '.claude/commands/track-local.md'
+        New-Core -Repo $repo -Name 'slice' -CompanionPath 'skills/track/SKILL-local.md'
 
         $r = Invoke-CompanionCheck -TargetRepo $repo
 
@@ -270,7 +271,7 @@ Describe 'Test-Companion — negative cases, one per rule' {
     It 'OrphanCompanion — a companion with no core beside it' {
         $repo = New-Fixture -Name 'neg-orphan'
         New-Core -Repo $repo -Name 'slice'
-        Write-Fixture -Repo $repo -RelPath '.claude/commands/ghost-local.md' -Content "## vocabulary`n`nSomething.`n"
+        Write-Fixture -Repo $repo -RelPath 'skills/ghost/SKILL-local.md' -Content "## vocabulary`n`nSomething.`n"
 
         $r = Invoke-CompanionCheck -TargetRepo $repo
 
@@ -281,7 +282,7 @@ Describe 'Test-Companion — negative cases, one per rule' {
     It 'UnknownCompanionHeading — a companion heading that is not a category' {
         $repo = New-Fixture -Name 'neg-unknown-heading'
         New-Core -Repo $repo -Name 'slice'
-        Write-Fixture -Repo $repo -RelPath '.claude/commands/slice-local.md' -Content "## stop-conditions`n`nNever stop.`n"
+        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## stop-conditions`n`nNever stop.`n"
 
         $r = Invoke-CompanionCheck -TargetRepo $repo
 
@@ -292,7 +293,7 @@ Describe 'Test-Companion — negative cases, one per rule' {
     It 'UndeclaredCategory — a valid category its core does not allow' {
         $repo = New-Fixture -Name 'neg-undeclared'
         New-Core -Repo $repo -Name 'slice' -Categories @('vocabulary')
-        Write-Fixture -Repo $repo -RelPath '.claude/commands/slice-local.md' -Content "## tightened-authorization`n`nAsk per thread.`n"
+        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## tightened-authorization`n`nAsk per thread.`n"
 
         $r = Invoke-CompanionCheck -TargetRepo $repo
 
@@ -303,7 +304,7 @@ Describe 'Test-Companion — negative cases, one per rule' {
     It 'EmptyCategory — a declared heading with nothing under it' {
         $repo = New-Fixture -Name 'neg-empty-category'
         New-Core -Repo $repo -Name 'slice' -Categories @('vocabulary', 'document-map')
-        Write-Fixture -Repo $repo -RelPath '.claude/commands/slice-local.md' -Content "## vocabulary`n`n## document-map`n`nReal content.`n"
+        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## vocabulary`n`n## document-map`n`nReal content.`n"
 
         $r = Invoke-CompanionCheck -TargetRepo $repo
 
@@ -314,7 +315,7 @@ Describe 'Test-Companion — negative cases, one per rule' {
 
 Describe 'Test-Companion — NotEvaluated' {
 
-    It 'no .claude/commands/ directory is NotEvaluated, exit 2' {
+    It 'no skills/ directory is NotEvaluated, exit 2' {
         $bare = Join-Path $TestDrive 'not-a-kit'
         New-Item -ItemType Directory -Path $bare -Force | Out-Null
 

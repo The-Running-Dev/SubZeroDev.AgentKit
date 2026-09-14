@@ -18,7 +18,7 @@
 Describe 'track.md: the work-mirror refresh also regenerates the projection (#62)' {
 
     BeforeAll {
-        $script:TrackPath = Join-Path (Split-Path $PSScriptRoot -Parent) '.claude/commands/track.md'
+        $script:TrackPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'skills/track/SKILL.md'
         $script:Lines = Get-Content -LiteralPath $script:TrackPath
     }
 
@@ -49,7 +49,7 @@ Describe 'track.md: the work-mirror refresh also regenerates the projection (#62
 Describe 'track.md: landed slice bodies are retired (#120)' {
 
     BeforeAll {
-        $script:TrackPath = Join-Path (Split-Path $PSScriptRoot -Parent) '.claude/commands/track.md'
+        $script:TrackPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'skills/track/SKILL.md'
         $script:Lines = Get-Content -LiteralPath $script:TrackPath
     }
 

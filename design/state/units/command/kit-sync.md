@@ -1,7 +1,7 @@
 # unit/command/kit-sync
 Kind: command
 Status: active
-Anchor: .claude/commands/kit-sync.md
+Anchor: skills/kit-sync/SKILL.md
 Consumes:
 Exposes:
 Binds:
