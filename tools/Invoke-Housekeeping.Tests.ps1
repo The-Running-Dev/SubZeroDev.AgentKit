@@ -76,6 +76,19 @@ Describe 'Invoke-Housekeeping' {
             $result.Applied.Deleted | Should -Contain 'feature/ordinary'
             (& git -C $repo branch --list 'feature/ordinary') | Should -BeNullOrEmpty
         }
+
+        It 'reports the pulled state as a sentence, not a bare boolean (AGENTS.md, Output discipline)' {
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-wording')
+            New-MergedBranch -RepoPath $repo -Branch 'feature/wording'
+
+            & $script:ScriptPath -RepoRoot $repo -DefaultBranch main -SkipPull -InformationVariable lines | Out-Null
+
+            $joined = (@($lines | ForEach-Object ToString)) -join "`n"
+            $joined | Should -Not -Match '\bTrue\b'
+            $joined | Should -Not -Match '\bFalse\b'
+            $joined | Should -Not -Match 'exit code'
+            $joined | Should -Match '\(not pulled\)'
+        }
     }
 
     Context 'a real judgement case - commits a merged PR does not account for' {

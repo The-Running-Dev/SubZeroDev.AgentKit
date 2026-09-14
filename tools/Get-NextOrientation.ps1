@@ -68,19 +68,64 @@ function Invoke-GateScript {
     # and Test-DesignState.ps1's `-Path` default plus Test-DesignDrift.ps1's `-Repository`
     # default, both of which resolve from cwd unless passed explicitly - fixed by passing
     # $WorkingDir and its resolved owner/repo through $ExtraArgs at each call site below.
+    #
+    # -Quiet suppresses the target's own Write-Host report and leaves its result object as
+    # the only thing on the pipeline, so $resultObj is that object itself - never the merged,
+    # stringified dump `*>&1 | Out-String` used to produce here (AGENTS.md, *Output discipline*).
     param([string]$Path, [string]$WorkingDir, [hashtable]$ExtraArgs = @{})
     if (-not (Test-Path -LiteralPath $Path)) {
-        return [pscustomobject]@{ Ran = $false; ExitCode = $null; Output = $null }
+        return [pscustomobject]@{ Ran = $false; ExitCode = $null; Result = $null }
     }
     Push-Location $WorkingDir
     try {
         # A hashtable splat, not an array one - array splatting binds positionally and
         # would hand the target script's own -Path a literal "-Path" string instead of
         # matching it by name.
-        $output = & $Path @ExtraArgs *>&1 | Out-String
-        return [pscustomobject]@{ Ran = $true; ExitCode = $LASTEXITCODE; Output = $output.TrimEnd() }
+        $resultObj = & $Path @ExtraArgs -Quiet
+        return [pscustomobject]@{ Ran = $true; ExitCode = $LASTEXITCODE; Result = $resultObj }
     }
     finally { Pop-Location }
+}
+
+function Get-ResultProperty {
+    # Set-StrictMode throws on a missing property, and a fixture stub in a test is under no
+    # obligation to carry the real gate scripts' full result shape - so Summary text falls
+    # back to $null for a property that isn't there instead of throwing.
+    #
+    # Write-Output -NoEnumerate, not a bare `return`: a plain `return $Result.$Name` sends an
+    # array value through the pipeline, which unwraps it - a one-element array collapses to a
+    # bare scalar at the caller (losing .Count under strict mode) and an empty array collapses
+    # to $null entirely. -NoEnumerate hands the property back exactly as it is.
+    param($Result, [string]$Name)
+    if ($null -eq $Result) { return $null }
+    if ($Result.PSObject.Properties.Match($Name).Count -eq 0) { return $null }
+    Write-Output -NoEnumerate $Result.$Name
+}
+
+function Get-GateSummary {
+    # The plain-language sentence each gate result carries next to it, so a reader (or
+    # Get-AgentKitNext) never has to translate ExitCode or Result into words themselves.
+    param([Parameter(Mandatory)][string]$Label, [Parameter(Mandatory)]$Gate)
+    if (-not $Gate.Ran) { return "$Label`: script not present" }
+    switch ($Label) {
+        'Design drift' {
+            switch (Get-ResultProperty -Result $Gate.Result -Name 'State') {
+                'Clean'        { return 'Design drift: none' }
+                'Drifted'      { return "Design drift: $((Get-ResultProperty -Result $Gate.Result -Name 'Findings').Count) findings" }
+                'NotEvaluated' { return 'Design drift: could not evaluate' }
+                default        { return "Design drift: exit $($Gate.ExitCode)" }
+            }
+        }
+        'Design state' {
+            $couldNotEvaluate = Get-ResultProperty -Result $Gate.Result -Name 'CouldNotEvaluate'
+            $findings = Get-ResultProperty -Result $Gate.Result -Name 'Findings'
+            $reported = Get-ResultProperty -Result $Gate.Result -Name 'Reported'
+            if ($couldNotEvaluate -and $couldNotEvaluate.Count -gt 0) { return 'Design state: could not evaluate' }
+            if ($findings -and $findings.Count -gt 0) { return "Design state: $($findings.Count) blocking findings" }
+            if ($reported -and $reported.Count -gt 0) { return "Design state: $($reported.Count) non-blocking findings" }
+            return 'Design state: clean'
+        }
+    }
 }
 
 $status = & git -C $repoRootResolved status --short --branch
@@ -98,14 +143,37 @@ $driftExtraArgs = if ($repoNameWithOwner) { @{ Repository = $repoNameWithOwner }
 
 $drift = Invoke-GateScript -Path (Join-Path $repoRootResolved 'tools/Test-DesignDrift.ps1') -WorkingDir $repoRootResolved -ExtraArgs $driftExtraArgs
 $state = Invoke-GateScript -Path (Join-Path $repoRootResolved 'tools/Test-DesignState.ps1') -WorkingDir $repoRootResolved -ExtraArgs @{ Path = $repoRootResolved }
+$drift | Add-Member -NotePropertyName Summary -NotePropertyValue (Get-GateSummary -Label 'Design drift' -Gate $drift)
+$state | Add-Member -NotePropertyName Summary -NotePropertyValue (Get-GateSummary -Label 'Design state' -Gate $state)
+
+$dirty = [bool]($status | Where-Object { $_ -and $_ -notmatch '^##' })
+$openPrAvailable = ($openPr.ExitCode -eq 0)
+$mergedPrAvailable = ($mergedPr.ExitCode -eq 0)
+# @(...) around the whole if/else forces array-coercion: `'[]' | ConvertFrom-Json` returns $null
+# (not an empty array), and a single-object JSON array unwraps to a bare PSCustomObject - either
+# throws on .Count under strict mode without this. @(...) inside just one branch isn't enough -
+# assigning an if/else's own result collapses an empty-array branch back to $null.
+$openPrItems = @(if ($openPrAvailable -and $openPr.Output) { $openPr.Output | ConvertFrom-Json })
+$mergedPrItems = @(if ($mergedPrAvailable -and $mergedPr.Output) { $mergedPr.Output | ConvertFrom-Json })
+
+$summary = "Branch $currentBranch, working tree $(if ($dirty) { 'dirty' } else { 'clean' })$(if ($frozen) { ', design/ frozen' })"
 
 [pscustomobject]@{
     RepoRoot      = $repoRootResolved
-    Dirty         = [bool]($status | Where-Object { $_ -and $_ -notmatch '^##' })
+    Dirty         = $dirty
     Status        = @($status)
     CurrentBranch = $currentBranch
-    OpenPrs       = [pscustomobject]@{ Available = ($openPr.ExitCode -eq 0); Items = if ($openPr.ExitCode -eq 0 -and $openPr.Output) { $openPr.Output | ConvertFrom-Json } else { @() } }
-    MergedPrs     = [pscustomobject]@{ Available = ($mergedPr.ExitCode -eq 0); Items = if ($mergedPr.ExitCode -eq 0 -and $mergedPr.Output) { $mergedPr.Output | ConvertFrom-Json } else { @() } }
+    Summary       = $summary
+    OpenPrs       = [pscustomobject]@{
+        Available = $openPrAvailable
+        Items     = $openPrItems
+        Summary   = if ($openPrAvailable) { "Open PRs: $($openPrItems.Count)" } else { 'GitHub CLI unavailable: pull requests not checked' }
+    }
+    MergedPrs     = [pscustomobject]@{
+        Available = $mergedPrAvailable
+        Items     = $mergedPrItems
+        Summary   = if ($mergedPrAvailable) { "Recently merged PRs: $($mergedPrItems.Count)" } else { 'GitHub CLI unavailable: merged pull requests not checked' }
+    }
     Frozen        = $frozen
     FrozenContent = $frozenContent
     DesignDrift   = $drift

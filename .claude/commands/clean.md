@@ -79,7 +79,7 @@ Proceed straight to the delete call; do not stop and wait for a chat confirmatio
 Report after acting, not before — this is a summary of what happened, not a request for permission, and it carries only these lines (`AGENTS.md`, *Output discipline*):
 
 - Remote-tracking refs pruned, as a count (`PrunedCount`)
-- A stash made and how to restore it, if `Stashed: true`
+- A stash made and how to restore it, when one was made (`Stashed`)
 - Branches deleted, and the PR each merged through where known (`Deleted`)
 - Any branch left alone, and which named gate it failed — **Merged** or **SafeDelete** (`Refused`), or unmerged work that stopped the run before candidates were even built
 - Any squash-merged branch force-deleted from `SquashMergeCandidates`, with its PR link — reported after the fact, not asked about first
