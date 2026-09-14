@@ -195,7 +195,7 @@ which is what `design/10-design.md` § *Orient* claims makes it cheaper.
 Covers Claude Code only — Codex writes a different transcript schema this has no reader for, and
 Copilot records no token usage at all, so neither is measured here.
 
-## Correction: every figure above counts one response two or three times
+## Correction: Measure-Session readings above double-count multi-block responses
 
 Claude Code writes one transcript record per content block of a response — thinking, text, and
 each tool call — and every one of them repeats the response's `message.id` and full `usage`.

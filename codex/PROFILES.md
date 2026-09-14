@@ -86,6 +86,7 @@ model_reasoning_effort = "medium"
 | `tool_output_token_limit` | Tokens of one tool result kept in context | base only | If set, keep gate output in a log file. A cap that cuts off a failure's diagnostics breaks *Output discipline*, not just the gate. |
 | `[agents] default_subagent_reasoning_effort` | Effort of a subagent that does not name one | base only | `medium` is the Implementation tier. A deep-reasoning subagent must name its effort. |
 | `[agents] max_concurrent_threads_per_session` | Parallel subagents | base only | No value is recommended. None has been measured here. |
+| `project_doc_max_bytes` | Max bytes of project doc content (`AGENTS.md` plus its imports) loaded into context | base only | Default 32,768 bytes. `AGENTS.md` alone can exceed this — check with `wc -c AGENTS.md` — and Codex truncates silently past the cap. Raise it in `~/.codex/config.toml` to cover the file's actual size, or the contract *Source of truth* calls binding on every vendor is the part Codex never sees. |
 
 With a profile file (0.134.0 and later), any of these can go in `~/.codex/<name>.config.toml`, including the base-only keys, because that file layers over the whole base config.
 
