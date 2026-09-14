@@ -80,8 +80,9 @@ stop, so the next invocation decides against a tree that has actually moved.
 ## Report
 
 One short block, in this order: **what you read**, **what you concluded**, **what you did or why
-you stopped**. Where you stopped at a boundary, the banner is the last thing in the response, set
-off as `AGENTS.md` requires — not folded into a closing sentence.
+you stopped**. State meaning before identifier — a gate's `Summary`, not its raw `ExitCode`
+(`AGENTS.md` § *Output discipline*). Where you stopped at a boundary, the banner is the last thing
+in the response, set off as `AGENTS.md` requires — not folded into a closing sentence.
 
 ## Never
 
