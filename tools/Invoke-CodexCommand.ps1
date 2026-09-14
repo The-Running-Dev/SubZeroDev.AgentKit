@@ -58,12 +58,12 @@
     *Output and context budget* section for the full citation of that source.
 
     /unfreeze is the one command this script does not run as a single `codex` invocation.
-    Its own procedure needs a deep-reasoning reconcile phase and an implementation-tier
-    track phase "in this same session" (.claude/commands/unfreeze.md), but Codex profiles
-    cannot switch mid-session - so this script chains two separate `codex` processes ('author'
-    then 'builder') instead of picking one profile for the whole run (issue #253). The human
-    still runs `./tools/Invoke-CodexCommand.ps1 unfreeze` once; nothing prompts them between
-    the two processes.
+    Its own procedure needs a deep-reasoning reconcile phase and an implementation-tier track
+    phase, and Codex profiles cannot switch mid-session - so this script is the case
+    .claude/commands/unfreeze.md's *Split across sessions* names, and chains two separate
+    `codex` processes ('author' then 'builder') instead of picking one profile for the whole
+    run (issue #253). The human still runs `./tools/Invoke-CodexCommand.ps1 unfreeze` once;
+    nothing prompts them between the two processes.
 
 .PARAMETER Command
     The command name, with or without a leading slash (e.g. 'kit-help' or '/kit-help').
@@ -249,21 +249,13 @@ $projectDocBudget = Get-ProjectDocByteBudget
 # invocation would be.
 if ($normalized -eq 'unfreeze') {
     $reconcilePrompt = @'
-Run /unfreeze's Phase 1 and Phase 2 per .claude/commands/unfreeze.md: report `Frozen because`
-and `Lifts when` verbatim from design/FROZEN.md, delete that file, then run
-.claude/commands/reconcile.md in full against the now-unfrozen tree. If reconciliation touched
-design/, stage those files by name and commit them together with the marker's own deletion -
-one commit, not two, per AGENTS.md's Git and delivery section. Stop after that commit (or after
-confirming nothing needed committing) and report what reconcile found and changed. Do not run
-Phase 3 (/track) - a second, separately-launched process runs it next.
+Run /unfreeze per .claude/commands/unfreeze.md, this is session 1 of its Split across sessions:
+Refuse if not frozen, Phase 1, Phase 2, and Commit. Stop there - a second, separately-launched
+process runs session 2.
 '@
     $trackPrompt = @'
-Continuing /unfreeze (.claude/commands/unfreeze.md): its Phase 1 (delete design/FROZEN.md) and
-Phase 2 (/reconcile) already ran to completion in a prior process - read its last commit to see
-what changed. Run .claude/commands/track.md in full, per unfreeze.md's Phase 3. Then produce
-unfreeze.md's Report: state the freeze is lifted, what /reconcile found and changed, and what
-/track synced. If /track surfaced something needing a decision, stop and ask rather than
-resolving it inline.
+Run /unfreeze per .claude/commands/unfreeze.md, this is session 2 of its Split across sessions:
+read session 1's commit, then run Phase 3 and Report exactly as written there.
 '@
 
     $reconcileConfig = $profileConfig['author']

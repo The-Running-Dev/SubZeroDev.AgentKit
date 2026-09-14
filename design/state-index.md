@@ -274,6 +274,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-13-component-records-checked-without-a-row | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-09-14-output-discipline-is-one-agents-md-rule | `unit/document/agents-md`, `unit/document/codex-profiles`, `unit/document/design-cost` |
 | decision/2026-09-14-project-doc-max-bytes-is-launcher-enforced | `unit/document/codex-profiles`, `unit/script/invoke-codexcommand` |
+| decision/2026-09-14-unfreeze-splits-across-sessions-for-a-tool-that-cannot-switch-tier | `unit/command/unfreeze`, `unit/document/agents-md` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered
