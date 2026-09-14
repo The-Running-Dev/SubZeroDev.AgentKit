@@ -1,6 +1,6 @@
 ---
 description: Reproduce and fix a defect that has no slice — from a bug issue number, a description, or a failing test already in context
-argument-hint: [issue number, a description, or leave blank to auto-pick the highest-value open bug]
+argument-hint: "[issue number, a description, or leave blank to auto-pick the highest-value open bug]"
 ---
 
 <!-- companion:declared:start -->
