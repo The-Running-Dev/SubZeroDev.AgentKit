@@ -1,6 +1,6 @@
 ---
 description: Clone or update the shared kit checkout at ~/.agent-kit, then run INSTALL.md's reconciliation against this repository. Usage - /kit-sync, or /kit-sync <branch>
-argument-hint: [branch]
+argument-hint: "[branch]"
 ---
 
 <!-- companion:declared:start -->

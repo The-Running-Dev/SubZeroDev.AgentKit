@@ -1,6 +1,6 @@
 ---
 description: Where this repository is in the pipeline, and what to run next. Usage - /kit-help, or /kit-help all
-argument-hint: [all, or a stage or command name]
+argument-hint: "[all, or a stage or command name]"
 ---
 
 <!-- companion:declared:start -->
