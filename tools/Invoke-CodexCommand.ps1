@@ -48,6 +48,15 @@
     strongest local Codex profile, but vendor diversity is the caller's call to make before
     running it.
 
+    Every invocation also carries `-c project_doc_max_bytes=<n>`, `<n>` computed fresh each
+    run from the AGENTS.md/AGENTS.override.md files Codex would actually load for the launch
+    directory (Get-ProjectDocByteBudget, below). Codex 0.153.4's default
+    (project_doc_max_bytes = 32768, codex-rs/config/defaults.toml) is smaller than this
+    repository's own AGENTS.md (49761 bytes) and codex-rs/core/src/agents_md.rs truncates
+    silently past it (a `tracing::warn!`, nothing surfaced in the session) - so a session
+    launched without this flag never sees the file past that point. See codex/PROFILES.md's
+    *Output and context budget* section for the full citation of that source.
+
     /unfreeze is the one command this script does not run as a single `codex` invocation.
     Its own procedure needs a deep-reasoning reconcile phase and an implementation-tier
     track phase "in this same session" (.claude/commands/unfreeze.md), but Codex profiles
@@ -157,6 +166,52 @@ $profileTiers = [ordered]@{
     'quick'     = 'Implementation'
 }
 
+function Get-ProjectDocByteBudget {
+    <#
+    Mirrors codex-rs/core/src/agents_md.rs's discovery and accounting (verified against
+    the openai/codex source at tag rust-v0.153.4, matching the installed codex-cli
+    0.153.4): walk up from the launch directory to the nearest ancestor containing a
+    project marker (default `.git`), then back down to the launch directory, taking the
+    first of AGENTS.override.md / AGENTS.md present in each directory. Codex charges the
+    shared project_doc_max_bytes budget the raw byte length of each such file, in that
+    root-to-cwd order, and truncates once the running total would exceed it; assembly
+    separators are appended afterwards and are not charged. Returning the exact sum of
+    what would be loaded is therefore the smallest budget that loads all of it un-truncated.
+    #>
+    param([string] $StartDir = (Get-Location).Path)
+
+    $cwd = Get-Item -LiteralPath $StartDir
+    $walk = $cwd
+    $root = $cwd
+    while ($walk) {
+        if (Test-Path -LiteralPath (Join-Path $walk.FullName '.git')) {
+            $root = $walk
+            break
+        }
+        $walk = $walk.Parent
+    }
+
+    $dirs = [System.Collections.Generic.List[System.IO.DirectoryInfo]]::new()
+    $d = $cwd
+    while ($true) {
+        $dirs.Insert(0, $d)
+        if ($d.FullName -eq $root.FullName -or -not $d.Parent) { break }
+        $d = $d.Parent
+    }
+
+    $total = 0
+    foreach ($dir in $dirs) {
+        $candidate = Join-Path $dir.FullName 'AGENTS.override.md'
+        if (-not (Test-Path -LiteralPath $candidate)) {
+            $candidate = Join-Path $dir.FullName 'AGENTS.md'
+        }
+        if (Test-Path -LiteralPath $candidate) {
+            $total += (Get-Item -LiteralPath $candidate).Length
+        }
+    }
+    return $total
+}
+
 if ($List) {
     $commandProfiles.GetEnumerator() | ForEach-Object {
         $p = $profileConfig[$_.Value]
@@ -179,6 +234,10 @@ if (-not $Command) {
 }
 
 $normalized = $Command.TrimStart('/')
+
+# See Get-ProjectDocByteBudget's own comment for the source citation. Computed once per
+# launch, from the launch directory, and applied to every codex process this script starts.
+$projectDocBudget = Get-ProjectDocByteBudget
 
 # /unfreeze's own procedure (.claude/commands/unfreeze.md, Phase 2 and Phase 3) requires its
 # reconcile phase at deep-reasoning tier and its track phase at implementation tier, "in this
@@ -213,6 +272,7 @@ resolving it inline.
     $reconcileArgs = @(
         '-m', $reconcileConfig.Model,
         '-c', "model_reasoning_effort=$($reconcileConfig.Effort)",
+        '-c', "project_doc_max_bytes=$projectDocBudget",
         '-a', $reconcileConfig.Approval,
         '-s', $reconcileConfig.Sandbox
     ) + $CodexArgs + @($reconcilePrompt)
@@ -220,6 +280,7 @@ resolving it inline.
     $trackArgs = @(
         '-m', $trackConfig.Model,
         '-c', "model_reasoning_effort=$($trackConfig.Effort)",
+        '-c', "project_doc_max_bytes=$projectDocBudget",
         '-a', $trackConfig.Approval,
         '-s', $trackConfig.Sandbox,
         $trackPrompt
@@ -271,6 +332,7 @@ $resolvedEffort = if ($Effort) { $Effort } else { $selectedConfig.Effort }
 $codexInvocationArgs = @(
     '-m', $selectedConfig.Model,
     '-c', "model_reasoning_effort=$resolvedEffort",
+    '-c', "project_doc_max_bytes=$projectDocBudget",
     '-a', $selectedConfig.Approval,
     '-s', $selectedConfig.Sandbox
 )
