@@ -1,6 +1,6 @@
 ---
 description: Triage a pull request's review comments, fix what is valid, and resolve the threads that fix satisfies
-argument-hint: [pr number]
+argument-hint: "[pr number]"
 ---
 
 <!-- companion:declared:start -->

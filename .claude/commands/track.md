@@ -1,6 +1,6 @@
 ---
 description: Sync design/ into GitHub issues and milestones. Idempotent - safe to re-run.
-argument-hint: [milestone name]
+argument-hint: "[milestone name]"
 ---
 
 <!-- companion:declared:start -->
