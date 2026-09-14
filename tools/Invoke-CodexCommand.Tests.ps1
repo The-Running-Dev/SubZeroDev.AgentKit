@@ -143,3 +143,45 @@ Describe 'Invoke-CodexCommand /unfreeze two-process chain (issue #253)' {
         { & $script:ScriptPath -Command 'unfreeze' -WhatIf } | Should -Not -Throw
     }
 }
+
+Describe 'Invoke-CodexCommand /unfreeze prompts cite unfreeze.md, not restate it (W2)' {
+    <#
+      The two prompts this script hands the reconcile and track processes used to restate
+      unfreeze.md's own procedure and report shape - a second copy that would drift from the
+      first (AGENTS.md, Single ownership). They now cite unfreeze.md's Split across sessions
+      section instead. These assert the citation still resolves to real headings and that the
+      restated text is gone.
+    #>
+
+    BeforeAll {
+        $script:UnfreezeMdPath = Join-Path $script:RepoRoot '.claude/commands/unfreeze.md'
+        $script:UnfreezeMdText = Get-Content -Raw -LiteralPath $script:UnfreezeMdPath
+        $script:UnfreezeHeadings = [regex]::Matches($script:UnfreezeMdText, '(?m)^#{1,3}\s+(.+)$') |
+            ForEach-Object { $_.Groups[1].Value.Trim() }
+
+        $script:LauncherText = Get-Content -Raw -LiteralPath $script:ScriptPath
+        $script:ReconcilePromptText = if ($script:LauncherText -match "(?s)\`$reconcilePrompt = @'\r?\n(.*?)\r?\n'@") { $Matches[1] } else { $null }
+        $script:TrackPromptText = if ($script:LauncherText -match "(?s)\`$trackPrompt = @'\r?\n(.*?)\r?\n'@") { $Matches[1] } else { $null }
+    }
+
+    It 'finds both here-string prompts in the launcher source' {
+        $script:ReconcilePromptText | Should -Not -BeNullOrEmpty
+        $script:TrackPromptText | Should -Not -BeNullOrEmpty
+    }
+
+    It 'cites headings that exist in unfreeze.md' {
+        foreach ($heading in 'Split across sessions', 'Phase 1 — read and delete the marker', 'Phase 2 — reconcile', 'Commit', 'Phase 3 — track', 'Report') {
+            $script:UnfreezeHeadings | Should -Contain $heading -Because "the launcher prompt cites '$heading'"
+        }
+    }
+
+    It 'does not restate unfreeze.md''s Phase 1/Commit procedure text in the reconcile prompt' {
+        $script:ReconcilePromptText | Should -Not -Match 'Frozen because'
+        $script:ReconcilePromptText | Should -Not -Match 'Git and delivery'
+    }
+
+    It 'does not restate unfreeze.md''s Report text in the track prompt' {
+        $script:TrackPromptText | Should -Not -Match 'state the freeze is lifted'
+        $script:TrackPromptText | Should -Not -Match 'what /reconcile found and changed'
+    }
+}
