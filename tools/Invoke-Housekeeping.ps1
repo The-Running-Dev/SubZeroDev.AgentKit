@@ -105,17 +105,15 @@ $escalate = $false
 
 if (@($discover.TipAheadOfMergedPr).Count) {
     $escalate = $true
-    Write-Warning "TipAheadOfMergedPr - commits exist that no merged PR accounts for:"
     foreach ($entry in $discover.TipAheadOfMergedPr) {
-        Write-Warning "  $($entry.Branch): $($entry.Reason)"
+        Write-Warning "Kept $($entry.Branch): it has commits that no merged pull request accounts for - $($entry.Reason) (TipAheadOfMergedPr)"
     }
 }
 
 if (@($applied.Refused).Count) {
     $escalate = $true
-    Write-Warning "Refused:"
     foreach ($entry in $applied.Refused) {
-        Write-Warning "  $($entry.Branch): $($entry.Reason)"
+        Write-Warning "Kept $($entry.Branch): Git refused the safe delete - $($entry.Reason) (Refused)"
     }
 }
 
