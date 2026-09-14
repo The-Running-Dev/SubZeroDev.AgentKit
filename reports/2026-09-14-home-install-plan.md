@@ -12,7 +12,7 @@ let Claude Code, Codex and Copilot use it from there in every project.
 
 - **Source repo:** `D:\Dropbox\Projects\SubZeroDev.AgentKit`
 - **Modelled on:** [garrytan/gstack](https://github.com/garrytan/gstack)
-- **Status:** phase 0 can start now; phase 1 waits on the output-language work
+- **Status:** phase 0 done ([findings](2026-09-14-home-install-phase0.md)); output-language work merged; phase 1 is next
 
 ---
 
@@ -38,14 +38,9 @@ wording from history or redesign the output policy as part of the home-install w
 If portability forces a change in report semantics rather than merely syntax or host adaptation, stop and surface
 that as a separate policy decision instead of folding it into the migration.
 
-**State on `main` today:** PR 2 (W4, W5) and PR 3 (W6) of `reports/2026-09-14-repo-review-plan.md` have not landed
-and have no open PR — `AGENTS.md` lacks W4's sentence, `Get-NextOrientation.ps1` has no `Summary`, `INSTALL.md`
-still says "nineteen command files". So:
-
-- Phase 0 changes nothing in the kit and can start now.
-- Phase 1 starts after both have merged. Both touch files phase 1 moves or edits (`next.md`, `clean.md`,
-  `freeze.md`, `RepoAliases.ps1`, `Get-NextOrientation.ps1`, `INSTALL.md`).
-- *Output discipline* moves into the shared `AGENTS.md` unchanged.
+**Met.** PR 2 and PR 3 of `reports/2026-09-14-repo-review-plan.md` have landed: W4 and W5 (#303), W6 (#304),
+and the housekeeping headings follow-up (#305). Phase 1 starts from `main` at or after `326d7b5`, and treats the
+wording those PRs produced as canonical. *Output discipline* moves into the shared `AGENTS.md` unchanged.
 
 **Report changes the handoff's own scope already implies** — not portability, so not a stop, but worth knowing
 before phase 4: the `INSTALL.md` phase 3 report's *Cores taken outright* and *Unmigrated cores* rows lose their
@@ -109,39 +104,26 @@ working branch.
 | The Codex launcher now sets `project_doc_max_bytes` per run (#300), counting project rules files only; its `/unfreeze` prompts cite `.claude/commands/unfreeze.md` (#301) | Phase 0 and phase 1 step 3 |
 | W3's tests (#302) parse `AGENTS.md` § *Command routing* against `.claude/commands/*.md` | Phase 1 step 1 |
 | `design/20-contract.md` § *Artifacts of a unit kind* names `.claude/commands/*.md` as the command path, and design-state records cite `AGENTS.md` sections | Phase 1 steps 1 and 4 — path corrections only |
-| Claude Code 2.1.270 and Codex CLI 0.153.4 are installed; Copilot CLI is not | Phase 0 prerequisite |
+| Claude Code 2.1.270, Codex CLI 0.153.4 and Copilot CLI 1.0.83 are installed; Copilot is not signed in | `copilot login` (Ben) before phase 3 |
+| Copilot already reads a repo's `.claude/commands/*.md` as project skills; the 8 files it rejected for `argument-hint` frontmatter were fixed in #307 | Phase 3 and 5: a repo's old copies are visible to Copilot until migrated |
 
 ## The work, in order
 
 Each phase ends in a working state. Don't start the next one until the current one's checklist is true.
 
-### Phase 0 — Confirm the tools behave as expected (about half a day)
+### Phase 0 — Confirm the tools behave as expected — **done**
 
-**First:** install Copilot CLI.
+Findings: [`2026-09-14-home-install-phase0.md`](2026-09-14-home-install-phase0.md).
 
-Everything later depends on these facts. Check them against the real tools on this machine, with one throwaway
-test skill, before changing the kit.
+- **Junctions work** in all three tools, including across drives (`C:` → `D:`). No copy fallback.
+- **Personal skills folders:** Claude `~/.claude/skills/`, Codex `~/.codex/skills/`, Copilot `~/.copilot/skills/` or `~/.agents/skills/`.
+- **No name clashes** in this account's current skill list. `-Prefix` stays as the hedge.
+- **Codex runs kit commands through `Invoke-CodexCommand.ps1`**, which picks the model, effort and sandbox per command. Kit skills are not linked into `~/.codex/skills/`; the launcher reads them from the install instead (phase 1 step 3, phase 2 step 2).
 
-| Tool | Personal skills folder to test | Personal rules file to test |
-|---|---|---|
-| Claude Code | `~/.claude/skills/<name>/` | `~/.claude/CLAUDE.md` importing an absolute path |
-| Codex CLI | `~/.agents/skills/` (older builds: `~/.codex/skills/`) | `~/.codex/AGENTS.md` |
-| Copilot CLI | `~/.copilot/skills/` or `~/.agents/skills/` | Find Copilot's personal instructions location |
-
-- Does each tool find a skill whose folder is a Windows **directory junction**?
-- Do `$ARGUMENTS` / `$1` reach the skill in each tool?
-- Does `disable-model-invocation: true` stop Claude running a skill on its own? What do Codex and Copilot do with it?
-- If a repo still has `.claude/commands/slice.md` and a personal `slice` skill exists, which one runs? Claude's docs say personal wins. Confirm it.
-- Can a skill reliably call a script at `$HOME/.agent-kit/tools/…` from inside any project?
-- Which skill names clash with built-ins or existing skills (for example `/code-review`, `/review`, `/init`)?
-- **Codex:** does `~/.codex/AGENTS.md` count against `project_doc_max_bytes`? Read it from the Codex source at `rust-v0.153.4`, as #300 did, and cite the lines.
-
-**Done when**
-
-- [ ] A short findings note lists each answer above, per tool, from an actual run.
-- [ ] The name-clash list exists.
-
-> **Stop and report** if junctions don't work in a tool. The fallback is copying plus re-running the update after every release, and that's a choice for Ben.
+Not answered by a real run, so checked in the phase 3 trial: a fresh Claude session lists a junctioned skill;
+a personal skill wins over a repo's copy in Claude and Copilot; `disable-model-invocation`; arguments arrive;
+Copilot's personal rules file. Not answered at all, so read in phase 1: whether `~/.codex/AGENTS.md` counts against
+`project_doc_max_bytes`.
 
 ### Phase 1 — Restructure the kit source (a few days; after the output-language work merges)
 
@@ -149,7 +131,7 @@ Make the repo installable. Work on a branch in the source repo. Existing repos k
 
 1. **Commands become skills.** Move each `.claude/commands/<name>.md` to `skills/<name>/SKILL.md`. Keep `description` and `argument-hint`, add `name` and `disable-model-invocation: true`, and keep the companion block unchanged. Report sections move unchanged. Update the paths that name command files: W3's routing tests, the `20-contract.md` command glob, and the README's Codex recipes.
 2. **Fix paths in two directions.** The command files have 107 references to kit files (`tools/*.ps1`, `COMPANIONS.md`). Those must point at the install root. Resolve the root as `$env:AGENTKIT_HOME`, falling back to `$HOME/.agent-kit`. References to the *project's* files must stay relative to the repo: `design/`, `.claude/kit.json`, `*-local.md`, `.claude/gates.json`, `.claude/verify-report.json`. Sort every reference into one bucket or the other with a script that lists each with its bucket; don't find-and-replace.
-3. **Scripts that assume they run inside the kit repo.** Check and fix at least `tools/Invoke-CodexCommand.ps1` (reads `.claude/commands/…`, and its `/unfreeze` prompts cite that path), `Test-Companion.ps1`, `Sync-Kit.ps1`, `RepoAliases.ps1` and `Get-NextOrientation.ps1`, plus `Test-DesignDrift.ps1`, `Update-SlicesDocument.ps1` and `Test-VerifyReport.ps1` (root defaults to the kit folder), and `New-ReducedPrompt.ps1`. If phase 0 found that `~/.codex/AGENTS.md` shares the Codex budget, the launcher adds its size. Update their Pester tests.
+3. **Scripts that assume they run inside the kit repo.** Check and fix at least `tools/Invoke-CodexCommand.ps1` (reads `.claude/commands/…`, and its `/unfreeze` prompts cite that path), `Test-Companion.ps1`, `Sync-Kit.ps1`, `RepoAliases.ps1` and `Get-NextOrientation.ps1`, plus `Test-DesignDrift.ps1`, `Update-SlicesDocument.ps1` and `Test-VerifyReport.ps1` (root defaults to the kit folder), and `New-ReducedPrompt.ps1`. The Codex launcher reads `skills/<name>/SKILL.md` from the install root. Read from the Codex source at `rust-v0.153.4`, as #300 did, whether `~/.codex/AGENTS.md` counts against `project_doc_max_bytes`; if it does, the launcher adds its size. Update their Pester tests.
 4. **Split `AGENTS.md`.** Shared rules go into the installed copy. Each repo's file keeps only its project rules and a pointer. The kit repo is also a project and keeps its own project part (for example the `videos/` convention and the Videowright block). Update the design-state citations that point at moved sections. This step needs judgement about which rules are universal, so Ben reviews the split before it merges.
 5. **Hooks.** `Measure-Session.ps1` hooks currently use `${CLAUDE_PROJECT_DIR}/tools/…`. Point them at the install root instead. The cost log path then comes from the session's project, not the script's folder. A global hook runs in every project, so it writes only where `.claude/kit.json` exists, and skips repos whose own `settings.json` still registers the old hook (18 do), so no session is logged twice during migration.
 6. **Kit repo's own use.** Keep the kit repo usable while developing. It runs the installed version like everything else, and you test unreleased changes by updating from the working branch (phase 2).
@@ -175,7 +157,7 @@ tools/Install-AgentKit.ps1
 ```
 
 1. Clone or fetch `~/.agent-kit`. The existing `/kit-sync` clone is adopted: check its `origin`, refuse if it has uncommitted changes. Check out the requested version.
-2. For each detected tool, create one junction per skill folder in that tool's personal skills folder, using the paths confirmed in phase 0.
+2. For each detected tool, create one junction per skill folder in that tool's personal skills folder, using the paths confirmed in phase 0. Codex is the exception: it gets no skill junctions, because kit commands reach it through the launcher.
 3. Record every link it made in a manifest outside the checkout (for example `~/.agent-kit-state/installed.json`). Only ever remove links listed there. If a folder with the same name exists and isn't in the manifest, skip it with a warning, the way gstack protects your own skills.
 4. Add or refresh the kit's hooks in `~/.claude/settings.json`. Touch only its own entries and back the file up first.
 5. Add or refresh a marked pointer block in each tool's personal rules file so the shared `AGENTS.md` loads everywhere.
@@ -193,7 +175,7 @@ Prove it end-to-end on a small real project before touching the rest.
 
 1. Install at a release tag on this machine.
 2. On a branch in one small repo, delete the copied commands, tools, `COMPANIONS.md`, the shared half of `AGENTS.md`, and the kit hooks. Add the pointer section.
-3. Run `/next`, `/verify` and a small `/fix` or `/slice` in Claude Code. Run at least one command in Codex and one in Copilot.
+3. Run `/next`, `/verify` and a small `/fix` or `/slice` in Claude Code. Run at least one command in Codex (through the launcher) and one in Copilot (after `copilot login`). Along the way, check what phase 0 could not: a fresh Claude session lists the junctioned skills; with an old copy still in a repo, the personal skill runs in Claude and Copilot (the `kit-sync` stand-in depends on it); `disable-model-invocation` holds; arguments arrive.
 4. Release a trivial kit change, update, and confirm the repo sees it. Then roll back and confirm again.
 
 **Done when**
