@@ -91,7 +91,7 @@ else {
     $discover
 }
 
-Write-Host "Default branch: $($applied.DefaultBranch)  (pulled: $($applied.Pulled))"
+Write-Host "Default branch: $($applied.DefaultBranch) ($(if ($applied.Pulled) { 'pulled' } else { 'not pulled' }))"
 Write-Host "Pruned remote-tracking refs: $($applied.PrunedCount)"
 if ($applied.Deleted.Count) {
     Write-Host "Deleted:"
