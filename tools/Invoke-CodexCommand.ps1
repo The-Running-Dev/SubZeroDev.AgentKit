@@ -29,8 +29,8 @@
     `model_reasoning_effort`, `approval_policy`, and `sandbox_mode` straight to `codex` via
     `-m`, `-c model_reasoning_effort=<x>`, `-a`, and `-s`, mirroring codex/PROFILES.md's
     0.134+ per-file values below - no `$CODEX_HOME` file needs to exist. Keep
-    `$profileConfig` below in sync with codex/PROFILES.md by hand; nothing enforces that
-    automatically.
+    `$profileConfig` below in sync with codex/PROFILES.md by hand; Invoke-CodexCommand.Tests.ps1's
+    "profiles match codex/PROFILES.md" Describe block (W3, issue #299) enforces that automatically.
 
     This is exactly the kind of mechanical, repeated lookup AGENTS.md's own "What should
     stop being model work" table calls 🔴 Definitely avoidable - arithmetic over a table,
