@@ -125,6 +125,153 @@ Describe 'Measure-Session -TranscriptPath' {
     }
 }
 
+Describe 'Measure-Session message.id dedupe' {
+    <#
+      Regression for the defect this slice fixes: Claude Code writes one JSONL
+      record per content block of a single API response, and every one of
+      those records carries the same message.id and the same full
+      message.usage. Summing per line - the behaviour before this fix -
+      counts a single response's tokens once per content block. Measured on
+      a real transcript (921db8cb): 125 usage lines but 65 distinct message
+      ids, output 55,268 summed per line versus 25,030 summed per id.
+    #>
+
+    BeforeAll {
+        function New-TranscriptFile {
+            param([string]$Name, [string[]]$Lines)
+            $path = Join-Path $script:FixtureDir $Name
+            Set-Content -LiteralPath $path -Value $Lines -Encoding utf8NoBOM
+            return $path
+        }
+    }
+
+    BeforeEach {
+        $script:FixtureDir = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $script:FixtureDir -Force | Out-Null
+    }
+
+    It 'counts one call for two content blocks sharing a message.id, plus one for a distinct id' {
+        New-TranscriptFile -Name 'dedupe.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"id":"msg_1","role":"assistant","model":"claude-sonnet-5","stop_reason":"tool_use","content":[{"type":"thinking","thinking":""}],"usage":{"input_tokens":1,"cache_creation_input_tokens":2,"cache_read_input_tokens":3,"output_tokens":40}}}'
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:01Z","message":{"id":"msg_1","role":"assistant","model":"claude-sonnet-5","stop_reason":"tool_use","content":[{"type":"tool_use","name":"Bash"}],"usage":{"input_tokens":1,"cache_creation_input_tokens":2,"cache_read_input_tokens":3,"output_tokens":40}}}'
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:02Z","message":{"id":"msg_2","role":"assistant","model":"claude-sonnet-5","stop_reason":"end_turn","content":[{"type":"text","text":"done"}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":9}}}'
+        )
+
+        $json = (& $script:ScriptPath -TranscriptPath $script:FixtureDir) -join "`n" | ConvertFrom-Json
+
+        $json.sessions[0].total.calls | Should -Be 2
+        $json.sessions[0].total.output | Should -Be 49
+        $json.sessions[0].total.input | Should -Be 6
+    }
+
+    It 'dedupes the same way for a subagent transcript' {
+        New-TranscriptFile -Name 'parent.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"id":"p1","role":"assistant","model":"claude-sonnet-5","usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
+        )
+        $subagentDir = Join-Path $script:FixtureDir 'parent/subagents'
+        New-Item -ItemType Directory -Path $subagentDir -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $subagentDir 'agent-x.jsonl') -Encoding utf8NoBOM -Value @(
+            '{"parentUuid":null,"isSidechain":true,"agentId":"x","message":{"id":"sub_1","role":"assistant","model":"claude-sonnet-5","content":[{"type":"thinking","thinking":""}],"usage":{"input_tokens":100,"cache_creation_input_tokens":0,"cache_read_input_tokens":200,"output_tokens":50}}}'
+            '{"parentUuid":null,"isSidechain":true,"agentId":"x","message":{"id":"sub_1","role":"assistant","model":"claude-sonnet-5","content":[{"type":"tool_use","name":"Read"}],"usage":{"input_tokens":100,"cache_creation_input_tokens":0,"cache_read_input_tokens":200,"output_tokens":50}}}'
+        )
+
+        $json = (& $script:ScriptPath -TranscriptPath $script:FixtureDir) -join "`n" | ConvertFrom-Json
+        $session = $json.sessions | Where-Object id -eq 'parent'
+
+        $session.subagents.calls | Should -Be 1
+        $session.subagents.output | Should -Be 50
+    }
+
+    It 'dedupes the -Hook row''s calls column' {
+        $repoRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+        $toolsDir = Join-Path $repoRoot 'tools'
+        New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
+        $isolatedScript = Join-Path $toolsDir 'Measure-Session.ps1'
+        Copy-Item -LiteralPath $script:ScriptPath -Destination $isolatedScript
+        $log = Join-Path $repoRoot '.claude/session-costs.tsv'
+
+        $transcript = New-TranscriptFile -Name 'hook-dedupe.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"id":"h1","role":"assistant","model":"claude-sonnet-5","content":[{"type":"thinking","thinking":""}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:01Z","message":{"id":"h1","role":"assistant","model":"claude-sonnet-5","content":[{"type":"tool_use","name":"Bash"}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
+        )
+        $payload = (@{ transcript_path = $transcript } | ConvertTo-Json -Compress)
+
+        $payload | pwsh -NoProfile -File $isolatedScript -Hook
+
+        $rows = Get-Content $log
+        ($rows[1] -split "`t")[3] | Should -Be '1'
+    }
+}
+
+Describe 'Measure-Session new exact metrics' {
+    BeforeAll {
+        function New-TranscriptFile {
+            param([string]$Name, [string[]]$Lines)
+            $path = Join-Path $script:FixtureDir $Name
+            Set-Content -LiteralPath $path -Value $Lines -Encoding utf8NoBOM
+            return $path
+        }
+    }
+
+    BeforeEach {
+        $script:FixtureDir = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $script:FixtureDir -Force | Out-Null
+    }
+
+    It 'counts completionCalls/completionOutput from an end_turn record but not a tool_use record' {
+        New-TranscriptFile -Name 'completion.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"id":"c1","role":"assistant","model":"claude-sonnet-5","stop_reason":"tool_use","content":[{"type":"tool_use","name":"Bash"}],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":10}}}'
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:01Z","message":{"id":"c2","role":"assistant","model":"claude-sonnet-5","stop_reason":"end_turn","content":[{"type":"text","text":"hi"}],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":7}}}'
+        )
+
+        $json = (& $script:ScriptPath -TranscriptPath $script:FixtureDir) -join "`n" | ConvertFrom-Json
+
+        $json.sessions[0].total.calls | Should -Be 2
+        $json.sessions[0].total.completionCalls | Should -Be 1
+        $json.sessions[0].total.completionOutput | Should -Be 7
+    }
+
+    It 'sums textChars across text blocks and completionTextChars only from end_turn calls' {
+        New-TranscriptFile -Name 'text.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"id":"t1","role":"assistant","model":"claude-sonnet-5","stop_reason":"tool_use","content":[{"type":"text","text":"planning"}],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:01Z","message":{"id":"t2","role":"assistant","model":"claude-sonnet-5","stop_reason":"end_turn","content":[{"type":"text","text":"done!"}],"usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
+        )
+
+        $json = (& $script:ScriptPath -TranscriptPath $script:FixtureDir) -join "`n" | ConvertFrom-Json
+
+        $json.sessions[0].total.textChars | Should -Be 13
+        $json.sessions[0].total.completionTextChars | Should -Be 5
+    }
+
+    It 'sums toolResultChars for both string and array content, attributed to the active segment' {
+        New-TranscriptFile -Name 'toolresult.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"id":"r1","role":"assistant","model":"claude-sonnet-5","usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
+            '{"type":"user","timestamp":"2026-01-01T10:00:01Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"abc"}]}}'
+            '{"type":"user","timestamp":"2026-01-01T10:00:02Z","message":{"role":"user","content":"<command-name>foo</command-name>"}}'
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:03Z","message":{"id":"r2","role":"assistant","model":"claude-sonnet-5","usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
+            '{"type":"user","timestamp":"2026-01-01T10:00:04Z","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":[{"type":"text","text":"wxyz1"}]}]}}'
+        )
+
+        $json = (& $script:ScriptPath -TranscriptPath $script:FixtureDir -Detail) -join "`n" | ConvertFrom-Json
+        $segments = $json.sessions[0].segments
+
+        ($segments | Where-Object label -eq '(no command)').toolResultChars | Should -Be 3
+        ($segments | Where-Object label -eq 'foo').toolResultChars | Should -Be 5
+        $json.sessions[0].total.toolResultChars | Should -Be 8
+    }
+
+    It 'reports peakContext as the max single-call context, not a sum' {
+        New-TranscriptFile -Name 'peak.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"id":"pk1","role":"assistant","model":"claude-sonnet-5","usage":{"input_tokens":10,"cache_creation_input_tokens":10,"cache_read_input_tokens":10,"output_tokens":1}}}'
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:01Z","message":{"id":"pk2","role":"assistant","model":"claude-sonnet-5","usage":{"input_tokens":100,"cache_creation_input_tokens":50,"cache_read_input_tokens":50,"output_tokens":1}}}'
+        )
+
+        $json = (& $script:ScriptPath -TranscriptPath $script:FixtureDir) -join "`n" | ConvertFrom-Json
+
+        $json.sessions[0].total.peakContext | Should -Be 200
+    }
+}
+
 Describe 'Measure-Session vendor guards' {
     <#
       The negative half of the contract. Every case here is a shape that used
