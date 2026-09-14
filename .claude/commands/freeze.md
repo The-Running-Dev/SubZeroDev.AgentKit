@@ -48,4 +48,4 @@ Stage `design/FROZEN.md` by name — never a broad add. Commit and push per `AGE
 
 ## Report
 
-State the file was written, quote `Frozen because` and `Lifts when` back, and name the five commands that now refuse (`/design`, `/contract`, `/slices`, `/reconcile`, `/track`).
+State the file was written, quote `Frozen because` and `Lifts when` back, and name the commands that now refuse per `AGENTS.md` § *The design freeze*.
