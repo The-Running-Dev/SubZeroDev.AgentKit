@@ -157,3 +157,28 @@ Read before touching anything.
             Should -Match 'Verbatim carry-through content.'
     }
 }
+
+Describe 'New-ReducedPrompt against this repository''s own slice.md and AGENTS.md' {
+    <#
+      Deliberately the opposite of the fixture tests above. A slice's completion
+      report is governed by AGENTS.md's *Output discipline*, and the reduced prompt
+      only carries a section when slice.md cites it. Nothing special-cases that
+      section in the script, so the only thing keeping it in a reduced prompt is
+      the citation - which is exactly what an edit to either real file could drop.
+    #>
+    BeforeEach {
+        $script:Root = Join-Path $TestDrive ([guid]::NewGuid())
+        New-Item -ItemType Directory -Path $script:Root -Force | Out-Null
+        New-Fixture -Root $script:Root
+        $repoRoot = Split-Path $PSScriptRoot -Parent
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'AGENTS.md') -Destination (Join-Path $script:Root 'AGENTS.md') -Force
+        Copy-Item -LiteralPath (Join-Path $repoRoot '.claude/commands/slice.md') -Destination (Join-Path $script:Root '.claude/commands/slice.md') -Force
+    }
+
+    It 'carries the Output discipline section, bounded at the next heading' {
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root
+
+        $result | Should -Match '(?m)^## Output discipline$'
+        $result | Should -Not -Match '(?m)^## Working with me$'
+    }
+}

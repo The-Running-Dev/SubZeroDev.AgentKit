@@ -247,8 +247,8 @@ Only after sign-off.
    reconciled and how, which forks were decided and what was rejected, and what is left for the user. Not a
    placeholder deferring to `/pr`, and not a summary of one; `/pr` does not run here.
 
-Report what was created, what was reconciled and how, and what remains for the user to decide. Name the branch
-and link the pull request.
+Name the branch and link the pull request — its body already carries what was created and reconciled, so the
+chat report adds only what remains for the user to decide (`AGENTS.md`, *Output discipline*).
 
 ---
 

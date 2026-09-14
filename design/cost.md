@@ -194,3 +194,53 @@ which is what `design/10-design.md` § *Orient* claims makes it cheaper.
 
 Covers Claude Code only — Codex writes a different transcript schema this has no reader for, and
 Copilot records no token usage at all, so neither is measured here.
+
+## Correction: every figure above counts one response two or three times
+
+Claude Code writes one transcript record per content block of a response — thinking, text, and
+each tool call — and every one of them repeats the response's `message.id` and full `usage`.
+`tools/Measure-Session.ps1` summed per record until [#297](../../issues/297), so the call counts
+and token totals in both session readings above, and in `reports/weekly/2026-08-30.md`, are
+inflated. Across 596 transcripts in four repositories, last written 2026-08-24 to 2026-09-14,
+there were 32,924 distinct responses and 29,774 duplicate usage records. The readings are left as
+they were taken; re-run the script against the same session ids for corrected ones.
+
+## Output
+
+What a session writes stays in its context, so it is paid for again on every later call. This is
+why `AGENTS.md`, *Output discipline* exists. The script reports only what a transcript states
+exactly, per session, command segment, and subagent total:
+
+- **Output tokens per response**, counted once per `message.id`.
+- **Completion responses**: the calls that end a turn (`stop_reason` `end_turn`), their output tokens, and the characters of visible text they carry.
+- **Visible text characters** across all responses, and **tool-result characters** entering context.
+- **Peak context**: the largest `input + cacheCreate + cacheRead` of any one call.
+
+**What cannot be measured exactly, and is not reported.** `usage.output_tokens` covers a whole
+response, so no split between thinking, visible text, and tool-call input exists to read.
+Characters are characters, not tokens. No metric here calls any output waste.
+
+**Measured, same four repositories and window, one count per response:**
+
+| | |
+|---|---:|
+| Output tokens, all responses | 19,558,957 |
+| Output tokens in the 1,615 completion responses | 1,116,408 (5.7%) |
+| Visible text, all responses | 3,908,160 chars |
+| Tool results entering context | 73,427,582 chars — 18.8× the visible text |
+| of which `Read` | 39,796,391 chars (54.2%) |
+| of which shell commands | 29,689,936 chars (40.4%) |
+
+**What this settles and what it does not.** Completion prose is a small share of output, and tool
+results are the larger input to later context by an order of magnitude in characters. That is why
+*Output discipline* covers tool output as well as the report, and why no generic truncation
+framework exists: most tool characters are full reads that *Safe start* requires. The effect of the
+rule itself is **not yet measured**. It only reaches sessions started after it lands.
+
+**The benchmark.** Run one workflow against one fixed repository state, once from a checkout
+without the rule and once with it, each in a fresh session on the same model. `/kit-help` is the
+reference workflow: it reads and reports without writing, so both sides do the same work. Then
+compare `./tools/Measure-Session.ps1 -SessionId <id> -Detail` for the two sessions on
+`completionOutput`, `completionTextChars`, `output`, `toolResultChars`, and `peakContext`. One pair
+is one observation. Report the number of pairs next to the result, and name Codex and Copilot as
+unmeasured.

@@ -218,6 +218,26 @@ A command that refuses reports `Frozen because` and `Lifts when` **verbatim** ra
 - **A regression test is verified by reverting the fix** and confirming it fails. A test that passes with and without the fix guards nothing.
 - **A schema or validator change is not done until it has rejected something.** Positive and negative cases both, with the counts stated. A validator that has never failed is not known to constrain anything.
 
+## Output discipline
+
+**Reason deeply where needed, work completely, report minimally, and keep evidence in artifacts rather than the conversation.** Thinking budget and reporting budget are separate: the tier sets how hard a session reasons (*Model, effort, and review budget*), and nothing here lowers it. What a session writes into the conversation — its own prose and every tool result it pulls in — is re-read on every later call of that session, so it is paid for again on each turn rather than once. `design/cost.md` § *Output* has the measurements.
+
+**A routine completion report carries only what the reader needs to act:**
+
+```
+Changed: <what, in a line or two>
+Tests: <what actually ran, and its result>
+Risk/Blocker: <only when material>
+```
+
+A command adds the fields its own procedure requires, and nothing more by default: no narration of steps taken, no restating the task, no investigation chronology, no list of files read, no explanation of an obvious edit, no summary of a summary, no architecture commentary nobody asked for. **Anything already durable — a pull request, an issue, a design document, a decision record, `.claude/verify-report.json`, a log file — is named or linked in one line, never reproduced.**
+
+**Brevity never removes evidence.** Wherever another rule requires it, this is stated in full however long it runs: a failed or skipped gate and the did-not-run list (*Verification*); criterion results by id; text a rule requires verbatim; a stop condition; a fork or question only the user can decide (*Working with me*); a session-boundary banner (*Session boundaries*). A five-line report that omits a failed gate is wrong; a fifty-line one that states it is not.
+
+**Tool output is context too.** Ask the narrowest question that answers the need — a filtered `--json`/`--jq`, `git status --short`, a bounded read for a lookup. Where a command's full output is evidence rather than reading material — a whole test run, an installer's log — keep it in a file and bring back the result: the counts, every failure with its diagnostic text, and the file's path. Never trim a failure's diagnostics away, and never report a result for a command that did not run. None of this narrows the full reads *Safe start* requires of a source about to be changed.
+
+**A subagent is justified only by independence or by containment** — work that genuinely runs in parallel, or a sweep whose material this session needs only the conclusion of. Not for sequential work, and not for anything a script can do (*What should stop being model work*). Its tier follows the work it is handed, by the table above, not the parent's. Each one re-derives its own context from nothing, so fan out only as wide as the independent pieces actually are; no numeric cap is set here, because none has been measured. **It returns facts, verdicts, and paths** — the conclusion its parent acts on, not an account of what it did.
+
 ## Working with me
 
 - Present findings and review items **one at a time for sign-off**. Never bulk-apply findings unreviewed.
