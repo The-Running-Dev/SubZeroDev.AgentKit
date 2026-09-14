@@ -16,7 +16,7 @@ failure vocabularies — **is declared in the scripts themselves and is not rest
 then states what a declaration cannot: when a field is meaningful, what may never be
 normalised, which parameter must not acquire a default and what that would defeat.
 
-`.claude/commands/` is Markdown loaded into a model. It has no separate declaration to
+`skills/*/SKILL.md` is Markdown loaded into a model. It has no separate declaration to
 point at, so its surface is stated here in full — invocation, what it reads and writes,
 what it must output, what it must not do — which is what gives `/reconcile` something to
 compare a command file against.
@@ -38,7 +38,7 @@ survives that pointer is everything in this document a grammar cannot state.
 | The drift result | `tools/Test-DesignDrift.ps1`, `New-DriftResult` | `Findings` and `Failures` are **not interchangeable**: a finding is "the two sides disagree", a failure is "this comparison did not happen". A non-empty `Failures` forces the whole run to *could not evaluate* however many findings it also collected (I12) |
 
 `ThreadClass` is **not declared here.** Its five values and their meanings are owned by
-`.claude/commands/resolve.md`, which is the canonical copy; declaring them a second time
+`skills/resolve/SKILL.md`, which is the canonical copy; declaring them a second time
 is the divergence *Single ownership* forbids. Where this contract needs to refer to one it
 names the class in prose.
 
@@ -356,7 +356,7 @@ exists to forbid, one level up.
   id and a fixed keyword and nothing else. Requiring a `source=` attribute would make every
   existing issue block non-conforming on the day the rule generalises.
 - **`companion` is the only declared region today**, and its migration to the declared form has
-  landed: every core under `.claude/commands/` carries the declared marker, and
+  landed: every core under `skills/` carries the declared marker, and
   `tools/Test-Companion.ps1` matches that form and no other — a core carrying the bare form is
   nonconforming there. `.claude/COMPANIONS.md` states the rule without naming the literal marker
   and needed no edit for the form itself. That the set was closed is why it could move in one
@@ -452,7 +452,7 @@ cannot state:
   finding.** Treating any of the three as an override of nothing is the bug
   `.claude/COMPANIONS.md`'s *Absence* rule exists to prevent.
 - Exit codes: 0 `Valid`, 1 `Invalid`, 2 `NotEvaluated` — a target with no
-  `.claude/commands/` or no `.claude/COMPANIONS.md` is could-not-evaluate, never a pass.
+  `skills/` (the companion location) or no `.claude/COMPANIONS.md` is could-not-evaluate, never a pass.
 - **`-TargetRepo` defaults to the current directory.** `-Quiet` suppresses the printed
   report only; the result object and exit code are unchanged either way.
 
@@ -783,7 +783,7 @@ slice's full body out of `design/30-slices.md` § *Outstanding*, into a row unde
   binds the modules `design/10-design.md` § *Module boundaries* names, and this script is not one
   of them.
 
-### `.claude/commands/fix.md`
+### `skills/fix/SKILL.md`
 
 | | |
 |---|---|
@@ -816,7 +816,7 @@ uses.
 `/fix` **never writes a record** (I6, unchanged and now wider in consequence): `design/state/`
 is inside `design/`.
 
-### `.claude/commands/resolve.md` — amended, not replaced
+### `skills/resolve/SKILL.md` — amended, not replaced
 
 The existing contract stands. Three changes:
 
@@ -875,7 +875,7 @@ Stated once here rather than enumerated per command, because the obligation is t
 | `AGENTS.md` | The marked-region rule — both kinds — generalised from the agent-fence rule it states today; the freeze rule; the review-thread delegation; I9 | State the rule twice, or leave the agent-fence wording behind as a second copy. **Exactly one document states it**, and `.claude/COMPANIONS.md` names `companion` as declared without restating what declared means |
 | `design/20-contract.md` | The closed divergence-class list and each class's blocking status (below) | Decide blocking-ness per finding at the call site, or carry a class the checker does not declare |
 | `.claude/COMPANIONS.md` | The companion mechanism, and that `companion` is a **declared** region | Acquire a projection, or restate the marker form this document fixes |
-| `.claude/commands/resolve.md` | `ThreadClass` and its five values | — |
+| `skills/resolve/SKILL.md` | `ThreadClass` and its five values | — |
 | `.github/ISSUE_TEMPLATE/bug.md` | `/fix`'s stop conditions | — |
 
 **Artifacts of a unit kind**, for the `UnrecordedArtifact` set difference. A glob with a named
@@ -893,19 +893,21 @@ today, and the glob is a rule a reader can check rather than one they have to kn
 
 | Kind | Glob | Excluded |
 |---|---|---|
-| command | `.claude/commands/*.md` | `*-local.md` |
+| command | `skills/*/SKILL.md` | — |
 | script | `tools/*.ps1` | `*.Tests.ps1` |
 | document | `design/*.md`, `templates/design/*.md`, `*.md`, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md`, `CLAUDE.md` |
 | invariant | not a tree path | — |
 | component | none in this repository | — |
 
 **Both cells carry patterns and nothing else, because `GlobDisagreement` reads them.** A pattern
-is repository-relative and wildcards only the final segment, so `*.md` is the repository root and
-needs no phrase saying so; an exclusion is either a repository-relative path or a bare filename
-pattern matched against the basename. Every reason a cell used to carry is below, where prose
-cannot cost a check its input:
+is repository-relative and wildcards exactly one segment — the final one in most rows, so `*.md`
+is the repository root and needs no phrase saying so, but `skills/*/SKILL.md` wildcards the
+directory segment instead and keeps a literal leaf, because the kit names the file `SKILL.md` in
+every skill and varies the directory by command name. An exclusion is either a repository-relative
+path or a bare filename pattern matched against the basename. Every reason a cell used to carry is
+below, where prose cannot cost a check its input:
 
-- **`*-local.md`** — a companion is the target's, and this repository ships none.
+- **The `command` row carries no exclusion.** A companion lives at `skills/<name>/SKILL-local.md` — inside the `skills/` tree, but its filename never matches the literal `SKILL.md` leaf the glob requires, so the glob needs nothing to keep it out.
 - **`*.Tests.ps1`** — a test is `Evidence`, not a unit.
 - **`design/FROZEN.md`** — transient by design.
 - **`CLAUDE.md`** — a loader that imports `AGENTS.md` and states nothing of its own.
@@ -1357,7 +1359,7 @@ has was written by hand at S11, during a migration that runs once and never in a
 nothing about the steady state can be read off it.
 
 The candidates each imply a different command's surface. `/track` already reads `## Open` and
-already distinguishes a question from a task (`.claude/commands/track.md`), which makes it the
+already distinguishes a question from a task (`skills/track/SKILL.md`), which makes it the
 obvious writer — and it is also the one command `AGENTS.md` says owns every GitHub write it can
 make idempotent, so giving it a `design/state/` write crosses a boundary that was drawn
 deliberately. The session that *notices* the question is the other candidate, on the same

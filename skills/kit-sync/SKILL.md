@@ -6,7 +6,7 @@ disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `.claude/commands/kit-sync-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/kit-sync/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `extra-steps`, `tightened-authorization`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
@@ -70,7 +70,7 @@ Everything `INSTALL.md` phase 3 already requires, plus:
 
 - Force-push, reset, or discard uncommitted work in `~/.agent-kit`. It is shared across every repository that runs this command.
 - Hardcode a source URL as a fallback. Absent `kit.json` means asking, once.
-- Write, rewrite, or delete this repository's `.claude/commands/*-local.md`. They are the reason a routine sync can take every core outright; a sync that edited them would be reconciling the very thing the split moved out of its way.
+- Write, rewrite, or delete this repository's `skills/*/SKILL-local.md`. They are the reason a routine sync can take every core outright; a sync that edited them would be reconciling the very thing the split moved out of its way.
 - Commit to, or push to, *this* repository's default branch. Delivery is `INSTALL.md` phase 4 step 8's feature branch and pull request, unchanged by syncing from a branch — this command adds nothing to it and does not restate it.
 
 ## Re-run

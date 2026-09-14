@@ -1,7 +1,7 @@
 # unit/command/freeze
 Kind: command
 Status: active
-Anchor: .claude/commands/freeze.md
+Anchor: skills/freeze/SKILL.md
 Consumes:
 Exposes:
 Binds:

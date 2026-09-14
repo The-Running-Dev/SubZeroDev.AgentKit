@@ -432,11 +432,10 @@ function Get-DocumentGlobFiles {
 function Get-CommandGlobFiles {
     param([Parameter(Mandatory)][string] $RepoPath)
 
-    $dir = Join-Path $RepoPath '.claude/commands'
+    $dir = Join-Path $RepoPath 'skills'
     if (-not (Test-Path -LiteralPath $dir)) { return ,@() }
     ,@(
-        Get-ChildItem -LiteralPath $dir -Filter '*.md' -File |
-            Where-Object { $_.Name -notlike '*-local.md' } |
+        Get-ChildItem -LiteralPath $dir -Filter 'SKILL.md' -File -Recurse -Depth 1 |
             ForEach-Object { ([IO.Path]::GetRelativePath($RepoPath, $_.FullName)) -replace '\\', '/' } |
             Sort-Object
     )
@@ -504,9 +503,11 @@ function Get-ContractGlobPatterns {
 
 <#
     Expands one parsed pattern against the checkout. A pattern is repository-relative and
-    wildcards only its final segment, so the directory half is literal and the file half is a
-    -Filter. This is deliberately not a general glob engine: the table's own rule is the whole
-    grammar, and anything outside it should fail to resolve rather than be guessed at.
+    wildcards exactly one segment: either the final one, where the directory half is literal and
+    the file half is a -Filter, or the directory's own last segment, where the leaf is literal and
+    every immediate subdirectory of the parent is searched for it (`skills/*/SKILL.md`). This is
+    deliberately not a general glob engine: the table's own rule is the whole grammar, and
+    anything outside it should fail to resolve rather than be guessed at.
 #>
 function Expand-ContractGlobPattern {
     param(
@@ -517,6 +518,21 @@ function Expand-ContractGlobPattern {
     $normalised = $Pattern -replace '\\', '/'
     $dir = [IO.Path]::GetDirectoryName($normalised) -replace '\\', '/'
     $leaf = [IO.Path]::GetFileName($normalised)
+
+    if ($leaf -notmatch '[*?]' -and $dir -match '[*?]') {
+        $dirLeaf = [IO.Path]::GetFileName($dir)
+        $dirParent = [IO.Path]::GetDirectoryName($dir) -replace '\\', '/'
+        if ($dirLeaf -notmatch '[*?]') { return ,@() }
+        $parentRoot = if ([string]::IsNullOrEmpty($dirParent)) { $RepoPath } else { Join-Path $RepoPath $dirParent }
+        if (-not (Test-Path -LiteralPath $parentRoot)) { return ,@() }
+        return ,@(
+            Get-ChildItem -LiteralPath $parentRoot -Filter $dirLeaf -Directory -ErrorAction SilentlyContinue |
+                ForEach-Object { Join-Path $_.FullName $leaf } |
+                Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+                ForEach-Object { ([IO.Path]::GetRelativePath($RepoPath, $_)) -replace '\\', '/' }
+        )
+    }
+
     $searchRoot = if ([string]::IsNullOrEmpty($dir)) { $RepoPath } else { Join-Path $RepoPath $dir }
     if (-not (Test-Path -LiteralPath $searchRoot)) { return ,@() }
 

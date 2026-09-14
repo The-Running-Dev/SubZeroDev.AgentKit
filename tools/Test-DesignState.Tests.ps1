@@ -453,9 +453,9 @@ Describe 'Test-DesignState: DecisionAnchorAmbiguous and LogEntryUnrecorded' {
 Describe 'Test-DesignState: UnrecordedArtifact' {
 
     It 'fires for a command-glob file with no active unit record naming it as Anchor' -Tag 'Fires','UnrecordedArtifact' {
-        New-TreeFile -RelativePath '.claude/commands/lonely.md' -Content 'x'
+        New-TreeFile -RelativePath 'skills/lonely/SKILL.md' -Content 'x'
         $findings = Test-UnrecordedArtifact -Records @() -RepoPath $TestDrive
-        (@($findings | Where-Object { $_.Subject -eq '.claude/commands/lonely.md' })).Count | Should -Be 1
+        (@($findings | Where-Object { $_.Subject -eq 'skills/lonely/SKILL.md' })).Count | Should -Be 1
     }
 
     It 'excludes a *-local.md companion file from the command glob' -Tag 'NearMiss','UnrecordedArtifact' {
@@ -465,14 +465,14 @@ Describe 'Test-DesignState: UnrecordedArtifact' {
     }
 
     It 'does not fire when an active unit record names the artifact as its Anchor' -Tag 'NearMiss','UnrecordedArtifact' {
-        New-TreeFile -RelativePath '.claude/commands/known.md' -Content 'x'
-        $unit = New-Record -Id 'unit/command/known' -Scalars @{ Status = 'active'; Kind = 'command'; Anchor = '.claude/commands/known.md' }
+        New-TreeFile -RelativePath 'skills/known/SKILL.md' -Content 'x'
+        $unit = New-Record -Id 'unit/command/known' -Scalars @{ Status = 'active'; Kind = 'command'; Anchor = 'skills/known/SKILL.md' }
         $findings = Test-UnrecordedArtifact -Records @($unit) -RepoPath $TestDrive
-        (@($findings | Where-Object { $_.Subject -eq '.claude/commands/known.md' })).Count | Should -Be 0
+        (@($findings | Where-Object { $_.Subject -eq 'skills/known/SKILL.md' })).Count | Should -Be 0
     }
 
     It 'reverse direction: fires when an active unit record''s Anchor is not matched by its kind''s glob' -Tag 'Fires','UnrecordedArtifact' {
-        $unit = New-Record -Id 'unit/command/ghost' -Scalars @{ Status = 'active'; Kind = 'command'; Anchor = '.claude/commands/does-not-exist.md' }
+        $unit = New-Record -Id 'unit/command/ghost' -Scalars @{ Status = 'active'; Kind = 'command'; Anchor = 'skills/does-not-exist/SKILL.md' }
         $findings = Test-UnrecordedArtifact -Records @($unit) -RepoPath $TestDrive
         (@($findings | Where-Object { $_.Subject -eq 'unit/command/ghost' })).Count | Should -Be 1
     }
@@ -1343,7 +1343,7 @@ Describe 'Test-DesignState: GlobDisagreement (#74)' {
         # every case below varies only the contract table against a tree that does not move.
         $script:GlobRoot = Join-Path $TestDrive 'globfixture'
         foreach ($rel in @(
-            '.claude/commands/alpha.md', '.claude/commands/beta-local.md',
+            'skills/alpha/SKILL.md',
             'tools/Thing.ps1', 'tools/Thing.Tests.ps1',
             'design/10-design.md', 'design/FROZEN.md',
             'templates/design/00-brief.md', 'templates/design/CLAUDE.md',
@@ -1359,7 +1359,7 @@ Describe 'Test-DesignState: GlobDisagreement (#74)' {
         $script:GlobTable = @'
 | Kind | Glob | Excluded |
 |---|---|---|
-| command | `.claude/commands/*.md` | `*-local.md` |
+| command | `skills/*/SKILL.md` | — |
 | script | `tools/*.ps1` | `*.Tests.ps1` |
 | document | `design/*.md`, `templates/design/*.md`, `*.md`, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md`, `CLAUDE.md` |
 | invariant | not a tree path | — |
@@ -1384,13 +1384,13 @@ trailing prose
     }
 
     It 'fires when the contract drops an exclusion the checker still applies' -Tag 'Fires','GlobDisagreement' {
-        $table = $script:GlobTable -replace '\| `\*-local\.md` \|', '| — |'
-        $path = New-GlobContract -Name 'no-local-exclusion' -Table $table
+        $table = $script:GlobTable -replace '\| `\*\.Tests\.ps1` \|', '| — |'
+        $path = New-GlobContract -Name 'no-tests-exclusion' -Table $table
         $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path
         $result.Findings.Class | Should -Contain 'GlobDisagreement'
-        $finding = @($result.Findings | Where-Object { $_.Subject -eq 'command' })[0]
+        $finding = @($result.Findings | Where-Object { $_.Subject -eq 'script' })[0]
         $finding.Detail | Should -Match 'the contract''s patterns reach'
-        $finding.Detail | Should -Match 'beta-local\.md'
+        $finding.Detail | Should -Match 'Thing\.Tests\.ps1'
         $finding.Blocking | Should -BeTrue
     }
 

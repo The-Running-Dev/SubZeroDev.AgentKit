@@ -6,7 +6,7 @@ disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `.claude/commands/install-all-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/install-all/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `extra-steps`, `tightened-authorization`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
@@ -77,7 +77,7 @@ This is the mechanical backstop for everything above — the phase-2 rules say w
 - No deletion without approval, including proposed `agent.md` prunes — leave those unpruned and listed, not silently applied.
 - No write to a target's `settings.json`, `settings.local.json`, or `launch.json` beyond the (skipped, per phase 2) `SessionEnd` and `UserPromptSubmit` hooks.
 - **No target left with a write outside `tools/Test-WriteSurface.ps1`'s allowed-prefix list.** Phase 2's guard step is what makes this checkable rather than aspirational.
-- **No `.claude/commands/*-local.md` written, rewritten, or deleted, in any target.** A companion is the repository's own policy for a command; an unattended pass that authors one has decided something nobody asked it to decide.
+- **No `skills/*/SKILL-local.md` written, rewritten, or deleted, in any target.** A companion is the repository's own policy for a command; an unattended pass that authors one has decided something nobody asked it to decide.
 
 ## Phase 4 — One consolidated report, then stop
 

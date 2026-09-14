@@ -35,9 +35,9 @@ Describe 'the record-writing sequence citation resolves to a real AGENTS.md head
 
     It '/reconcile, /contract and /design each cite AGENTS.md, not design/10-design.md, for the sequence' {
         $commandPaths = @(
-            '.claude/commands/reconcile.md',
-            '.claude/commands/contract.md',
-            '.claude/commands/design.md'
+            'skills/reconcile/SKILL.md',
+            'skills/contract/SKILL.md',
+            'skills/design/SKILL.md'
         ) | ForEach-Object { Join-Path $script:RepoRoot $_ }
 
         foreach ($path in $commandPaths) {

@@ -60,10 +60,16 @@
     /unfreeze is the one command this script does not run as a single `codex` invocation.
     Its own procedure needs a deep-reasoning reconcile phase and an implementation-tier track
     phase, and Codex profiles cannot switch mid-session - so this script is the case
-    .claude/commands/unfreeze.md's *Split across sessions* names, and chains two separate
+    skills/unfreeze/SKILL.md's *Split across sessions* names, and chains two separate
     `codex` processes ('author' then 'builder') instead of picking one profile for the whole
     run (issue #253). The human still runs `./tools/Invoke-CodexCommand.ps1 unfreeze` once;
     nothing prompts them between the two processes.
+
+    Under home-install, the launched codex processes do not necessarily share this script's
+    own working directory with the kit checkout, so the two prompts below cannot just tell
+    the session to go open a kit file by path - Get-SkillContent reads
+    skills/unfreeze/SKILL.md from the install root (Get-AgentKitInstallRoot) itself, and its
+    text is inlined into the prompt instead.
 
 .PARAMETER Command
     The command name, with or without a leading slash (e.g. 'kit-help' or '/kit-help').
@@ -166,6 +172,35 @@ $profileTiers = [ordered]@{
     'quick'     = 'Implementation'
 }
 
+function Get-AgentKitInstallRoot {
+    <#
+        Resolves the kit install root per AGENTS.md's home-install convention: $env:AGENTKIT_HOME,
+        falling back to $HOME/.agent-kit. This repo checkout is the install root only when it is
+        run in place from a home install; a session launched elsewhere has skills/ at this path
+        instead of relative to $PSScriptRoot.
+    #>
+    if ($env:AGENTKIT_HOME) { return $env:AGENTKIT_HOME }
+    return (Join-Path $HOME '.agent-kit')
+}
+
+function Get-SkillContent {
+    <#
+        Reads one skill's full SKILL.md text from the install root, for inlining into a prompt
+        this script hands to a launched codex process. A citation by path only works when the
+        launched process can open that path itself - true today because this repo is the install
+        root, not guaranteed once the kit is actually installed elsewhere and the sandboxed
+        session's workspace is scoped to a different project.
+    #>
+    param([Parameter(Mandatory)][string] $Name)
+
+    $root = Get-AgentKitInstallRoot
+    $path = Join-Path $root "skills/$Name/SKILL.md"
+    if (-not (Test-Path -LiteralPath $path)) {
+        throw "Skill file not found at '$path' (install root '$root'). Set `$env:AGENTKIT_HOME or install the kit to `$HOME/.agent-kit."
+    }
+    return Get-Content -LiteralPath $path -Raw
+}
+
 function Get-ProjectDocByteBudget {
     <#
     Mirrors codex-rs/core/src/agents_md.rs's discovery and accounting (verified against
@@ -239,7 +274,7 @@ $normalized = $Command.TrimStart('/')
 # launch, from the launch directory, and applied to every codex process this script starts.
 $projectDocBudget = Get-ProjectDocByteBudget
 
-# /unfreeze's own procedure (.claude/commands/unfreeze.md, Phase 2 and Phase 3) requires its
+# /unfreeze's own procedure (skills/unfreeze/SKILL.md, Phase 2 and Phase 3) requires its
 # reconcile phase at deep-reasoning tier and its track phase at implementation tier, "in this
 # same session." Codex profiles cannot switch mid-session (codex/PROFILES.md), so one `codex`
 # invocation can never satisfy both halves - issue #253. This chains two separate `codex`
@@ -248,14 +283,25 @@ $projectDocBudget = Get-ProjectDocByteBudget
 # session, and each is stamped with its own tier exactly as a standalone /reconcile or /track
 # invocation would be.
 if ($normalized -eq 'unfreeze') {
+    $unfreezeSkill = Get-SkillContent -Name 'unfreeze'
+
     $reconcilePrompt = @'
-Run /unfreeze per .claude/commands/unfreeze.md, this is session 1 of its Split across sessions:
-Refuse if not frozen, Phase 1, Phase 2, and Commit. Stop there - a second, separately-launched
-process runs session 2.
+This is session 1 of /unfreeze's Split across sessions. Its full procedure follows.
+
+'@ + $unfreezeSkill + @'
+
+
+Run it as session 1: refuse if not frozen, Phase 1, Phase 2, and Commit. Stop there - a
+second, separately-launched process runs session 2.
 '@
     $trackPrompt = @'
-Run /unfreeze per .claude/commands/unfreeze.md, this is session 2 of its Split across sessions:
-read session 1's commit, then run Phase 3 and Report exactly as written there.
+This is session 2 of /unfreeze's Split across sessions. Its full procedure follows.
+
+'@ + $unfreezeSkill + @'
+
+
+Run it as session 2: read session 1's commit, then run Phase 3 and Report exactly as
+written there.
 '@
 
     $reconcileConfig = $profileConfig['author']

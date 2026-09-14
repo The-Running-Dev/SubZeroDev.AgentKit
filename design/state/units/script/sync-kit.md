@@ -11,5 +11,5 @@ Work:
 Evidence: tools/Sync-Kit.Tests.ps1
 
 ## Owns
-Syncs the kit-owned files (`.claude/commands/*.md`, `tools/*.ps1`) into a target repository by
+Syncs the kit-owned files (`skills/<name>/SKILL.md`, `tools/*.ps1`) into a target repository by
 diffing against the sha the target was installed from, without reading any of them.

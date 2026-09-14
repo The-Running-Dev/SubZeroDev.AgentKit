@@ -9,8 +9,8 @@ AGENTS.md                     binding contract, read by Codex
 CLAUDE.md                     pointer to AGENTS.md, read by Claude Code
 agent.md                      lessons learned the hard way
 INSTALL.md                    how the kit installs into a repo
-.claude/commands/*.md         slash commands. Cores — the kit owns these outright
-.claude/commands/*-local.md   optional per-repo companions. The target owns these
+skills/<name>/SKILL.md        slash commands. Cores — the kit owns these outright
+skills/<name>/SKILL-local.md  optional per-repo companions. The target owns these
 .claude/COMPANIONS.md         what a companion may and may not override
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
 tools/Measure-Session.ps1     what a session actually cost, from the transcript
@@ -32,7 +32,7 @@ Work in this repo and say **"run this against `<path>`"**, or `/install <path>`.
 
 Installing is a **reconciliation, not a copy**. A repository that already has agent instructions has them for a reason, usually a better-informed one than this kit's defaults. The installer classifies every artifact as absent, identical, divergent, or occupied; proposes a resolution for each; and stops for sign-off before writing. Re-running it upgrades, with the target winning wherever it has since been edited.
 
-**Command files are outside that, on purpose.** Each one ships as a **core** the consuming repository never edits, optionally paired with a **companion** at `.claude/commands/<name>-local.md` that the repository owns entirely. The core names which categories its companion may override — vocabulary, document map, extra steps, gate commands, a tightened authorization — and [`.claude/COMPANIONS.md`](.claude/COMPANIONS.md) holds the vocabulary and the never-list. A core installs outright, with no reconciliation pass at all; a companion is never read, written, or deleted by any automated path. `tools/Test-Companion.ps1` checks the split holds.
+**Command files are outside that, on purpose.** Each one ships as a **core** the consuming repository never edits, optionally paired with a **companion** at `skills/<name>/SKILL-local.md` that the repository owns entirely. The core names which categories its companion may override — vocabulary, document map, extra steps, gate commands, a tightened authorization — and [`.claude/COMPANIONS.md`](.claude/COMPANIONS.md) holds the vocabulary and the never-list. A core installs outright, with no reconciliation pass at all; a companion is never read, written, or deleted by any automated path. `tools/Test-Companion.ps1` checks the split holds.
 
 `/install-all` runs the same reconciliation unattended, across every `SubZeroDev.*` sibling repository in one pass. It applies only the resolutions `INSTALL.md` already states as deterministic; anything that would otherwise stop for sign-off is skipped per repository and reported as needing a decision, not guessed.
 
@@ -40,7 +40,7 @@ Once a repository has the kit installed, `/kit-sync` keeps it current without an
 
 Design docs install at `design/` in the repository root, deliberately — `docs/` is usually occupied by a documentation site, and a design directory inside its build context gets baked into the published image. `INSTALL.md` still checks the path before creating anything.
 
-To do it by hand instead: copy `AGENTS.md`, `CLAUDE.md`, `agent.md`, `.claude/`, and `design/` into the repo root. Profiles go in `~/.codex/`, not the repo.
+To do it by hand instead: copy `AGENTS.md`, `CLAUDE.md`, `agent.md`, `.claude/`, `skills/`, and `design/` into the repo root. Profiles go in `~/.codex/`, not the repo.
 
 ## Three files, three jobs
 
@@ -78,7 +78,7 @@ Effort tracks irreversibility, not stage prestige. Schemas and public interfaces
 
 ## Start to finish
 
-**Run [`/kit-help`](.claude/commands/kit-help.md).** It works out where the repository actually is — which design docs exist, which branch you are on, what the tracker says — and tells you the current step, the next one, and whether it needs a fresh session. `/kit-help all` shows the whole flow.
+**Run [`/kit-help`](skills/kit-help/SKILL.md).** It works out where the repository actually is — which design docs exist, which branch you are on, what the tracker says — and tells you the current step, the next one, and whether it needs a fresh session. `/kit-help all` shows the whole flow.
 
 That command holds the walkthrough, rather than this file, because commands install into target repositories and this README does not. The shape it walks:
 
@@ -98,19 +98,19 @@ That command holds the walkthrough, rather than this file, because commands inst
 
 ```powershell
 # stage 2
-codex --profile architect exec (Get-Content .claude/commands/design.md -Raw)
+codex --profile architect exec (Get-Content skills/design/SKILL.md -Raw)
 
 # stage 3, adversarial, sandboxed read-only
-codex --profile architect exec (Get-Content .claude/commands/redteam.md -Raw)
+codex --profile architect exec (Get-Content skills/redteam/SKILL.md -Raw)
 
 # stage 6, one slice
-codex --profile builder exec ((Get-Content .claude/commands/slice.md -Raw) -replace '\$1','S3')
+codex --profile builder exec ((Get-Content skills/slice/SKILL.md -Raw) -replace '\$1','S3')
 
 # stage 6, whichever slice is next
-codex --profile builder exec ((Get-Content .claude/commands/slice.md -Raw) -replace '\$1','')
+codex --profile builder exec ((Get-Content skills/slice/SKILL.md -Raw) -replace '\$1','')
 
 # stage 6, mechanical edits only
-codex --profile quick exec ((Get-Content .claude/commands/slice.md -Raw) -replace '\$1','S7')
+codex --profile quick exec ((Get-Content skills/slice/SKILL.md -Raw) -replace '\$1','S7')
 ```
 
 Wrap it:
@@ -122,7 +122,7 @@ param(
   [string]$Slice,
   [ValidateSet('architect','builder','quick')][string]$Profile = 'builder'
 )
-$body = Get-Content ".claude/commands/$Stage.md" -Raw
+$body = Get-Content "skills/$Stage/SKILL.md" -Raw
 if ($Slice) { $body = $body -replace '\$1', $Slice }
 codex --profile $Profile exec $body
 ```

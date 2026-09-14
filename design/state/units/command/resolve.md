@@ -1,7 +1,7 @@
 # unit/command/resolve
 Kind: command
 Status: active
-Anchor: .claude/commands/resolve.md
+Anchor: skills/resolve/SKILL.md
 Consumes: contract/wait-pullrequestcheck
 Exposes: contract/resolve
 Binds: I1, I5

@@ -2,7 +2,7 @@
 
 One file per `/redteam` pass, named `<YYYY-MM-DD>-<target>.md`. The format, and the rule that
 `Status:` starts as `unadjudicated` and is edited in place as each finding is ruled on, live in
-[`.claude/commands/redteam.md`](../../.claude/commands/redteam.md) — not here.
+[`skills/redteam/SKILL.md`](../../skills/redteam/SKILL.md) — not here.
 
 These files exist because `/redteam` runs on a different vendor from the design author and
 adjudication happens back on the author's vendor. Committing the findings makes the repository

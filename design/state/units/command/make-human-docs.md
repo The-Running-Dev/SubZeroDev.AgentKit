@@ -1,7 +1,7 @@
 # unit/command/make-human-docs
 Kind: command
 Status: active
-Anchor: .claude/commands/make-human-docs.md
+Anchor: skills/make-human-docs/SKILL.md
 Consumes:
 Exposes:
 Binds:

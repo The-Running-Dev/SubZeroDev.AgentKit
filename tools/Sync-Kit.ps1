@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Syncs the kit-owned files (.claude/commands/*.md, tools/*.ps1) into a target repository
+    Syncs the kit-owned files (skills/<name>/SKILL.md, tools/*.ps1) into a target repository
     by diffing against the sha the target was installed from, without reading any of them.
 
 .DESCRIPTION
@@ -37,7 +37,7 @@
                                     kit's content for it instead of leaving it for /install.
 
     This is the mechanism that entry recorded as "not yet built." Scope is exactly the two
-    directories INSTALL.md calls kit-owned (`.claude/commands/*.md`, `tools/*.ps1`) - every
+    directories INSTALL.md calls kit-owned (`skills/<name>/SKILL.md`, `tools/*.ps1`) - every
     other artifact (AGENTS.md, agent.md, design/, .claude/settings.json,
     .github/ISSUE_TEMPLATE/) stays target-wins and stays /install's, per that entry's
     "Narrows" note on 2026-08-02.
@@ -45,7 +45,7 @@
     CORE COMMAND FILES ARE THE EXCEPTION TO THE THIRD ROW.
 
     Per .claude/COMPANIONS.md, a command file is a *core* the consuming repository never edits;
-    per-repo behaviour lives in a companion at .claude/commands/<name>-local.md, which the kit
+    per-repo behaviour lives in a companion at skills/<name>/SKILL-local.md, which the kit
     does not ship and which no path here ever reads, writes or deletes. So for a core the
     third row splits in two:
 
@@ -246,13 +246,13 @@ foreach ($name in $ownParams.Keys) {
 function Test-CoreCommandPath {
     param([string]$RelPath)
     $p = $RelPath -replace '\\', '/'
-    return ($p -like '.claude/commands/*.md') -and ($p -notlike '*-local.md')
+    return ($p -like 'skills/*/SKILL.md') -and ($p -notlike '*-local.md')
 }
 
 function Get-CompanionPathFor {
     param([string]$RelPath)
     $p = $RelPath -replace '\\', '/'
-    return ($p -replace '\.md$', '-local.md')
+    return ($p -replace 'SKILL\.md$', 'SKILL-local.md')
 }
 
 $kitRootResolved = Resolve-KitRoot -Explicit $KitRoot
@@ -296,7 +296,7 @@ if (-not (Test-GitRefExists -Sha $RecordedSha -WorkingDir $kitRootResolved)) {
 # both the same way. It is kit-owned for the same reason the two directories are: it is the
 # mechanism, and COMPANIONS.md § *Never* forbids a companion from changing it, so there is no
 # per-repo variant of it to protect.
-$kitOwnedDirs = @('.claude/commands', 'tools', '.claude/COMPANIONS.md')
+$kitOwnedDirs = @('skills', 'tools', '.claude/COMPANIONS.md')
 
 function Get-TreePaths {
     param([string]$Sha, [string[]]$Dirs, [string]$WorkingDir)
@@ -423,7 +423,7 @@ if ($divergentCount -gt 0) {
 }
 $unmigratedCount = @($report | Where-Object Status -eq 'Unmigrated-Blocked').Count
 if ($unmigratedCount -gt 0) {
-    Write-Host "$unmigratedCount core command file(s) carry local edits with no companion beside them - see .claude/COMPANIONS.md. Move each edit into .claude/commands/<name>-local.md and re-run; nothing was overwritten."
+    Write-Host "$unmigratedCount core command file(s) carry local edits with no companion beside them - see .claude/COMPANIONS.md. Move each edit into skills/<name>/SKILL-local.md and re-run; nothing was overwritten."
 }
 $supersededCount = @($report | Where-Object { $_.Status -in @('Superseded', 'WouldSuperseded') }).Count
 if ($supersededCount -gt 0) {

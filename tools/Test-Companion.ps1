@@ -1,12 +1,12 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Validates the core/companion split in a repository's .claude/commands/ directory.
+    Validates the core/companion split in a repository's skills/ directory.
 
 .DESCRIPTION
-    Per .claude/COMPANIONS.md: every file in .claude/commands/ ships as a core the consuming
-    repository never edits, optionally paired with a companion at
-    .claude/commands/<name>-local.md. The core enumerates which categories the companion may
+    Per .claude/COMPANIONS.md: every skills/<name>/SKILL.md ships as a core the consuming
+    repository never edits, optionally paired with a companion beside it at
+    skills/<name>/SKILL-local.md. The core enumerates which categories the companion may
     override; COMPANIONS.md owns the category vocabulary and the never-list.
 
     The core's fence is a declared marked region, id "companion" (AGENTS.md, *Marked regions*):
@@ -122,7 +122,7 @@ function Get-CoreDeclaration {
 
     $body = $blocks[0].Groups[1].Value
 
-    $pathMatch = [regex]::Match($body, '`(\.claude/commands/[A-Za-z0-9._-]+\.md)`')
+    $pathMatch = [regex]::Match($body, '`(skills/[A-Za-z0-9._-]+/SKILL-local\.md)`')
     $declaredPath = if ($pathMatch.Success) { $pathMatch.Groups[1].Value } else { '' }
 
     $categories = [System.Collections.Generic.List[string]]::new()
@@ -169,13 +169,13 @@ function Get-CompanionHeading {
 function Invoke-CompanionCheck {
     param([Parameter(Mandatory)][string] $TargetRepo)
 
-    $commandsDir = Join-Path $TargetRepo '.claude/commands'
+    $skillsDir = Join-Path $TargetRepo 'skills'
     $companionsDoc = Join-Path $TargetRepo '.claude/COMPANIONS.md'
 
-    if (-not (Test-Path -LiteralPath $commandsDir)) {
+    if (-not (Test-Path -LiteralPath $skillsDir)) {
         return [pscustomobject]@{
             State = 'NotEvaluated'; Findings = @(); CoreCount = 0; CompanionCount = 0; AbsentCount = 0
-            Detail = "'$TargetRepo' has no .claude/commands/ directory."
+            Detail = "'$TargetRepo' has no skills/ directory."
         }
     }
     if (-not (Test-Path -LiteralPath $companionsDoc)) {
@@ -193,66 +193,66 @@ function Invoke-CompanionCheck {
         }
     }
 
-    $allFiles = @(Get-ChildItem -LiteralPath $commandsDir -Filter '*.md' -File | Sort-Object Name)
-    $cores = @($allFiles | Where-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.Name) -notlike '*-local' })
-    $companions = @($allFiles | Where-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.Name) -like '*-local' })
+    $skillDirs = @(Get-ChildItem -LiteralPath $skillsDir -Directory | Sort-Object Name)
 
     $findings = [System.Collections.Generic.List[object]]::new()
-    $declarations = @{}
+    $coreCount = 0
+    $companionCount = 0
     $absentCount = 0
 
-    foreach ($core in $cores) {
-        $name = [System.IO.Path]::GetFileNameWithoutExtension($core.Name)
-        $rel = ".claude/commands/$($core.Name)"
-        $decl = Get-CoreDeclaration -Path $core.FullName
+    foreach ($dir in $skillDirs) {
+        $name = $dir.Name
+        $corePath = Join-Path $dir.FullName 'SKILL.md'
+        $companionPath = Join-Path $dir.FullName 'SKILL-local.md'
+        $coreRel = "skills/$name/SKILL.md"
+        $companionRel = "skills/$name/SKILL-local.md"
 
-        if ($null -eq $decl) {
-            $findings.Add((New-CompanionFinding $rel 'MissingBlock' 'No <!-- companion:declared:start --> block. Every core must declare what its companion may override, even when the answer is a short list.'))
+        if (-not (Test-Path -LiteralPath $corePath)) {
+            if (Test-Path -LiteralPath $companionPath) {
+                $findings.Add((New-CompanionFinding $companionRel 'OrphanCompanion' "No core at $coreRel. A companion overrides a core; on its own it overrides nothing and will never be read."))
+            }
             continue
         }
-        $declarations[$name] = $decl.Categories
+
+        $coreCount++
+        $decl = Get-CoreDeclaration -Path $corePath
+
+        if ($null -eq $decl) {
+            $findings.Add((New-CompanionFinding $coreRel 'MissingBlock' 'No <!-- companion:declared:start --> block. Every core must declare what its companion may override, even when the answer is a short list.'))
+            continue
+        }
 
         if ($decl.BlockCount -gt 1) {
-            $findings.Add((New-CompanionFinding $rel 'DuplicateBlock' "$($decl.BlockCount) companion blocks; exactly one is allowed."))
+            $findings.Add((New-CompanionFinding $coreRel 'DuplicateBlock' "$($decl.BlockCount) companion blocks; exactly one is allowed."))
         }
-        $expectedPath = ".claude/commands/$name-local.md"
-        if ($decl.CompanionPath -ne $expectedPath) {
-            $findings.Add((New-CompanionFinding $rel 'WrongCompanionPath' "Block names '$($decl.CompanionPath)'; expected '$expectedPath'."))
+        if ($decl.CompanionPath -ne $companionRel) {
+            $findings.Add((New-CompanionFinding $coreRel 'WrongCompanionPath' "Block names '$($decl.CompanionPath)'; expected '$companionRel'."))
         }
         if ($decl.Categories.Count -eq 0) {
-            $findings.Add((New-CompanionFinding $rel 'NoCategories' 'Declares no overridable categories. A core that allows nothing needs no companion mechanism - say so by removing the block, not by leaving the list empty.'))
+            $findings.Add((New-CompanionFinding $coreRel 'NoCategories' 'Declares no overridable categories. A core that allows nothing needs no companion mechanism - say so by removing the block, not by leaving the list empty.'))
         }
         foreach ($cat in $decl.Categories) {
             if ($validCategories -notcontains $cat) {
-                $findings.Add((New-CompanionFinding $rel 'UnknownCategory' "'$cat' is not a category in .claude/COMPANIONS.md."))
+                $findings.Add((New-CompanionFinding $coreRel 'UnknownCategory' "'$cat' is not a category in .claude/COMPANIONS.md."))
             }
         }
 
-        if (Test-CompanionAbsent -Path (Join-Path $commandsDir "$name-local.md")) { $absentCount++ }
-    }
-
-    foreach ($companion in $companions) {
-        $rel = ".claude/commands/$($companion.Name)"
-        $coreName = [System.IO.Path]::GetFileNameWithoutExtension($companion.Name) -replace '-local$', ''
-
-        if (-not (Test-Path -LiteralPath (Join-Path $commandsDir "$coreName.md"))) {
-            $findings.Add((New-CompanionFinding $rel 'OrphanCompanion' "No core at .claude/commands/$coreName.md. A companion overrides a core; on its own it overrides nothing and will never be read."))
+        if (Test-CompanionAbsent -Path $companionPath) {
+            $absentCount++
             continue
         }
-        if (Test-CompanionAbsent -Path $companion.FullName) { continue }
+        $companionCount++
 
-        $declared = if ($declarations.ContainsKey($coreName)) { $declarations[$coreName] } else { @() }
-
-        foreach ($heading in (Get-CompanionHeading -Path $companion.FullName)) {
+        foreach ($heading in (Get-CompanionHeading -Path $companionPath)) {
             if ($validCategories -notcontains $heading.Name) {
-                $findings.Add((New-CompanionFinding $rel 'UnknownCompanionHeading' "'## $($heading.Name)' is not a category in .claude/COMPANIONS.md."))
+                $findings.Add((New-CompanionFinding $companionRel 'UnknownCompanionHeading' "'## $($heading.Name)' is not a category in .claude/COMPANIONS.md."))
                 continue
             }
-            if ($declared -notcontains $heading.Name) {
-                $findings.Add((New-CompanionFinding $rel 'UndeclaredCategory' "'$($heading.Name)' is a valid category, but .claude/commands/$coreName.md does not allow it to be overridden."))
+            if ($decl.Categories -notcontains $heading.Name) {
+                $findings.Add((New-CompanionFinding $companionRel 'UndeclaredCategory' "'$($heading.Name)' is a valid category, but $coreRel does not allow it to be overridden."))
             }
             if (-not $heading.HasBody) {
-                $findings.Add((New-CompanionFinding $rel 'EmptyCategory' "'## $($heading.Name)' has nothing under it. An empty category still reads as an override; delete the heading instead."))
+                $findings.Add((New-CompanionFinding $companionRel 'EmptyCategory' "'## $($heading.Name)' has nothing under it. An empty category still reads as an override; delete the heading instead."))
             }
         }
     }
@@ -260,8 +260,8 @@ function Invoke-CompanionCheck {
     [pscustomobject]@{
         State          = if ($findings.Count -gt 0) { 'Invalid' } else { 'Valid' }
         Findings       = @($findings)
-        CoreCount      = $cores.Count
-        CompanionCount = $companions.Count
+        CoreCount      = $coreCount
+        CompanionCount = $companionCount
         AbsentCount    = $absentCount
         Detail         = ''
     }

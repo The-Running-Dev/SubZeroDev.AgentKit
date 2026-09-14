@@ -5,7 +5,7 @@ disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `.claude/commands/verify-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/verify/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `extra-steps`, `gate-commands`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.

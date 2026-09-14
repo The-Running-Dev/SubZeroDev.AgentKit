@@ -1,7 +1,7 @@
 # unit/command/unfreeze
 Kind: command
 Status: active
-Anchor: .claude/commands/unfreeze.md
+Anchor: skills/unfreeze/SKILL.md
 Consumes:
 Exposes:
 Binds:
