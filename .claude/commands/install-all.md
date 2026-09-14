@@ -1,6 +1,6 @@
 ---
 description: Reconcile the kit into every SubZeroDev.* repository, unattended. Usage - /install-all, or /install-all SubZeroDev.GameEngine,SubZeroDev.Platform
-argument-hint: [repo name[,repo name...]]
+argument-hint: "[repo name[,repo name...]]"
 ---
 
 <!-- companion:declared:start -->
