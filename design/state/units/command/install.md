@@ -1,7 +1,7 @@
 # unit/command/install
 Kind: command
 Status: active
-Anchor: .claude/commands/install.md
+Anchor: skills/install/SKILL.md
 Consumes:
 Exposes:
 Binds:

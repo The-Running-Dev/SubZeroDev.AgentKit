@@ -1,7 +1,7 @@
 # unit/command/refine
 Kind: command
 Status: active
-Anchor: .claude/commands/refine.md
+Anchor: skills/refine/SKILL.md
 Consumes:
 Exposes:
 Binds:

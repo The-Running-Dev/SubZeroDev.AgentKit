@@ -12,4 +12,4 @@ satisfies is resolved without asking first, `Ambiguous` threads are still brough
 and in a repository the account does not own every action reverts to an individual ask (I9).
 Everything else — the GraphQL query, the five `ThreadClass` values, the fixed order of
 operations, the report shape, the `Never` list — is unchanged and stays owned by
-`.claude/commands/resolve.md`.
+`skills/resolve/SKILL.md`.

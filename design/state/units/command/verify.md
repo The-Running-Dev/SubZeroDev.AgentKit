@@ -1,7 +1,7 @@
 # unit/command/verify
 Kind: command
 Status: active
-Anchor: .claude/commands/verify.md
+Anchor: skills/verify/SKILL.md
 Consumes: contract/test-companion, contract/test-designstate, contract/test-gatescache, contract/test-verifyreport
 Exposes:
 Binds:

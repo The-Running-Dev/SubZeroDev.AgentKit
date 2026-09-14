@@ -1,7 +1,7 @@
 # unit/command/brief-check
 Kind: command
 Status: active
-Anchor: .claude/commands/brief-check.md
+Anchor: skills/brief-check/SKILL.md
 Consumes:
 Exposes:
 Binds:

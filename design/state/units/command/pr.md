@@ -1,7 +1,7 @@
 # unit/command/pr
 Kind: command
 Status: active
-Anchor: .claude/commands/pr.md
+Anchor: skills/pr/SKILL.md
 Consumes: contract/wait-pullrequestcheck, contract/resolve, contract/test-verifyreport
 Exposes:
 Binds:

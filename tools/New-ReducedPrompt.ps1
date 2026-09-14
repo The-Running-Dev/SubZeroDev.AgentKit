@@ -11,11 +11,11 @@
     frontier model and hostile to a small local one. This script emits an
     alternative: the target slice's own block from `design/30-slices.md`,
     `design/20-contract.md` **verbatim** (it is the authoritative surface and
-    is never trimmed), and only the `AGENTS.md` sections `.claude/commands/slice.md`
+    is never trimmed), and only the `AGENTS.md` sections `skills/slice/SKILL.md`
     itself cites by name as binding a slice — `agent.md` is dropped entirely.
 
     Which `AGENTS.md` sections count as "binding" is not guessed: it is read
-    mechanically off `.claude/commands/slice.md`'s own citations, of the form
+    mechanically off `skills/slice/SKILL.md`'s own citations, of the form
     `` `AGENTS.md`, *Section Name* ``. That keeps the reduced set traceable to
     the command that actually governs `/slice`, and it stays correct if that
     command's citations change without this script's own logic changing.
@@ -38,7 +38,7 @@
 
 .PARAMETER CommandFile
     The command file whose `AGENTS.md` citations decide which sections are
-    "binding". Defaults to `.claude/commands/slice.md`, relative to -RepoRoot.
+    "binding". Defaults to `skills/slice/SKILL.md`, relative to -RepoRoot.
 
 .PARAMETER OutFile
     Write the assembled prompt here instead of the success stream.
@@ -151,7 +151,7 @@ function Get-SliceBlock {
 }
 
 $root = (Resolve-Path $RepoRoot).Path
-if (-not $CommandFile) { $CommandFile = Join-Path $root '.claude/commands/slice.md' }
+if (-not $CommandFile) { $CommandFile = Join-Path $root 'skills/slice/SKILL.md' }
 elseif (-not [System.IO.Path]::IsPathRooted($CommandFile)) { $CommandFile = Join-Path $root $CommandFile }
 
 $slicesPath = Join-Path $root 'design/30-slices.md'

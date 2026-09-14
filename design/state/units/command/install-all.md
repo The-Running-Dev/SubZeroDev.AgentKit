@@ -1,7 +1,7 @@
 # unit/command/install-all
 Kind: command
 Status: active
-Anchor: .claude/commands/install-all.md
+Anchor: skills/install-all/SKILL.md
 Consumes: contract/test-companion, contract/test-writesurface
 Exposes:
 Binds:

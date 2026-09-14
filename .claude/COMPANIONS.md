@@ -1,8 +1,8 @@
 # Command cores and their per-repo companions
 
-Every file in `.claude/commands/` ships as a **core**: a cross-repo file that a consuming
+Every `skills/<name>/SKILL.md` ships as a **core**: a cross-repo file that a consuming
 repository never edits. Where a repository genuinely needs a command to behave differently, it
-writes a **companion** beside it — `.claude/commands/<name>-local.md` — and the core names
+writes a **companion** beside it — `skills/<name>/SKILL-local.md` — and the core names
 exactly what that companion is allowed to change.
 
 This file is the mechanism. It is kit-owned and installed into every target, and it is the
@@ -89,7 +89,7 @@ signal that the core is wrong for this repository, and that belongs in the kit a
 three are the same case and the command proceeds on its core alone, silently — an absent
 companion is the normal state, not something to report.
 
-- **Missing** — no file at `.claude/commands/<name>-local.md`.
+- **Missing** — no file at `skills/<name>/SKILL-local.md`.
 - **Empty** — zero bytes, or nothing but whitespace.
 - **Frontmatter-only** — nothing outside the leading `---`-fenced block except whitespace. This
   case exists because a stub written to reserve the path, or one whose content was deleted

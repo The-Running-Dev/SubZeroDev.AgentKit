@@ -1,7 +1,7 @@
 # unit/command/track
 Kind: command
 Status: active
-Anchor: .claude/commands/track.md
+Anchor: skills/track/SKILL.md
 Consumes: contract/test-designdrift, contract/update-workmirror, contract/update-slicesdocument
 Exposes:
 Binds: I28

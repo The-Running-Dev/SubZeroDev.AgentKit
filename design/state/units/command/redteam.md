@@ -1,7 +1,7 @@
 # unit/command/redteam
 Kind: command
 Status: active
-Anchor: .claude/commands/redteam.md
+Anchor: skills/redteam/SKILL.md
 Consumes:
 Exposes:
 Binds:

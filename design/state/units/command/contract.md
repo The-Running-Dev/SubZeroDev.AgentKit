@@ -1,7 +1,7 @@
 # unit/command/contract
 Kind: command
 Status: active
-Anchor: .claude/commands/contract.md
+Anchor: skills/contract/SKILL.md
 Consumes:
 Exposes:
 Binds:

@@ -6,7 +6,7 @@
   *Command routing* table. The regression this guards (issue #116): /done was renamed to
   /clean (issue #127) but the map kept the old 'done' key, so /clean fell through to the
   "no profile mapping" error - exactly the manual profile selection the script exists to
-  remove. Runs against this repository's own .claude/commands/ rather than a fixture,
+  remove. Runs against this repository's own skills/ rather than a fixture,
   since the defect is staleness against the real command set.
 #>
 
@@ -26,8 +26,14 @@
 BeforeAll {
     $script:ScriptPath = Join-Path $PSScriptRoot 'Invoke-CodexCommand.ps1'
     $script:RepoRoot = Split-Path $PSScriptRoot -Parent
-    $script:CommandNames = Get-ChildItem (Join-Path $script:RepoRoot '.claude/commands/*.md') |
-        ForEach-Object { $_.BaseName }
+    $script:CommandNames = Get-ChildItem -LiteralPath (Join-Path $script:RepoRoot 'skills') -Filter 'SKILL.md' -File -Recurse -Depth 1 |
+        ForEach-Object { $_.Directory.Name }
+
+    # This repo checkout is the install root the launcher should read skills/ from for every
+    # test below, exactly as it is on a dev machine that has not run a separate home install
+    # (this file's own header comment: "runs against this repository's own skills/").
+    $script:PriorAgentKitHome = $env:AGENTKIT_HOME
+    $env:AGENTKIT_HOME = $script:RepoRoot
 
 function Get-AgentsCanonicalTierMap {
     <#
@@ -90,7 +96,7 @@ function Get-CommandRoutingRows {
 
 function Get-RoutingCoverageGaps {
     <#
-      Every .claude/commands/*.md file should appear in exactly one routing row. Returns
+      Every skills/*/SKILL.md file should appear in exactly one routing row. Returns
       the ones that don't (zero rows, or more than one) - $NamedSkips excuses the ones
       AGENTS.md itself calls out as not fitting the one-row-one-command shape (/unfreeze,
       which needs two profiles and so has its own dedicated Describe block already).
@@ -183,8 +189,12 @@ function Get-LauncherProfileConfig {
 
 }
 
+AfterAll {
+    $env:AGENTKIT_HOME = $script:PriorAgentKitHome
+}
+
 Describe 'Invoke-CodexCommand command map' {
-    It 'has a mapping for every command file in .claude/commands/' {
+    It 'has a mapping for every command file in skills/' {
         foreach ($name in $script:CommandNames) {
             { & $script:ScriptPath -Command $name -WhatIf } | Should -Not -Throw -Because "/$name has no profile mapping"
         }
@@ -224,7 +234,7 @@ Describe 'Invoke-CodexCommand tier stamping' {
         $result | Should -Match 'AGENTKIT_TIER=Implementation'
     }
 
-    It 'stamps a tier for every command file in .claude/commands/' {
+    It 'stamps a tier for every command file in skills/' {
         foreach ($name in $script:CommandNames) {
             $result = & $script:ScriptPath -Command $name -WhatIf
             $result | Should -Match 'AGENTKIT_TIER=(Deep reasoning|Implementation)' -Because "/$name stamps no tier"
@@ -312,45 +322,86 @@ Describe 'Invoke-CodexCommand /unfreeze two-process chain (issue #253)' {
     }
 }
 
-Describe 'Invoke-CodexCommand /unfreeze prompts cite unfreeze.md, not restate it (W2)' {
+Describe 'Invoke-CodexCommand /unfreeze prompts inline unfreeze/SKILL.md, not a path citation (W2)' {
     <#
-      The two prompts this script hands the reconcile and track processes used to restate
-      unfreeze.md's own procedure and report shape - a second copy that would drift from the
-      first (AGENTS.md, Single ownership). They now cite unfreeze.md's Split across sessions
-      section instead. These assert the citation still resolves to real headings and that the
-      restated text is gone.
+      A launched codex process does not necessarily share this script's working directory
+      with the kit checkout once the kit is home-installed, so a prompt that told the process
+      to go open a kit file by path could hand it a path it cannot read. The prompts inline
+      skills/unfreeze/SKILL.md's actual text instead (Get-SkillContent), read fresh from the
+      install root on every run - not a second, hand-kept-in-sync copy (AGENTS.md, Single
+      ownership: there is exactly one copy of the procedure text; this only changes how it
+      reaches the codex process).
     #>
 
     BeforeAll {
-        $script:UnfreezeMdPath = Join-Path $script:RepoRoot '.claude/commands/unfreeze.md'
+        $script:UnfreezeMdPath = Join-Path $script:RepoRoot 'skills/unfreeze/SKILL.md'
         $script:UnfreezeMdText = Get-Content -Raw -LiteralPath $script:UnfreezeMdPath
         $script:UnfreezeHeadings = [regex]::Matches($script:UnfreezeMdText, '(?m)^#{1,3}\s+(.+)$') |
             ForEach-Object { $_.Groups[1].Value.Trim() }
 
         $script:LauncherText = Get-Content -Raw -LiteralPath $script:ScriptPath
-        $script:ReconcilePromptText = if ($script:LauncherText -match "(?s)\`$reconcilePrompt = @'\r?\n(.*?)\r?\n'@") { $Matches[1] } else { $null }
-        $script:TrackPromptText = if ($script:LauncherText -match "(?s)\`$trackPrompt = @'\r?\n(.*?)\r?\n'@") { $Matches[1] } else { $null }
+        $script:UnfreezeWhatIfInlined = & $script:ScriptPath -Command 'unfreeze' -WhatIf
     }
 
-    It 'finds both here-string prompts in the launcher source' {
-        $script:ReconcilePromptText | Should -Not -BeNullOrEmpty
-        $script:TrackPromptText | Should -Not -BeNullOrEmpty
+    It 'no longer names a kit command path for a launched process to open itself' {
+        $script:LauncherText | Should -Not -Match '\.claude/commands/unfreeze\.md'
     }
 
-    It 'cites headings that exist in unfreeze.md' {
-        foreach ($heading in 'Split across sessions', 'Phase 1 — read and delete the marker', 'Phase 2 — reconcile', 'Commit', 'Phase 3 — track', 'Report') {
-            $script:UnfreezeHeadings | Should -Contain $heading -Because "the launcher prompt cites '$heading'"
+    It 'reads the prompt content through Get-SkillContent, not a hardcoded restatement' {
+        $script:LauncherText | Should -Match "Get-SkillContent -Name 'unfreeze'"
+    }
+
+    It 'the resolved reconcile invocation carries unfreeze.md''s real heading text' {
+        $reconcileText = $script:UnfreezeWhatIfInlined[0]
+        foreach ($heading in 'Split across sessions', 'Phase 1 — read and delete the marker', 'Commit') {
+            $pattern = [regex]::Escape($heading)
+            $reconcileText | Should -Match $pattern -Because "the inlined prompt should carry unfreeze.md's '$heading' heading"
         }
     }
 
-    It 'does not restate unfreeze.md''s Phase 1/Commit procedure text in the reconcile prompt' {
-        $script:ReconcilePromptText | Should -Not -Match 'Frozen because'
-        $script:ReconcilePromptText | Should -Not -Match 'Git and delivery'
+    It 'the resolved track invocation carries unfreeze.md''s real heading text' {
+        $trackText = $script:UnfreezeWhatIfInlined[1]
+        foreach ($heading in 'Phase 3 — track', 'Report') {
+            $pattern = [regex]::Escape($heading)
+            $trackText | Should -Match $pattern -Because "the inlined prompt should carry unfreeze.md's '$heading' heading"
+        }
     }
 
-    It 'does not restate unfreeze.md''s Report text in the track prompt' {
-        $script:TrackPromptText | Should -Not -Match 'state the freeze is lifted'
-        $script:TrackPromptText | Should -Not -Match 'what /reconcile found and changed'
+    It 'cites headings that actually exist in unfreeze.md, so the fixture above is not testing itself' {
+        foreach ($heading in 'Split across sessions', 'Phase 1 — read and delete the marker', 'Phase 2 — reconcile', 'Commit', 'Phase 3 — track', 'Report') {
+            $script:UnfreezeHeadings | Should -Contain $heading
+        }
+    }
+}
+
+Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, home install)' {
+    <#
+      Resolves $env:AGENTKIT_HOME, falling back to $HOME/.agent-kit, per AGENTS.md's
+      home-install convention. Exercised through -WhatIf on /unfreeze (the one command whose
+      prompt actually reads a skill file), since the function itself is not exported.
+    #>
+
+    BeforeAll {
+        $script:PriorAgentKitHome = $env:AGENTKIT_HOME
+    }
+
+    AfterEach {
+        $env:AGENTKIT_HOME = $script:PriorAgentKitHome
+    }
+
+    It 'resolves the install root from $env:AGENTKIT_HOME when set' {
+        $env:AGENTKIT_HOME = $script:RepoRoot
+        { & $script:ScriptPath -Command 'unfreeze' -WhatIf } | Should -Not -Throw
+    }
+
+    It 'falls back to a not-found error naming $HOME/.agent-kit when $env:AGENTKIT_HOME is unset and no home install exists' {
+        Remove-Item Env:AGENTKIT_HOME -ErrorAction SilentlyContinue
+        $fallbackRoot = Join-Path $HOME '.agent-kit'
+        if (Test-Path -LiteralPath (Join-Path $fallbackRoot 'skills/unfreeze/SKILL.md')) {
+            Set-ItResult -Skipped -Because 'this machine already has a real home install at $HOME/.agent-kit'
+            return
+        }
+        { & $script:ScriptPath -Command 'unfreeze' -WhatIf } | Should -Throw "*$fallbackRoot*"
     }
 }
 
@@ -385,7 +436,7 @@ Describe 'Invoke-CodexCommand command routing matches AGENTS.md Command routing 
         $script:CanonicalTierMap['sonnet'] | Should -Be 'Implementation'
     }
 
-    It 'every .claude/commands/*.md file appears in exactly one Command routing row' {
+    It 'every skills/*/SKILL.md file appears in exactly one Command routing row' {
         if ($script:RoutingRows.Count -eq 0) {
             Set-ItResult -Skipped -Because 'no recognisable Command routing table - see the locally-edited-AGENTS.md note above'
             return

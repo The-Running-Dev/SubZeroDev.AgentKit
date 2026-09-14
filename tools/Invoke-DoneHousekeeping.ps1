@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    The mechanical half of /clean (.claude/commands/clean.md): switch to the default branch,
+    The mechanical half of /clean (skills/clean/SKILL.md): switch to the default branch,
     prune stale remote-tracking refs, and report which local branches are safe to delete.
 
 .DESCRIPTION

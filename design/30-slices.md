@@ -92,7 +92,7 @@ the issue's agent block still pins `§ S<n> @ <sha>` for its own criteria.
 The reason is the churn loop in `AGENTS.md`, *The design freeze*: a landed slice's criteria
 have no reader left except a drift check, and every pass over them is a pass that can
 rewrite the slice after it. Retiring them shrinks what any later pass can touch. `/reconcile`
-is barred from this document outright (`.claude/commands/reconcile.md`), so the two rules are
+is barred from this document outright (`skills/reconcile/SKILL.md`), so the two rules are
 the same rule from either end.
 
 **`/slices` appends new slices under `## Outstanding`.** Never renumber, and never reuse a
@@ -232,7 +232,7 @@ them:
 - **S1** — `tools/Wait-PullRequestCheck.ps1`, which watches a pull request's checks against a
   named head SHA and refuses to answer at all if someone pushed while it was watching.
 - **S2** — one approval covering push, pull-request update, and the exact review threads it
-  names, in `AGENTS.md` and `.claude/commands/resolve.md`.
+  names, in `AGENTS.md` and `skills/resolve/SKILL.md`.
 - **S3** — `/fix`, the entry point for a defect that has no slice: reproduce, get to a bug
   issue, branch, fix, hand off to the same single approval.
 - **S4** — `tools/Read-DesignState.ps1`, which parses `design/state/` into a graph and reports

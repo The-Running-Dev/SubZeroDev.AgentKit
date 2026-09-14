@@ -5,4 +5,4 @@ Status: accepted
 StatedIn: unit/command/kit-help § The flow
 
 ## Claim
-The walkthrough lives in `.claude/commands/kit-help.md`, the one home that travels with the kit; `README.md` keeps a three-bullet summary and points at the command. `/kit-help` orients before it answers — it reads which design docs exist, the branch, and the tracker, states which stage that evidence puts the repository at, and gives only the next step rather than reciting the whole file. It may not run the command it names.
+The walkthrough lives in `skills/kit-help/SKILL.md`, the one home that travels with the kit; `README.md` keeps a three-bullet summary and points at the command. `/kit-help` orients before it answers — it reads which design docs exist, the branch, and the tracker, states which stage that evidence puts the repository at, and gives only the next step rather than reciting the whole file. It may not run the command it names.

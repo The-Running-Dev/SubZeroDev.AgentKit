@@ -1,7 +1,7 @@
 # unit/command/next
 Kind: command
 Status: active
-Anchor: .claude/commands/next.md
+Anchor: skills/next/SKILL.md
 Consumes:
 Exposes:
 Binds:

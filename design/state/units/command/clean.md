@@ -1,7 +1,7 @@
 # unit/command/clean
 Kind: command
 Status: active
-Anchor: .claude/commands/clean.md
+Anchor: skills/clean/SKILL.md
 Consumes:
 Exposes:
 Binds:

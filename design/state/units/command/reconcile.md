@@ -1,7 +1,7 @@
 # unit/command/reconcile
 Kind: command
 Status: active
-Anchor: .claude/commands/reconcile.md
+Anchor: skills/reconcile/SKILL.md
 Consumes:
 Exposes:
 Binds:
