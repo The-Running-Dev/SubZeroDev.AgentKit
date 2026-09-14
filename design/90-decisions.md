@@ -1175,3 +1175,25 @@ Rejected: **A fixed constant** (e.g. round `AGENTS.md`'s current size up to a ge
 Reversibility: cheap — one function and two call sites in `tools/Invoke-CodexCommand.ps1`, one table-to-note move in `codex/PROFILES.md`, both deletable without touching profile selection or any other flag.
 Known and retained: the 2026-09-14 Output-discipline decision (immediately above) stated, in its Claim, that "Codex's output and context keys are recommended base configuration, not launcher-enforced" — true when written, of the eight keys `codex/PROFILES.md` § *Output and context budget* then listed together. This decision narrows that claim rather than superseding it: the other seven keys are unchanged machine-wide preferences the launcher still does not touch: `project_doc_max_bytes` alone is now the launcher-enforced exception, because it is a correctness question (a truncated contract) rather than a preference (a reply's length or a summary's verbosity) — the distinction the rejected-alternatives list above draws between the two. The decision record `decision/2026-09-14-output-discipline-is-one-agents-md-rule` is edited in place to say so.
 Reversibility: cheap. One `AGENTS.md` section, one-line citations in seven files, and additive report fields.
+
+---
+
+### 2026-09-14 — Output discipline states plain-language-first, not only field-shortening
+Context: `reports/2026-09-14-repo-review-plan.md` PR 2/W4 (issue-tracked repo review). `AGENTS.md`
+§ *Output discipline* fixes report *length* — the three-field shape, naming artifacts instead of
+reproducing them — but says nothing about report *wording*. `Get-NextOrientation.ps1` and
+`RepoAliases.ps1` print raw field names and structured values (`@{Class=…}`, `Dirty: True`,
+`exit code: 1`) that a three-field report can carry forward unchanged, since nothing in the rule
+calls that out as a defect. W5 fixes the two scripts; this decision is the rule those fixes cite.
+Chosen: **One sentence in § *Output discipline***, next to the report-shape rule rather than a new
+section: "Say what happened before what it is called — a reader should not have to translate field
+names, enums, booleans or exit codes; keep the exact identifier beside the meaning where it is
+needed to audit or act." The exact identifier stays present for anyone auditing against source —
+the rule asks for the meaning beside it, not instead of it.
+Rejected: **A new subsection**, which would duplicate *A routine completion report carries only
+what the reader needs to act* rather than extending it. **Rewording the three-field template
+itself** (`Changed`/`Tests`/`Risk`), which already reads as prose and is not what W5's target
+scripts get wrong. **Requiring every structured value be translated**, which would forbid the
+exact identifier a reader auditing against source or a test assertion needs — the chosen wording
+keeps both.
+Reversibility: cheap. One sentence in `AGENTS.md`.

@@ -38,6 +38,19 @@ BeforeAll {
         (& git -C $RepoPath rev-parse $Branch).Trim()
     }
 
+    function New-MergedWorktreeBranch {
+        # A merged branch that is also checked out in a second worktree, so the safe delete
+        # Invoke-DoneHousekeeping.ps1 attempts on it is refused - the Refused judgement case,
+        # distinct from TipAheadOfMergedPr. Same fixture shape as
+        # Invoke-DoneHousekeeping.Tests.ps1's own New-MergedWorktreeBranch.
+        param([Parameter(Mandatory)][string] $RepoPath, [Parameter(Mandatory)][string] $WorktreePath)
+        & git -C $RepoPath checkout --quiet -b feature/foo | Out-Null
+        & git -C $RepoPath -c user.email='test@example.com' -c user.name='Test' commit --allow-empty --quiet -m 'feature work' | Out-Null
+        & git -C $RepoPath checkout --quiet main | Out-Null
+        & git -C $RepoPath -c user.email='test@example.com' -c user.name='Test' merge --no-ff --quiet feature/foo -m 'merge feature/foo' | Out-Null
+        & git -C $RepoPath worktree add --quiet $WorktreePath feature/foo *>$null
+    }
+
     function New-FakeGh {
         # Same stub Invoke-DoneHousekeeping.Tests.ps1 uses: Invoke-Housekeeping.ps1 shells out
         # to Invoke-DoneHousekeeping.ps1, which shells out to `gh` directly - no seam to Mock,
@@ -76,6 +89,19 @@ Describe 'Invoke-Housekeeping' {
             $result.Applied.Deleted | Should -Contain 'feature/ordinary'
             (& git -C $repo branch --list 'feature/ordinary') | Should -BeNullOrEmpty
         }
+
+        It 'reports the pulled state as a sentence, not a bare boolean (AGENTS.md, Output discipline)' {
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-wording')
+            New-MergedBranch -RepoPath $repo -Branch 'feature/wording'
+
+            & $script:ScriptPath -RepoRoot $repo -DefaultBranch main -SkipPull -InformationVariable lines | Out-Null
+
+            $joined = (@($lines | ForEach-Object ToString)) -join "`n"
+            $joined | Should -Not -Match '\bTrue\b'
+            $joined | Should -Not -Match '\bFalse\b'
+            $joined | Should -Not -Match 'exit code'
+            $joined | Should -Match '\(not pulled\)'
+        }
     }
 
     Context 'a real judgement case - commits a merged PR does not account for' {
@@ -103,13 +129,41 @@ Describe 'Invoke-Housekeeping' {
             & git -C $repo -c user.email='test@example.com' -c user.name='Test' commit --allow-empty --quiet -m 'after the merge' | Out-Null
             & git -C $repo checkout --quiet main | Out-Null
 
-            $result = & $script:ScriptPath -RepoRoot $repo -DefaultBranch main -SkipPull
+            $result = & $script:ScriptPath -RepoRoot $repo -DefaultBranch main -SkipPull -WarningVariable warnings -WarningAction SilentlyContinue
 
             $result.Escalate | Should -Be $true
             $named = $result.Discover.TipAheadOfMergedPr | Where-Object Branch -eq 'fix/ahead'
             $named | Should -Not -BeNullOrEmpty
             $named.Reason | Should -Match 'no merged PR accounts for'
             (& git -C $repo rev-parse --verify 'fix/ahead' 2>$null) | Should -Not -BeNullOrEmpty
+
+            # Rendering-only assertions (this PR's scope): the human meaning leads, the bare
+            # structured identifier does not, and it still appears as an auditability suffix.
+            $joined = (@($warnings | ForEach-Object ToString)) -join "`n"
+            $joined | Should -Match 'Kept fix/ahead: it has commits that no merged pull request accounts for'
+            $joined | Should -Not -Match '^TipAheadOfMergedPr'
+            $joined | Should -Match '\(TipAheadOfMergedPr\)'
+        }
+    }
+
+    Context 'a refused safe delete - Git blocks the branch' {
+
+        It 'renders the human meaning first, keeps the structured Refused entry, and leaves the branch alone' {
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-refused')
+            $wt = Join-Path $TestDrive 'wt-refused'
+            New-MergedWorktreeBranch -RepoPath $repo -WorktreePath $wt
+
+            $result = & $script:ScriptPath -RepoRoot $repo -DefaultBranch main -SkipPull -WarningVariable warnings -WarningAction SilentlyContinue
+
+            $result.Escalate | Should -Be $true
+            $refusal = $result.Applied.Refused | Where-Object Branch -eq 'feature/foo'
+            $refusal | Should -Not -BeNullOrEmpty
+            (& git -C $repo rev-parse --verify 'feature/foo' 2>$null) | Should -Not -BeNullOrEmpty
+
+            $joined = (@($warnings | ForEach-Object ToString)) -join "`n"
+            $joined | Should -Match 'Kept feature/foo: Git refused the safe delete'
+            $joined | Should -Not -Match '^Refused'
+            $joined | Should -Match '\(Refused\)'
         }
     }
 }

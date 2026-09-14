@@ -273,6 +273,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-13-277-interval-closed | `unit/document/design-30-slices` |
 | decision/2026-09-13-component-records-checked-without-a-row | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-09-14-output-discipline-is-one-agents-md-rule | `unit/document/agents-md`, `unit/document/codex-profiles`, `unit/document/design-cost` |
+| decision/2026-09-14-output-discipline-states-plain-language-first | `unit/document/agents-md` |
 | decision/2026-09-14-project-doc-max-bytes-is-launcher-enforced | `unit/document/codex-profiles`, `unit/script/invoke-codexcommand` |
 | decision/2026-09-14-unfreeze-splits-across-sessions-for-a-tool-that-cannot-switch-tier | `unit/command/unfreeze`, `unit/document/agents-md` |
 <!-- decision-affects:end -->
@@ -302,8 +303,6 @@ that looks old.
 | 211 | #211 | A script unit that exposes no contract has nowhere to absorb a decision into | — | `c63cae8f19298c5dc92a01883153c0f699c7b0c0` |
 | 248 | #248 | No command commissions the SemanticDisagreement reading | — | `ad8e94ab2332012c117968e8ae8c47ff6e4a8a65` |
 | 250 | #250 | Test-DesignState.ps1 cannot detect an unclaimed projected marked region | — | `ad8e94ab2332012c117968e8ae8c47ff6e4a8a65` |
-| 258 | #258 | Design-state record for the Codex launcher describes a --profile invocation it no longer uses | — | `8c5ae4188b591c32dafa5023a035e6b358a3e5e2` |
-| 259 | #259 | Contract text says "five conditions above" where the table it refers to lists six | — | `8c5ae4188b591c32dafa5023a035e6b358a3e5e2` |
 | 281 | #281 | Nothing checks heading uniqueness in a document whose sites are addressed by heading | — | `35f2cd8b46a6d0f358642938e1b1d48b1d03041d` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
 <!-- outstanding:end -->

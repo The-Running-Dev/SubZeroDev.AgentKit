@@ -1,6 +1,6 @@
 ---
 description: Install Anthropic's Claude Code GitHub Action into a repository so pull requests get automated Claude review. Usage - /install-code-review-agent, or /install-code-review-agent D:\Projects\Some.Repo
-argument-hint: [target repo path]
+argument-hint: "[target repo path]"
 ---
 
 <!-- companion:declared:start -->

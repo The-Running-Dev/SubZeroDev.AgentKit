@@ -1,6 +1,6 @@
 ---
 description: Implement one slice. Usage - /slice S3, or /slice for the next one
-argument-hint: [slice id, omit for the next]
+argument-hint: "[slice id, omit for the next]"
 ---
 
 <!-- companion:declared:start -->
