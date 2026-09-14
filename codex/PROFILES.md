@@ -73,6 +73,25 @@ model_reasoning_effort = "medium"
 - Alt+`,` and Alt+`.` adjust effort mid-session. Profiles cannot be switched mid-session.
 - Model IDs churn. Verify against current Codex model docs before committing these to a repo.
 
+## Output and context budget
+
+`AGENTS.md`, *Output discipline* is the rule, and it binds every vendor. These base-config keys are how Codex lets you back it up. Checked against codex-cli 0.153.4's `config.schema.json`. They are **recommended, not enforced**: `tools/Invoke-CodexCommand.ps1` does not pass them, because they are preferences about your whole machine rather than a tier, and a launcher that overrode them would overwrite choices this kit has never owned.
+
+| Key | What it controls | Where it can live | Guidance |
+|---|---|---|---|
+| `model_verbosity` | Length of the visible reply (`low`/`medium`/`high`) | base or `[profiles.<name>]` | `low` suits the rule. It shortens the reply, not the reasoning. |
+| `model_reasoning_summary` | Reasoning summaries shown in the session (`auto`/`concise`/`detailed`/`none`) | base or profile | `none` removes output nobody acts on. It does not lower effort. |
+| `plan_mode_reasoning_effort` | Effort used in plan mode | base or profile | Set it in each profile file to the profile's own effort. A base value below `high` quietly under-powers `architect` and `author` in plan mode. |
+| `model_auto_compact_token_limit`, `model_auto_compact_token_limit_scope` | When the session compacts, and whether the fixed prefix counts (`total`/`body_after_prefix`) | base only | Optional. A compaction during `/slice` is still a sizing failure (`AGENTS.md`, *Session boundaries*); an earlier limit makes that visible sooner and changes nothing else. |
+| `tool_output_token_limit` | Tokens of one tool result kept in context | base only | If set, keep gate output in a log file. A cap that cuts off a failure's diagnostics breaks *Output discipline*, not just the gate. |
+| `[agents] default_subagent_reasoning_effort` | Effort of a subagent that does not name one | base only | `medium` is the Implementation tier. A deep-reasoning subagent must name its effort. |
+| `[agents] max_concurrent_threads_per_session` | Parallel subagents | base only | No value is recommended. None has been measured here. |
+| `project_doc_max_bytes` | Max bytes of project doc content (`AGENTS.md` plus its imports) loaded into context | base only | Default 32,768 bytes. `AGENTS.md` alone can exceed this — check with `wc -c AGENTS.md` — and Codex truncates silently past the cap. Raise it in `~/.codex/config.toml` to cover the file's actual size, or the contract *Source of truth* calls binding on every vendor is the part Codex never sees. |
+
+With a profile file (0.134.0 and later), any of these can go in `~/.codex/<name>.config.toml`, including the base-only keys, because that file layers over the whole base config.
+
+**Tool surface.** Each `[mcp_servers.<name>]` entry takes `enabled`, `enabled_tools`, and `disabled_tools`. Whether Codex sends every enabled server's tool definitions on every turn is **not verified**: the schema doesn't say and no documentation states it. Disabling servers you don't use during coding is harmless, but nothing here measures what it saves.
+
 ## Project-level config
 
 `.codex/config.toml` at the repo root is committed and overrides user config. Use it to pin the sandbox and approval policy for a given project, not the model — model choice is per-stage, not per-repo.

@@ -37,7 +37,7 @@ If reconciliation touched `design/`, stage those files by name and commit per `A
 
 ## Report
 
-State the freeze is lifted, what `/reconcile` found and changed, and what `/track` synced. If `/reconcile` or `/track` surfaced something that needs a decision — a contested drift, a slice that turns out to need a contract amendment — stop there and ask, one item at a time, rather than resolving it inline.
+State the freeze is lifted, and point at the commit `/reconcile` produced and the issues `/track` touched rather than restating either phase's own report (`AGENTS.md`, *Output discipline*). If `/reconcile` or `/track` surfaced something that needs a decision — a contested drift, a slice that turns out to need a contract amendment — stop there and ask, one item at a time, rather than resolving it inline.
 
 ## Re-run
 

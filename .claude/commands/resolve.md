@@ -72,7 +72,7 @@ query($threadId: ID!, $commentsCursor: String) {
 
 **Classifying from a partial fetch — a truncated thread list or a truncated comment list — is exactly the failure this pagination exists to prevent.**
 
-Count unresolved threads before you start and say the number. If `required_review_thread_resolution` is on, that count *is* the merge blocker.
+Count unresolved threads before you start; the number goes in the report. If `required_review_thread_resolution` is on, that count *is* the merge blocker.
 
 ## Classify every thread
 
