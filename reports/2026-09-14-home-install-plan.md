@@ -16,7 +16,7 @@ Checked on this machine, not recalled:
 | Fact | Evidence | Effect on the plan |
 |---|---|---|
 | The output-language work is **not** on `main` yet | PR 1 of `reports/2026-09-14-repo-review-plan.md` merged (#300, #301, #302). PR 2 (W4, W5) and PR 3 (W6) have no commit and no open PR: `AGENTS.md` lacks W4's sentence and `Get-NextOrientation.ps1` has no `Summary` | Hard gate before phase 1 — see *Dependency on the output-language work* |
-| The kit's own brief puts this work out of scope | `design/00-brief.md` *Non-goals*: no target repository is migrated, and `/install`, `/install-all`, `/kit-sync` and `tools/Sync-Kit.ps1` are not in scope for change. `AGENTS.md` *Hard rules*: non-goals are binding | The handoff's "separate project, don't route it through the brief" cannot hold in this repository. Decision 1 |
+| The kit's own brief puts this work out of scope | `design/00-brief.md` *Non-goals*: no target repository is migrated, and `/install`, `/install-all`, `/kit-sync` and `tools/Sync-Kit.ps1` are not in scope for change | **Decided by Ben (2026-09-14): separate project, no brief amendment, no contract session.** The brief's non-goal and the contract's unit globs are known-and-retained; this project does not stop on them |
 | The contract checks the exact paths the handoff moves | `design/20-contract.md` § *Artifacts of a unit kind*: command = `.claude/commands/*.md`, script = `tools/*.ps1`, document includes `.claude/COMPANIONS.md`. 26 decision records cite `AGENTS.md` sections as sites. W3's tests parse `AGENTS.md` § *Command routing* against `.claude/commands/*.md` | Moving commands to `skills/` breaks the design-state checks and W3's tests. Decision 2 |
 | `~/.agent-kit` already exists | A `/kit-sync` clone on `main` at `797f538`, clean, 23 commits behind `origin/main`. `Sync-Kit.ps1` and `New-DesignDocs.ps1` already default to it | The installer adopts it. Old repo copies of `/kit-sync` would move a pinned install back to a branch head — phase 2 handles it |
 | References to kit files are about twice the handoff's count | Across 23 command files: 107 references to kit files, 160 to project files, 104 to `AGENTS.md`, 16 argument placeholders | Sorting is scripted, not done by eye |
@@ -59,15 +59,7 @@ are not a stop.
 
 One at a time, recommendation first.
 
-**Decision 1 — Let the kit's own rules allow this project.**
-The kit's brief says, in words only you can change, that target repositories are not migrated and that the
-install and sync commands are not changed. As long as that stands, every session implementing this plan is
-required to stop on it, and the design checks will fail on the new and moved files.
-*Recommended:* before phase 1, amend the brief once to lift that non-goal for this project, in a
-`/brief-check` session (`opus`/`high`); then a `/contract` session (`opus`/`high`, fresh) adds the installer's
-parameters, the shared rules file, and whatever paths decision 2 changes.
-*Alternative:* treat it as outside `design/` as the handoff said. Cost: the rule and the checks still apply,
-so every phase stops, or the checks are ignored.
+**Decision 1 — settled.** Separate project, as the handoff said. No brief amendment, no contract session.
 
 **Decision 2 — Keep command files where they are; build the skill folders during install.**
 The handoff moves each `.claude/commands/<name>.md` to `skills/<name>/SKILL.md` and links those folders into
@@ -82,8 +74,8 @@ keeps that), directly into each tool's personal skills folder, and records every
 - The optional name prefix is a rename at write time.
 - The deferred vendor-neutral path idea (#33) stays deferred and unaffected.
 
-*Alternative:* move the files as the handoff says. Cost: amend the contract's command glob, rewrite the
-design-state records and W3's tests, and keep the kit repository's own commands working during the move.
+*Alternative:* move the files as the handoff says. Cost: rewrite W3's routing tests, `Test-Companion.ps1`, the
+Codex launcher and the README's Codex recipes for the new paths, and keep the kit repository's own commands working during the move.
 Reversing either way later is a mechanical move.
 
 **Decision 3 — Which Copilot does the kit need to work in?**
@@ -134,14 +126,7 @@ and the `/kit-sync` shim below both rely on it, and the fallback is Ben's call.
 
 **Done when:** the note answers every cell from a real run, cites the Codex source lines, and holds the clash list.
 
-### Amendments (two fresh sessions, `opus`/`high`, after decisions 1–2)
-
-1. `/brief-check`: lift the non-goal for this project, in Ben's words.
-2. `/contract`: the installer's parameters as a public surface; the shared rules file as a document unit, and
-   which `AGENTS.md` sections move into it (Ben signs off the section list here, before any text moves); any
-   path decision 2 changes.
-
-### Phase 1 — Make the kit installable (after the output-language gate and the amendments)
+### Phase 1 — Make the kit installable (after the output-language gate)
 
 **PR A — paths and hooks** (independent of the rules split):
 
@@ -162,7 +147,7 @@ and the `/kit-sync` shim below both rely on it, and the fallback is Ben's call.
 4. **Codex launcher:** if phase 0 found that `~/.codex/AGENTS.md` shares the budget, add its size.
 5. Pester covers each change, including a regression test verified by reverting its fix.
 
-**PR B — the rules split** (the section list the contract session signed off):
+**PR B — the rules split** (Ben signs off the list of sections that move before any text moves):
 
 1. Move the shared sections verbatim into the shared rules file. The kit repository's `AGENTS.md` keeps only
    what is specific to the kit (for example the `videos/` convention and the Videowright block).
