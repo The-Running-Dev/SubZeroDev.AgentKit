@@ -230,6 +230,10 @@ Tests: <what actually ran, and its result>
 Risk/Blocker: <only when material>
 ```
 
+**Say what happened before what it is called** — a reader should not have to translate field
+names, enums, booleans or exit codes; keep the exact identifier beside the meaning where it is
+needed to audit or act.
+
 A command adds the fields its own procedure requires, and nothing more by default: no narration of steps taken, no restating the task, no investigation chronology, no list of files read, no explanation of an obvious edit, no summary of a summary, no architecture commentary nobody asked for. **Anything already durable — a pull request, an issue, a design document, a decision record, `.claude/verify-report.json`, a log file — is named or linked in one line, never reproduced.**
 
 **Brevity never removes evidence.** Wherever another rule requires it, this is stated in full however long it runs: a failed or skipped gate and the did-not-run list (*Verification*); criterion results by id; text a rule requires verbatim; a stop condition; a fork or question only the user can decide (*Working with me*); a session-boundary banner (*Session boundaries*). A five-line report that omits a failed gate is wrong; a fifty-line one that states it is not.

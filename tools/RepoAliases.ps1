@@ -55,12 +55,13 @@ function Get-AgentKitNext {
     param([string]$RepoRoot = (Get-Location).Path)
     $orientation = & (Join-Path $script:RepoAliasesRoot 'Get-NextOrientation.ps1') -RepoRoot $RepoRoot
 
-    Write-Host "Branch: $($orientation.CurrentBranch)  Dirty: $($orientation.Dirty)"
-    Write-Host "Open PRs: $($orientation.OpenPrs.Items.Count) (gh available: $($orientation.OpenPrs.Available))"
-    Write-Host "Recently merged PRs: $($orientation.MergedPrs.Items.Count) (gh available: $($orientation.MergedPrs.Available))"
-    Write-Host "design/FROZEN.md present: $($orientation.Frozen)"
-    if ($orientation.DesignDrift.Ran) { Write-Host "Test-DesignDrift.ps1 exit code: $($orientation.DesignDrift.ExitCode)" }
-    if ($orientation.DesignState.Ran) { Write-Host "Test-DesignState.ps1 exit code: $($orientation.DesignState.ExitCode)" }
+    # Print the plain-language Summary each field already carries (AGENTS.md, *Output
+    # discipline*) rather than a raw Dirty/Available/exit-code dump the reader has to translate.
+    Write-Host $orientation.Summary
+    Write-Host $orientation.OpenPrs.Summary
+    Write-Host $orientation.MergedPrs.Summary
+    Write-Host $orientation.DesignDrift.Summary
+    Write-Host $orientation.DesignState.Summary
 
     $orientation
 }
