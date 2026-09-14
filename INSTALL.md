@@ -163,7 +163,7 @@ The kit ships this seeded with lessons harvested from other projects. It says so
 
 **Re-install:** this is `tools/Sync-Kit.ps1`'s report from phase 1, already computed. Nothing left to propose for the `Added`/`Updated`/`Superseded` rows — they apply in phase 4 by re-running the same command without `-DryRun`. The `Divergent-Skipped`, `Collision-Skipped`, `Unmigrated-Blocked` and `RemovedUpstream-Skipped` rows are what phase 3 asks about, one at a time.
 
-**A relocated `design/` path is now an `Unmigrated-Blocked` command, not a `Divergent-Skipped` one**, and its resolution has changed with it. Rewriting the path inside nineteen command files was always a local edit the kit could never take back; under the split it belongs in each affected command's companion, under `document-map`, and the core stays the kit's. That is what makes a relocated target able to receive command updates at all — the case the 2026-08-05 sync entry recorded as latent and unfixed.
+**A relocated `design/` path is now an `Unmigrated-Blocked` command, not a `Divergent-Skipped` one**, and its resolution has changed with it. Rewriting the path inside every command file that names `design/` was always a local edit the kit could never take back; under the split it belongs in each affected command's companion, under `document-map`, and the core stays the kit's. That is what makes a relocated target able to receive command updates at all — the case the 2026-08-05 sync entry recorded as latent and unfixed.
 
 ### Rules the target already states
 
