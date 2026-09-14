@@ -1,246 +1,257 @@
-# AgentKit home install: work plan
+# AgentKit Home Install
 
-Re-planned against `main` at `f704bda` on 2026-09-14. `design/FROZEN.md` is absent. This replaces the
-handoff `agentkit-home-install.md` of the same date; everything in it that still holds is carried here,
-and every place this plan departs from it says why.
+*SubZeroDev.AgentKit · implementation plan · 2026-09-14*
 
-**Goal, unchanged.** Stop copying the kit into every repository. Install it once per machine at
-`~/.agent-kit`, at a version chosen deliberately, and let each AI tool use it from there. Each repository
-keeps only what is its own: its project rules, `agent.md`, `design/`, its `-local.md` companions, its
-issue templates, and `.claude/kit.json`.
+Ben's handoff plan (`agentkit-home-install.md`, 2026-09-14) merged with the output-language dependency and
+brought up to date with `main` at `f704bda`. **The design, the decided items and the phases are the handoff's.**
+What this revision adds is only what the repository now says: facts that changed, and the work items they create,
+folded into the phase they belong to.
 
-## What changed since the handoff was written
+Stop copying the kit into every repo. Install it once per machine at `~/.agent-kit`, at a version you chose, and
+let Claude Code, Codex and Copilot use it from there in every project.
 
-Checked on this machine, not recalled:
+- **Source repo:** `D:\Dropbox\Projects\SubZeroDev.AgentKit`
+- **Modelled on:** [garrytan/gstack](https://github.com/garrytan/gstack)
+- **Status:** phase 0 can start now; phase 1 waits on the output-language work
 
-| Fact | Evidence | Effect on the plan |
-|---|---|---|
-| The output-language work is **not** on `main` yet | PR 1 of `reports/2026-09-14-repo-review-plan.md` merged (#300, #301, #302). PR 2 (W4, W5) and PR 3 (W6) have no commit and no open PR: `AGENTS.md` lacks W4's sentence and `Get-NextOrientation.ps1` has no `Summary` | Hard gate before phase 1 — see *Dependency on the output-language work* |
-| The kit's own brief puts this work out of scope | `design/00-brief.md` *Non-goals*: no target repository is migrated, and `/install`, `/install-all`, `/kit-sync` and `tools/Sync-Kit.ps1` are not in scope for change | **Decided by Ben (2026-09-14): separate project, no brief amendment, no contract session.** The brief's non-goal and the contract's unit globs are known-and-retained; this project does not stop on them |
-| The contract checks the exact paths the handoff moves | `design/20-contract.md` § *Artifacts of a unit kind*: command = `.claude/commands/*.md`, script = `tools/*.ps1`, document includes `.claude/COMPANIONS.md`. 26 decision records cite `AGENTS.md` sections as sites. W3's tests parse `AGENTS.md` § *Command routing* against `.claude/commands/*.md` | Moving commands to `skills/` breaks the design-state checks and W3's tests. Decision 2 |
-| `~/.agent-kit` already exists | A `/kit-sync` clone on `main` at `797f538`, clean, 23 commits behind `origin/main`. `Sync-Kit.ps1` and `New-DesignDocs.ps1` already default to it | The installer adopts it. Old repo copies of `/kit-sync` would move a pinned install back to a branch head — phase 2 handles it |
-| References to kit files are about twice the handoff's count | Across 23 command files: 107 references to kit files, 160 to project files, 104 to `AGENTS.md`, 16 argument placeholders | Sorting is scripted, not done by eye |
-| Three scripts default to the kit's directory, not the project's | `Split-Path -Parent $PSScriptRoot` in `Test-DesignDrift.ps1:351`, `Update-SlicesDocument.ps1:368`, `Test-VerifyReport.ps1:211` | Added to phase 1 |
-| The cost log follows the script, not the project | `Measure-Session.ps1` `Get-CostLogPath` resolves from the script's own git directory | Run from the install, every session's row would land in `~/.agent-kit/.claude/session-costs.tsv` (git-ignored, so silently). Added to phase 1 |
-| The Codex launcher's rules budget counts project files only | `Get-ProjectDocByteBudget` walks from the launch directory to `.git` | Whether Codex charges `~/.codex/AGENTS.md` to the same budget decides whether W1's fix survives the split. Phase 0 checks the source |
-| Copilot CLI is not installed | No `copilot` on `PATH`; `~/.copilot/` holds only IDE data and an `instructions/` folder. Claude Code is 2.1.270, Codex CLI 0.153.4 | The handoff's Copilot CLI tests cannot run. Decision 3 |
-| 23 repositories carry the kit, on different versions | 21–24 command files and 10–23 scripts each, all with `.claude/kit.json`; companions in GameEngine (14), Platform.UI.LandingPage (1), SkyNetHR (1); the session hook in 18. Also a stray `SubZeroDev.Blog-kit-sync-2026-09-07` copy and a `SubZeroDev.PSGenerator;C` folder | Migration cannot assume one released version. Phase 4 matches each file against *any* released version |
+---
+
+## Goal
+
+Today every project carries its own copy of the kit's commands, scripts and shared rules. Every kit change means
+syncing 23 repos, the copies drift apart, and each repo is cluttered with files it doesn't own.
+
+After this work, each repo holds only what is truly its own. Everything shared lives in one installed copy on the
+machine, and you control exactly when that copy moves to a new version.
+
+**Separate project.** This is not part of the current design-state work in `design/`. Don't route it through that
+brief or its non-goals.
 
 ## Dependency on the output-language work
 
-This project starts from the AgentKit behavior on `main` after the current human-facing output/reporting
-changes have landed — PR 2 (W4, W5) and PR 3 (W6) of `reports/2026-09-14-repo-review-plan.md`. Treat those
-rules and report semantics as canonical inputs to the migration.
+This project starts from the AgentKit behavior on `main` after the current human-facing output/reporting changes
+have landed. Treat those rules and report semantics as canonical inputs to the migration.
 
-- **Phase 0 may run before they land.** It changes nothing in the kit.
-- **Phase 1 does not start until both have merged.** PR 2 fixes the wording of `/next`, `/clean`,
-  `RepoAliases.ps1` and `Get-NextOrientation.ps1`, which phase 1 also edits; PR 3 edits `INSTALL.md`, which
-  phase 4 rewrites.
+When converting commands to skills, preserve their resulting human-facing behavior; do not resurrect older report
+wording from history or redesign the output policy as part of the home-install work.
 
-When converting commands to skills, preserve their resulting human-facing behavior; do not resurrect older
-report wording from history or redesign the output policy as part of the home-install work. *Output
-discipline* moves into the shared rules file **verbatim**, as one section, under *Single ownership*'s
-"move, never copy".
+If portability forces a change in report semantics rather than merely syntax or host adaptation, stop and surface
+that as a separate policy decision instead of folding it into the migration.
 
-If portability forces a change in report semantics rather than merely syntax or host adaptation, stop and
-surface that as a separate policy decision instead of folding it into the migration. Known in advance:
+**State on `main` today:** PR 2 (W4, W5) and PR 3 (W6) of `reports/2026-09-14-repo-review-plan.md` have not landed
+and have no open PR — `AGENTS.md` lacks W4's sentence, `Get-NextOrientation.ps1` has no `Summary`, `INSTALL.md`
+still says "nineteen command files". So:
 
-| Where | Why the report would change | Kind |
+- Phase 0 changes nothing in the kit and can start now.
+- Phase 1 starts after both have merged. Both touch files phase 1 moves or edits (`next.md`, `clean.md`,
+  `freeze.md`, `RepoAliases.ps1`, `Get-NextOrientation.ps1`, `INSTALL.md`).
+- *Output discipline* moves into the shared `AGENTS.md` unchanged.
+
+**Report changes the handoff's own scope already implies** — not portability, so not a stop, but worth knowing
+before phase 4: the `INSTALL.md` phase 3 report's *Cores taken outright* and *Unmigrated cores* rows lose their
+meaning; `/kit-sync`'s report is replaced by `/kit-update`'s. A report change forced by a host (for example an
+argument that cannot reach a skill at all) is a stop.
+
+## How it will work
+
+1. **Change the kit** (source repo). Edit, commit and push as today. Unfinished edits affect nothing else.
+2. **Release** (git). Push to main, optionally tag a version like `v2026.09.14`.
+3. **Update the install** (one command). Moves `~/.agent-kit` to that version and links skills into each AI tool.
+4. **Use it** (every repo). The next session in any project sees the new version. No repo changes.
+
+Rollback is the same command with an older version. Testing unreleased work is the same command pointed at your
+working branch.
+
+## Where things live
+
+### Installed once per machine: `~/.agent-kit` (a git checkout at one version)
+
+| Item | What it is |
+|---|---|
+| `skills/<name>/SKILL.md` | The 23 commands, converted to skills |
+| `tools/*.ps1` | Scripts the skills call |
+| `AGENTS.md` (shared part) | Rules that apply to every project |
+| `.claude/COMPANIONS.md`, `INSTALL.md`, `templates/` | Rules for per-repo tweaks, repo setup procedure, seed design docs |
+| Session-cost hooks | Registered once in personal Claude settings, pointing here |
+
+### Stays in each repo
+
+| Item | What it is |
+|---|---|
+| `AGENTS.md` (project part) | Project-specific rules only, plus a short pointer section to the kit |
+| `agent.md` | That repo's lessons |
+| `design/` | That repo's design docs |
+| `.claude/commands/<name>-local.md` | Per-repo command tweaks (companions), unchanged mechanism |
+| `.github/ISSUE_TEMPLATE/` | Unchanged |
+
+**Removed from every repo:** the copied `.claude/commands/*.md` cores, `.claude/COMPANIONS.md`, the kit's
+`tools/*.ps1`, the shared half of `AGENTS.md`, and the kit hooks in `.claude/settings.json`.
+
+## Already decided
+
+- The source stays in the current repo. Changes reach projects only after a deliberate push and update, never automatically.
+- Install location is `~/.agent-kit`, a git checkout, so the version is simply the commit or tag it sits on.
+- Plain skills, not a Claude Code plugin. Same format works in all three tools, and names stay short (`/slice`, not `/devkit:slice`).
+- On Windows, skills are linked with folder junctions, not copied, so nothing goes stale between updates.
+- Copy gstack's good ideas: one setup/update script, auto-detect installed tools, optional name prefix, ownership tracking so it never deletes a skill it didn't create, hooks written by the script.
+- No hourly auto-update from GitHub. At most a "newer version available" notice.
+- Only this machine (and any PC where the update is run) has the kit. Cloud sessions and GitHub Actions without it are accepted for now.
+
+## What `main` says now (checked 2026-09-14)
+
+| Fact | Where it lands |
+|---|---|
+| `~/.agent-kit` already exists: a `/kit-sync` clone on `main` at `797f538`, clean, 23 commits behind `origin/main` | Phase 2 adopts it rather than cloning |
+| 23 repos carry the kit (plus a stray `SubZeroDev.Blog-kit-sync-2026-09-07` copy and a `SubZeroDev.PSGenerator;C` folder), on different versions: 21–24 command files, 10–23 scripts. All have `.claude/kit.json`; 18 register the session hook; companions in GameEngine (14), Platform.UI.LandingPage (1), SkyNetHR (1) | Phases 4–5 |
+| Command files hold 107 references to kit files (the handoff counted 54), 160 to project files, 104 to `AGENTS.md`, 16 argument placeholders | Phase 1 step 2 |
+| `Test-DesignDrift.ps1:351`, `Update-SlicesDocument.ps1:368`, `Test-VerifyReport.ps1:211` default their root to the kit's own folder (`Split-Path -Parent $PSScriptRoot`) | Phase 1 step 3 |
+| `Measure-Session.ps1` resolves the cost log from the script's location, so run from the install it would write every session into `~/.agent-kit/.claude/session-costs.tsv` (git-ignored, so silently) | Phase 1 step 5 |
+| The Codex launcher now sets `project_doc_max_bytes` per run (#300), counting project rules files only; its `/unfreeze` prompts cite `.claude/commands/unfreeze.md` (#301) | Phase 0 and phase 1 step 3 |
+| W3's tests (#302) parse `AGENTS.md` § *Command routing* against `.claude/commands/*.md` | Phase 1 step 1 |
+| `design/20-contract.md` § *Artifacts of a unit kind* names `.claude/commands/*.md` as the command path, and design-state records cite `AGENTS.md` sections | Phase 1 steps 1 and 4 — path corrections only |
+| Claude Code 2.1.270 and Codex CLI 0.153.4 are installed; Copilot CLI is not | Phase 0 prerequisite |
+
+## The work, in order
+
+Each phase ends in a working state. Don't start the next one until the current one's checklist is true.
+
+### Phase 0 — Confirm the tools behave as expected (about half a day)
+
+**First:** install Copilot CLI.
+
+Everything later depends on these facts. Check them against the real tools on this machine, with one throwaway
+test skill, before changing the kit.
+
+| Tool | Personal skills folder to test | Personal rules file to test |
 |---|---|---|
-| `INSTALL.md` phase 3 report (`/install`) | *Cores taken outright* and *Unmigrated cores* stop meaning anything once cores are not installed into repositories | Scope change, not portability. Decided at the start of phase 4, before editing |
-| `/kit-sync` | Retired; `/kit-update` has a new report | New command. Its report follows *Output discipline* as it stands; it needs a *Command routing* row, which W3's tests enforce |
-| `/install-all` | Becomes a one-time migration report | Scope change. Decided at the start of phase 4 |
-| Any command taking an argument (16 placeholders) | Only if a host cannot deliver the argument at all, as opposed to delivering it differently | Portability. Phase 0 finds out; if it happens, stop |
+| Claude Code | `~/.claude/skills/<name>/` | `~/.claude/CLAUDE.md` importing an absolute path |
+| Codex CLI | `~/.agents/skills/` (older builds: `~/.codex/skills/`) | `~/.codex/AGENTS.md` |
+| Copilot CLI | `~/.copilot/skills/` or `~/.agents/skills/` | Find Copilot's personal instructions location |
 
-Frontmatter, placeholder syntax, and the path a command uses to reach a kit file are host adaptation, and
-are not a stop.
+- Does each tool find a skill whose folder is a Windows **directory junction**?
+- Do `$ARGUMENTS` / `$1` reach the skill in each tool?
+- Does `disable-model-invocation: true` stop Claude running a skill on its own? What do Codex and Copilot do with it?
+- If a repo still has `.claude/commands/slice.md` and a personal `slice` skill exists, which one runs? Claude's docs say personal wins. Confirm it.
+- Can a skill reliably call a script at `$HOME/.agent-kit/tools/…` from inside any project?
+- Which skill names clash with built-ins or existing skills (for example `/code-review`, `/review`, `/init`)?
+- **Codex:** does `~/.codex/AGENTS.md` count against `project_doc_max_bytes`? Read it from the Codex source at `rust-v0.153.4`, as #300 did, and cite the lines.
 
-## Decisions for Ben
+**Done when**
 
-One at a time, recommendation first.
+- [ ] A short findings note lists each answer above, per tool, from an actual run.
+- [ ] The name-clash list exists.
 
-**Decision 1 — settled.** Separate project, as the handoff said. No brief amendment, no contract session.
+> **Stop and report** if junctions don't work in a tool. The fallback is copying plus re-running the update after every release, and that's a choice for Ben.
 
-**Decision 2 — Keep command files where they are; build the skill folders during install.**
-The handoff moves each `.claude/commands/<name>.md` to `skills/<name>/SKILL.md` and links those folders into
-each tool with Windows junctions.
-*Recommended:* leave the source files where they are. The install script writes a `SKILL.md` folder per
-command, adding `name` and `disable-model-invocation: true` (commands are only ever run by you today, so this
-keeps that), directly into each tool's personal skills folder, and records every folder it wrote.
-- The design checks, W3's routing tests, `Test-Companion.ps1`, the Codex launcher, and the README's Codex
-  recipes keep working unchanged.
-- No junctions, so the phase 0 junction test stops being a blocker. The folders cannot go stale, because the
-  checkout only moves when the same script runs and rewrites them.
-- The optional name prefix is a rename at write time.
-- The deferred vendor-neutral path idea (#33) stays deferred and unaffected.
+### Phase 1 — Restructure the kit source (a few days; after the output-language work merges)
 
-*Alternative:* move the files as the handoff says. Cost: rewrite W3's routing tests, `Test-Companion.ps1`, the
-Codex launcher and the README's Codex recipes for the new paths, and keep the kit repository's own commands working during the move.
-Reversing either way later is a mechanical move.
+Make the repo installable. Work on a branch in the source repo. Existing repos keep working from their copies throughout.
 
-**Decision 3 — Which Copilot does the kit need to work in?**
-The brief says the kit runs under Claude Code, Codex and Copilot, but Copilot CLI is not installed here.
-*Recommended:* test whichever Copilot you actually use with the kit (the `~/.copilot/` folder suggests the
-editor extension), and don't install Copilot CLI for this.
-*Alternative:* install Copilot CLI and test that. Cost: a tool nothing here uses today becomes part of the
-trial.
+1. **Commands become skills.** Move each `.claude/commands/<name>.md` to `skills/<name>/SKILL.md`. Keep `description` and `argument-hint`, add `name` and `disable-model-invocation: true`, and keep the companion block unchanged. Report sections move unchanged. Update the paths that name command files: W3's routing tests, the `20-contract.md` command glob, and the README's Codex recipes.
+2. **Fix paths in two directions.** The command files have 107 references to kit files (`tools/*.ps1`, `COMPANIONS.md`). Those must point at the install root. Resolve the root as `$env:AGENTKIT_HOME`, falling back to `$HOME/.agent-kit`. References to the *project's* files must stay relative to the repo: `design/`, `.claude/kit.json`, `*-local.md`, `.claude/gates.json`, `.claude/verify-report.json`. Sort every reference into one bucket or the other with a script that lists each with its bucket; don't find-and-replace.
+3. **Scripts that assume they run inside the kit repo.** Check and fix at least `tools/Invoke-CodexCommand.ps1` (reads `.claude/commands/…`, and its `/unfreeze` prompts cite that path), `Test-Companion.ps1`, `Sync-Kit.ps1`, `RepoAliases.ps1` and `Get-NextOrientation.ps1`, plus `Test-DesignDrift.ps1`, `Update-SlicesDocument.ps1` and `Test-VerifyReport.ps1` (root defaults to the kit folder), and `New-ReducedPrompt.ps1`. If phase 0 found that `~/.codex/AGENTS.md` shares the Codex budget, the launcher adds its size. Update their Pester tests.
+4. **Split `AGENTS.md`.** Shared rules go into the installed copy. Each repo's file keeps only its project rules and a pointer. The kit repo is also a project and keeps its own project part (for example the `videos/` convention and the Videowright block). Update the design-state citations that point at moved sections. This step needs judgement about which rules are universal, so Ben reviews the split before it merges.
+5. **Hooks.** `Measure-Session.ps1` hooks currently use `${CLAUDE_PROJECT_DIR}/tools/…`. Point them at the install root instead. The cost log path then comes from the session's project, not the script's folder. A global hook runs in every project, so it writes only where `.claude/kit.json` exists, and skips repos whose own `settings.json` still registers the old hook (18 do), so no session is logged twice during migration.
+6. **Kit repo's own use.** Keep the kit repo usable while developing. It runs the installed version like everything else, and you test unreleased changes by updating from the working branch (phase 2).
 
-**Carried from the handoff and adopted unless you say otherwise** (all cheap to reverse):
+**Done when**
 
-- Command names stay as they are through the trial; rename once, with phase 0's clash list in hand.
-- Releases are date tags, `v2026.09.14`.
-- `.claude/kit.json` stays. It already exists, written by `/install` and `/kit-sync`; only its writer changes.
-- No per-model Codex skill variants, unless phase 0 shows Codex needs them.
+- [ ] Full Pester suite passes, including updated tests.
+- [ ] A search finds no kit-file references that assume the current directory is the kit repo.
+- [ ] Ben has approved the `AGENTS.md` shared/project split.
 
-## The work
+### Phase 2 — Build the install / update script (a few days)
 
-Each phase ends runnable. Implementation is `sonnet`/`medium` unless stated; each kit PR is its own branch
-off `main` and goes through `/pr`, which runs Pester, `Update-DesignProjection` then `Test-DesignState`,
-`Test-DesignDrift`, and `git diff --check`. A decision that changes policy writes its decision-log entry and
-design-state record in the same commit (`AGENTS.md`, *Writing a design-state record*). No staging PR and no
-`/track` pass: this plan is the queue.
-
-### Phase 0 — Confirm how the tools behave (one session, no kit changes; can start now)
-
-Test with one throwaway skill, on this machine, and write the answers to
-`reports/<date>-home-install-phase0.md`.
-
-| Question | Claude Code 2.1.270 | Codex CLI 0.153.4 | Copilot (per decision 3) |
-|---|---|---|---|
-| Personal skills folder that is actually read | `~/.claude/skills/` | `~/.agents/skills/` or `~/.codex/skills/` | to find |
-| Personal rules file, and whether it can point at `~/.agent-kit/...` | `~/.claude/CLAUDE.md` importing an absolute path | `~/.codex/AGENTS.md` | to find |
-| Does a command's argument reach the skill? | | | |
-| Does `disable-model-invocation: true` stop the model running it unasked? | | | |
-| Personal `slice` skill vs a repository's `.claude/commands/slice.md`: which runs? | | | |
-| Can a skill run `$HOME/.agent-kit/tools/<script>.ps1` from inside another repository? | | | |
-| Only if decision 2 goes the handoff's way: is a junctioned skill folder found? | | | |
-
-Plus, for Codex only: **does `~/.codex/AGENTS.md` count against `project_doc_max_bytes`?** Read it from the
-`openai/codex` source at tag `rust-v0.153.4`, as W1 did, and cite the lines.
-
-Plus the name-clash list: every current command name checked against each tool's built-ins and the skills
-already installed (`/code-review`, `/review`, `/init`, `/clean`, …).
-
-**Stop and report** if a personal skill does **not** win over a repository's copy in any tool. The migration
-and the `/kit-sync` shim below both rely on it, and the fallback is Ben's call.
-
-**Done when:** the note answers every cell from a real run, cites the Codex source lines, and holds the clash list.
-
-### Phase 1 — Make the kit installable (after the output-language gate)
-
-**PR A — paths and hooks** (independent of the rules split):
-
-1. **Sort every reference in the command files** into kit-file or project-file with a script that lists each
-   one with its bucket; a person judges only what the script cannot classify. Kit files resolve from
-   `$env:AGENTKIT_HOME`, falling back to `$HOME/.agent-kit`. Project files (`design/`, `.claude/kit.json`,
-   `*-local.md`, `.claude/gates.json`, `.claude/verify-report.json`, `agent.md`) stay relative to the
-   repository. The companion block's `../COMPANIONS.md` link is a kit-file reference.
-2. **Scripts that assume the kit is the project:** the three `Split-Path -Parent $PSScriptRoot` defaults above
-   resolve from the current repository instead; review `New-ReducedPrompt.ps1`, `New-DesignDocs.ps1`,
-   `Sync-Kit.ps1` and `Test-Companion.ps1` for the same. `RepoAliases.ps1` finds its sibling scripts from its
-   own folder already; how it is loaded into the PowerShell profile is checked and documented.
-3. **Session-cost hook:** the log path comes from the session's project (`CLAUDE_PROJECT_DIR` or the hook
-   input's working directory), not from the script's location. Registered once in `~/.claude/settings.json`
-   it runs in every project on the machine, so it writes only in a repository carrying `.claude/kit.json`
-   (or the kit itself), and does nothing where the repository's own `settings.json` still registers the old
-   hook, so a half-migrated repository does not log each session twice. `-Watch` still never exits non-zero.
-4. **Codex launcher:** if phase 0 found that `~/.codex/AGENTS.md` shares the budget, add its size.
-5. Pester covers each change, including a regression test verified by reverting its fix.
-
-**PR B — the rules split** (Ben signs off the list of sections that move before any text moves):
-
-1. Move the shared sections verbatim into the shared rules file. The kit repository's `AGENTS.md` keeps only
-   what is specific to the kit (for example the `videos/` convention and the Videowright block).
-2. Rewrite the citations mechanically: 104 in command files, the design-state records citing `AGENTS.md`,
-   W3's routing-table parser, `New-ReducedPrompt.ps1`. Regenerate projections, then run the checker.
-3. Confirm nothing was lost: every non-blank line removed from `AGENTS.md` appears in the shared file.
-
-**Done when:** full Pester passes; a search finds no kit-file reference that assumes the current directory is
-the kit; `Test-DesignState` reports no blocking finding.
-
-### Phase 2 — The install / update script (one PR, `sonnet`/`high`)
+One PowerShell script does install, update, rollback, testing unreleased work, and uninstall. It runs without prompts; destructive steps need `-Force`.
 
 ```text
 tools/Install-AgentKit.ps1
   -Version  <tag | branch | sha>   # default: latest tag, else main
-  -Source   <url | local path>     # default: ~/.agent-kit's origin; a local path tests unreleased work
-  -Hosts    claude,codex,copilot   # default: detect; Copilot per decision 3
-  -Prefix   <text>                 # optional: /ak-slice instead of /slice
-  -DryRun
-  -Uninstall                       # removes only what the manifest lists
+  -Source   <url | local path>     # default: recorded source; a local path tests unreleased work
+  -Hosts    claude,codex,copilot   # default: auto-detect what's installed
+  -Prefix                          # optional: install as /ak-slice instead of /slice
+  -DryRun                          # show what would change
+  -Uninstall                       # remove only what this script created
 ```
 
-1. **Adopt or clone `~/.agent-kit`.** An existing checkout must have the expected `origin`; refuse if it is
-   dirty. Check out the requested version.
-2. **Write skills** per decision 2 into the folders phase 0 confirmed, and record each in
-   `~/.agent-kit-state/installed.json`. A same-named folder not in the manifest is skipped with a warning.
-3. **Hooks** in `~/.claude/settings.json`: only the kit's two entries, file backed up first.
-4. **Pointer blocks** in each tool's personal rules file, as a marked region, so the shared rules load everywhere.
-5. **`/kit-update`**, a thin command that runs the script, with its *Command routing* row.
-6. **`kit-sync` shim.** Installed as a personal skill so that a repository still carrying the old
-   `/kit-sync` runs this instead, which says to use `/kit-update`. Without it, an old copy would check out a
-   branch head in `~/.agent-kit` and move every repository off the pinned version.
-7. Print the installed version and what changed, per *Output discipline*.
+1. Clone or fetch `~/.agent-kit`. The existing `/kit-sync` clone is adopted: check its `origin`, refuse if it has uncommitted changes. Check out the requested version.
+2. For each detected tool, create one junction per skill folder in that tool's personal skills folder, using the paths confirmed in phase 0.
+3. Record every link it made in a manifest outside the checkout (for example `~/.agent-kit-state/installed.json`). Only ever remove links listed there. If a folder with the same name exists and isn't in the manifest, skip it with a warning, the way gstack protects your own skills.
+4. Add or refresh the kit's hooks in `~/.claude/settings.json`. Touch only its own entries and back the file up first.
+5. Add or refresh a marked pointer block in each tool's personal rules file so the shared `AGENTS.md` loads everywhere.
+6. Print the installed version and what changed. Add a thin `/kit-update` skill that just runs the script.
+7. Ship a `kit-sync` skill that only says to use `/kit-update`. A repo still carrying the old `/kit-sync` would otherwise check out `main` in `~/.agent-kit` and move every project off the pinned version. Relies on personal skills winning (phase 0).
 
-**Done when:** Pester covers a fresh install, a no-change re-run, a version change, a rollback, adopting an
-existing clone, refusing a dirty one, skipping a foreign folder, and uninstall removing only its own entries;
-a second run in a row changes nothing.
+**Done when**
 
-### Phase 3 — Trial on one repository (one session, a PR in that repository)
+- [ ] Pester tests cover a fresh install, re-running with no changes, a version change, rollback, adopting the existing clone, skipping a foreign folder, and uninstall removing only its own links.
+- [ ] Running it twice in a row changes nothing the second time.
 
-Trial repository: **SubZeroDev.Platform.UI.LandingPage** — small, and it has a companion, so "companions are
-still read" is actually tested. It has no session hook of its own, so the double-logging guard is tested
-separately, in any repository that still has one, before phase 5.
+### Phase 3 — Trial on one repo (about a day)
 
-1. Tag a release and install it here.
-2. On a branch there: delete the copied commands, scripts and `COMPANIONS.md`, remove the kit's half of its
-   rules, keep the companion, add the pointer section.
-3. Run `/next`, `/verify` and a small `/fix` in Claude Code; at least one command through the Codex launcher;
-   at least one in Copilot per decision 3.
-4. Release a trivial kit change, update, confirm the repository sees it; roll back, confirm again.
+Prove it end-to-end on a small real project before touching the rest.
 
-**Done when:** every tool ran kit skills there with no copies present; the companion was read; the session
-cost row landed in that repository's log; update and rollback both took effect with no change to the repository.
+1. Install at a release tag on this machine.
+2. On a branch in one small repo, delete the copied commands, tools, `COMPANIONS.md`, the shared half of `AGENTS.md`, and the kit hooks. Add the pointer section.
+3. Run `/next`, `/verify` and a small `/fix` or `/slice` in Claude Code. Run at least one command in Codex and one in Copilot.
+4. Release a trivial kit change, update, and confirm the repo sees it. Then roll back and confirm again.
 
-### Phase 4 — Replace the copy tooling (one kit PR)
+**Done when**
 
-Starts with the report decisions listed under *Dependency on the output-language work*.
+- [ ] All three tools ran kit skills in that repo with no copies present.
+- [ ] The repo's `-local.md` companions are still read.
+- [ ] Session-cost logging still records the session, in that repo's log.
+- [ ] Update and rollback both took effect without any change to the repo.
 
-1. `INSTALL.md` and `/install` handle only per-repository files: project rules, `agent.md`, the `design/` seed,
-   issue templates, the pointer section, `.claude/kit.json`.
-2. `/kit-sync` and `Sync-Kit.ps1` are retired; `/kit-update` replaces them.
-3. `/install-all` becomes the one-time migration. Per repository, on a branch: delete a copied kit file only if
-   it is byte-identical to that file at **some** released kit commit (23 repositories on different versions),
-   otherwise report it and leave it; keep companions; strip the kit's rules only where they match the shared
-   file, and report the rest; add the pointer; remove the repository's own session-hook entry; open a PR.
+### Phase 4 — Replace the copy-into-repo tooling (a few days)
 
-**Done when:** a dry run lists, per repository, exactly what it would delete and what it refuses to.
+1. **`/install` / `INSTALL.md`** handle only the per-repo files: project `AGENTS.md`, `agent.md`, `design/` seed, issue templates, pointer section.
+2. **`/kit-sync`** is replaced by `/kit-update`. **`Sync-Kit.ps1`** is retired.
+3. **`/install-all`** becomes a one-time migration. For each repo, on a branch: delete each copied kit file only if it matches a released kit version — any of them, since the 23 repos are on different versions — (otherwise report it and leave it), keep companions, remove the repo's kit hooks, add the pointer, open a PR. Ben merges.
 
-### Phase 5 — Migrate and clean up
+**Done when**
 
-1. Run the migration across the 23 repositories, one PR each. The stray `SubZeroDev.Blog-kit-sync-2026-09-07`
-   copy and the `SubZeroDev.PSGenerator;C` folder are reported, not migrated.
-2. For each refused file, decide with Ben: move the edit into a companion, or drop it.
-3. Update `README.md`; remove the old copy machinery.
+- [ ] The migration dry-run lists, per repo, exactly what it would delete and anything it refuses to delete.
+
+### Phase 5 — Migrate every repo, then clean up (mostly waiting on merges)
+
+1. Run the migration across all `SubZeroDev.*` repos. One PR each. The stray `Blog-kit-sync-2026-09-07` copy and the `PSGenerator;C` folder are reported, not migrated.
+2. For each refused file (edited locally), decide with Ben: move the edit into a companion, or drop it.
+3. Update `README.md` with the new install and update steps. Remove the old copy machinery from the kit.
 4. Run the install on any other PC Ben uses.
 
-**Done when:** no `SubZeroDev.*` repository holds a copied kit command, kit script, or `COMPANIONS.md`; a kit
-release reaches every repository by running one command, with no PRs.
+**Done when**
+
+- [ ] No `SubZeroDev.*` repo contains a copied kit command, kit script, or `COMPANIONS.md`.
+- [ ] A kit release reaches every repo by running one command, with no PRs.
 
 ## Gotchas
 
-- **A bad release hits every project at once.** Rollback stays one command; tags give "last good" a name.
-- **In the kit repository itself, the installed version runs, not the working tree** (if phase 0 confirms
-  personal wins). Test unreleased work by installing from the working branch.
-- **Two kinds of path look alike.** A mix-up breaks other repositories, never the kit, so the kit's own
-  tests will not catch it. The phase 3 trial is where it shows.
-- **Not everywhere has the kit.** Claude Code on the web, cloud sessions, and the GitHub Action reviewer lose
-  the shared rules once a repository is migrated. Accepted for now.
-- **Name clashes.** Phase 0's list and the optional prefix cover them.
+- **A bad release hits every project at once.** That's the price of one copy. Keep rollback a single command, and tag releases so "last good" has a name.
+- **Personal skills beat repo copies.** During migration, a repo still carrying old copies runs the installed skill, not its copy. That's desirable, but the trial should confirm it. In the kit repo, test changes by updating from the working branch.
+- **Two kinds of path look alike.** "The kit's `tools/`" and "the project's `design/`" are both written as relative paths today. Mixing them up breaks silently in other repos, not in the kit repo.
+- **Not everywhere has the kit.** Claude Code on the web, cloud sessions, and the GitHub Action PR reviewer won't see it. Accepted for now. Revisit only if one of those becomes a daily need.
+- **Name clashes.** A plain `/review` or `/clean` can collide with a built-in or someone else's skill. The phase 0 clash list and the optional prefix cover this.
+- **Old `/kit-sync` copies.** Until a repo is migrated, its `/kit-sync` can move `~/.agent-kit`. Phase 2 step 7 covers it.
+
+## Still to decide (Ben)
+
+Unchanged from the handoff.
+
+- **Command names:** rename during phase 1, or keep current names until the trial works? *Recommended:* keep names through the trial, then rename once with the clash list in hand.
+- **Version labels:** date tags (`v2026.09.14`), numbered tags, or just commits? *Recommended:* date tags. They're easy to roll back to and need no numbering rules.
+- **Record the version in each repo?** Keep a small `.claude/kit.json` noting the kit version a repo was last set up with, or drop it? *Recommended:* keep it, written only by `/install`, for troubleshooting.
+- **Codex model-specific variants** (gstack generates skill variants per Codex model): needed? *Recommended:* no, unless phase 0 shows Codex behaving differently.
 
 ## Reference
 
-- Handoff superseded: `agentkit-home-install.md` (2026-09-14).
-- [gstack](https://github.com/garrytan/gstack): multi-tool skill writing, prefix, ownership manifest, hook registration.
-- [Claude Code skills](https://code.claude.com/docs/en/skills.md), [Copilot skills](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills), Codex source at `rust-v0.153.4` — all to be confirmed in phase 0, not relied on from these pages.
-- Copy machinery replaced in phase 4: `INSTALL.md`, `.claude/commands/install.md`, `install-all.md`, `kit-sync.md`, `tools/Sync-Kit.ps1`.
+- [gstack](https://github.com/garrytan/gstack) and its [setup script](https://raw.githubusercontent.com/garrytan/gstack/main/setup): multi-tool skill linking, prefix option, ownership tracking, hook registration.
+- [Claude Code skills](https://code.claude.com/docs/en/skills.md): folder locations, precedence, `disable-model-invocation`, arguments.
+- [Copilot CLI skills](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills): personal skills folders.
+- [Where Codex skills live](https://knightli.com/en/2026/04/29/difference-between-global-and-project-codex-skills/): `~/.agents/skills` vs the older `~/.codex/skills`. Confirm in phase 0.
+- Current copy machinery to replace: `INSTALL.md`, `.claude/commands/install.md`, `install-all.md`, `kit-sync.md`, `tools/Sync-Kit.ps1`.
+- Output-language work this depends on: `reports/2026-09-14-repo-review-plan.md`, PR 2 and PR 3.
+
+---
+
+*Phases 0–4 are implementation work. The `AGENTS.md` split in phase 1 and the refused-file decisions in phase 5 need Ben's sign-off.*
