@@ -18,6 +18,24 @@
     fabricated number this script exists to replace. Multiply the columns by
     current published rates yourself.
 
+    Calls and every token class are counted once per distinct message.id:
+    Claude Code writes one JSONL record per content block of a single API
+    response (thinking, text, tool_use each on its own line), and every one
+    of those records repeats the same message.id and the same full
+    message.usage. Summing per line, as this script did before, counts a
+    single response's tokens once per content block it happened to produce.
+    A record with no message.id - every existing test fixture, and any
+    transcript shape that predates this field - is counted as its own call,
+    since there is nothing to dedupe against.
+
+    completionCalls, completionOutput, textChars, completionTextChars,
+    toolResultChars and peakContext report only what the transcript states
+    exactly. output_tokens is reported once per API response, so it cannot
+    be split between thinking, visible text, and tool-call input - no such
+    split exists in the record. The char counts are characters, not tokens,
+    and are not a proxy for either. Nothing here classifies any output as
+    waste.
+
     Claude Code only, and it says so rather than guessing. Every transcript is
     shape-checked before it is summed, and anything else is a hard error: a
     foreign transcript parsed for 'message.usage' yields zero, and a zero is
@@ -213,6 +231,61 @@ function Assert-NotCopilotStore {
     }
 }
 
+function New-UsageSum {
+    <#
+      Shared shape for every accumulator in this script - a segment, a
+      session total, a subagent total, or an all-sessions grand total - so
+      Add-UsageSum can fold one into another without each call site
+      re-listing the field names. PeakContext is not summed (see
+      Add-UsageSum): it is initialised to 0 here anyway so an accumulator
+      that never sees a call still reports a real number, not $null.
+    #>
+    [pscustomobject]@{
+        Calls = 0; Input = 0L; CacheCreate = 0L; CacheRead = 0L; Output = 0L
+        CompletionCalls = 0; CompletionOutput = 0L
+        TextChars = 0L; CompletionTextChars = 0L; ToolResultChars = 0L
+        PeakContext = 0L
+    }
+}
+
+function Add-UsageSum {
+    <#
+      Folds a segment (or another accumulator - the shapes are identical)
+      into $Sum. PeakContext is the one field this does not add: it is a
+      property of a single call, not a quantity of work, so combining two
+      ranges takes the larger peak rather than the total of both.
+    #>
+    param([object]$Sum, [object]$Segment)
+    foreach ($field in 'Calls', 'Input', 'CacheCreate', 'CacheRead', 'Output',
+                        'CompletionCalls', 'CompletionOutput',
+                        'TextChars', 'CompletionTextChars', 'ToolResultChars') {
+        $Sum.$field += $Segment.$field
+    }
+    if ($Segment.PeakContext -gt $Sum.PeakContext) { $Sum.PeakContext = $Segment.PeakContext }
+}
+
+function Get-ToolResultCharCount {
+    <#
+      A tool_result's own 'content' is either a plain string or an array of
+      {type:text, text:...} blocks - both shapes are seen in real
+      transcripts depending on the tool. Anything else (e.g. an image block)
+      contributes nothing rather than throwing, since this is a character
+      count, not a schema validator.
+    #>
+    param($Block)
+    $content = if ($Block.PSObject.Properties.Name -contains 'content') { $Block.content } else { $null }
+    if (-not $content) { return 0L }
+    if ($content -is [string]) { return [long]$content.Length }
+
+    $total = 0L
+    foreach ($item in @($content)) {
+        if ($item.PSObject.Properties.Name -contains 'text' -and $item.text) {
+            $total += [long]$item.text.Length
+        }
+    }
+    return $total
+}
+
 function Read-Session {
     param([System.IO.FileInfo]$File)
 
@@ -221,10 +294,18 @@ function Read-Session {
     $stamps = [System.Collections.Generic.List[datetime]]::new()
     $models = [System.Collections.Generic.HashSet[string]]::new()
 
+    # Session-wide, not per-segment: a message.id names one API response, and
+    # every content-block record for it carries the same id regardless of
+    # which segment is active when each block's line is written.
+    $seenMessageIds = [System.Collections.Generic.HashSet[string]]::new()
+
     function New-Segment { param([string]$Label)
         [pscustomobject]@{
             Label = $Label; Calls = 0
             Input = 0L; CacheCreate = 0L; CacheRead = 0L; Output = 0L
+            CompletionCalls = 0; CompletionOutput = 0L
+            TextChars = 0L; CompletionTextChars = 0L; ToolResultChars = 0L
+            PeakContext = 0L
         }
     }
 
@@ -259,6 +340,16 @@ function Read-Session {
             continue
         }
 
+        # A tool_result carries no usage and never opens a pending segment -
+        # it is attributed to whatever segment is already active, same as any
+        # other line that arrives between commands.
+        $blocks = if ($message.PSObject.Properties.Name -contains 'content' -and $message.content) { @($message.content) } else { @() }
+        foreach ($block in $blocks) {
+            if ($block.PSObject.Properties.Name -contains 'type' -and $block.type -eq 'tool_result') {
+                $current.ToolResultChars += Get-ToolResultCharCount -Block $block
+            }
+        }
+
         $usage = if ($message.PSObject.Properties.Name -contains 'usage') { $message.usage } else { $null }
         if (-not $usage) { continue }
 
@@ -275,6 +366,30 @@ function Read-Session {
             [void]$models.Add($message.model)
         }
 
+        $stopReason = if ($message.PSObject.Properties.Name -contains 'stop_reason') { $message.stop_reason } else { $null }
+
+        # Every content-block record of one API response repeats the same
+        # message.id (see the .DESCRIPTION note on Read-Session's whole
+        # reason for existing), so text is the one metric counted per block
+        # rather than per id: each block is its own line and, checked against
+        # real transcripts, never more than one text block per record.
+        foreach ($block in $blocks) {
+            if ($block.PSObject.Properties.Name -contains 'type' -and $block.type -eq 'text' -and
+                $block.PSObject.Properties.Name -contains 'text' -and $block.text) {
+                $chars = [long]$block.text.Length
+                $current.TextChars += $chars
+                if ($stopReason -eq 'end_turn') { $current.CompletionTextChars += $chars }
+            }
+        }
+
+        # message.id is what distinguishes a genuinely new call from another
+        # content block of the one already seen; a record with no id (every
+        # existing fixture, and any shape that predates this field) has
+        # nothing to dedupe against and is counted as its own call.
+        $messageId = if ($message.PSObject.Properties.Name -contains 'id' -and $message.id) { [string]$message.id } else { $null }
+        $isNewCall = if ($messageId) { $seenMessageIds.Add($messageId) } else { $true }
+        if (-not $isNewCall) { continue }
+
         $current.Calls++
         foreach ($pair in @(
             @('input_tokens', 'Input'),
@@ -283,6 +398,22 @@ function Read-Session {
             @('output_tokens', 'Output'))) {
             if ($usage.PSObject.Properties.Name -contains $pair[0]) {
                 $current.($pair[1]) += [long]$usage.($pair[0])
+            }
+        }
+
+        # Context paid by this one call - a max across calls, not a running
+        # total, because it describes the size of the largest single request
+        # rather than an accumulating cost.
+        $callContext = 0L
+        foreach ($field in 'input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens') {
+            if ($usage.PSObject.Properties.Name -contains $field) { $callContext += [long]$usage.$field }
+        }
+        if ($callContext -gt $current.PeakContext) { $current.PeakContext = $callContext }
+
+        if ($stopReason -eq 'end_turn') {
+            $current.CompletionCalls++
+            if ($usage.PSObject.Properties.Name -contains 'output_tokens') {
+                $current.CompletionOutput += [long]$usage.output_tokens
             }
         }
     }
@@ -321,7 +452,7 @@ function Get-SubagentUsage {
     #>
     param([string]$Directory, [string]$SessionId)
 
-    $sum = [pscustomobject]@{ Calls = 0; Input = 0L; CacheCreate = 0L; CacheRead = 0L; Output = 0L }
+    $sum = New-UsageSum
     $subDirectory = Join-Path $Directory $SessionId 'subagents'
     if (-not (Test-Path $subDirectory)) { return $sum }
 
@@ -329,9 +460,7 @@ function Get-SubagentUsage {
         if ((Get-TranscriptVendor -File $file) -ne 'claude') { continue }
         $session = Read-Session -File $file
         foreach ($segment in $session.Segments) {
-            foreach ($field in 'Calls', 'Input', 'CacheCreate', 'CacheRead', 'Output') {
-                $sum.$field += $segment.$field
-            }
+            Add-UsageSum -Sum $sum -Segment $segment
         }
     }
     return $sum
@@ -389,11 +518,13 @@ if ($Hook) {
 
         $session = Read-Session -File $file
 
-        $sum = [pscustomobject]@{ Calls = 0; Input = 0L; CacheCreate = 0L; CacheRead = 0L; Output = 0L }
+        # Column set unchanged deliberately: 'calls' here already reflects the
+        # dedupe fix because Read-Session does the deduping, not this loop, and
+        # the new exact metrics have no place in a TSV meant to trend cost
+        # over time rather than restate the JSON report.
+        $sum = New-UsageSum
         foreach ($segment in $session.Segments) {
-            foreach ($field in 'Calls', 'Input', 'CacheCreate', 'CacheRead', 'Output') {
-                $sum.$field += $segment.$field
-            }
+            Add-UsageSum -Sum $sum -Segment $segment
         }
         if (-not $sum.Calls) { exit 0 }
 
@@ -507,8 +638,8 @@ $files = @(Get-ChildItem $directory -Filter *.jsonl -File)
 if ($SessionId) { $files = @($files | Where-Object BaseName -like "$SessionId*") }
 if (-not $files.Count) { throw "No transcripts matched in $directory." }
 
-$totals = [pscustomobject]@{ Calls = 0; Input = 0L; CacheCreate = 0L; CacheRead = 0L; Output = 0L }
-$subagentTotals = [pscustomobject]@{ Calls = 0; Input = 0L; CacheCreate = 0L; CacheRead = 0L; Output = 0L }
+$totals = New-UsageSum
+$subagentTotals = New-UsageSum
 $reportSessions = [System.Collections.Generic.List[object]]::new()
 
 foreach ($file in ($files | Sort-Object LastWriteTime)) {
@@ -532,18 +663,14 @@ foreach ($file in ($files | Sort-Object LastWriteTime)) {
     $session = Read-Session -File $file
     if (-not $session.Segments.Count) { continue }
 
-    $sum = [pscustomobject]@{ Calls = 0; Input = 0L; CacheCreate = 0L; CacheRead = 0L; Output = 0L }
+    $sum = New-UsageSum
     foreach ($segment in $session.Segments) {
-        foreach ($field in 'Calls', 'Input', 'CacheCreate', 'CacheRead', 'Output') {
-            $sum.$field += $segment.$field
-            $totals.$field += $segment.$field
-        }
+        Add-UsageSum -Sum $sum -Segment $segment
+        Add-UsageSum -Sum $totals -Segment $segment
     }
 
     $subagentSum = Get-SubagentUsage -Directory $directory -SessionId $session.Id
-    foreach ($field in 'Calls', 'Input', 'CacheCreate', 'CacheRead', 'Output') {
-        $subagentTotals.$field += $subagentSum.$field
-    }
+    Add-UsageSum -Sum $subagentTotals -Segment $subagentSum
 
     $shortId = if ($session.Id.Length -gt 8) { $session.Id.Substring(0, 8) } else { $session.Id }
     $reportSessions.Add([pscustomobject]@{
@@ -580,6 +707,15 @@ if ($Human) {
             ('-' * $header.Length)
         }
         Format-Row -Label 'session total' -S $session.Total
+        # A second line rather than more columns: these are exact counts of
+        # different things (a call outcome, a character count, a single
+        # call's peak) and folding them into the calls/input/.../output row
+        # would imply they are priced the same way. Wording and field order
+        # match .DESCRIPTION's list of what a transcript states exactly.
+        '  completions {0:N0} ({1:N0} output) · text {2:N0} chars ({3:N0} in completions) · tool results {4:N0} chars · peak context {5:N0}' -f
+            $session.Total.CompletionCalls, $session.Total.CompletionOutput,
+            $session.Total.TextChars, $session.Total.CompletionTextChars,
+            $session.Total.ToolResultChars, $session.Total.PeakContext
         if ($session.Subagents.Calls) {
             Format-Row -Label 'subagents (separate cost)' -S $session.Subagents
         }
@@ -607,6 +743,12 @@ else {
             cacheCreate = $S.CacheCreate
             cacheRead   = $S.CacheRead
             output      = $S.Output
+            completionCalls      = $S.CompletionCalls
+            completionOutput     = $S.CompletionOutput
+            textChars            = $S.TextChars
+            completionTextChars  = $S.CompletionTextChars
+            toolResultChars      = $S.ToolResultChars
+            peakContext          = $S.PeakContext
         }
     }
 

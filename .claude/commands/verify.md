@@ -104,7 +104,7 @@ Three lists, rendered from the validated artifact. All three are required, and t
 
 ```
 Ran and passed:   <gate> — <what it covered>
-Ran and failed:   <gate> — <the actual output, not a summary>
+Ran and failed:   <gate> — <each failure's assertion or error, quoted from `detail`, not a summary>
 Did not run:      <gate> — <why: tool missing, Docker down, no such script>
 ```
 
@@ -116,7 +116,7 @@ Did not run:      <gate> — <why: tool missing, Docker down, no such script>
   `Test-DesignState.ps1` exiting 2 means the design state was not read — an absent state set,
   an unparseable record, a projector that would not run, an unauthenticated `gh`. Its
   `reason` is the script's own could-not-evaluate output, quoted, not a paraphrase.
-- **Quote failures.** Paste the failing output into the artifact's `detail` field. A summary of a failure is a claim about a failure — `Test-VerifyReport.ps1` rejects a `detail` too short to plausibly be pasted output.
+- **Quote failures.** Paste the failing output into the artifact's `detail` field. A summary of a failure is a claim about a failure — `Test-VerifyReport.ps1` rejects a `detail` too short to plausibly be pasted output. The chat list quotes every failure's own diagnostic lines and names the artifact for the rest; it never repeats thousands of passing lines (`AGENTS.md`, *Output discipline*).
 - **Never write "all checks pass"** unless every discovered gate is in the first list. If anything is in the third list, the honest sentence names it: *"the three that ran passed; the documentation build did not run because Docker is unavailable."*
 - **A gate that cannot run locally is not a gate you may report on.** Say so, and say that the corresponding CI check on the pull request is where the answer will come from.
 - If CI runs a check you could not reproduce locally at all, name it explicitly rather than leaving it out.

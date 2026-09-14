@@ -205,7 +205,7 @@ GitHub Projects v2 needs the `project` token scope, which `repo` does not includ
 ## Report
 
 - Issues opened, with numbers and titles
-- Issues that already existed, skipped
+- How many issues already existed and were skipped — a count, not a list (`AGENTS.md`, *Output discipline*)
 - Issues closed, with numbers and titles
 - Slices whose criteria drifted from their issue
 - Open items removed from `90-decisions.md`
