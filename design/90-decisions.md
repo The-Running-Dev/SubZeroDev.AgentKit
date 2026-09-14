@@ -2,6 +2,12 @@
 
 Append-only. Newest at the top. The rejected alternatives are the point — without them, every future session relitigates the same choice.
 
+### 2026-09-14 — `/unfreeze` may run as two sessions where the launching tool can't switch tier mid-session
+Context: `/unfreeze`'s reconcile phase (deep reasoning) and track phase (implementation) are specified to run "in this same session," but Codex fixes a profile's tier for a process's lifetime and cannot switch mid-session (issue #253). `tools/Invoke-CodexCommand.ps1` already chains two separate `codex` processes to work around this; `unfreeze.md` and `AGENTS.md` still described only the single-session case, and the launcher's own prompts restated `unfreeze.md`'s procedure and report shape a second time instead of citing it.
+Chosen: `unfreeze.md` gains a *Split across sessions* section naming the boundary: session 1 runs *Refuse if not frozen*, Phase 1, Phase 2, and *Commit*; session 2 runs Phase 3 and *Report*. *Commit* now always commits the marker's deletion (previously only "if reconciliation touched `design/`"), so the split always has a handoff to read. `AGENTS.md` § *The design freeze* now allows the split and cites `unfreeze.md` rather than restating it. The launcher's two prompts shrink to one-paragraph citations of *Split across sessions* instead of restating the procedure and report shape.
+Rejected: Leaving the launcher's prompts as full restatements — rejected because a restatement is a second copy that drifts from `unfreeze.md` itself (`AGENTS.md`, *Single ownership*), and the old track-phase prompt asked for a report contradicting `unfreeze.md`'s own *Report* section (pointing at "the commit `/reconcile` produced" when `/reconcile` doesn't commit). Requiring Codex to hold both tiers in one process — rejected as infeasible; profile tier is fixed for a process's lifetime.
+Reversibility: cheap
+
 ## Open
 <A staging area, not a home. Things noticed mid-slice that were deliberately not acted on. `/track` turns each into a GitHub issue and removes it from here. An item that is a *decision* rather than a *todo* belongs below as an entry, not in an issue.>
 

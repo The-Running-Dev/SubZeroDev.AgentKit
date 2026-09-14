@@ -11,7 +11,16 @@ It may override: `vocabulary`, `document-map`, `extra-steps`. It may never overr
 
 Lift the freeze `/freeze` set. This command runs unattended, without a confirmation prompt — that is a deliberate policy in this repository (`AGENTS.md`, *The design freeze*), not an oversight, so do not add one back.
 
-**This command owns the sequence. It does not own the procedure of either phase.** Phase 2 is `.claude/commands/reconcile.md` and phase 3 is `.claude/commands/track.md`, run in full, in this same session. Those files stay the single home for how drift is compared and how the tracker is resynced — this one never restates them (`AGENTS.md`, *Single ownership*). Both remain invocable on their own.
+**This command owns the sequence. It does not own the procedure of either phase.** Phase 2 is `.claude/commands/reconcile.md` and phase 3 is `.claude/commands/track.md`, run in full. Those files stay the single home for how drift is compared and how the tracker is resynced — this one never restates them (`AGENTS.md`, *Single ownership*). Both remain invocable on their own.
+
+## Split across sessions
+
+The ordinary case is one session, start to finish (`AGENTS.md`, *The design freeze*). Where the launching tool cannot change tier mid-session — Codex; `tools/Invoke-CodexCommand.ps1` chains two separate processes for exactly this reason, issue #253 — the run splits into two sessions instead, at this boundary:
+
+- **Session 1** runs *Refuse if not frozen*, Phase 1, Phase 2, and *Commit*.
+- **Session 2** runs Phase 3 and *Report*.
+
+Session 1's commit is the handoff: session 2 reads that commit rather than being told what session 1 found. Nothing prompts the human between the two; the launching tool starts both.
 
 ## Refuse if not frozen
 
@@ -33,11 +42,11 @@ Delete `design/FROZEN.md`. This command is the one exception to `/reconcile`'s o
 
 ## Commit
 
-If reconciliation touched `design/`, stage those files by name and commit per `AGENTS.md`, *Git and delivery*. The marker's own deletion is part of the same commit, not a separate one.
+Always commit the marker's own deletion — it is *Split across sessions*' handoff whether or not this run actually splits. If reconciliation touched `design/`, stage those files by name and commit them together with the deletion, per `AGENTS.md`, *Git and delivery*, in one commit, not two. If reconciliation touched nothing, commit the deletion alone.
 
 ## Report
 
-State the freeze is lifted, and point at the commit `/reconcile` produced and the issues `/track` touched rather than restating either phase's own report (`AGENTS.md`, *Output discipline*). If `/reconcile` or `/track` surfaced something that needs a decision — a contested drift, a slice that turns out to need a contract amendment — stop there and ask, one item at a time, rather than resolving it inline.
+State the freeze is lifted, and point at the commit *Commit* produced and the issues `/track` touched rather than restating either phase's own report (`AGENTS.md`, *Output discipline*). If `/reconcile` or `/track` surfaced something that needs a decision — a contested drift, a slice that turns out to need a contract amendment — stop there and ask, one item at a time, rather than resolving it inline.
 
 ## Re-run
 
