@@ -476,7 +476,7 @@ function Get-CostLogPath {
     <#
       The log lives beside the repository being measured, not beside
       whichever checkout happened to run this hook. Under home-install
-      (AGENTS.md's Home-install convention), $PSScriptRoot is the kit's own
+      (AGENTS.shared.md's Home-install convention), $PSScriptRoot is the kit's own
       install root - the same for every project - so it cannot be the
       resolution root here the way it was when this script was copied into
       each repo. $env:CLAUDE_PROJECT_DIR is the project Claude Code set up
@@ -631,7 +631,7 @@ if ($Watch) {
         } else {
             'Finish this step, then end the session - do not start the next step here.'
         }
-        '[session-watch] Context is {0:N0} tokens and every further turn pays it again ({1} the {2:N0} threshold). AGENTS.md treats the artifact you are about to produce as the handoff point: {3}' -f $context, $severity, $WarnAtTokens, $action
+        '[session-watch] Context is {0:N0} tokens and every further turn pays it again ({1} the {2:N0} threshold). AGENTS.shared.md treats the artifact you are about to produce as the handoff point: {3}' -f $context, $severity, $WarnAtTokens, $action
         exit 0
     }
     catch { exit 0 }

@@ -90,7 +90,7 @@ Describe 'Invoke-Housekeeping' {
             (& git -C $repo branch --list 'feature/ordinary') | Should -BeNullOrEmpty
         }
 
-        It 'reports the pulled state as a sentence, not a bare boolean (AGENTS.md, Output discipline)' {
+        It 'reports the pulled state as a sentence, not a bare boolean (AGENTS.shared.md, Output discipline)' {
             $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-wording')
             New-MergedBranch -RepoPath $repo -Branch 'feature/wording'
 

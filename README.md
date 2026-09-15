@@ -5,8 +5,9 @@ Eight stages. Most end in a committed artifact; the two review gates deliberatel
 ## Layout
 
 ```
-AGENTS.md                     binding contract, read by Codex
-CLAUDE.md                     pointer to AGENTS.md, read by Claude Code
+AGENTS.shared.md              binding contract every repo using the kit shares
+AGENTS.md                     this repo's project rules on top of it, read by Codex
+CLAUDE.md                     imports both, read by Claude Code
 agent.md                      lessons learned the hard way
 INSTALL.md                    how the kit installs into a repo
 skills/<name>/SKILL.md        slash commands. Cores — the kit owns these outright
@@ -40,7 +41,7 @@ Once a repository has the kit installed, `/kit-sync` keeps it current without an
 
 Design docs install at `design/` in the repository root, deliberately — `docs/` is usually occupied by a documentation site, and a design directory inside its build context gets baked into the published image. `INSTALL.md` still checks the path before creating anything.
 
-To do it by hand instead: copy `AGENTS.md`, `CLAUDE.md`, `agent.md`, `.claude/`, `skills/`, and `design/` into the repo root. Profiles go in `~/.codex/`, not the repo.
+To do it by hand instead: copy `AGENTS.shared.md`, `CLAUDE.md`, `agent.md`, `.claude/`, `skills/`, and `design/` into the repo root, then write an `AGENTS.md` that points to `AGENTS.shared.md` the way this repo's does. Profiles go in `~/.codex/`, not the repo.
 
 ## Three files, three jobs
 
@@ -72,7 +73,7 @@ Outside the numbered stages: `/kit-help` says where the repository is and what t
 
 `/refine` is the front door for asks that fall between the stages. Every other command assumes you are already inside the pipeline — `/slice` needs a slice, `/contract` needs a design. `/refine` takes a rough ask, routes it to the command that owns it where one does, and otherwise emits a prompt carrying the constraints that bind it. It emits rather than executes, because the tier it names is usually not the tier it is running at.
 
-**Which model runs which command is in [`AGENTS.md`](AGENTS.md), *Command routing*** — it is binding policy, so it has one home and this is not it.
+**Which model runs which command is in [`AGENTS.shared.md`](AGENTS.shared.md), *Command routing*** — it is binding policy, so it has one home and this is not it.
 
 Effort tracks irreversibility, not stage prestige. Schemas and public interfaces are expensive to change; code is cheap to throw away. Stages 2 and 4 are where the money goes. Stage 6 is where it usually gets wasted.
 
@@ -86,7 +87,7 @@ That command holds the walkthrough, rather than this file, because commands inst
 - **Stage 6, once per slice.** `/slice` (branches, implements, commits, pushes, opens the PR — never as a draft — ticks the boxes it confirms) → `/pr` (writes the real description, runs the gates into its `Verified` section, then works the review threads) → merge → `/track` in a new session. One slice, one branch, one session.
 - **`/reconcile` and `/make-human-docs`** when the slices run out.
 
-**Which model runs each command is in [`AGENTS.md`](AGENTS.md), *Command routing*. Where a session must end is in [`AGENTS.md`](AGENTS.md), *Session boundaries*.** Both are binding policy, so each has one home and this is not it.
+**Which model runs each command is in [`AGENTS.shared.md`](AGENTS.shared.md), *Command routing*. Where a session must end is in [`AGENTS.shared.md`](AGENTS.shared.md), *Session boundaries*.** Both are binding policy, so each has one home and this is not it.
 
 ## Invocation
 
@@ -141,7 +142,7 @@ Stage 3 only works if the reviewer did not write the design. Same model, fresh c
 - Design in Claude Code (Opus) → red team with `codex --profile architect`
 - Design with `codex --profile architect` (Sol) → red team in Claude Code (Opus)
 
-That the two never share a session is stated in [`AGENTS.md`](AGENTS.md), *Session boundaries*, with the rest of them.
+That the two never share a session is stated in [`AGENTS.shared.md`](AGENTS.shared.md), *Session boundaries*, with the rest of them.
 
 ## Rate-limit budget
 
@@ -159,7 +160,7 @@ Those are estimates. `tools/Measure-Session.ps1` reports what a session actually
 pwsh ./tools/Measure-Session.ps1 -Detail
 ```
 
-It reports the four input classes separately because they are priced differently and behave differently. On the first sessions measured here, cache reads ran roughly fifty times cache creation — a single "tokens in" figure would have hidden the only term that was growing. Which work should stop being model work altogether is in [`AGENTS.md`](AGENTS.md), *What should stop being model work*.
+It reports the four input classes separately because they are priced differently and behave differently. On the first sessions measured here, cache reads ran roughly fifty times cache creation — a single "tokens in" figure would have hidden the only term that was growing. Which work should stop being model work altogether is in [`AGENTS.shared.md`](AGENTS.shared.md), *What should stop being model work*.
 
 **Claude Code only, and it errors rather than guessing.** Every transcript is shape-checked before it is summed, because a foreign transcript parsed for `message.usage` sums to zero and a zero is indistinguishable from a session that cost nothing. Codex stores `~/.codex/sessions/**/rollout-*.jsonl` and records usage as `token_count` events under `payload.info` — readable in principle, unimplemented here, and counted per turn rather than per call. Copilot stores `globalStorage/github.copilot-chat/session-store.db`, whose `turns` table has no usage column at all; it meters premium requests, not tokens, so there is nothing to read at any effort. Both are named explicitly when the script meets one.
 

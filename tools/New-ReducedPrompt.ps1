@@ -18,7 +18,9 @@
     mechanically off `skills/slice/SKILL.md`'s own citations, of the form
     `` `AGENTS.md`, *Section Name* ``. That keeps the reduced set traceable to
     the command that actually governs `/slice`, and it stays correct if that
-    command's citations change without this script's own logic changing.
+    command's citations change without this script's own logic changing. A citation may name
+    `AGENTS.shared.md` or `AGENTS.md`; either way the section is looked up in the shared file
+    first, then the repository's own `AGENTS.md`.
 
     This is a standalone tool, not a step `/slice` runs itself
     (`design/90-decisions.md`, 2026-08-04, "per-target prompt sizing ...
@@ -85,7 +87,7 @@ function Get-MarkdownSection {
         }
     }
     if ($startIndex -lt 0) {
-        throw "No section '$HeadingText' in $SourceName. The reduced prompt cannot assemble a rule it cannot find."
+        return $null
     }
 
     $endIndex = $Lines.Count
@@ -111,7 +113,7 @@ function Get-BoundSectionNames {
 
     $names = [System.Collections.Generic.List[string]]::new()
     $seen = [System.Collections.Generic.HashSet[string]]::new()
-    $pattern = '`?AGENTS\.md`?,?\s*\*([^*]+)\*'
+    $pattern = '`?AGENTS(?:\.shared)?\.md`?,?\s*\*([^*]+)\*'
     foreach ($m in [regex]::Matches($CommandText, $pattern)) {
         $name = $m.Groups[1].Value.Trim()
         if ($seen.Add($name)) { [void]$names.Add($name) }
@@ -156,17 +158,44 @@ elseif (-not [System.IO.Path]::IsPathRooted($CommandFile)) { $CommandFile = Join
 
 $slicesPath = Join-Path $root 'design/30-slices.md'
 $contractPath = Join-Path $root 'design/20-contract.md'
-$agentsPath = Join-Path $root 'AGENTS.md'
-
-foreach ($required in @($CommandFile, $slicesPath, $contractPath, $agentsPath)) {
+foreach ($required in @($CommandFile, $slicesPath, $contractPath)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Required file not found: $required"
     }
 }
 
+# The contract is two files: AGENTS.shared.md (every kit repository's rules) and the
+# repository's own AGENTS.md (its project rules). The shared file is the repository's own copy
+# when it has one - the kit's checkout does - and otherwise the installed kit's, resolved per
+# AGENTS.shared.md's Home-install convention. Sections are looked up shared file first.
+function Resolve-SharedContractPath {
+    param([string]$RepoRootPath)
+
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    $candidates.Add((Join-Path $RepoRootPath 'AGENTS.shared.md'))
+    $selfHosted = Split-Path -Parent $PSScriptRoot
+    if (Test-Path -LiteralPath (Join-Path $selfHosted '.git')) { $candidates.Add((Join-Path $selfHosted 'AGENTS.shared.md')) }
+    if ($env:AGENTKIT_HOME) { $candidates.Add((Join-Path $env:AGENTKIT_HOME 'AGENTS.shared.md')) }
+    $candidates.Add((Join-Path $HOME '.agent-kit/AGENTS.shared.md'))
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate) { return $candidate }
+    }
+    return $null
+}
+
+$agentsSources = @(
+    Resolve-SharedContractPath -RepoRootPath $root
+    Join-Path $root 'AGENTS.md'
+) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
+if (-not $agentsSources) {
+    throw "Required file not found: neither AGENTS.shared.md nor $(Join-Path $root 'AGENTS.md')"
+}
+$agentsSourceLines = foreach ($source in $agentsSources) {
+    [pscustomobject]@{ Path = $source; Lines = [string[]](Get-Content -LiteralPath $source) }
+}
+
 $commandText = Get-Content -LiteralPath $CommandFile -Raw
 $slicesLines = Get-Content -LiteralPath $slicesPath
-$agentsLines = Get-Content -LiteralPath $agentsPath
 $contractText = Get-Content -LiteralPath $contractPath -Raw
 
 $sliceBlock = Get-SliceBlock -Lines $slicesLines -SliceId $SliceId
@@ -176,7 +205,15 @@ if (-not $boundSectionNames.Count) {
 }
 
 $boundSections = foreach ($name in $boundSectionNames) {
-    Get-MarkdownSection -Lines $agentsLines -HeadingText $name -SourceName $agentsPath
+    $section = $null
+    foreach ($source in $agentsSourceLines) {
+        $section = Get-MarkdownSection -Lines $source.Lines -HeadingText $name -SourceName $source.Path
+        if ($section) { break }
+    }
+    if (-not $section) {
+        throw "No section '$name' in $(($agentsSourceLines | ForEach-Object { $_.Path }) -join ' or '). The reduced prompt cannot assemble a rule it cannot find."
+    }
+    $section
     ''
 }
 

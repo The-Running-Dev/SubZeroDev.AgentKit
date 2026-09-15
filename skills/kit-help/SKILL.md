@@ -14,7 +14,7 @@ It may override: `vocabulary`, `document-map`. It may never override anything in
 
 Orient the user in this repository's pipeline. **$1** narrows it — `all` shows the whole flow, a stage or command name shows that step. With nothing, work out where the repository actually is and show the current step and the next one.
 
-**Do not dump this whole file back.** It is a map you read, not a message you echo. Reciting eleven steps to someone who needs the next one is the mechanical text work `AGENTS.md` says should not be a model's job at all — and here, unlike a script, you can tell which step they are on.
+**Do not dump this whole file back.** It is a map you read, not a message you echo. Reciting eleven steps to someone who needs the next one is the mechanical text work `AGENTS.shared.md` says should not be a model's job at all — and here, unlike a script, you can tell which step they are on.
 
 ## Orient first
 
@@ -39,7 +39,7 @@ State it in one line — *"stage 6, S4 open with S4.2 unticked, on `main`"* — 
 
 This is the canonical copy. `README.md` summarises the shape and points here.
 
-**Which model runs each command is in `AGENTS.md`, *Command routing*. Where a session must end is in `AGENTS.md`, *Session boundaries*.** Both are binding policy with one home, and it is not this file — the `fresh` and `same session` tags below are a convenience, and if they ever disagree with `AGENTS.md`, that file is right and this one has drifted.
+**Which model runs each command is in `AGENTS.shared.md`, *Command routing*. Where a session must end is in `AGENTS.shared.md`, *Session boundaries*.** Both are binding policy with one home, and it is not this file — the `fresh` and `same session` tags below are a convenience, and if they ever disagree with `AGENTS.shared.md`, that file is right and this one has drifted.
 
 ### Once per project — stages 0 to 5
 
@@ -64,11 +64,11 @@ Three of these stop rather than proceed, and that is the cheapest failure availa
 One slice, one branch, one session. Do not start slice N+1 because you noticed something in slice N — that goes in `90-decisions.md` under `## Open`, and `/track` turns it into an issue.
 
 1. **`/slice S3`**, or bare **`/slice`** for the lowest-numbered slice that is neither closed nor fully ticked and whose dependencies are done. Branches, states criteria by id, writes failing tests first, implements against the contract, commits, pushes, opens the PR — **never as a draft** — ticks the `Done when` boxes it confirms, and ends by reporting the ids it believes are met.
-2. **`/pr`** — same session, and the whole of the rest of the branch's life. Three phases in order: writes the real description onto the PR `/slice` opened; runs the gates and puts their three lists — the one that matters is *did not run* — into the `Verified` section **verbatim**, fixing nothing; then works the review threads automatically, fix → push → confirm checks on the **new** head → only then resolve. Resolving is delegated, no ask required (`AGENTS.md`, *Git and delivery*).
+2. **`/pr`** — same session, and the whole of the rest of the branch's life. Three phases in order: writes the real description onto the PR `/slice` opened; runs the gates and puts their three lists — the one that matters is *did not run* — into the `Verified` section **verbatim**, fixing nothing; then works the review threads automatically, fix → push → confirm checks on the **new** head → only then resolve. Resolving is delegated, no ask required (`AGENTS.shared.md`, *Git and delivery*).
 3. **Merge** — the user's, unless this repository's instruction file explicitly delegates it.
 4. **`/clean`** — right after the merge, in the same session. Switches back to the default branch, deletes the now-merged local slice branch (and any other local branch already merged), and prunes remote-tracking refs for branches gone from `origin`. It does not end the loop on its own: every run hands off to `/next`, and it never runs `/next` or `/track` itself.
 5. **`/next`** — **new session**, after `/clean`. Reads what is actually outstanding and runs it, or emits the next boundary banner and stops. Usually that is `/track`; often it is nothing, which is the answer `/clean` naming `/track` unconditionally could never give.
-6. **`/track`** — whenever `/next` routes to it. Closes the issue if every box is ticked, refreshes the work mirror, and commits that refresh **straight to the default branch** — no branch, no pull request (`AGENTS.md`, *Git and delivery*), because a pull request per refresh is what made this loop back on itself.
+6. **`/track`** — whenever `/next` routes to it. Closes the issue if every box is ticked, refreshes the work mirror, and commits that refresh **straight to the default branch** — no branch, no pull request (`AGENTS.shared.md`, *Git and delivery*), because a pull request per refresh is what made this loop back on itself.
 
 `/verify` and `/resolve` are phases 2 and 3 of `/pr` and own their own procedure; both stay callable on their own when you want the gates run against a tree, or threads worked on a PR `/pr` did not open.
 
@@ -97,8 +97,8 @@ For something short-lived, the honest minimum is `00-brief.md` with real non-goa
 
 ## Answering
 
-- **Name the next command, its tier from `AGENTS.md`, and whether it needs a fresh session.** That is the whole answer most of the time.
-- **Where it needs a fresh session, say so as the banner defined in `AGENTS.md`, *Session boundaries*** — set off visibly, not folded into the same sentence as the orientation line. This is the one command whose entire job is telling the user what's next, so it is the last place that banner should be easy to miss.
+- **Name the next command, its tier from `AGENTS.shared.md`, and whether it needs a fresh session.** That is the whole answer most of the time.
+- **Where it needs a fresh session, say so as the banner defined in `AGENTS.shared.md`, *Session boundaries*** — set off visibly, not folded into the same sentence as the orientation line. This is the one command whose entire job is telling the user what's next, so it is the last place that banner should be easy to miss.
 - **Do not run the next command.** This orients; it does not act. Ending a session may be the next step, and a command that starts work cannot tell the user to start a new session for it.
 - **Do not invent a step, a stage, or a tier.** If something here does not cover the situation, say so — an invented step in a help command is the one that gets followed.
 

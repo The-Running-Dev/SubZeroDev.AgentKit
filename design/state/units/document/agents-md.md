@@ -1,7 +1,7 @@
 # unit/document/agents-md
 Kind: document
 Status: active
-Anchor: AGENTS.md
+Anchor: AGENTS.shared.md
 Consumes:
 Exposes:
 Binds: I9
@@ -11,5 +11,5 @@ Work:
 Evidence:
 
 ## Owns
-States the binding agent contract for every session in this repository: model routing, the
-review-thread delegation, the design freeze, and tracking conventions.
+States the shared agent contract binding every session in any repository that uses the kit: model
+routing, the review-thread delegation, the design freeze, and tracking conventions.

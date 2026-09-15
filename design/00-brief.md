@@ -64,7 +64,7 @@ Derived from the repository, not dictated — correct any line that is wrong.
 One human — me — working through agent sessions, plus the agent sessions themselves as the
 other consumer. I am the only author of design state and the only adjudicator of a divergence.
 
-The kit runs under three vendors: Claude Code, Codex, and Copilot. `AGENTS.md` (*Session
+The kit runs under three vendors: Claude Code, Codex, and Copilot. `AGENTS.shared.md` (*Session
 boundaries*) **requires** a second vendor for `/redteam`, so anything a single vendor's tooling
 can read and another cannot is not usable here.
 
@@ -88,12 +88,12 @@ one of them looks trivial, and including when a session is already touching that
   service, or a background process.** No daemon, no server, no index that must be rebuilt
   before the question can be asked.
 - **Multi-vendor support is not dropped.** Anything only one vendor's tooling can read is
-  disqualified. `AGENTS.md` (*Session boundaries*) requires `/redteam` to run on a different
+  disqualified. `AGENTS.shared.md` (*Session boundaries*) requires `/redteam` to run on a different
   vendor from the design author, so a single-vendor representation would break the pipeline's
   one adversarial gate.
 - **The human is not removed from adjudication.** Where a divergence needs judgement, it is
   reported and I decide. Nothing resolves a judgement call on my behalf.
-- **Model routing and tier policy are not changed.** The table in `AGENTS.md` (*Model, effort,
+- **Model routing and tier policy are not changed.** The table in `AGENTS.shared.md` (*Model, effort,
   and review budget*), the vendor alias list, and *Command routing* are not this project's to
   edit. Spending less reasoning is the goal; redefining which model does what is a different
   project. **This bars the edit, not the topic.** Taking a command's mechanical half out of a
@@ -111,7 +111,7 @@ one of them looks trivial, and including when a session is already touching that
   documentation is not code.
 - **No dashboard, query UI, or web view.** Nothing to serve, host, or open in a browser.
 - **What a slice is, and the session-boundary rules, do not change.** A slice remains a
-  vertical unit of work with acceptance criteria; `AGENTS.md` (*Session boundaries*) is
+  vertical unit of work with acceptance criteria; `AGENTS.shared.md` (*Session boundaries*) is
   untouched. **Where** slice data lives may move; **what a slice is** may not.
 
 ## Definition of done
@@ -158,7 +158,7 @@ checked is not finished being written.
   marked region is gone after regenerating, and a hand edit **outside** one survives it. A
   mechanism that has never overwritten anything is not known to overwrite; one that has never
   preserved anything is not known to preserve.
-- `AGENTS.md` (*Tracking work*) states the marked-region rule, and exactly one document states
+- `AGENTS.shared.md` (*Tracking work*) states the marked-region rule, and exactly one document states
   it.
 
 **Work state**
@@ -217,14 +217,14 @@ that was not derived from an answer you gave.)*
 Marked lines are derived from the repository rather than dictated — correct any that is wrong.
 
 **Concurrency.** One author of design state: me. Sessions are sequential by policy, not by
-lock — `AGENTS.md` (*Session boundaries*) requires a fresh session at each stage boundary, and
+lock — `AGENTS.shared.md` (*Session boundaries*) requires a fresh session at each stage boundary, and
 nothing prevents two running at once. *(derived)* Nothing needs to survive two sessions writing
 design state simultaneously on divergent branches; git's own conflict handling is the whole
 concurrency story.
 
 **Platform.** Windows host, PowerShell Core, projects under `D:\Dropbox\Projects\`. Every
 file in `tools/` is a `.ps1`. CI is GitHub Actions on `windows-latest` (`verify.yml`).
-*(derived from `AGENTS.md` § House conventions and the tree.)*
+*(derived from `AGENTS.shared.md` § House conventions and the tree.)*
 
 **Vendors.** Claude Code, Codex, and Copilot. `tools/Measure-Session.ps1` reads Claude Code
 transcripts only: Codex writes a schema it has no reader for, and Copilot records no token
@@ -251,13 +251,13 @@ measured against, and they are expected to be out of date the moment anything la
 monotonically; `design/90-decisions.md` is append-only and nothing is ever removed from it.
 
 **Repositories not owned.** The kit is used in repositories where every external write is
-requested individually (`AGENTS.md`, *Tracking work*; invariant I9). Nothing may assume write
+requested individually (`AGENTS.shared.md`, *Tracking work*; invariant I9). Nothing may assume write
 access to a tracker.
 
 ## Lifespan
 
 **Maintained for years.** This becomes standing infrastructure that the kit ships. That
 justifies the full pipeline on it — `/design`, `/contract`, `/redteam` on a second vendor per
-`AGENTS.md` (*Session boundaries*), then `/slices` — and it is why the compatibility promise to
+`AGENTS.shared.md` (*Session boundaries*), then `/slices` — and it is why the compatibility promise to
 the eighteen installed targets is in the definition of done rather than treated as someone
 else's problem later.

@@ -39,7 +39,7 @@ Refine only what falls between them — a change to the kit's own files, a quest
 
 ## Gather only what changes the work
 
-Read `AGENTS.md` and the files the ask actually touches. Then ask **at most three questions**, and only ones whose answers change what gets built. A question whose every answer produces the same prompt is noise.
+Read `AGENTS.shared.md`, `AGENTS.md` and the files the ask actually touches. Then ask **at most three questions**, and only ones whose answers change what gets built. A question whose every answer produces the same prompt is noise.
 
 Ask when:
 
@@ -55,7 +55,7 @@ Fixed template. Fill the fields; do not compose prose around them. The shape is 
 
 ```
 Read:      <files, completely, not from a diff>
-Tier:      <model, effort> — AGENTS.md § Command routing
+Tier:      <model, effort> — AGENTS.shared.md § Command routing
 Binding:   <each constraint that genuinely applies, one line, with its source>
 Task:      <the ask, sharpened by the answers>
 Out of scope: <the adjacent thing an agent will be tempted to also do>
@@ -64,8 +64,8 @@ Ends:      <the deliverable — a proposal, a commit, a report>
 
 Rules for the fields:
 
-- **`Binding` carries only constraints you have read, each naming where it lives.** `AGENTS.md` § *Verification* forbids asserting what a command could confirm, and that applies to this command's own output — a plausible-sounding rule with no source is the failure mode here, because the emitted prompt is trusted precisely for carrying rules the reader did not look up.
-- **Three or four binding lines, not ten.** Everything in `AGENTS.md` applies to every session already. List what is easy to miss for *this* ask: a non-goal in `design/00-brief.md`, a decision in `design/90-decisions.md`, a lesson in `agent.md` that cost something here.
+- **`Binding` carries only constraints you have read, each naming where it lives.** `AGENTS.shared.md` § *Verification* forbids asserting what a command could confirm, and that applies to this command's own output — a plausible-sounding rule with no source is the failure mode here, because the emitted prompt is trusted precisely for carrying rules the reader did not look up.
+- **Three or four binding lines, not ten.** Everything in `AGENTS.shared.md` and `AGENTS.md` applies to every session already. List what is easy to miss for *this* ask: a non-goal in `design/00-brief.md`, a decision in `design/90-decisions.md`, a lesson in `agent.md` that cost something here.
 - **`Out of scope` is the single most effective line.** If nothing is genuinely adjacent, write `nothing adjacent`, do not invent a boundary.
 - Where `design/` does not exist — an install may legitimately skip it — cite `AGENTS.md` and whatever instruction file the repository does have. Say which sources you had.
 
@@ -73,7 +73,7 @@ Rules for the fields:
 
 Hand back the prompt. **Do not then run it in this session.**
 
-The reason is mechanical, not ceremonial: this command runs at `sonnet`/`medium`, the emitted `Tier` is frequently something else, and an agent cannot change its own session model (`AGENTS.md`, *Division of control*). Running it here would silently execute at the wrong tier the prompt itself just named.
+The reason is mechanical, not ceremonial: this command runs at `sonnet`/`medium`, the emitted `Tier` is frequently something else, and an agent cannot change its own session model (`AGENTS.shared.md`, *Division of control*). Running it here would silently execute at the wrong tier the prompt itself just named.
 
 Close by saying which session to run it in. If the emitted tier matches the current session, say so and offer — one line, no argument.
 
@@ -106,6 +106,6 @@ Halt and say so rather than refining:
 ## Re-run
 
 Stateless — nothing it emits is stored, so a re-run on the same ask re-derives the prompt from
-`AGENTS.md`, `design/`, and `agent.md` as they stand now, not from a remembered prior emission.
+`AGENTS.shared.md`, `AGENTS.md`, `design/`, and `agent.md` as they stand now, not from a remembered prior emission.
 A constraint lifted since the last run drops out of `Binding`; one added since shows up. It
 never treats a prior refinement of the same ask as already answered.

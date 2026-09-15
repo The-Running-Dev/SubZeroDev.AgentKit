@@ -40,7 +40,7 @@ repository. When a step both prepares and asserts, flag it only if the assertion
 point of the step.
 
 
-Every `tools/*.ps1` path in this command is relative to the kit install root, not the repo being verified (`AGENTS.md` § *House conventions* → Home-install convention) — resolve it first if this session is not running from a self-hosted kit checkout.
+Every `tools/*.ps1` path in this command is relative to the kit install root, not the repo being verified (`AGENTS.shared.md` § *House conventions* → Home-install convention) — resolve it first if this session is not running from a self-hosted kit checkout.
 
 **Check the cache first.** `tools/Test-GatesCache.ps1 -RepoRoot <repo>` hashes the files
 this discovery reads (every workflow's full content — so a flag added, moved, or removed
@@ -102,7 +102,7 @@ Common shapes, none of them assumed:
 
 ## Report
 
-**Write the result as a structured artifact first, never the prose directly.** Same pattern as `Test-DesignDrift.ps1` (`AGENTS.md`, "structured artifact plus deterministic validator"): this command writes `.claude/verify-report.json` — one entry per discovered gate, `{"name", "status", "detail"|"reason"}` with `status` one of `Passed` / `Failed` / `DidNotRun` — and never edits a PR body or any other visible surface directly. Then run `tools/Test-VerifyReport.ps1` against it. `Valid` (exit 0) means every gate has exactly one outcome, every `Failed` gate carries real detail, and every `DidNotRun` gate carries a reason — render the three lists below from the artifact and proceed. `Invalid` or `NotEvaluated` (exit 1 or 2) means the report itself is malformed — fix the artifact, not the prose, and do not render or hand off a report that failed validation.
+**Write the result as a structured artifact first, never the prose directly.** Same pattern as `Test-DesignDrift.ps1` (`AGENTS.shared.md`, "structured artifact plus deterministic validator"): this command writes `.claude/verify-report.json` — one entry per discovered gate, `{"name", "status", "detail"|"reason"}` with `status` one of `Passed` / `Failed` / `DidNotRun` — and never edits a PR body or any other visible surface directly. Then run `tools/Test-VerifyReport.ps1` against it. `Valid` (exit 0) means every gate has exactly one outcome, every `Failed` gate carries real detail, and every `DidNotRun` gate carries a reason — render the three lists below from the artifact and proceed. `Invalid` or `NotEvaluated` (exit 1 or 2) means the report itself is malformed — fix the artifact, not the prose, and do not render or hand off a report that failed validation.
 
 Three lists, rendered from the validated artifact. All three are required, and the second is the one that matters.
 
@@ -120,14 +120,14 @@ Did not run:      <gate> — <why: tool missing, Docker down, no such script>
   `Test-DesignState.ps1` exiting 2 means the design state was not read — an absent state set,
   an unparseable record, a projector that would not run, an unauthenticated `gh`. Its
   `reason` is the script's own could-not-evaluate output, quoted, not a paraphrase.
-- **Quote failures.** Paste the failing output into the artifact's `detail` field. A summary of a failure is a claim about a failure — `Test-VerifyReport.ps1` rejects a `detail` too short to plausibly be pasted output. The chat list quotes every failure's own diagnostic lines and names the artifact for the rest; it never repeats thousands of passing lines (`AGENTS.md`, *Output discipline*).
+- **Quote failures.** Paste the failing output into the artifact's `detail` field. A summary of a failure is a claim about a failure — `Test-VerifyReport.ps1` rejects a `detail` too short to plausibly be pasted output. The chat list quotes every failure's own diagnostic lines and names the artifact for the rest; it never repeats thousands of passing lines (`AGENTS.shared.md`, *Output discipline*).
 - **Never write "all checks pass"** unless every discovered gate is in the first list. If anything is in the third list, the honest sentence names it: *"the three that ran passed; the documentation build did not run because Docker is unavailable."*
 - **A gate that cannot run locally is not a gate you may report on.** Say so, and say that the corresponding CI check on the pull request is where the answer will come from.
 - If CI runs a check you could not reproduce locally at all, name it explicitly rather than leaving it out.
 
 ## Then ask
 
-**A failing gate ends in a decision, not a report** (`AGENTS.md`, *Working with me*). Do not start fixing. Present each failure with a recommendation — fix here, file an issue, or accept and explain — and what each costs.
+**A failing gate ends in a decision, not a report** (`AGENTS.shared.md`, *Working with me*). Do not start fixing. Present each failure with a recommendation — fix here, file an issue, or accept and explain — and what each costs.
 
 A clean run needs no question. Say it is clean, name what ran, and stop.
 

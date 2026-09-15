@@ -2,7 +2,7 @@
 Date: 2026-09-12
 Anchor: 2026-09-12 — `videos/` is gated by its own CI job, and rendering is knowingly outside that gate
 Status: accepted
-StatedIn: unit/document/agents-md § House conventions
+StatedIn: unit/document/project-agents-md § House conventions
 
 ## Claim
 Sitting outside the design-state corpus and sitting outside CI are separate facts, decided

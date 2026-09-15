@@ -1865,7 +1865,7 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
             $expected += (Get-Item -LiteralPath (Join-Path $script:RepoRoot $m.Path)).Length
         }
 
-        $agentsMdBytes = (Get-Item -LiteralPath (Join-Path $script:RepoRoot 'AGENTS.md')).Length
+        $agentsMdBytes = (Get-Item -LiteralPath (Join-Path $script:RepoRoot 'AGENTS.shared.md')).Length
         Get-UnitArtifactBytes -RepoPath $script:RepoRoot -Root $root | Should -Be $agentsMdBytes
 
         $result = Test-ClosureBudget -Records $graph.Records -ById $byId -RepoPath $script:RepoRoot
@@ -2114,7 +2114,7 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         # Replaces S5's 'never clean against this repository', whose stated reason - that most
         # commands, scripts and documents had no unit record - stopped being true at S8 and S9.
         # It kept passing on a divergence it was never written to describe, which is the shape
-        # AGENTS.md (Verification) calls a test that guards nothing.
+        # AGENTS.shared.md (Verification) calls a test that guards nothing.
         #
         # It then asserted exit 0, which stopped being true at S19: counting a unit's own
         # artifact puts every document unit over the ceiling, and design/10-design.md
@@ -2262,7 +2262,7 @@ Describe 'S12.2: every blocking class has fired on a real divergence and held on
         # The coverage matrix is read out of this file's own source with the PowerShell parser -
         # the same [Parser]::ParseFile the verify workflow's parse-check step uses - rather than
         # from a list kept by hand beside it. A hand-kept list is a second copy of the tag
-        # inventory (AGENTS.md, Single ownership) and goes stale the first time a test is renamed
+        # inventory (AGENTS.shared.md, Single ownership) and goes stale the first time a test is renamed
         # or deleted, which is the one thing this census exists to notice.
         $script:CensusPath = Join-Path $PSScriptRoot 'Test-DesignState.Tests.ps1'
         $censusAst = [System.Management.Automation.Language.Parser]::ParseFile($script:CensusPath, [ref]$null, [ref]$null)

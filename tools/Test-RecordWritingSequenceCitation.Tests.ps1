@@ -10,9 +10,9 @@
   had to guess the sequence instead of following a rule, and a guess that happens to pass the
   gates looks identical to one that followed the rule.
 
-  The fix points all three at AGENTS.md § Writing a design-state record instead - AGENTS.md is
-  the one document a target repository does carry, seeded by /install and reconciled by
-  /kit-sync's own divergence handling, unlike design/10-design.md which is never kit-installed.
+  The fix points all three at AGENTS.shared.md § Writing a design-state record instead - the
+  shared contract every repository using the kit reads, unlike design/10-design.md which is never
+  kit-installed. (Before the 2026-09-15 split that home was AGENTS.md itself.)
 
   This only checks that the citation resolves to a real heading, not that the sequence itself is
   followed correctly - that is exercised generically by Test-DesignState.Tests.ps1 and
@@ -23,17 +23,17 @@ Describe 'the record-writing sequence citation resolves to a real AGENTS.md head
 
     BeforeAll {
         $script:RepoRoot = Split-Path $PSScriptRoot -Parent
-        $script:AgentsPath = Join-Path $script:RepoRoot 'AGENTS.md'
+        $script:AgentsPath = Join-Path $script:RepoRoot 'AGENTS.shared.md'
         $script:AgentsHeadings = (Get-Content -LiteralPath $script:AgentsPath) |
             Select-String -Pattern '^#{1,3} ' |
             ForEach-Object { ($_.Line -replace '^#{1,3}\s*', '').Trim() }
     }
 
-    It 'AGENTS.md carries a "Writing a design-state record" heading' {
+    It 'AGENTS.shared.md carries a "Writing a design-state record" heading' {
         $script:AgentsHeadings | Should -Contain 'Writing a design-state record'
     }
 
-    It '/reconcile, /contract and /design each cite AGENTS.md, not design/10-design.md, for the sequence' {
+    It '/reconcile, /contract and /design each cite AGENTS.shared.md, not design/10-design.md, for the sequence' {
         $commandPaths = @(
             'skills/reconcile/SKILL.md',
             'skills/contract/SKILL.md',
@@ -42,7 +42,7 @@ Describe 'the record-writing sequence citation resolves to a real AGENTS.md head
 
         foreach ($path in $commandPaths) {
             $content = Get-Content -LiteralPath $path -Raw
-            $content | Should -Match 'record-writing sequence in `AGENTS\.md` § \*Writing a design-state record\*' -Because "$path should cite the AGENTS.md home, not design/10-design.md"
+            $content | Should -Match 'record-writing sequence in `AGENTS\.shared\.md` § \*Writing a design-state record\*' -Because "$path should cite the AGENTS.shared.md home, not design/10-design.md"
             $content | Should -Not -Match 'record-writing sequence in `design/10-design\.md`' -Because "$path should no longer cite a section that only resolves in this repository"
         }
     }

@@ -13,7 +13,7 @@ It may override: `vocabulary`, `document-map`, `extra-steps`. It may never overr
 
 ## Stop if `design/` is frozen
 
-If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and take no other action. The rule and the marker's format live in `AGENTS.md`, *The design freeze* — not restated here.
+If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and take no other action. The rule and the marker's format live in `AGENTS.shared.md`, *The design freeze* — not restated here.
 
 This command is the one the freeze ends *with*, which is exactly why it does not end the freeze itself: the marker is deleted by hand first, and then this runs as the single reconciliation pass. **Never delete `design/FROZEN.md` yourself**, and never treat "the freeze looks finished" as authorization to proceed — `Lifts when` names a checkable condition, and confirming it is the user's call, not this command's.
 
@@ -23,9 +23,9 @@ This is the step that stops the docs becoming fiction. A stale design doc is wor
 
 ## What is no longer this command's
 
-**This is a check, not a rewrite.** Two things were taken off it deliberately, and taking either back is how it becomes generative again — which is the loop `AGENTS.md`, *The design freeze* exists to escape.
+**This is a check, not a rewrite.** Two things were taken off it deliberately, and taking either back is how it becomes generative again — which is the loop `AGENTS.shared.md`, *The design freeze* exists to escape.
 
-- **Descriptive drift is already gone.** A declaration, parameter list, field name, path or count that disagreed with the tree was corrected in the slice that found it, in that slice's commit (`AGENTS.md`, *Hard rules*). Anything of that kind still here is a slice that missed it: correct it, in one line, and move on. **Do not open it as a fork** — there is no decision in a transcription error, and turning one into a question is most of what made this command expensive.
+- **Descriptive drift is already gone.** A declaration, parameter list, field name, path or count that disagreed with the tree was corrected in the slice that found it, in that slice's commit (`AGENTS.shared.md`, *Hard rules*). Anything of that kind still here is a slice that missed it: correct it, in one line, and move on. **Do not open it as a fork** — there is no decision in a transcription error, and turning one into a question is most of what made this command expensive.
 - **`design/30-slices.md` is out of scope entirely, and an unlanded slice's acceptance criteria are never edited here.** Landing slice N and then rewriting slice N+1's criteria is the first link in the churn loop, and it is the one link this command owns. A problem found with an unlanded slice's criteria is escalated to `/slices` or written to `## Open` in `90-decisions.md` — never resolved in this pass. `/track` compares the tracker against that document; if this command has just rewritten it, the two were never independent.
 
 Produce a drift report first, before editing anything:
@@ -44,7 +44,7 @@ Choices made during implementation that are not in `90-decisions.md`. These are 
 ## LiveAlreadyStated
 For each active unit, compare every decision named in its `Live` against the artifact that unit is live on — its own `Anchor`, or a record one hop from it (`design/20-contract.md` § *The divergence classes*). Where a decision's terms already stand at a heading there with no site naming it, report the apparent match under the name `LiveAlreadyStated`. The payload is three parts: the unit id, the decision id, and the candidate site in `StatedIn`'s own `<id> § <heading>` form.
 
-This is a reading — `tools/Test-DesignState.ps1` declares the id and never raises it itself, for the same reason `SemanticDisagreement` cannot: judging whether a section states a decision's terms is a model reading prose, not a check a script can run. **This pass reports and never absorbs.** Acting on a match is the caller's own step 4 of `AGENTS.md` § *Writing a design-state record* — copying the payload into the record and dropping the id from `Live` — or stating in the pull request why the terms do not stand there. That sign-off happens below, at *Then ask*, the same as every other divergence this command finds; absorbing it here instead would be running that step unattended.
+This is a reading — `tools/Test-DesignState.ps1` declares the id and never raises it itself, for the same reason `SemanticDisagreement` cannot: judging whether a section states a decision's terms is a model reading prose, not a check a script can run. **This pass reports and never absorbs.** Acting on a match is the caller's own step 4 of `AGENTS.shared.md` § *Writing a design-state record* — copying the payload into the record and dropping the id from `Live` — or stating in the pull request why the terms do not stand there. That sign-off happens below, at *Then ask*, the same as every other divergence this command finds; absorbing it here instead would be running that step unattended.
 
 ## Invalidated assumptions
 Anything the design assumed that implementation showed to be false.
@@ -57,13 +57,13 @@ Things that cost time and would cost it again. Each one must name what it actual
 
 ## Then ask — do not stop at the report
 
-**A reconciliation ends in a decision, not a report** (`AGENTS.md`, *Working with me*). Having listed the drift, close by asking me to resolve it — one divergence at a time, each with a recommendation and what the alternatives cost.
+**A reconciliation ends in a decision, not a report** (`AGENTS.shared.md`, *Working with me*). Having listed the drift, close by asking me to resolve it — one divergence at a time, each with a recommendation and what the alternatives cost.
 
 For each: which direction you recommend — the code changing to match the doc, or the doc changing to match the code — **and why that one**. Do not assume the code is right just because it runs; a passing test proves the code does what it does, not that it does what was agreed.
 
 If a section found nothing, say "none" and move on. Do not manufacture a fork to have something to ask about.
 
-Once I have decided, apply the edits and append the decision-log entries — following the full record-writing sequence in `AGENTS.md` § *Writing a design-state record* where this repository's own `design/state/` exists. Nothing else beyond that sequence.
+Once I have decided, apply the edits and append the decision-log entries — following the full record-writing sequence in `AGENTS.shared.md` § *Writing a design-state record* where this repository's own `design/state/` exists. Nothing else beyond that sequence.
 
 ## Re-run
 
@@ -72,4 +72,4 @@ nothing from a prior pass is cached or assumed still true, and every section is 
 even where a previous run said "none." A divergence already decided and applied should not
 reappear as a fresh question; if it does, that is drift in what got applied, not a re-ask, and
 is itself a finding worth naming. A decision I already made and recorded in `90-decisions.md`
-is not relitigated (`AGENTS.md`, *Budget discipline*).
+is not relitigated (`AGENTS.shared.md`, *Budget discipline*).

@@ -17,7 +17,7 @@
 
     This is the canonical, checkable list of what /install-all is allowed to write - keep it
     in step with INSTALL.md's phase 1 artifact table and .claude/kit.json/`syncedCommit`
-    (AGENTS.md, "A document states only what the tree cannot": the list lives here, once,
+    (AGENTS.shared.md, "A document states only what the tree cannot": the list lives here, once,
     and skills/install-all/SKILL.md points at this file rather than repeating it).
     `.claude/settings.json` is deliberately absent - INSTALL.md requires proposing its two
     hook keys and waiting on sign-off unconditionally, which /install-all's unattended pass

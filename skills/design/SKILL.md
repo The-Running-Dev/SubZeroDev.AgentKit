@@ -13,7 +13,7 @@ It may override: `vocabulary`, `document-map`, `extra-steps`. It may never overr
 
 ## Stop if `design/` is frozen
 
-If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and write nothing. The rule and the marker's format live in `AGENTS.md`, *The design freeze* — not restated here.
+If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and write nothing. The rule and the marker's format live in `AGENTS.shared.md`, *The design freeze* — not restated here.
 
 Read `design/00-brief.md`. Write `design/10-design.md`.
 
@@ -44,7 +44,7 @@ Things that cannot be resolved without information I have not given you. Ask the
 
 Rules:
 - No code. No file layouts. No package names beyond what a decision required.
-- Every decision that survives goes into `design/90-decisions.md` in the logged format. Where this repository's own `design/state/` exists, writing it also follows the record-writing sequence in `AGENTS.md` § *Writing a design-state record* — not restated here.
+- Every decision that survives goes into `design/90-decisions.md` in the logged format. Where this repository's own `design/state/` exists, writing it also follows the record-writing sequence in `AGENTS.shared.md` § *Writing a design-state record* — not restated here.
 - If the brief is too thin to design against, stop and say what is missing rather than inventing requirements.
 
 ## Re-run

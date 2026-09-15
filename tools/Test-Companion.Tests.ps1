@@ -10,7 +10,7 @@
   actually has is parsing two Markdown shapes - the core's fenced block and the companion's
   headings - and a mock of a file read would test nothing about that.
 
-  Every rule the script can emit has a negative case below. AGENTS.md, *Verification*: a
+  Every rule the script can emit has a negative case below. AGENTS.shared.md, *Verification*: a
   validator that has never failed is not known to constrain anything.
 #>
 
@@ -88,7 +88,7 @@ BeforeAll {
         Write-Fixture -Repo $Repo -RelPath "skills/$Name/SKILL.md" -Content "---`ndescription: fixture $Name`n---`n`nDo the $Name thing.`n"
     }
 
-    # The bare form means projected (AGENTS.md, *Marked regions*), so a core still carrying it
+    # The bare form means projected (AGENTS.shared.md, *Marked regions*), so a core still carrying it
     # is indistinguishable from one with no fence at all - MissingBlock, not a parsed block.
     function New-CoreWithBareBlock {
         param([Parameter(Mandatory)][string] $Repo, [Parameter(Mandatory)][string] $Name)

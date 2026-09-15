@@ -13,7 +13,7 @@ It may override: `extra-steps`, `tightened-authorization`. It may never override
 
 Housekeeping for the end of a piece of work: get back to the default branch, remove the local branches that are done, and drop remote-tracking refs for branches deleted on the remote. It always ends by handing off to `/next` — see *Hand off to `/next`* below.
 
-**Branch deletion here is carved out of the authorization rule** (`AGENTS.md`, *Git and delivery*) — but only for branches this command independently confirms via `git branch --merged`. It runs automatically, without waiting to be asked, and does not block on a confirmation prompt for that list.
+**Branch deletion here is carved out of the authorization rule** (`AGENTS.shared.md`, *Git and delivery*) — but only for branches this command independently confirms via `git branch --merged`. It runs automatically, without waiting to be asked, and does not block on a confirmation prompt for that list.
 
 ## Run automatically, don't wait to be asked
 
@@ -27,7 +27,7 @@ Everything below through *Delete the confirmed candidates* is a fact-and-apply s
 
 ## Run the mechanical half
 
-Every `tools/*.ps1` path below is relative to the kit install root, not this repo (`AGENTS.md` § *House conventions* → Home-install convention) — resolve it first if this session is not running from a self-hosted kit checkout.
+Every `tools/*.ps1` path below is relative to the kit install root, not this repo (`AGENTS.shared.md` § *House conventions* → Home-install convention) — resolve it first if this session is not running from a self-hosted kit checkout.
 
 Everything through building the candidate list has no judgement call in it — dirty-tree check, default-branch resolution, the unmerged-current-branch check, the switch, the prune, `--merged`, and the `gh` cross-check for squash-merges are all facts, not decisions. `tools/Invoke-DoneHousekeeping.ps1 -RepoRoot <repo> -AutoStash` does all of it in one call and deletes nothing:
 
@@ -44,7 +44,7 @@ tools/Invoke-DoneHousekeeping.ps1 -RepoRoot <repo> -AutoStash
 
 ## Force-delete a squash-merged candidate — don't ask either
 
-`SquashMergeCandidates` fails the **Merged** gate below by definition, because `git branch --merged` structurally cannot see a squash. It is nonetheless deleted **without a chat confirmation**, on evidence the prompt it replaced never actually checked: the script lists a branch here only when a merged pull request exists for it *and* the local branch tip equals that pull request's `headRefOid`. The branch being force-deleted is therefore exactly the commit that merged. `AGENTS.md` § *Git and delivery* carries the delegation.
+`SquashMergeCandidates` fails the **Merged** gate below by definition, because `git branch --merged` structurally cannot see a squash. It is nonetheless deleted **without a chat confirmation**, on evidence the prompt it replaced never actually checked: the script lists a branch here only when a merged pull request exists for it *and* the local branch tip equals that pull request's `headRefOid`. The branch being force-deleted is therefore exactly the commit that merged. `AGENTS.shared.md` § *Git and delivery* carries the delegation.
 
 Call the script again with every branch on the list:
 
@@ -80,7 +80,7 @@ Proceed straight to the delete call; do not stop and wait for a chat confirmatio
 
 ## Report
 
-Report after acting, not before — this is a summary of what happened, not a request for permission, and it carries only these lines (`AGENTS.md`, *Output discipline*):
+Report after acting, not before — this is a summary of what happened, not a request for permission, and it carries only these lines (`AGENTS.shared.md`, *Output discipline*):
 
 - Remote-tracking refs pruned, as a count (`PrunedCount`)
 - A stash made and how to restore it, when one was made (`Stashed`)
@@ -91,7 +91,7 @@ Report after acting, not before — this is a summary of what happened, not a re
 
 ## Hand off to `/next` — always
 
-`/next` follows every run of this command. **It is not run here.** `AGENTS.md` § *Session
+`/next` follows every run of this command. **It is not run here.** `AGENTS.shared.md` § *Session
 boundaries* puts a fresh session between a merge and `/track`, and this command normally runs in
 the session that just merged the branch it is deleting — precisely the session that boundary
 exists to keep out. So end the session rather than chaining, with the banner that boundary
@@ -115,7 +115,7 @@ and that merge brought the session straight back here. Two cases do not hand off
 
 - **`Stopped: true`.** Nothing merged was cleaned up and the unaccounted-for work is the only
   thing to report. Report it and stop.
-- **`design/FROZEN.md` exists.** `/track` refuses during a freeze (`AGENTS.md` § *The design
+- **`design/FROZEN.md` exists.** `/track` refuses during a freeze (`AGENTS.shared.md` § *The design
   freeze*), and `/next` has nothing else to route to at that point, so pointing the user at
   either is not a handoff. Say the handoff is held by the freeze and report the marker's
   `Frozen because` and `Lifts when` lines verbatim.
@@ -125,7 +125,7 @@ and that merge brought the session straight back here. Two cases do not hand off
 - Delete a branch `--merged` does not confirm without a separate ask, even if `gh pr list` shows it merged.
 - Touch a remote branch. This command prunes local refs to already-deleted remotes; it does not delete anything on `origin` itself.
 - Discard uncommitted changes. Stashing is the only concession `-AutoStash` makes, and it is never popped automatically.
-- Run `/track` or `/next` in this session. The handoff is a banner, not a chain — the fresh session is the whole point of it (`AGENTS.md`, *Session boundaries*).
+- Run `/track` or `/next` in this session. The handoff is a banner, not a chain — the fresh session is the whole point of it (`AGENTS.shared.md`, *Session boundaries*).
 
 ## Re-run
 

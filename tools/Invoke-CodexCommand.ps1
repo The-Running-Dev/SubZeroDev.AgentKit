@@ -2,13 +2,13 @@
 <#
 .SYNOPSIS
     Launches `codex` configured for the tier that matches a command's requirement in
-    AGENTS.md, so the tier gate in "Model, effort, and review budget" never has to catch
+    AGENTS.shared.md, so the tier gate in "Model, effort, and review budget" never has to catch
     a mismatch caused by launching on whatever config the shell happened to have open.
 
 .DESCRIPTION
     codex/PROFILES.md defines four profiles - architect (Sol, deep reasoning, read-only),
     author (Sol, deep reasoning, workspace-write), builder (Terra, implementation), quick
-    (Codex Spark, implementation) - but nothing picks one from a command name. AGENTS.md's
+    (Codex Spark, implementation) - but nothing picks one from a command name. AGENTS.shared.md's
     *Command routing* table names a tier per command; this script is that lookup.
 
     architect and author share a model and effort and differ only in sandbox mode: architect
@@ -32,7 +32,7 @@
     `$profileConfig` below in sync with codex/PROFILES.md by hand; Invoke-CodexCommand.Tests.ps1's
     "profiles match codex/PROFILES.md" Describe block (W3, issue #299) enforces that automatically.
 
-    This is exactly the kind of mechanical, repeated lookup AGENTS.md's own "What should
+    This is exactly the kind of mechanical, repeated lookup AGENTS.shared.md's own "What should
     stop being model work" table calls 🔴 Definitely avoidable - arithmetic over a table,
     not judgement. The judgement (which tier a *novel* task needs) still belongs to
     whoever is running the session; this script only removes the "which flags do I type
@@ -51,8 +51,9 @@
     Every invocation also carries `-c project_doc_max_bytes=<n>`, `<n>` computed fresh each
     run from the AGENTS.md/AGENTS.override.md files Codex would actually load for the launch
     directory (Get-ProjectDocByteBudget, below). Codex 0.153.4's default
-    (project_doc_max_bytes = 32768, codex-rs/config/defaults.toml) is smaller than this
-    repository's own AGENTS.md (49761 bytes) and codex-rs/core/src/agents_md.rs truncates
+    (project_doc_max_bytes = 32768, codex-rs/config/defaults.toml) was smaller than this
+    repository's AGENTS.md before its shared part moved to AGENTS.shared.md (49761 bytes), and
+    a project AGENTS.md can grow past it again; codex-rs/core/src/agents_md.rs truncates
     silently past it (a `tracing::warn!`, nothing surfaced in the session) - so a session
     launched without this flag never sees the file past that point. See codex/PROFILES.md's
     *Output and context budget* section for the full citation of that source.
@@ -120,7 +121,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Mirrors AGENTS.md's *Command routing* table. Tier -> profile per codex/PROFILES.md:
+# Mirrors AGENTS.shared.md's *Command routing* table. Tier -> profile per codex/PROFILES.md:
 # deep reasoning (read-only) -> architect, deep reasoning (writes design/) -> author,
 # implementation -> builder or quick.
 # Where routing names two tiers for one command (a decide phase and a mechanical phase),
@@ -161,7 +162,7 @@ $profileConfig = [ordered]@{
     'quick'     = @{ Model = 'gpt-5.3-codex-spark'; Effort = 'medium'; Approval = 'on-request'; Sandbox = 'workspace-write' }
 }
 
-# The tier each profile resolves to, spelled exactly as AGENTS.md's *Model, effort, and
+# The tier each profile resolves to, spelled exactly as AGENTS.shared.md's *Model, effort, and
 # review budget* table spells it. This is the value stamped into the child environment so
 # the gate never has to infer a tier from a self-report, and never has to read a config
 # file the sandbox puts out of reach - see $tierEnvironment below.
@@ -174,7 +175,7 @@ $profileTiers = [ordered]@{
 
 function Get-AgentKitInstallRoot {
     <#
-        Resolves the kit install root per AGENTS.md's Home-install convention: this repo checkout
+        Resolves the kit install root per AGENTS.shared.md's Home-install convention: this repo checkout
         first (self-hosted dev), then $env:AGENTKIT_HOME, then $HOME/.agent-kit. Self-hosted takes
         priority so a session launched from a live kit working tree reads its own uncommitted
         skill edits rather than a possibly-stale synced checkout at $HOME/.agent-kit.
@@ -389,7 +390,7 @@ $codexInvocationArgs = @(
 )
 $codexInvocationArgs += $CodexArgs
 
-# AGENTS.md's tier gate is told to resolve a Codex session's tier from its configuration
+# AGENTS.shared.md's tier gate is told to resolve a Codex session's tier from its configuration
 # rather than its self-report. On the profile that matters most - `architect`, which is
 # `sandbox_mode = read-only` and scoped to the workspace - that configuration lives in
 # `~/.codex/`, outside the sandbox, so the session cannot read it and the gate falls to its

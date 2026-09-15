@@ -2,7 +2,7 @@
 Date: 2026-09-07
 Anchor: 2026-09-07 — A marked region written by a tool outside the kit is declared, and `videowright` is renamed to the declared form
 Status: accepted
-StatedIn: unit/document/agents-md § Marked regions
+StatedIn: unit/document/agents-md § Marked regions, unit/document/project-agents-md § Marked regions
 
 ## Claim
 A marked region written by a tool outside the kit carries the **declared** form. Nothing in this
