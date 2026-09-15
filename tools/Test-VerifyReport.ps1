@@ -32,8 +32,9 @@
     Valid either one would be inventing an answer. Never prompts.
 
 .PARAMETER Path
-    Path to the verify report. Defaults to .claude/verify-report.json beside this script's repo
-    root.
+    Path to the verify report. Defaults to .claude/verify-report.json under the current
+    directory - the calling repo, not this script's own location, so it resolves correctly
+    whether the script runs from a repo checkout or an installed copy elsewhere.
 
 .PARAMETER Quiet
     Suppresses the human-readable report only. The result object is always emitted.
@@ -208,7 +209,7 @@ function Write-VerifyReportResult {
 # above in the caller's scope without exiting the test runner's process.
 if ($MyInvocation.InvocationName -ne '.') {
     if (-not $Path) {
-        $Path = Join-Path (Split-Path -Parent $PSScriptRoot) '.claude/verify-report.json'
+        $Path = Join-Path (Get-Location).Path '.claude/verify-report.json'
     }
 
     $doc = Get-VerifyReportDocument -Path $Path
