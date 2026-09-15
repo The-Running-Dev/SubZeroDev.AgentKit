@@ -219,9 +219,9 @@ explicitly not authoritative, and stale by default.
 | `Title`, `State`, `Criteria`, `Rank` | | **Mirrored.** Every one of these is a copy of a tracker fact and may be stale |
 | `MirroredAt` | commit sha | When the mirror was last generated |
 
-**Authority transfers at issue creation.** Before an issue exists, `/slices` output is a
+**Authority transfers at issue creation.** Before an issue exists, `/plan` output is a
 *proposal*, not criteria — a slice has no acceptance criteria until it has an issue. That
-sequencing is what lets "no file is the authority" and "`/slices` drafts criteria" both be
+sequencing is what lets "no file is the authority" and "`/plan` drafts criteria" both be
 true, and it is the only reading under which the brief's two work-state lines do not
 contradict each other.
 
@@ -617,7 +617,7 @@ or not a decision was written into them. That is what makes absorption a strict 
 ### Record — a decision is made
 
 **The steps are `AGENTS.shared.md` § *Writing a design-state record*'s and are not restated here.**
-That is the copy an installed target carries and the one `/reconcile`, `/contract` and `/design`
+That is the copy an installed target carries and the one `/align`, `/spec` and `/design`
 cite; a second numbered list here is the copy that rots, and it rotted once already — the
 contract's abbreviated version outlived the insertion of the `StatedIn` step and went on
 numbering five where there were six. What belongs here is why the sequence has the shape it
@@ -641,7 +641,7 @@ regenerating reports every projection as stale, which trains the reader to ignor
 already-recorded decision into its site: name the site, drop the id from `Live`, regenerate,
 check. It is the path a freeze defers and an unfreeze completes.
 
-### Check — CI, or `/verify`, or a command's own gate
+### Check — CI, or `/check`, or a command's own gate
 
 1. Parse the state set. A line the grammar does not recognise is **reported as unparseable
    and never skipped** — the I12 precedent, which exists because a dropped id is an id that
@@ -654,7 +654,7 @@ check. It is the path a freeze defers and an unfreeze completes.
 5. Read `design/FROZEN.md`. If it exists, **downgrade every blocking class to reported** and
    say how many were downgraded.
 6. Emit three lists — **findings, reports, and what could not be evaluated** — and an exit
-   code, on the `/verify` and `Test-DesignDrift.ps1` pattern: 0 clean, 1 findings, 2 could not
+   code, on the `/check` and `Test-DesignDrift.ps1` pattern: 0 clean, 1 findings, 2 could not
    evaluate, with **2 taking precedence over 1**.
 
 **A class is blocking only if it can be evaluated from the checkout alone.** This is the rule
@@ -671,7 +671,7 @@ them.** That was settled when the closed list was given a home, and it is the di
 between a rule and a copy of a rule: the membership *rule* is a design decision and is stated
 above, while the roster it admits is a list CI is judged against and belongs in exactly one
 place. The failure modes below name what fails and what the caller sees; assigning each an id
-is `/contract`'s.
+is `/spec`'s.
 
 **A freeze suppresses findings, not failures.** Exit 2 stands during a freeze. The freeze
 permits known staleness (`AGENTS.shared.md`, *The design freeze*); it does not permit a checker that
@@ -722,7 +722,7 @@ brief's scope answer expressed as a flow.
 | A `WorkRef` disagrees with the tracker | Compare the mirrored fields against `gh` | **Reported, never blocking** — it needs the network, and an absent comparison must not read as a divergence | The record, the field, and both values |
 | The state set is absent entirely | Zero records | **Could not evaluate**, exit 2. Never clean | That nothing was checked — the I8 shape |
 | `design/FROZEN.md` exists | File exists | Downgrade blocking to reported; exit 2 still stands | The count downgraded, and the marker's `Frozen because` and `Lifts when` **verbatim** |
-| A decision in a unit's `Live` whose terms already stand somewhere that unit's reader reaches, with no site naming that place | **A reading, not a check** — `/reconcile` compares a unit's `Live` against the artifact it is live on | **Reported, never blocking.** The checker declares the id and never raises it | The unit, the decision, and the candidate site in `StatedIn`'s own form |
+| A decision in a unit's `Live` whose terms already stand somewhere that unit's reader reaches, with no site naming that place | **A reading, not a check** — `/align` compares a unit's `Live` against the artifact it is live on | **Reported, never blocking.** The checker declares the id and never raises it | The unit, the decision, and the candidate site in `StatedIn`'s own form |
 | A claim in a record is untrue | **A reading, not a check** — the class is declared so `ClassListDisagreement` sees one list, and the script never raises it | **Reported, never blocking** | The record and the claim |
 | A site's section is reworded and stops stating its decision | **Not detected** | Nothing | Nothing — see below |
 
@@ -784,7 +784,7 @@ Five orderings do matter, and none of them is enforced by a lock:
   makes a half-done one visible on the next run rather than at the next reconstruction.
 - **Authority transfers before criteria are cited.** A slice's criteria are the issue's from
   the moment the issue exists; a session reading the proposal after that point is reading a
-  mirror. Nothing enforces this but the sequencing of `/slices` then `/track`.
+  mirror. Nothing enforces this but the sequencing of `/plan` then `/track`.
 
 The one genuine external race is the tracker moving while a mirror is being written. It is
 **not** detected, and detection is not worth buying: the mirror is stale by construction,
@@ -929,7 +929,7 @@ is a fenced non-goal.
 document authoritative**, today's behaviour, which leaves the two-database duplication the
 brief measured. And **GitHub with no local mirror**, which is the cleanest single home and
 fails the offline criterion — a checkout could no longer say what the outstanding work is or
-in what order, and `/slices` and `/redteam` would lose the set view.
+in what order, and `/plan` and `/redteam` would lose the set view.
 
 **Blocking rule: evaluable from the checkout alone.** Rejected: **everything mechanical
 blocks**, which is stricter and simpler to state, but fails a build for `gh` being
@@ -966,7 +966,7 @@ the reasoning and the rejected alternatives stay in the log entry.
    the `Test-WriteSurface.ps1` pattern.
 
 3. **Which workflow is the cost baseline?** **Closed: `/slice` on a real slice**, over
-   `/reconcile`, because a benchmark chosen to flatter the change is the reporting failure
+   `/align`, because a benchmark chosen to flatter the change is the reporting failure
    *Verification* is about. Both halves are measured in `design/cost.md`.
 
 4. **Do `templates/design/*.md` get records?** **Closed: yes — against the recommendation**,
