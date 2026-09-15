@@ -170,4 +170,49 @@ Describe 'Test-VerifyReport' {
             { Get-VerifyReportExitCode -State 'Something' } | Should -Throw
         }
     }
+
+    Context 'default -Path resolves against the calling repo, not this script''s own location' {
+        # Run as a real child process so the invocation-guard block (which the dot-sourced tests
+        # above never reach - it exits) actually executes, with its working directory set to a
+        # $TestDrive folder rather than this repo. Before the fix, the default was
+        # `Join-Path (Split-Path -Parent $PSScriptRoot) '.claude/verify-report.json'`, which
+        # resolves to this kit repo's OWN real report regardless of caller cwd - a run from an
+        # empty directory would silently validate the kit's own file instead of reporting
+        # ReportMissing/NotEvaluated for the caller's (nonexistent) one.
+
+        It 'exits 2 (NotEvaluated) when the calling repo has no .claude/verify-report.json, even though the kit repo does' {
+            $callerRepo = Join-Path $TestDrive 'caller-repo'
+            New-Item -ItemType Directory -Path $callerRepo -Force | Out-Null
+
+            Push-Location $callerRepo
+            try {
+                & pwsh -NoProfile -File $script:ScriptPath -Quiet | Out-Null
+                $exitCode = $LASTEXITCODE
+            } finally {
+                Pop-Location
+            }
+
+            $exitCode | Should -Be 2
+        }
+
+        It 'reads the calling repo''s own report, not the kit''s' {
+            # This kit's own .claude/verify-report.json (a real, tracked file) has 6 gates - so a
+            # 1-gate report is unambiguous evidence the caller's file was the one read.
+            $callerRepo = Join-Path $TestDrive 'caller-repo-2'
+            New-Item -ItemType Directory -Path (Join-Path $callerRepo '.claude') -Force | Out-Null
+            Set-Content -LiteralPath (Join-Path $callerRepo '.claude/verify-report.json') `
+                -Value '{"gates":[{"name":"caller-only-gate","status":"Passed"}]}' -Encoding utf8
+
+            Push-Location $callerRepo
+            try {
+                $output = & pwsh -NoProfile -File $script:ScriptPath
+                $exitCode = $LASTEXITCODE
+            } finally {
+                Pop-Location
+            }
+
+            $exitCode | Should -Be 0
+            ($output -join "`n") | Should -Match 'Gates in report: 1'
+        }
+    }
 }

@@ -317,4 +317,33 @@ Acceptance:
             { Get-DriftExitCode -State 'Something' } | Should -Throw
         }
     }
+
+    Context 'default -SlicesPath resolves against the calling repo, not this script''s own location' {
+        # Run as a real child process so the invocation-guard block (which every dot-sourced
+        # test above never reaches - it exits) actually executes, with its working directory set
+        # to an empty $TestDrive folder rather than this kit repo. Before the fix, the default
+        # was `Join-Path (Split-Path -Parent $PSScriptRoot) 'design/30-slices.md'`, which
+        # resolves to THIS kit repo's own real design/30-slices.md regardless of caller cwd - a
+        # run from a repo with no slices document would silently drift-check the kit's own
+        # document (and shell out to gh for the kit's own tracker) instead of reporting
+        # SlicesDocMissing for the caller's (nonexistent) one. A missing-file default is used
+        # rather than a comparison outcome because Get-SliceCriteria fails before any gh call,
+        # so this stays network-free regardless of what gh is authenticated as on the runner.
+
+        It 'exits 2 (NotEvaluated/SlicesDocMissing) when the calling repo has no design/30-slices.md, even though the kit repo does' {
+            $callerRepo = Join-Path $TestDrive 'caller-repo'
+            New-Item -ItemType Directory -Path $callerRepo -Force | Out-Null
+
+            Push-Location $callerRepo
+            try {
+                $output = & pwsh -NoProfile -File $script:ScriptPath
+                $exitCode = $LASTEXITCODE
+            } finally {
+                Pop-Location
+            }
+
+            $exitCode | Should -Be 2
+            ($output -join "`n") | Should -Match 'SlicesDocMissing'
+        }
+    }
 }

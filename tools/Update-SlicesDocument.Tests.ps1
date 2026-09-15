@@ -278,4 +278,31 @@ This note must survive.
             Format-CriteriaRange -Number 5 -Criteria @() | Should -Be ''
         }
     }
+
+    Context 'default -SlicesPath resolves against the calling repo, not this script''s own location' {
+        # Run as a real child process so the invocation-guard block (which every dot-sourced
+        # test above never reaches - it exits) actually executes, with its working directory set
+        # to an empty $TestDrive folder rather than this kit repo. Before the fix, the default
+        # was `Join-Path (Split-Path -Parent $PSScriptRoot) 'design/30-slices.md'`, which
+        # resolves to THIS kit repo's own real design/30-slices.md regardless of caller cwd - a
+        # run from a repo with no slices document would silently attempt to retire slices in the
+        # kit's own document instead of reporting SlicesDocMissing for the caller's (nonexistent)
+        # one. Get-SliceDocumentModel fails on the missing file before any gh call, so this stays
+        # network-free regardless of what gh is authenticated as on the runner.
+
+        It 'exits 2 (NotEvaluated/SlicesDocMissing) when the calling repo has no design/30-slices.md, even though the kit repo does' {
+            $callerRepo = Join-Path $TestDrive 'caller-repo'
+            New-Item -ItemType Directory -Path $callerRepo -Force | Out-Null
+
+            Push-Location $callerRepo
+            try {
+                & pwsh -NoProfile -File $script:ScriptPath -Quiet | Out-Null
+                $exitCode = $LASTEXITCODE
+            } finally {
+                Pop-Location
+            }
+
+            $exitCode | Should -Be 2
+        }
+    }
 }

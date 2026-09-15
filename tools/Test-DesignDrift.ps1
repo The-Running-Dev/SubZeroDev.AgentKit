@@ -27,7 +27,9 @@
     reporting it as a finished one is exactly the failure I12 forbids. Never prompts.
 
 .PARAMETER SlicesPath
-    Path to the slices document. Defaults to design/30-slices.md beside this script's repo root.
+    Path to the slices document. Defaults to design/30-slices.md under the current directory -
+    the calling repo, not this script's own location, so it resolves correctly whether the
+    script runs from a repo checkout or an installed copy elsewhere.
 
 .PARAMETER Repository
     owner/repo. Defaults to the current git remote, via gh's own resolution.
@@ -348,7 +350,7 @@ function Write-DriftReport {
 # skips straight past this block rather than exiting the test runner's own process.
 if ($MyInvocation.InvocationName -ne '.') {
     if (-not $SlicesPath) {
-        $SlicesPath = Join-Path (Split-Path -Parent $PSScriptRoot) 'design/30-slices.md'
+        $SlicesPath = Join-Path (Get-Location).Path 'design/30-slices.md'
     }
     $result = Invoke-DriftCheck -SlicesPath $SlicesPath -Repository $Repository
     if (-not $Quiet) { Write-DriftReport -Result $result }
