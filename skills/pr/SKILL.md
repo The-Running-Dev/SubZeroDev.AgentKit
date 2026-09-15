@@ -80,7 +80,7 @@ Not yet run — the gates run next and this section is replaced with their repor
 
 **This phase always runs — never leave it to a separate invocation.** Query the threads as soon as the PR is open and the `Verified` section is written. A PR opened ready starts its automated reviewers immediately, so "no threads yet" at the moment of opening means *not yet*, not *none*.
 
-Where the query comes back empty, **give the automated reviewers one bounded wait rather than declaring the PR clean**: `pwsh -File tools/Wait-PullRequestCheck.ps1 -PullRequest <n> -HeadSha <pushed SHA>`, then re-query the threads once. Threads found on the re-query are classified and worked exactly as above.
+Where the query comes back empty, **give the automated reviewers one bounded wait rather than declaring the PR clean**: `pwsh -File tools/Wait-PullRequestCheck.ps1 -PullRequest <n> -HeadSha <pushed SHA>` (path relative to the kit install root, not this repo — `AGENTS.md` § *House conventions* → Home-install convention), then re-query the threads once. Threads found on the re-query are classified and worked exactly as above.
 
 **Then stop, whatever the result.** One wait, not a poll loop — phases 1 and 2 are minutes and a human reviewer is however long a human takes, and those are not the same wait. Report the check outcomes and the thread count, and say plainly that `/pr` (or `/resolve` on its own) picks this phase up again when later review arrives. Re-running `/pr` on a branch whose description and `Verified` section are already current is a no-op through phases 1 and 2 and lands straight here.
 

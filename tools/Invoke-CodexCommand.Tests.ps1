@@ -376,32 +376,77 @@ Describe 'Invoke-CodexCommand /unfreeze prompts inline unfreeze/SKILL.md, not a 
 
 Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, home install)' {
     <#
-      Resolves $env:AGENTKIT_HOME, falling back to $HOME/.agent-kit, per AGENTS.md's
-      home-install convention. Exercised through -WhatIf on /unfreeze (the one command whose
-      prompt actually reads a skill file), since the function itself is not exported.
+      Resolution order per AGENTS.md's Home-install convention: (1) self-hosted - this
+      script's own containing checkout, when it has a .git folder, so kit development reads
+      live uncommitted edits rather than a possibly-stale synced copy; (2) $env:AGENTKIT_HOME,
+      when set and present; (3) $HOME/.agent-kit, the location /kit-sync maintains. Exercised
+      through -WhatIf on /unfreeze (the one command whose prompt actually reads a skill file),
+      since the function itself is not exported.
+
+      $script:ScriptPath always resolves self-hosted (this repo has a real .git), so branches
+      2 and 3 are exercised against a copy under TestDrive that has no .git sibling - the
+      fixture New-NonSelfHostedFixture below.
     #>
 
     BeforeAll {
         $script:PriorAgentKitHome = $env:AGENTKIT_HOME
+
+        function New-NonSelfHostedFixture {
+            <# Copies just enough of this repo (the launcher + skills/unfreeze/SKILL.md)
+               into a fresh TestDrive directory with no .git, so Get-AgentKitInstallRoot's
+               self-hosted check fails there and falls through to $env:AGENTKIT_HOME /
+               $HOME/.agent-kit - the branches $script:ScriptPath can never exercise, since
+               it always resolves self-hosted from inside this real checkout. #>
+            param([Parameter(Mandatory)][string] $Name)
+
+            $fixtureRoot = Join-Path $TestDrive $Name
+            New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'tools') -Force | Out-Null
+            New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'skills/unfreeze') -Force | Out-Null
+            Copy-Item -LiteralPath $script:ScriptPath -Destination (Join-Path $fixtureRoot 'tools/Invoke-CodexCommand.ps1')
+            Copy-Item -LiteralPath (Join-Path $script:RepoRoot 'skills/unfreeze/SKILL.md') -Destination (Join-Path $fixtureRoot 'skills/unfreeze/SKILL.md')
+            return (Join-Path $fixtureRoot 'tools/Invoke-CodexCommand.ps1')
+        }
     }
 
     AfterEach {
         $env:AGENTKIT_HOME = $script:PriorAgentKitHome
     }
 
-    It 'resolves the install root from $env:AGENTKIT_HOME when set' {
-        $env:AGENTKIT_HOME = $script:RepoRoot
+    It 'resolves the install root from the self-hosted checkout even when $env:AGENTKIT_HOME points elsewhere' {
+        $env:AGENTKIT_HOME = Join-Path $TestDrive 'does-not-exist'
         { & $script:ScriptPath -Command 'unfreeze' -WhatIf } | Should -Not -Throw
     }
 
-    It 'falls back to a not-found error naming $HOME/.agent-kit when $env:AGENTKIT_HOME is unset and no home install exists' {
+    It 'falls back to $env:AGENTKIT_HOME when no self-hosted checkout is available' {
+        $fixtureScript = New-NonSelfHostedFixture -Name 'agentkit-home-fixture'
+        $env:AGENTKIT_HOME = $script:RepoRoot
+        { & $fixtureScript -Command 'unfreeze' -WhatIf } | Should -Not -Throw
+    }
+
+    It 'falls back to $HOME/.agent-kit when self-hosted is unavailable and $env:AGENTKIT_HOME is unset' {
+        $fixtureScript = New-NonSelfHostedFixture -Name 'home-agent-kit-fixture'
         Remove-Item Env:AGENTKIT_HOME -ErrorAction SilentlyContinue
         $fallbackRoot = Join-Path $HOME '.agent-kit'
         if (Test-Path -LiteralPath (Join-Path $fallbackRoot 'skills/unfreeze/SKILL.md')) {
             Set-ItResult -Skipped -Because 'this machine already has a real home install at $HOME/.agent-kit'
             return
         }
-        { & $script:ScriptPath -Command 'unfreeze' -WhatIf } | Should -Throw "*$fallbackRoot*"
+        { & $fixtureScript -Command 'unfreeze' -WhatIf } | Should -Throw "*$fallbackRoot*"
+    }
+
+    It 'throws naming every location checked when self-hosted, $env:AGENTKIT_HOME, and $HOME/.agent-kit all miss' {
+        $fixtureScript = New-NonSelfHostedFixture -Name 'no-root-fixture'
+        $env:AGENTKIT_HOME = Join-Path $TestDrive 'does-not-exist'
+        $fallbackRoot = Join-Path $HOME '.agent-kit'
+        if (Test-Path -LiteralPath $fallbackRoot) {
+            Set-ItResult -Skipped -Because 'this machine already has a checkout at $HOME/.agent-kit, so this branch cannot be reached'
+            return
+        }
+        # The source names the env var literally (`$env:AGENTKIT_HOME) rather than
+        # interpolating its value - see Invoke-CodexCommand.ps1's Get-AgentKitInstallRoot,
+        # since this branch fires whether the var is unset or set to a bad path.
+        $fixtureRoot = Split-Path -Parent (Split-Path -Parent $fixtureScript)
+        { & $fixtureScript -Command 'unfreeze' -WhatIf } | Should -Throw "*$fixtureRoot*`$env:AGENTKIT_HOME*$fallbackRoot*"
     }
 }
 

@@ -136,12 +136,16 @@ function Resolve-KitRoot {
         return $selfHosted
     }
 
+    if ($env:AGENTKIT_HOME -and (Test-Path -LiteralPath (Join-Path $env:AGENTKIT_HOME '.git'))) {
+        return $env:AGENTKIT_HOME
+    }
+
     $synced = Join-Path $HOME '.agent-kit'
     if (Test-Path -LiteralPath (Join-Path $synced '.git')) {
         return $synced
     }
 
-    throw "Could not find a kit checkout under '$selfHosted' or '$synced'. Pass -KitRoot explicitly."
+    throw "Could not find a kit checkout under '$selfHosted', `$env:AGENTKIT_HOME, or '$synced'. Pass -KitRoot explicitly."
 }
 
 function Invoke-GitRaw {

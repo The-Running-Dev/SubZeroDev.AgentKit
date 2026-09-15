@@ -88,7 +88,7 @@ For each `## S<n> — <name>` under `## Outstanding` in `design/30-slices.md`:
 - **Slices under `## Landed` are not synced.** Their bodies were retired once their issues closed, and the index carries no criteria to compare (`design/30-slices.md`, *How this document is kept*). A landed slice with a closed issue is finished, not drifted — do not reopen it, do not re-derive its criteria from the index, and do not report it as a removal.
 - **Change nothing on a mismatch** — not the issue, not the doc. Which side is wrong is the user's call.
 
-**The comparison itself is not model work** (`AGENTS.md`, *What should stop being model work* — set arithmetic over files is 🔴). Run it:
+**The comparison itself is not model work** (`AGENTS.md`, *What should stop being model work* — set arithmetic over files is 🔴). Every `tools/*.ps1` path in this command is relative to the kit install root, not this repo (`AGENTS.md` § *House conventions* → Home-install convention) — run from that root, or resolve it first. Run it:
 
 ```powershell
 pwsh ./tools/Test-DesignDrift.ps1

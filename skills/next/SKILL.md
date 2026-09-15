@@ -41,7 +41,7 @@ the session straight back to `/clean`. A handoff that never checks is a loop.
 
 `/kit-help` owns the stage map and this command reads it rather than carrying a copy — go there
 for what stage 0 through 6 mean and which command belongs to each. What this command adds is a
-check of what is *outstanding*, which orientation alone does not answer:
+check of what is *outstanding*, which orientation alone does not answer. `./tools/` below is the kit install root, not this repo (`AGENTS.md` § *House conventions* → Home-install convention) — run from that root, or resolve it first:
 
 ```powershell
 git status --short --branch
