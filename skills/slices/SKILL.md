@@ -13,7 +13,7 @@ It may override: `vocabulary`, `document-map`. It may never override anything in
 
 ## Stop if `design/` is frozen
 
-If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and write nothing. The rule and the marker's format live in `AGENTS.md`, *The design freeze* — not restated here.
+If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and write nothing. The rule and the marker's format live in `AGENTS.shared.md`, *The design freeze* — not restated here.
 
 This includes **resizing or splitting an existing slice**, which is the edit most likely to look harmless mid-freeze and is the one that renumbers criteria and desyncs the tracker. If a slice turns out to be mis-sized while frozen, say so and stop; it is a real finding, and it is the user's to schedule.
 
@@ -47,7 +47,7 @@ Rules:
 - Target a slice a coding agent can finish in one session without compaction. If a slice needs more, split it.
 - No slice may introduce a signature absent from the contract.
 
-Write the document only. **Do not open issues** — that is `/track`'s job (`AGENTS.md`, *Tracking work*). Say that it should be run next.
+Write the document only. **Do not open issues** — that is `/track`'s job (`AGENTS.shared.md`, *Tracking work*). Say that it should be run next.
 
 ## Re-run
 

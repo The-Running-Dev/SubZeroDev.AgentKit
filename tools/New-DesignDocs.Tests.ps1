@@ -3,7 +3,7 @@
 
 <#
   Regression coverage for New-DesignDocs.ps1's Resolve-KitRoot only - the home-install root
-  resolution it shares in shape with Sync-Kit.ps1 and Invoke-CodexCommand.ps1 (AGENTS.md §
+  resolution it shares in shape with Sync-Kit.ps1 and Invoke-CodexCommand.ps1 (AGENTS.shared.md §
   House conventions → Home-install convention). The rest of the script (seeding design/ from
   templates/design/) has no test coverage yet; that is a pre-existing gap this file does not
   attempt to close.

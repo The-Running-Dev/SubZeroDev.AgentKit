@@ -11,7 +11,7 @@ file names *which categories* apply to it; it does not restate any of what is be
 
 ## The block is a declared region
 
-A core's fenced companion block is a **declared** marked region, id `companion` — `AGENTS.md`
+A core's fenced companion block is a **declared** marked region, id `companion` — `AGENTS.shared.md`
 (*Marked regions*) owns what declared means and what the marker looks like, and neither is
 restated here. In short: hand-authored, never written by a generator, checked for presence and
 well-formedness the same as any other marked region.

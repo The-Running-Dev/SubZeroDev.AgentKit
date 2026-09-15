@@ -48,14 +48,14 @@ function Get-AgentKitNext {
         Runs /next's orientation reads with no model call, for a person to decide the row.
     .DESCRIPTION
         Wraps tools/Get-NextOrientation.ps1 and prints a short human summary before returning
-        the full object. Deciding what runs next is unchanged - AGENTS.md § *Session
+        the full object. Deciding what runs next is unchanged - AGENTS.shared.md § *Session
         boundaries* and next.md's decision table still govern that; this only removes the cost
         of gathering what they are decided against.
     #>
     param([string]$RepoRoot = (Get-Location).Path)
     $orientation = & (Join-Path $script:RepoAliasesRoot 'Get-NextOrientation.ps1') -RepoRoot $RepoRoot
 
-    # Print the plain-language Summary each field already carries (AGENTS.md, *Output
+    # Print the plain-language Summary each field already carries (AGENTS.shared.md, *Output
     # discipline*) rather than a raw Dirty/Available/exit-code dump the reader has to translate.
     Write-Host $orientation.Summary
     Write-Host $orientation.OpenPrs.Summary

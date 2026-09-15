@@ -5,10 +5,10 @@
     contents are trusted to become a pull request's Verified section.
 
 .DESCRIPTION
-    Same pattern as Test-DesignDrift.ps1 (AGENTS.md, "structured artifact plus deterministic
+    Same pattern as Test-DesignDrift.ps1 (AGENTS.shared.md, "structured artifact plus deterministic
     validator"), ported to a second agent output: /verify's gate report. verify.md's own report
     is currently free-form prose that /pr copies "verbatim" into a PR description - which means
-    the honesty rules in AGENTS.md's Verification section ("never write all checks pass unless
+    the honesty rules in AGENTS.shared.md's Verification section ("never write all checks pass unless
     every gate is in the first list", "quote failures, a summary of a failure is a claim about
     a failure", "the did-not-run list goes in word for word, including the reason") are enforced
     by nothing but the agent re-reading its own prose. This script makes three of those rules
@@ -54,7 +54,7 @@ $ErrorActionPreference = 'Stop'
 $script:KnownStatuses = @('Passed', 'Failed', 'DidNotRun')
 # Below this many characters, a "detail" reads as a label ("failed", "broken") rather than
 # pasted output. Not a claim that longer text IS the real output - only that shorter text
-# provably is not (AGENTS.md, "quote failures... a summary of a failure is a claim about one").
+# provably is not (AGENTS.shared.md, "quote failures... a summary of a failure is a claim about one").
 $script:MinDetailLength = 15
 
 function New-ReportResult {

@@ -23,14 +23,18 @@ BeforeAll {
 ---
 description: fixture
 ---
-Cites (`AGENTS.md`, *Safe start*) once and (AGENTS.md, *Hard rules*) again later.
+Cites (`AGENTS.shared.md`, *Safe start*) once and (AGENTS.md, *Hard rules*) again later.
 '@
 
-        Set-Content -LiteralPath (Join-Path $Root 'AGENTS.md') -Encoding utf8NoBOM -Value @'
+        Set-Content -LiteralPath (Join-Path $Root 'AGENTS.shared.md') -Encoding utf8NoBOM -Value @'
 # Agent contract
 
 ## Safe start
 Read before touching anything.
+'@
+
+        Set-Content -LiteralPath (Join-Path $Root 'AGENTS.md') -Encoding utf8NoBOM -Value @'
+# Agent contract — this repository
 
 ## Hard rules
 One slice at a time.
@@ -127,15 +131,33 @@ Describe 'New-ReducedPrompt' {
             Should -Throw '*S9*'
     }
 
-    It 'throws naming the missing section when a cited AGENTS.md section does not exist' {
+    It 'throws naming the missing section when a cited section is in neither AGENTS.shared.md nor AGENTS.md' {
         Set-Content -LiteralPath (Join-Path $script:Root 'AGENTS.md') -Encoding utf8NoBOM -Value @'
-# Agent contract
+# Agent contract — this repository
 
-## Safe start
-Read before touching anything.
+## Unrelated section
+Nothing cited lives here.
 '@
         { & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -ErrorAction Stop } |
             Should -Throw '*Hard rules*'
+    }
+
+    It 'finds a section that is only in AGENTS.shared.md and one that is only in AGENTS.md' {
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root
+
+        $result | Should -Match ([regex]::Escape('Read before touching anything.'))
+        $result | Should -Match ([regex]::Escape('One slice at a time.'))
+    }
+
+    It 'reads AGENTS.shared.md from the kit install when the repository has no copy of its own' {
+        Remove-Item -LiteralPath (Join-Path $script:Root 'AGENTS.shared.md')
+
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root
+
+        # The kit checkout this script runs from is the self-hosted install, and its Safe start
+        # carries the git status command the fixture's does not.
+        $result | Should -Match ([regex]::Escape('git status --short --branch'))
+        $result | Should -Not -Match ([regex]::Escape('Read before touching anything.'))
     }
 
     It 'writes to -OutFile instead of the success stream when given one' {
@@ -161,7 +183,7 @@ Read before touching anything.
 Describe 'New-ReducedPrompt against this repository''s own slice.md and AGENTS.md' {
     <#
       Deliberately the opposite of the fixture tests above. A slice's completion
-      report is governed by AGENTS.md's *Output discipline*, and the reduced prompt
+      report is governed by AGENTS.shared.md's *Output discipline*, and the reduced prompt
       only carries a section when slice.md cites it. Nothing special-cases that
       section in the script, so the only thing keeping it in a reduced prompt is
       the citation - which is exactly what an edit to either real file could drop.
@@ -171,6 +193,7 @@ Describe 'New-ReducedPrompt against this repository''s own slice.md and AGENTS.m
         New-Item -ItemType Directory -Path $script:Root -Force | Out-Null
         New-Fixture -Root $script:Root
         $repoRoot = Split-Path $PSScriptRoot -Parent
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'AGENTS.shared.md') -Destination (Join-Path $script:Root 'AGENTS.shared.md') -Force
         Copy-Item -LiteralPath (Join-Path $repoRoot 'AGENTS.md') -Destination (Join-Path $script:Root 'AGENTS.md') -Force
         Copy-Item -LiteralPath (Join-Path $repoRoot 'skills/slice/SKILL.md') -Destination (Join-Path $script:Root 'skills/slice/SKILL.md') -Force
     }

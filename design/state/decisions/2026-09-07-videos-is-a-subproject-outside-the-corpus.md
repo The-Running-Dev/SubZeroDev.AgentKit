@@ -2,7 +2,7 @@
 Date: 2026-09-07
 Anchor: 2026-09-07 — `videos/` is a Videowright subproject recorded as a dependency and kept outside the design-state corpus
 Status: accepted
-StatedIn: unit/document/agents-md § House conventions
+StatedIn: unit/document/project-agents-md § House conventions
 
 ## Claim
 `videos/` is a Videowright subproject: a Node dependency tree, a dev-server entry in

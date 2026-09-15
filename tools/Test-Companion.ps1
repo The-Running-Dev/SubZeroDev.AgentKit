@@ -9,12 +9,12 @@
     skills/<name>/SKILL-local.md. The core enumerates which categories the companion may
     override; COMPANIONS.md owns the category vocabulary and the never-list.
 
-    The core's fence is a declared marked region, id "companion" (AGENTS.md, *Marked regions*):
+    The core's fence is a declared marked region, id "companion" (AGENTS.shared.md, *Marked regions*):
     <!-- companion:declared:start --> ... <!-- companion:declared:end -->. The bare form means
     projected, so a core carrying it rather than the declared form is nonconforming.
 
     None of that is checkable by reading the core files alone, which is the whole reason this
-    script exists - AGENTS.md, *Verification*: "A schema or validator change is not done until
+    script exists - AGENTS.shared.md, *Verification*: "A schema or validator change is not done until
     it has rejected something."
 
     The category ids are read out of .claude/COMPANIONS.md's own table rather than duplicated

@@ -443,7 +443,7 @@ Describe 'Measure-Session -Hook' {
     }
 
     It 'writes to the calling project named by $env:CLAUDE_PROJECT_DIR, not beside a globally-installed script' {
-        # Under home-install (AGENTS.md's Home-install convention), the
+        # Under home-install (AGENTS.shared.md's Home-install convention), the
         # script itself lives once at ~/.agent-kit/tools/ - the same
         # location for every project - so resolving the log beside the
         # script, or beside its git repo, would put every project's costs

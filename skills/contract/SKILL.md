@@ -13,7 +13,7 @@ It may override: `vocabulary`, `document-map`, `extra-steps`. It may never overr
 
 ## Stop if `design/` is frozen
 
-If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and write nothing. The rule and the marker's format live in `AGENTS.md`, *The design freeze* — not restated here.
+If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and write nothing. The rule and the marker's format live in `AGENTS.shared.md`, *The design freeze* — not restated here.
 
 This is the gate a blocked slice most often arrives at: a slice that needs a contract amendment stops and escalates, and while frozen that escalation is answered by the user, not absorbed here. Thawing to amend is a legitimate answer — **it is just not this command's to decide.**
 
@@ -23,9 +23,9 @@ This is the artifact that constrains the implementing agent. Everything downstre
 
 ## Semantics, not shape
 
-**This document carries semantics; the tree carries shape** (`AGENTS.md`, *Single ownership* — a document states only what the tree cannot). A type declaration or a parameter list written both here and in the code is two copies, and this one is the copy that rots.
+**This document carries semantics; the tree carries shape** (`AGENTS.shared.md`, *Single ownership* — a document states only what the tree cannot). A type declaration or a parameter list written both here and in the code is two copies, and this one is the copy that rots.
 
-Before the code exists there is nowhere else for shape to live, so write it here **as a scaffold**: full declarations, in the project's actual language syntax, types and signatures only, no bodies. Then the slice that materialises a declaration into code **replaces the block here with a pointer to the file that now declares it, in the same commit** — that is descriptive drift being corrected where it is found (`AGENTS.md`, *Hard rules*), not a contract amendment, and it needs no approval.
+Before the code exists there is nowhere else for shape to live, so write it here **as a scaffold**: full declarations, in the project's actual language syntax, types and signatures only, no bodies. Then the slice that materialises a declaration into code **replaces the block here with a pointer to the file that now declares it, in the same commit** — that is descriptive drift being corrected where it is found (`AGENTS.shared.md`, *Hard rules*), not a contract amendment, and it needs no approval.
 
 What is left behind after that replacement is the point of this document, and it is the part no parameter list can state. Write it as though the scaffold were already gone.
 
@@ -48,7 +48,7 @@ Rules:
 - If the design doc does not determine a signature, do not invent it. List it under `## Unresolved` and stop.
 - **Do not restate a declaration the tree already carries.** Point at it and state what it cannot say.
 - No implementation. No comments explaining intent — the design doc carries intent. File paths are permitted **only** as the pointers this section requires.
-- Anything you add here that was not implied by the design doc gets a decision-log entry. Where this repository's own `design/state/` exists, writing it also follows the record-writing sequence in `AGENTS.md` § *Writing a design-state record* — not restated here.
+- Anything you add here that was not implied by the design doc gets a decision-log entry. Where this repository's own `design/state/` exists, writing it also follows the record-writing sequence in `AGENTS.shared.md` § *Writing a design-state record* — not restated here.
 
 ## Re-run
 

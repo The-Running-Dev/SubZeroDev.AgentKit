@@ -5,7 +5,7 @@
 
 .DESCRIPTION
     Two comparisons that a model should never do by eye, because both are set arithmetic over
-    files and both fail silently when done from memory (AGENTS.md, "What should stop being
+    files and both fail silently when done from memory (AGENTS.shared.md, "What should stop being
     model work" - the red row):
 
       1. Criterion ids. Every `S<n>.<m>` under a slice's `Acceptance:` lines, against every

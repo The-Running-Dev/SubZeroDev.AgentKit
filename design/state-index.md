@@ -42,7 +42,7 @@ means no record exists yet, not that nothing is true.
 | `unit/command/unfreeze` | command | `skills/unfreeze/SKILL.md` |
 | `unit/command/verify` | command | `skills/verify/SKILL.md` |
 | `unit/document/agent-md` | document | `agent.md` |
-| `unit/document/agents-md` | document | `AGENTS.md` |
+| `unit/document/agents-md` | document | `AGENTS.shared.md` |
 | `unit/document/codex-profiles` | document | `codex/PROFILES.md` |
 | `unit/document/companions-md` | document | `.claude/COMPANIONS.md` |
 | `unit/document/design-00-brief` | document | `design/00-brief.md` |
@@ -55,6 +55,7 @@ means no record exists yet, not that nothing is true.
 | `unit/document/install-md` | document | `INSTALL.md` |
 | `unit/document/issue-template-bug` | document | `.github/ISSUE_TEMPLATE/bug.md` |
 | `unit/document/issue-template-story` | document | `.github/ISSUE_TEMPLATE/story.md` |
+| `unit/document/project-agents-md` | document | `AGENTS.md` |
 | `unit/document/readme-md` | document | `README.md` |
 | `unit/document/template-00-brief` | document | `templates/design/00-brief.md` |
 | `unit/document/template-10-design` | document | `templates/design/10-design.md` |
@@ -259,9 +260,9 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-05-self-check-asserts-a-clean-run | `unit/script/test-designstate` |
 | decision/2026-09-05-track-creates-a-project-when-none-exists | `unit/command/track`, `unit/document/agents-md` |
 | decision/2026-09-06-clean-and-next-mechanical-halves-run-from-a-shell-alias | `unit/command/clean`, `unit/command/next`, `unit/script/get-nextorientation`, `unit/script/invoke-housekeeping`, `unit/script/repoaliases` |
-| decision/2026-09-07-externally-written-region-is-declared | `unit/document/agents-md` |
+| decision/2026-09-07-externally-written-region-is-declared | `unit/document/agents-md`, `unit/document/project-agents-md` |
 | decision/2026-09-07-failure-modes-carries-semanticdisagreement | `unit/document/design-10-design` |
-| decision/2026-09-07-videos-is-a-subproject-outside-the-corpus | `unit/document/agents-md` |
+| decision/2026-09-07-videos-is-a-subproject-outside-the-corpus | `unit/document/project-agents-md` |
 | decision/2026-09-12-277-amendment-stands-unimplemented | `unit/document/design-20-contract` |
 | decision/2026-09-12-component-is-a-fifth-unit-kind | `unit/document/design-10-design` |
 | decision/2026-09-12-component-row-enumerates | `unit/document/design-20-contract`, `unit/script/test-designstate` |
@@ -269,13 +270,14 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-12-invariant-holders-are-derived-from-binds | `unit/document/design-10-design`, `unit/script/read-designstate`, `unit/script/test-designstate` |
 | decision/2026-09-12-record-files-heading-renamed | `unit/document/design-20-contract` |
 | decision/2026-09-12-unhandlederror-is-a-fourth-stop | `unit/document/design-20-contract`, `unit/script/invoke-donehousekeeping` |
-| decision/2026-09-12-videos-is-gated-but-not-rendered | `unit/document/agents-md` |
+| decision/2026-09-12-videos-is-gated-but-not-rendered | `unit/document/project-agents-md` |
 | decision/2026-09-13-277-interval-closed | `unit/document/design-30-slices` |
 | decision/2026-09-13-component-records-checked-without-a-row | `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-09-14-output-discipline-is-one-agents-md-rule | `unit/document/agents-md`, `unit/document/codex-profiles`, `unit/document/design-cost` |
 | decision/2026-09-14-output-discipline-states-plain-language-first | `unit/document/agents-md` |
 | decision/2026-09-14-project-doc-max-bytes-is-launcher-enforced | `unit/document/codex-profiles`, `unit/script/invoke-codexcommand` |
 | decision/2026-09-14-unfreeze-splits-across-sessions-for-a-tool-that-cannot-switch-tier | `unit/command/unfreeze`, `unit/document/agents-md` |
+| decision/2026-09-15-agents-md-splits-into-shared-and-project | `unit/document/project-agents-md` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered

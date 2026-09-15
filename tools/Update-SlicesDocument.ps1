@@ -23,12 +23,12 @@
          range of every `S<n>.<m>` id in its `Acceptance:` block, and the short SHA of the last
          commit that touched this file, is appended to the `## Landed` table.
 
-    Mechanical only, on purpose (AGENTS.md, "What should stop being model work" - moving text
+    Mechanical only, on purpose (AGENTS.shared.md, "What should stop being model work" - moving text
     and reading an id range is set arithmetic over one file). It never touches the document's
     hand-authored prose - the overview blockquote, the per-slice narrative preamble, or the
     "What each delivered" list - because none of that is derivable from the tracker; a session
     running this script still has to read what is left and correct any of that prose the
-    retirement made stale, by hand, in the same commit (AGENTS.md, "Descriptive drift is
+    retirement made stale, by hand, in the same commit (AGENTS.shared.md, "Descriptive drift is
     corrected where it is found").
 
     Never opens, closes, or edits an issue - read-only against the tracker, exactly as
