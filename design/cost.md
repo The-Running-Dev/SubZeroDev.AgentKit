@@ -238,7 +238,7 @@ framework exists: most tool characters are full reads that *Safe start* requires
 rule itself is **not yet measured**. It only reaches sessions started after it lands.
 
 **The benchmark.** Run one workflow against one fixed repository state, once from a checkout
-without the rule and once with it, each in a fresh session on the same model. `/kit-help` is the
+without the rule and once with it, each in a fresh session on the same model. `/help` is the
 reference workflow: it reads and reports without writing, so both sides do the same work. Then
 compare `./tools/Measure-Session.ps1 -SessionId <id> -Detail` for the two sessions on
 `completionOutput`, `completionTextChars`, `output`, `toolResultChars`, and `peakContext`. One pair

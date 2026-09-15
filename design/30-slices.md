@@ -61,7 +61,7 @@ The riskiest assumption in the sixth is that **a class the script declares and n
 worth declaring at all.** Every other id in the closed list earns its place by firing; this one
 earns its place by being the name a reading reports under, and a name with no raiser is exactly
 the shape of a rule that quietly stops being applied. S30 is one slice rather than two because
-the two halves fail together — declaring the id without giving `/reconcile` the instruction
+the two halves fail together — declaring the id without giving `/align` the instruction
 buys a green build and no detection, and writing the instruction without declaring the id
 leaves `ClassListDisagreement` firing. The bet is settled by the slice's own absorption step:
 if the class cannot be written into `contract/test-designstate` § *Semantics* tightly enough to
@@ -76,7 +76,7 @@ first because it is the half that can only *shrink* that closure: it deletes an 
 every invariant the checker binds and absorbs the one #277 decision in the checker's `Live`. S32
 then spends headroom S31 has already recovered, rather than headroom that is not there. The
 other bet — that deleting `Invariant.Owner` loses nothing — was measured before the amendment
-(#277's `/contract` comment: every active invariant's `Owner` equals its binders), with one
+(#277's `/spec` comment: every active invariant's `Owner` equals its binders), with one
 exception S31 has to close rather than drop: the two retired invariants, I3 and I4, whose holder
 was never written to any `Bound` half, so their `Owner` line is today the only record of it.
 
@@ -91,11 +91,11 @@ the issue's agent block still pins `§ S<n> @ <sha>` for its own criteria.
 
 The reason is the churn loop in `AGENTS.md`, *The design freeze*: a landed slice's criteria
 have no reader left except a drift check, and every pass over them is a pass that can
-rewrite the slice after it. Retiring them shrinks what any later pass can touch. `/reconcile`
-is barred from this document outright (`skills/reconcile/SKILL.md`), so the two rules are
+rewrite the slice after it. Retiring them shrinks what any later pass can touch. `/align`
+is barred from this document outright (`skills/align/SKILL.md`), so the two rules are
 the same rule from either end.
 
-**`/slices` appends new slices under `## Outstanding`.** Never renumber, and never reuse a
+**`/plan` appends new slices under `## Outstanding`.** Never renumber, and never reuse a
 retired id — criterion ids are cited by closed issues and are expensive to withdraw
 (`design/90-decisions.md`, 2026-08-03).
 
@@ -111,7 +111,7 @@ mirrored criteria are read from the projection, never from here
 
 **One outstanding and two answered.** The outstanding one is already an item in
 `design/20-contract.md` § *Unresolved*. The other two were found by a re-run of this document
-and **answered in the same session**; both amendments and both log entries were `/contract`'s,
+and **answered in the same session**; both amendments and both log entries were `/spec`'s,
 at `opus`/`high`, and **both have since landed** — `design/20-contract.md` and
 `design/90-decisions.md` now say what the two sections below record. What is left of each is
 the account of what was decided and why, which is why neither has been deleted.
@@ -173,7 +173,7 @@ amendment. That is a limit of the mechanism, not unfinished work, and it is trac
 
 The detection half of the same commission — the `LiveAlreadyStated` class, added to
 `design/20-contract.md` § *The divergence classes* by the 2026-09-02 amendment — landed as S30:
-the checker declares the id and `/reconcile` raises it.
+the checker declares the id and `/align` raises it.
 
 ### A note on counts
 

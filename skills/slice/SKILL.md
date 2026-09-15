@@ -34,7 +34,7 @@ Match a slice to its issue on a title beginning `S<n> —`, the same way `/track
 
 Stop and ask rather than choosing when:
 
-- `design/30-slices.md` is missing or holds no slices. `/slices` writes it.
+- `design/30-slices.md` is missing or holds no slices. `/plan` writes it.
 - Every slice is done. Say so; do not go looking for adjacent work.
 - The tracker cannot be read — `gh` absent, not authenticated, issues disabled. **Do not fall back to the lowest number.** Doneness is unobservable without it, so name the slice you would have picked and wait, rather than starting one that may already be finished.
 - Two slices carry the same number. That is a defect in `design/30-slices.md` — report it, do not pick one.
@@ -62,9 +62,9 @@ Sequence:
 **Descriptive drift is corrected here, in this slice's commit** — the rule and its boundaries are in `AGENTS.shared.md`, *Hard rules*, and are not restated. What that means in practice:
 
 - A declaration, parameter list, field name, path, or count in `design/` that the tree now states differently is a **transcription error**. Fix the document by named path, in the same commit as the code, and say in step 9 what you corrected. Do not raise it as a fork and do not log a decision — there is no decision in it.
-- Materialising a `20-contract.md` scaffold is this same correction: once a declaration exists in the tree, **replace the block in the contract with a pointer to the file that now declares it** and keep only what the declaration cannot say (`skills/contract/SKILL.md`, *Semantics, not shape*).
+- Materialising a `20-contract.md` scaffold is this same correction: once a declaration exists in the tree, **replace the block in the contract with a pointer to the file that now declares it** and keep only what the declaration cannot say (`skills/spec/SKILL.md`, *Semantics, not shape*).
 - **An invariant, a non-goal, an acceptance criterion, or a public interface is not descriptive drift.** Those are the stop conditions below, unchanged.
-- **`design/30-slices.md` is never edited here**, including this slice's own criteria. A criterion that is wrong is a `/slices` matter.
+- **`design/30-slices.md` is never edited here**, including this slice's own criteria. A criterion that is wrong is a `/plan` matter.
 - **If `design/FROZEN.md` exists, correct nothing.** State the contradiction in the pull request and leave the document alone (`AGENTS.shared.md`, *The design freeze*).
 
 Stop conditions — halt and report rather than proceeding:
@@ -79,7 +79,7 @@ Do not:
 - Touch files outside `Touches` without saying why first.
 - Refactor adjacent code.
 - Add dependencies.
-- Edit `design/30-slices.md`, or change any invariant, non-goal, or public interface. Descriptive correction is bounded to the section above; everything else is still `/slices`', `/contract`'s, or `/reconcile`'s.
+- Edit `design/30-slices.md`, or change any invariant, non-goal, or public interface. Descriptive correction is bounded to the section above; everything else is still `/plan`'s, `/spec`'s, or `/align`'s.
 
 ## Not meant to be re-run
 

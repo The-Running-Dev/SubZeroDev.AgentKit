@@ -1,11 +1,11 @@
 # unit/command/kit-sync
 Kind: command
 Status: active
-Anchor: skills/kit-sync/SKILL.md
+Anchor: skills/sync/SKILL.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-09-15-twelve-commands-shorten-to-natural-names
 Questions:
 Work:
 Evidence:

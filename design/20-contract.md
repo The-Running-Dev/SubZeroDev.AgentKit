@@ -18,7 +18,7 @@ normalised, which parameter must not acquire a default and what that would defea
 
 `skills/*/SKILL.md` is Markdown loaded into a model. It has no separate declaration to
 point at, so its surface is stated here in full — invocation, what it reads and writes,
-what it must output, what it must not do — which is what gives `/reconcile` something to
+what it must output, what it must not do — which is what gives `/align` something to
 compare a command file against.
 
 **The state set is constrained Markdown with a line grammar, declared in
@@ -385,8 +385,8 @@ reject; S14 wrote the file and `contract/update-workmirror` with it, so that gro
 applies. `tools/Invoke-DoneHousekeeping.ps1` joined on the 2026-08-31 decision, as the one entry
 whose consumer is a rule in a document rather than another module. `tools/Test-GatesCache.ps1`,
 `tools/Test-VerifyReport.ps1`, `tools/Test-WriteSurface.ps1` and `tools/Update-SlicesDocument.ps1`
-join on the 2026-09-05 decision below, closing a gap `/reconcile` found: each crosses a module
-boundary — invoked by `/verify`, `/pr`, `/install-all` or `/track` — and none had carried a
+join on the 2026-09-05 decision below, closing a gap `/align` found: each crosses a module
+boundary — invoked by `/check`, `/pr`, `/install-all` or `/track` — and none had carried a
 record since the unit itself was written.
 
 **No class compares the two** — § *Artifacts of a unit kind* carried the other until
@@ -496,7 +496,7 @@ three-list report.
 
 - **Emits three lists — findings, reports, and what could not be evaluated — and always all
   three**, including when one is empty. An omitted empty list reads as an absent category
-  rather than an empty one, which is the substitution `/verify` exists to prevent.
+  rather than an empty one, which is the substitution `/check` exists to prevent.
 - Exit codes: 0 clean, 1 findings, 2 could not evaluate, and **2 takes precedence over 1**
   (I20). **A caller running it as a gate treats 1 and 2 alike as failure.** A gate that fails
   only on 1 turns *could not evaluate* into a pass at the call site, which is I19 and I20
@@ -606,7 +606,7 @@ owned any of them and this one exists to hold them. **`outstanding` joins them o
 test.** `design/30-slices.md` § *Outstanding* owns hand-authored **proposals**, and authority
 transfer makes a proposal a different thing from criteria (§ *Cross-cutting obligations on
 commands*), so no document owned the mirrors either. Placing it here also keeps generated content
-out of the one document `/reconcile` is barred from, leaves that document's retirement convention
+out of the one document `/align` is barred from, leaves that document's retirement convention
 untouched, and makes the proposal/criteria boundary a document boundary — the same boundary the
 transfer draws.
 
@@ -695,18 +695,18 @@ action is the unchecked kind I15 forbids until a record resolves it (`design/90-
 ### `tools/Test-GatesCache.ps1`
 
 **The parameter list is the script's own `param` block and is not copied here.** Read or write
-`.claude/gates.json`, a cache of `/verify`'s own gate discovery keyed to a hash of the files whose
+`.claude/gates.json`, a cache of `/check`'s own gate discovery keyed to a hash of the files whose
 presence or content determines what the gate list is. What the block cannot state:
 
-- **Never discovers a gate.** That stays `/verify`'s judgement call and stays owned by
-  `verify.md`. This script only remembers an answer `/verify` already worked out and says
+- **Never discovers a gate.** That stays `/check`'s judgement call and stays owned by
+  `verify.md`. This script only remembers an answer `/check` already worked out and says
   whether it is still trustworthy.
 - **The manifest hash covers exactly the fixed input set `verify.md`'s own discovery table
   reads** — the *content* of every `.github/workflows/*.yml` and of `package.json`, and the mere
   *existence* of the known build-script paths, never their content. Anything outside that list
   never invalidates the cache; widening it is a contract amendment, not a judgement call this
   script makes for itself.
-- **`-Write` requires `-GatesJson` and is meant to be called once**, immediately after `/verify`
+- **`-Write` requires `-GatesJson` and is meant to be called once**, immediately after `/check`
   performs a real discovery pass by hand — never as a substitute for one.
 - **Carries no exit-code vocabulary.** Emits `Status` of `Fresh`, `Stale`, `Missing`, or
   `Written`; a caller reads `.Status`, never the process exit code.
@@ -714,10 +714,10 @@ presence or content determines what the gate list is. What the block cannot stat
 ### `tools/Test-VerifyReport.ps1`
 
 **The parameter list is the script's own `param` block and is not copied here.** Validates
-`.claude/verify-report.json` — the structured artifact `/verify` writes — before its contents are
+`.claude/verify-report.json` — the structured artifact `/check` writes — before its contents are
 trusted to become a pull request's `Verified` section. What the block cannot state:
 
-- **Never decides what the gates are or whether one should have passed.** That is `/verify`'s
+- **Never decides what the gates are or whether one should have passed.** That is `/check`'s
   judgement, the same division `Test-DesignDrift.ps1` draws for which side of a drift is correct.
   It only refuses to let a malformed report reach a pull request body unnoticed.
 - **Mechanically enforces three of `AGENTS.shared.md`'s honesty rules**: every gate carries exactly one
@@ -790,7 +790,7 @@ slice's full body out of `design/30-slices.md` § *Outstanding*, into a row unde
 | Invocation | `/fix <issue number>`, `/fix <description>`, `/fix` with a failing test in context, or `/fix` with none of those — which picks the highest-value open bug itself, by an explicit priority signal where one exists and the oldest open `bug` issue where none does |
 | Reads | the defect source; **the bug issue's agent block**; where `design/state/` exists, that unit's closure rather than the corpus (I27); `AGENTS.md` |
 | Writes | one branch, one or more commits, one pull request, and — only on the description path, only after reproducing — **one bug issue** |
-| Must output | the reproduction evidence; the issue number it is implementing against; the branch and the pull request it opened, the latter carrying its real description from the moment it is opened. **The gates and the review threads are `/pr`'s** (`design/90-decisions.md`, 2026-08-08), so `/verify`'s three lists, the pushed SHA and the `WaitResult` are output there and not here |
+| Must output | the reproduction evidence; the issue number it is implementing against; the branch and the pull request it opened, the latter carrying its real description from the moment it is opened. **The gates and the review threads are `/pr`'s** (`design/90-decisions.md`, 2026-08-08), so `/check`'s three lists, the pushed SHA and the `WaitResult` are output there and not here |
 | Must not | edit `design/`, open a draft pull request, resolve a thread, merge, open an issue for a defect it did not reproduce, or widen the change to an adjacent defect noticed along the way |
 
 **The fourth form is the one path that reaches the tracker before it has a defect.** The other
@@ -832,7 +832,7 @@ the `Never` list — is unchanged and stays owned by that file.
 ### Cross-cutting obligations on commands
 
 Stated once here rather than enumerated per command, because the obligation is the same one and
-`/slices` decides which files carry it.
+`/plan` decides which files carry it.
 
 - **Degrade to today's behaviour when the state set is absent** (I27). This, not a version
   check, is what makes the brief's zero-hard-stops promise mechanical. A command that requires
@@ -857,7 +857,7 @@ Stated once here rather than enumerated per command, because the obligation is t
   moment the issue is created (`design/10-design.md` § *WorkRef*). Before that point
   `design/30-slices.md` carries a *proposal* and is cited as one; after it, the issue is the
   authority and the document is a mirror of it (I28). Nothing enforces the sequencing but
-  `/slices` running before `/track`. **This is settled and is not the § *Unresolved* item** —
+  `/plan` running before `/track`. **This is settled and is not the § *Unresolved* item** —
   what stays undetermined there is where criteria are rendered once the transfer has happened,
   not when it happens.
 - **Never read a generated region as an input** (I14).
@@ -1004,7 +1004,7 @@ projections have `ProjectionStale`.
 | `TimedOut` | A check is still non-terminal at `-TimeoutSeconds` | Yes | Report the named checks as did-not-run. **Do not resolve** |
 | `UnknownBucket` | A bucket outside the known sets | No | Stop. Report the bucket verbatim; the set needs widening deliberately |
 | `NoChecksConfigured` | The pull request reports zero checks | No | Report that nothing was evaluated. **Do not resolve.** A repository with no CI cannot satisfy I1 by this route, and the honest answer is that the evidence does not exist rather than that it was favourable |
-| `GhUnavailable` | `gh` missing, unauthenticated, or returning output that cannot be read as the answer | No | Report as a gate that did not run, per `/verify` |
+| `GhUnavailable` | `gh` missing, unauthenticated, or returning output that cannot be read as the answer | No | Report as a gate that did not run, per `/check` |
 | `PullRequestMissing` | No such PR | No | Stop |
 
 **`GhUnavailable` is about the answer, not about the process.** `gh` absent, `gh` refusing to

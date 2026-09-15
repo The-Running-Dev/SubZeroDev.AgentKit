@@ -108,7 +108,7 @@ In a repository this account does not own, or one whose `AGENTS.md` does not del
 - Threads found, and how many were unresolved at the start
 - The classification table
 - What was fixed, and the pushed SHA
-- The `WaitResult` for that SHA — including anything in `.NotRun`, per `/verify`
+- The `WaitResult` for that SHA — including anything in `.NotRun`, per `/check`
 - Threads resolved, and threads deliberately left open with the specific gate that failed (§ Gates for automatic resolution)
 - Issues filed for out-of-scope findings, with numbers
 

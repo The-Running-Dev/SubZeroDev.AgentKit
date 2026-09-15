@@ -1,11 +1,11 @@
 ---
-name: make-human-docs
+name: docs
 description: Generate the human-facing guide from the design docs
 disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `skills/make-human-docs/SKILL-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/docs/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `document-map`, `extra-steps`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
@@ -20,8 +20,8 @@ If the repository has no `docs/` documentation project, write `guide.md` at the 
 The file opens with:
 
 ```
-> Generated from `design/` by `/make-human-docs`. Do not edit by hand — edit the
-> design docs and regenerate. `/reconcile` reports when this has gone stale.
+> Generated from `design/` by `/docs`. Do not edit by hand — edit the
+> design docs and regenerate. `/align` reports when this has gone stale.
 ```
 
 ## Rules
@@ -37,7 +37,7 @@ The file opens with:
 ## Stop conditions
 
 - `10-design.md` or `20-contract.md` is empty or too thin to describe a working system. Say what is missing; do not fill the gap with plausible prose.
-- The design and the contract disagree. That is `/reconcile`'s job, not this one.
+- The design and the contract disagree. That is `/align`'s job, not this one.
 - You would have to invent behaviour to make the guide read coherently.
 
 Report what you cut, and anything the design left ambiguous.
@@ -46,5 +46,5 @@ Report what you cut, and anything the design left ambiguous.
 
 Overwrites the guide in full from the current design docs — there is no partial regeneration
 and no diffing against the previous version. Re-run whenever `design/` changes underneath it;
-`/reconcile`'s *Generated-guide drift* is what notices when a stale copy was never
+`/align`'s *Generated-guide drift* is what notices when a stale copy was never
 regenerated, not this command noticing its own staleness.
