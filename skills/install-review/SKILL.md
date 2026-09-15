@@ -1,12 +1,12 @@
 ---
-name: install-code-review-agent
-description: Install Anthropic's Claude Code GitHub Action into a repository so pull requests get automated Claude review. Usage - /install-code-review-agent, or /install-code-review-agent D:\Projects\Some.Repo
+name: install-review
+description: Install Anthropic's Claude Code GitHub Action into a repository so pull requests get automated Claude review. Usage - /install-review, or /install-review D:\Projects\Some.Repo
 argument-hint: "[target repo path]"
 disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `skills/install-code-review-agent/SKILL-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/install-review/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `extra-steps`, `tightened-authorization`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.

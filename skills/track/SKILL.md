@@ -70,7 +70,7 @@ Stop conditions and procedure: `skills/slice/SKILL.md`. Not restated here.
 
 Four properties make this work, and each is load-bearing:
 
-- **The narrative is `Delivers:` verbatim.** Never invent prose for it. If it reads badly, that is a `/slices` defect — fix the doc, where the slice set is reviewed, and re-run.
+- **The narrative is `Delivers:` verbatim.** Never invent prose for it. If it reads badly, that is a `/plan` defect — fix the doc, where the slice set is reviewed, and re-run.
 - **The block is fenced.** `<!-- agent:start -->` and `<!-- agent:end -->` are a boundary, not a request. Everything between them is regenerable; everything outside is human-owned and never touched.
 - **The block is thin.** Only what is specific to this issue: which slice, where authority lives, this slice's out-of-scope. **Generic stop conditions stay in `skills/slice/SKILL.md`.** Copying them here would freeze a stale copy into every issue, and this command cannot edit issues to fix them.
 - **Authority is pinned to a commit.** `§ S3 @ <sha>` is the sha of the last commit touching `design/30-slices.md`. It tells a reader whether the doc moved since the issue was written.

@@ -1,11 +1,11 @@
 # unit/command/freeze
 Kind: command
 Status: active
-Anchor: skills/freeze/SKILL.md
+Anchor: skills/hold/SKILL.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-09-15-twelve-commands-shorten-to-natural-names
 Questions:
 Work:
 Evidence:

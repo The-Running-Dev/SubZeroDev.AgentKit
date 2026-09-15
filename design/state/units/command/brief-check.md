@@ -1,11 +1,11 @@
 # unit/command/brief-check
 Kind: command
 Status: active
-Anchor: skills/brief-check/SKILL.md
+Anchor: skills/brief/SKILL.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-09-15-twelve-commands-shorten-to-natural-names
 Questions:
 Work:
 Evidence:

@@ -18,29 +18,29 @@ means no record exists yet, not that nothing is true.
 <!-- units:start -->
 | Id | Kind | Anchor |
 |---|---|---|
-| `unit/command/brief-check` | command | `skills/brief-check/SKILL.md` |
+| `unit/command/brief-check` | command | `skills/brief/SKILL.md` |
 | `unit/command/clean` | command | `skills/clean/SKILL.md` |
-| `unit/command/contract` | command | `skills/contract/SKILL.md` |
+| `unit/command/contract` | command | `skills/spec/SKILL.md` |
 | `unit/command/design` | command | `skills/design/SKILL.md` |
 | `unit/command/fix` | command | `skills/fix/SKILL.md` |
-| `unit/command/freeze` | command | `skills/freeze/SKILL.md` |
+| `unit/command/freeze` | command | `skills/hold/SKILL.md` |
 | `unit/command/install` | command | `skills/install/SKILL.md` |
 | `unit/command/install-all` | command | `skills/install-all/SKILL.md` |
-| `unit/command/install-code-review-agent` | command | `skills/install-code-review-agent/SKILL.md` |
-| `unit/command/kit-help` | command | `skills/kit-help/SKILL.md` |
-| `unit/command/kit-sync` | command | `skills/kit-sync/SKILL.md` |
-| `unit/command/make-human-docs` | command | `skills/make-human-docs/SKILL.md` |
+| `unit/command/install-code-review-agent` | command | `skills/install-review/SKILL.md` |
+| `unit/command/kit-help` | command | `skills/help/SKILL.md` |
+| `unit/command/kit-sync` | command | `skills/sync/SKILL.md` |
+| `unit/command/make-human-docs` | command | `skills/docs/SKILL.md` |
 | `unit/command/next` | command | `skills/next/SKILL.md` |
 | `unit/command/pr` | command | `skills/pr/SKILL.md` |
-| `unit/command/reconcile` | command | `skills/reconcile/SKILL.md` |
+| `unit/command/reconcile` | command | `skills/align/SKILL.md` |
 | `unit/command/redteam` | command | `skills/redteam/SKILL.md` |
-| `unit/command/refine` | command | `skills/refine/SKILL.md` |
+| `unit/command/refine` | command | `skills/tune/SKILL.md` |
 | `unit/command/resolve` | command | `skills/resolve/SKILL.md` |
 | `unit/command/slice` | command | `skills/slice/SKILL.md` |
-| `unit/command/slices` | command | `skills/slices/SKILL.md` |
+| `unit/command/slices` | command | `skills/plan/SKILL.md` |
 | `unit/command/track` | command | `skills/track/SKILL.md` |
-| `unit/command/unfreeze` | command | `skills/unfreeze/SKILL.md` |
-| `unit/command/verify` | command | `skills/verify/SKILL.md` |
+| `unit/command/unfreeze` | command | `skills/resume/SKILL.md` |
+| `unit/command/verify` | command | `skills/check/SKILL.md` |
 | `unit/document/agent-md` | document | `agent.md` |
 | `unit/document/agents-md` | document | `AGENTS.shared.md` |
 | `unit/document/codex-profiles` | document | `codex/PROFILES.md` |
@@ -278,6 +278,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-14-project-doc-max-bytes-is-launcher-enforced | `unit/document/codex-profiles`, `unit/script/invoke-codexcommand` |
 | decision/2026-09-14-unfreeze-splits-across-sessions-for-a-tool-that-cannot-switch-tier | `unit/command/unfreeze`, `unit/document/agents-md` |
 | decision/2026-09-15-agents-md-splits-into-shared-and-project | `unit/document/project-agents-md` |
+| decision/2026-09-15-twelve-commands-shorten-to-natural-names | `unit/command/brief-check`, `unit/command/contract`, `unit/command/freeze`, `unit/command/install-code-review-agent`, `unit/command/kit-help`, `unit/command/kit-sync`, `unit/command/make-human-docs`, `unit/command/reconcile`, `unit/command/refine`, `unit/command/slices`, `unit/command/unfreeze`, `unit/command/verify` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered

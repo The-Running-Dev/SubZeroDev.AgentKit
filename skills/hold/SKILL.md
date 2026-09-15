@@ -1,11 +1,11 @@
 ---
-name: freeze
+name: hold
 description: Create design/FROZEN.md so design/ stops drifting while implementation is the bottleneck
 disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `skills/freeze/SKILL-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/hold/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `document-map`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
@@ -39,7 +39,7 @@ Frozen at: <sha>, <YYYY-MM-DD>
 Frozen because: <what the freeze is escaping>
 Lifts when: <the checkable condition>
 
-To lift: run `/unfreeze`, or delete this file by hand and run `/reconcile`, then `/track`.
+To lift: run `/resume`, or delete this file by hand and run `/align`, then `/track`.
 ```
 
 Use today's date and the short SHA from above.
