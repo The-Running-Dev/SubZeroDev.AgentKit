@@ -46,6 +46,14 @@ BeforeAll {
           Runs Install-AgentKit.ps1 in a fresh child pwsh process with $HOME/$env:USERPROFILE
           redirected at $HomeDir for that call only, then restores the current process's env
           vars in every case (success or throw) so one test's sandbox never leaks into another.
+
+          The script under test runs its own git clone/checkout, outside this test file's
+          control, so a host with core.autocrlf enabled globally (seen on the hosted CI runner,
+          though not on this machine) would have git rewrite the fixtures' LF-committed files to
+          CRLF on checkout, breaking byte-for-byte content assertions for a reason that has
+          nothing to do with the script's own behaviour. GIT_CONFIG_KEY_0/VALUE_0 forces
+          core.autocrlf=false for every git invocation made by the child process and whatever it
+          spawns, regardless of that host's own global config.
         #>
         param(
             [Parameter(Mandatory)][string] $HomeDir,
@@ -53,14 +61,23 @@ BeforeAll {
         )
         $priorHome = $env:HOME
         $priorProfile = $env:USERPROFILE
+        $priorGitConfigCount = $env:GIT_CONFIG_COUNT
+        $priorGitConfigKey0 = $env:GIT_CONFIG_KEY_0
+        $priorGitConfigValue0 = $env:GIT_CONFIG_VALUE_0
         try {
             $env:HOME = $HomeDir
             $env:USERPROFILE = $HomeDir
+            $env:GIT_CONFIG_COUNT = '1'
+            $env:GIT_CONFIG_KEY_0 = 'core.autocrlf'
+            $env:GIT_CONFIG_VALUE_0 = 'false'
             $output = & pwsh -NoProfile -File $script:ScriptPath @ScriptArgs 2>&1
             [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = ($output -join "`n") }
         } finally {
             $env:HOME = $priorHome
             $env:USERPROFILE = $priorProfile
+            $env:GIT_CONFIG_COUNT = $priorGitConfigCount
+            $env:GIT_CONFIG_KEY_0 = $priorGitConfigKey0
+            $env:GIT_CONFIG_VALUE_0 = $priorGitConfigValue0
         }
     }
 

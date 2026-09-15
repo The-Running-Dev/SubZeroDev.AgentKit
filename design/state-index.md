@@ -63,6 +63,7 @@ means no record exists yet, not that nothing is true.
 | `unit/document/template-30-slices` | document | `templates/design/30-slices.md` |
 | `unit/document/template-90-decisions` | document | `templates/design/90-decisions.md` |
 | `unit/script/get-nextorientation` | script | `tools/Get-NextOrientation.ps1` |
+| `unit/script/install-agentkit` | script | `tools/Install-AgentKit.ps1` |
 | `unit/script/invoke-codexcommand` | script | `tools/Invoke-CodexCommand.ps1` |
 | `unit/script/invoke-donehousekeeping` | script | `tools/Invoke-DoneHousekeeping.ps1` |
 | `unit/script/invoke-housekeeping` | script | `tools/Invoke-Housekeeping.ps1` |
@@ -278,6 +279,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-14-project-doc-max-bytes-is-launcher-enforced | `unit/document/codex-profiles`, `unit/script/invoke-codexcommand` |
 | decision/2026-09-14-unfreeze-splits-across-sessions-for-a-tool-that-cannot-switch-tier | `unit/command/unfreeze`, `unit/document/agents-md` |
 | decision/2026-09-15-agents-md-splits-into-shared-and-project | `unit/document/project-agents-md` |
+| decision/2026-09-15-install-agentkit-built | `unit/script/install-agentkit` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered
