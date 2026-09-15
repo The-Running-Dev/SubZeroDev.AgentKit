@@ -50,6 +50,8 @@ That is most of what this command used to carry across nineteen files per reposi
 
 **`Unmigrated-Blocked` is a fork even though its recommended resolution never varies.** Writing the companion is authoring that repository's policy for that command, which is exactly the class of thing an unattended pass does not do on its own authority. Report it and move on.
 
+Every `tools/*.ps1` path below is relative to the kit install root, not a target repo (`AGENTS.md` § *House conventions* → Home-install convention) — run this command from that root, or resolve it first.
+
 **Run the companion validator alongside the write-surface guard**, on the same per-target boundary:
 
 ```powershell

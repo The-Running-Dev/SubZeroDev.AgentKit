@@ -27,6 +27,8 @@ Everything below through *Delete the confirmed candidates* is a fact-and-apply s
 
 ## Run the mechanical half
 
+Every `tools/*.ps1` path below is relative to the kit install root, not this repo (`AGENTS.md` § *House conventions* → Home-install convention) — resolve it first if this session is not running from a self-hosted kit checkout.
+
 Everything through building the candidate list has no judgement call in it — dirty-tree check, default-branch resolution, the unmerged-current-branch check, the switch, the prune, `--merged`, and the `gh` cross-check for squash-merges are all facts, not decisions. `tools/Invoke-DoneHousekeeping.ps1 -RepoRoot <repo> -AutoStash` does all of it in one call and deletes nothing:
 
 ```powershell
