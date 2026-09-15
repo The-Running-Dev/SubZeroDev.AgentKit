@@ -375,6 +375,12 @@ Describe 'Measure-Session -Hook' {
         $script:FixtureDir = Join-Path $TestDrive 'transcripts'
         New-Item -ItemType Directory -Path $script:FixtureDir -Force | Out-Null
 
+        # Isolate the hook's log-path resolution from whatever spawned this
+        # test run: it prefers $env:CLAUDE_PROJECT_DIR when set, so a stray
+        # value inherited from an outer Claude Code hook environment would
+        # otherwise silently redirect every test below to a real repo's log.
+        $env:CLAUDE_PROJECT_DIR = $null
+
         # Isolate the hook's hardcoded log path: it writes to
         # (parent of $PSScriptRoot)/.claude/session-costs.tsv, so the script
         # under test must live under its own fake tools/ inside TestDrive.
@@ -434,6 +440,45 @@ Describe 'Measure-Session -Hook' {
         Test-Path (Join-Path $mainDir '.claude/session-costs.tsv') | Should -BeTrue
         (Get-Content (Join-Path $mainDir '.claude/session-costs.tsv') | Select-Object -Last 1) | Should -Match 'worktree-sess'
         Test-Path (Join-Path $worktreeDir '.claude/session-costs.tsv') | Should -BeFalse
+    }
+
+    It 'writes to the calling project named by $env:CLAUDE_PROJECT_DIR, not beside a globally-installed script' {
+        # Under home-install (AGENTS.md's Home-install convention), the
+        # script itself lives once at ~/.agent-kit/tools/ - the same
+        # location for every project - so resolving the log beside the
+        # script, or beside its git repo, would put every project's costs
+        # in the kit checkout's own log. Claude Code sets
+        # $env:CLAUDE_PROJECT_DIR in a hook's process environment to the
+        # project the hook actually runs for; this simulates a hook fired
+        # for a project whose repo is nowhere near the (fake) install root.
+        $installRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+        $installToolsDir = Join-Path $installRoot 'tools'
+        New-Item -ItemType Directory -Path $installToolsDir -Force | Out-Null
+        $installedScript = Join-Path $installToolsDir 'Measure-Session.ps1'
+        Copy-Item -LiteralPath $script:ScriptPath -Destination $installedScript
+
+        $projectDir = Join-Path $TestDrive ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $projectDir -Force | Out-Null
+        git -C $projectDir init --quiet -b main 2>&1 | Out-Null
+        git -C $projectDir config user.email 'test@example.com' 2>&1 | Out-Null
+        git -C $projectDir config user.name 'Test' 2>&1 | Out-Null
+
+        $transcript = New-TranscriptFile -Name 'home-install-sess.jsonl' -Lines @(
+            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"model":"claude-sonnet-5","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
+        )
+        $payload = (@{ transcript_path = $transcript } | ConvertTo-Json -Compress)
+
+        try {
+            $env:CLAUDE_PROJECT_DIR = $projectDir
+            $payload | pwsh -NoProfile -File $installedScript -Hook
+        }
+        finally {
+            $env:CLAUDE_PROJECT_DIR = $null
+        }
+
+        Test-Path (Join-Path $projectDir '.claude/session-costs.tsv') | Should -BeTrue
+        (Get-Content (Join-Path $projectDir '.claude/session-costs.tsv') | Select-Object -Last 1) | Should -Match 'home-install-sess'
+        Test-Path (Join-Path $installRoot '.claude/session-costs.tsv') | Should -BeFalse
     }
 
     It 'replaces the existing row rather than duplicating it when the same session ends twice' {

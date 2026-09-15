@@ -474,27 +474,40 @@ function Format-Row {
 
 function Get-CostLogPath {
     <#
-      The log lives beside the repository, not beside whichever checkout
-      happened to run this hook. In a git worktree, Split-Path $ScriptRoot
-      -Parent resolves to the worktree's own directory rather than the main
-      checkout - so a session run there wrote its row to
-      <worktree>/.claude/session-costs.tsv, invisible to anyone looking at
-      the main checkout's log, and lost outright once the worktree is
-      deleted (this repository's own /clean does exactly that after a
-      merge). 'git rev-parse --git-common-dir' resolves to the same shared
-      .git directory regardless of which worktree asks, so its parent is
-      the one stable place every checkout of this repository agrees on.
+      The log lives beside the repository being measured, not beside
+      whichever checkout happened to run this hook. Under home-install
+      (AGENTS.md's Home-install convention), $PSScriptRoot is the kit's own
+      install root - the same for every project - so it cannot be the
+      resolution root here the way it was when this script was copied into
+      each repo. $env:CLAUDE_PROJECT_DIR is the project Claude Code set up
+      the hook for and is set in the hook's own process environment (Claude
+      Code hooks reference); it takes priority when present. Falling back to
+      the parent of $ScriptRoot keeps direct/manual invocation (no hook, no
+      CLAUDE_PROJECT_DIR) working from the script's own location, as before.
 
-      Falls back to the pre-fix path (beside the running script) when git
-      is unavailable or the tree is not a git repository at all - the
-      common case in tests, and a graceful default rather than a hard
-      requirement on git being installed.
+      In a git worktree, resolving the log beside that resolution root
+      directly (rather than via git-common-dir) would land it beside the
+      worktree's own directory rather than the main checkout - so a session
+      run there wrote its row to <worktree>/.claude/session-costs.tsv,
+      invisible to anyone looking at the main checkout's log, and lost
+      outright once the worktree is deleted (this repository's own /clean
+      does exactly that after a merge). 'git rev-parse --git-common-dir'
+      resolves to the same shared .git directory regardless of which
+      worktree asks, so its parent is the one stable place every checkout of
+      that repository agrees on. Falls back to the resolution root itself
+      when it is not a git repo, or git is unavailable - the common case in
+      tests, and a graceful default rather than a hard requirement on git
+      being installed.
     #>
     param([string]$ScriptRoot)
 
-    $fallback = Join-Path (Split-Path $ScriptRoot -Parent) '.claude/session-costs.tsv'
+    # $ScriptRoot is always the tools/ folder beside the script; normalize to
+    # a repo-root candidate before comparing it with $env:CLAUDE_PROJECT_DIR,
+    # which is already a repo root.
+    $root = if ($env:CLAUDE_PROJECT_DIR) { $env:CLAUDE_PROJECT_DIR } else { Split-Path $ScriptRoot -Parent }
+    $fallback = Join-Path $root '.claude/session-costs.tsv'
     try {
-        $commonDir = git -C $ScriptRoot rev-parse --path-format=absolute --git-common-dir 2>$null
+        $commonDir = git -C $root rev-parse --path-format=absolute --git-common-dir 2>$null
         if ($LASTEXITCODE -ne 0 -or -not $commonDir) { return $fallback }
         return Join-Path (Split-Path $commonDir -Parent) '.claude/session-costs.tsv'
     }
