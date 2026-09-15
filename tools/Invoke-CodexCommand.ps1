@@ -174,13 +174,26 @@ $profileTiers = [ordered]@{
 
 function Get-AgentKitInstallRoot {
     <#
-        Resolves the kit install root per AGENTS.md's home-install convention: $env:AGENTKIT_HOME,
-        falling back to $HOME/.agent-kit. This repo checkout is the install root only when it is
-        run in place from a home install; a session launched elsewhere has skills/ at this path
-        instead of relative to $PSScriptRoot.
+        Resolves the kit install root per AGENTS.md's Home-install convention: this repo checkout
+        first (self-hosted dev), then $env:AGENTKIT_HOME, then $HOME/.agent-kit. Self-hosted takes
+        priority so a session launched from a live kit working tree reads its own uncommitted
+        skill edits rather than a possibly-stale synced checkout at $HOME/.agent-kit.
     #>
-    if ($env:AGENTKIT_HOME) { return $env:AGENTKIT_HOME }
-    return (Join-Path $HOME '.agent-kit')
+    $selfHosted = Split-Path -Parent $PSScriptRoot
+    if (Test-Path -LiteralPath (Join-Path $selfHosted '.git')) {
+        return $selfHosted
+    }
+
+    if ($env:AGENTKIT_HOME -and (Test-Path -LiteralPath $env:AGENTKIT_HOME)) {
+        return $env:AGENTKIT_HOME
+    }
+
+    $synced = Join-Path $HOME '.agent-kit'
+    if (Test-Path -LiteralPath $synced) {
+        return $synced
+    }
+
+    throw "Could not find a kit checkout under '$selfHosted', `$env:AGENTKIT_HOME, or '$synced'."
 }
 
 function Get-SkillContent {

@@ -40,6 +40,8 @@ repository. When a step both prepares and asserts, flag it only if the assertion
 point of the step.
 
 
+Every `tools/*.ps1` path in this command is relative to the kit install root, not the repo being verified (`AGENTS.md` § *House conventions* → Home-install convention) — resolve it first if this session is not running from a self-hosted kit checkout.
+
 **Check the cache first.** `tools/Test-GatesCache.ps1 -RepoRoot <repo>` hashes the files
 this discovery reads (every workflow's full content — so a flag added, moved, or removed
 invalidates it same as any other step edit — plus `package.json`'s content and whether the

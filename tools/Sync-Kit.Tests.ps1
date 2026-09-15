@@ -336,4 +336,59 @@ Describe 'Sync-Kit' {
             $content | Should -Be "line one em dash `u{2014} end`n"
         }
     }
+
+    Context 'Resolve-KitRoot honors $env:AGENTKIT_HOME per AGENTS.md''s home-install convention' {
+
+        BeforeAll {
+            $script:PriorAgentKitHome = $env:AGENTKIT_HOME
+            $script:PreDotSourceErrorActionPreference = $ErrorActionPreference
+
+            # $script:ScriptPath lives inside this real checkout, which has a .git folder, so
+            # dot-sourcing it directly always resolves self-hosted and never exercises the
+            # $env:AGENTKIT_HOME branch. Copy it to a TestDrive location with no .git anywhere
+            # above it, so Resolve-KitRoot's self-hosted check genuinely misses there.
+            $fixtureDir = Join-Path $TestDrive 'no-git-fixture/tools'
+            New-Item -ItemType Directory -Path $fixtureDir -Force | Out-Null
+            $script:FixtureScript = Join-Path $fixtureDir 'Sync-Kit.ps1'
+            Copy-Item -LiteralPath $script:ScriptPath -Destination $script:FixtureScript
+
+            # As in the Invoke-GitRaw Context above: dot-source with a -KitRoot that does not
+            # exist, so Resolve-KitRoot throws on Resolve-Path immediately - after every
+            # function in the script is already defined - leaving Resolve-KitRoot itself
+            # callable directly, against the fixture's own $PSScriptRoot, for the tests below.
+            try {
+                . $script:FixtureScript -TargetRepo $TestDrive -KitRoot (Join-Path $TestDrive 'does-not-exist-explicit') -RecordedSha 'deadbeef' -ErrorAction Stop
+            } catch {
+                # expected - Resolve-KitRoot's throw, functions are already defined by now
+            }
+        }
+
+        AfterEach {
+            $env:AGENTKIT_HOME = $script:PriorAgentKitHome
+        }
+
+        AfterAll {
+            $ErrorActionPreference = $script:PreDotSourceErrorActionPreference
+            Set-StrictMode -Off
+        }
+
+        It 'resolves the install root from $env:AGENTKIT_HOME when no self-hosted checkout is available' {
+            $agentKitHome = New-GitRepo -Path (Join-Path $TestDrive 'agentkit-home-valid')
+            $env:AGENTKIT_HOME = $agentKitHome
+
+            Resolve-KitRoot -Explicit '' | Should -Be (Resolve-Path -LiteralPath $agentKitHome).Path
+        }
+
+        It 'ignores $env:AGENTKIT_HOME when it has no .git, and falls through to $HOME/.agent-kit or the not-found throw' {
+            $env:AGENTKIT_HOME = Join-Path $TestDrive 'agentkit-home-without-git'
+            New-Item -ItemType Directory -Path $env:AGENTKIT_HOME -Force | Out-Null
+            $fallbackRoot = Join-Path $HOME '.agent-kit'
+            if (Test-Path -LiteralPath (Join-Path $fallbackRoot '.git')) {
+                Set-ItResult -Skipped -Because 'this machine already has a real home install at $HOME/.agent-kit'
+                return
+            }
+
+            { Resolve-KitRoot -Explicit '' } | Should -Throw "*$fallbackRoot*"
+        }
+    }
 }
