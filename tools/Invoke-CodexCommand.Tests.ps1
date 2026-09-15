@@ -442,8 +442,11 @@ Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, 
             Set-ItResult -Skipped -Because 'this machine already has a checkout at $HOME/.agent-kit, so this branch cannot be reached'
             return
         }
+        # The source names the env var literally (`$env:AGENTKIT_HOME) rather than
+        # interpolating its value - see Invoke-CodexCommand.ps1's Get-AgentKitInstallRoot,
+        # since this branch fires whether the var is unset or set to a bad path.
         $fixtureRoot = Split-Path -Parent (Split-Path -Parent $fixtureScript)
-        { & $fixtureScript -Command 'unfreeze' -WhatIf } | Should -Throw "*$fixtureRoot*$env:AGENTKIT_HOME*$fallbackRoot*"
+        { & $fixtureScript -Command 'unfreeze' -WhatIf } | Should -Throw "*$fixtureRoot*`$env:AGENTKIT_HOME*$fallbackRoot*"
     }
 }
 
