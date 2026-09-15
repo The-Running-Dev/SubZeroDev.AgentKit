@@ -18,7 +18,7 @@ well-formedness the same as any other marked region.
 
 ## Why the split exists
 
-`/install`, `INSTALL.md` and `/kit-sync` used to spend real effort reconciling a target's local
+`/install`, `INSTALL.md` and `/sync` used to spend real effort reconciling a target's local
 edits to installed command files on every install and every sync. Measured across eighteen
 installed targets, that produced thirteen genuinely divergent command files in one repository —
 each one a mixture of repository vocabulary, a different document map, and real per-command
@@ -114,4 +114,4 @@ Because the core is kit-owned outright, it needs no reconciliation:
   merges, rewrites or deletes it. The core beside it is still taken outright.
 
 `tools/Sync-Kit.ps1` implements exactly this. `INSTALL.md` phase 1 folds its report into the
-classification, and `/install-all` and `/kit-sync` inherit it unchanged.
+classification, and `/install-all` and `/sync` inherit it unchanged.

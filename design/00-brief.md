@@ -1,6 +1,6 @@
 # Brief — explicit design state for the agent kit
 
-> **The content here is mine.** A model may interrogate it (`/brief-check`), and may type it
+> **The content here is mine.** A model may interrogate it (`/brief`), and may type it
 > under my direction, but may not invent the problem, the non-goals, or the definition of
 > done. Where a line below was derived from the repository rather than dictated, it says so.
 
@@ -32,7 +32,7 @@ This is observable in the repository, not inferred:
 - **Reconstruction produces forks that carry no decision.** `design/90-decisions.md`
   (2026-08-11): `20-contract.md` declared `enum CheckState`, `enum WaitFailure`,
   `class CheckRunResult` and `class WaitResult` against a script that declares none of them.
-  That is live contract drift, a fork `/reconcile` would raise and an `opus` decision to
+  That is live contract drift, a fork `/align` would raise and an `opus` decision to
   settle, with no behaviour either way.
 - **The corpus that has to be reconstructed is already the largest artifact here.**
   `design/90-decisions.md` is 133,512 bytes across 54 append-only entries, and it — not
@@ -79,7 +79,7 @@ one of them looks trivial, and including when a session is already touching that
 
 - **No target repository is migrated.** The eighteen installed `SubZeroDev.*` repositories are
   owed a compatibility promise (see *Definition of done*) and nothing more. `/install`,
-  `/install-all`, `/kit-sync` and `tools/Sync-Kit.ps1` are not in scope for change beyond what
+  `/install-all`, `/sync` and `tools/Sync-Kit.ps1` are not in scope for change beyond what
   that promise requires.
 - **The existing decision log is not retroactively restructured.** `design/90-decisions.md`
   stays append-only prose. Live facts are extracted out of it; the entries themselves are not
@@ -257,7 +257,7 @@ access to a tracker.
 ## Lifespan
 
 **Maintained for years.** This becomes standing infrastructure that the kit ships. That
-justifies the full pipeline on it — `/design`, `/contract`, `/redteam` on a second vendor per
-`AGENTS.shared.md` (*Session boundaries*), then `/slices` — and it is why the compatibility promise to
+justifies the full pipeline on it — `/design`, `/spec`, `/redteam` on a second vendor per
+`AGENTS.shared.md` (*Session boundaries*), then `/plan` — and it is why the compatibility promise to
 the eighteen installed targets is in the definition of done rather than treated as someone
 else's problem later.

@@ -1,11 +1,11 @@
 ---
-name: verify
+name: check
 description: Discover this repository's gates, run them, and report honestly what did and did not run
 disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `skills/verify/SKILL-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/check/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `extra-steps`, `gate-commands`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
@@ -49,7 +49,7 @@ known build-script paths exist) and compares it to `.claude/gates.json`. `Fresh`
 of those inputs have changed since the last discovery — skip straight to **Run** with the
 gates it returns. `Stale` or `Missing` means discover as below, then call
 `tools/Test-GatesCache.ps1 -Write -GatesJson '<the gates you found, as [{"name","command"}]>'`
-before running them, so the next `/verify` on this tree does not re-derive the same answer.
+before running them, so the next `/check` on this tree does not re-derive the same answer.
 The cache only remembers gates; it never decides what they are — that judgement stays here.
 
 For each flagged step, read its `run:` block and translate it to the equivalent local

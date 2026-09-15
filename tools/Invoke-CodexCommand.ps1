@@ -13,10 +13,10 @@
 
     architect and author share a model and effort and differ only in sandbox mode: architect
     is read-only, for the two deep-reasoning commands that must never touch the tree
-    (/brief-check, /redteam); author is workspace-write, for the deep-reasoning commands
-    whose normal work is writing to design/ (/design, /contract, /slices, /reconcile). A
+    (/brief, /redteam); author is workspace-write, for the deep-reasoning commands
+    whose normal work is writing to design/ (/design, /spec, /plan, /align). A
     single read-only 'architect' used to back all of these (issue #252) and blocked every
-    one of them except /redteam and /brief-check from doing its job.
+    one of them except /redteam and /brief from doing its job.
 
     It does NOT launch via `codex --profile <name>`. That flag layers
     `$CODEX_HOME/<name>.config.toml` on top of the base user config (`codex --help`), and
@@ -40,7 +40,7 @@
 
     -Effort overrides the profile's baked-in reasoning effort via `-c
     model_reasoning_effort=<value>`, for the routing table's documented exceptions (a large
-    /slice at high, an /reconcile mechanical-edit pass at medium instead of the profile's
+    /slice at high, an /align mechanical-edit pass at medium instead of the profile's
     default). It does not change which profile is selected.
 
     /redteam's requirement ("strongest model, different vendor from the design author") is
@@ -58,22 +58,22 @@
     launched without this flag never sees the file past that point. See codex/PROFILES.md's
     *Output and context budget* section for the full citation of that source.
 
-    /unfreeze is the one command this script does not run as a single `codex` invocation.
-    Its own procedure needs a deep-reasoning reconcile phase and an implementation-tier track
+    /resume is the one command this script does not run as a single `codex` invocation.
+    Its own procedure needs a deep-reasoning align phase and an implementation-tier track
     phase, and Codex profiles cannot switch mid-session - so this script is the case
-    skills/unfreeze/SKILL.md's *Split across sessions* names, and chains two separate
+    skills/resume/SKILL.md's *Split across sessions* names, and chains two separate
     `codex` processes ('author' then 'builder') instead of picking one profile for the whole
-    run (issue #253). The human still runs `./tools/Invoke-CodexCommand.ps1 unfreeze` once;
+    run (issue #253). The human still runs `./tools/Invoke-CodexCommand.ps1 resume` once;
     nothing prompts them between the two processes.
 
     Under home-install, the launched codex processes do not necessarily share this script's
     own working directory with the kit checkout, so the two prompts below cannot just tell
     the session to go open a kit file by path - Get-SkillContent reads
-    skills/unfreeze/SKILL.md from the install root (Get-AgentKitInstallRoot) itself, and its
+    skills/resume/SKILL.md from the install root (Get-AgentKitInstallRoot) itself, and its
     text is inlined into the prompt instead.
 
 .PARAMETER Command
-    The command name, with or without a leading slash (e.g. 'kit-help' or '/kit-help').
+    The command name, with or without a leading slash (e.g. 'help' or '/help').
 
 .PARAMETER Effort
     Override the profile's model_reasoning_effort for this run only (low, medium, high,
@@ -90,8 +90,8 @@
     the prompt text, or `resume <id>`).
 
 .EXAMPLE
-    ./tools/Invoke-CodexCommand.ps1 kit-help
-    Resolves /kit-help to the 'quick' profile and runs codex with that profile's model,
+    ./tools/Invoke-CodexCommand.ps1 help
+    Resolves /help to the 'quick' profile and runs codex with that profile's model,
     effort, approval policy, and sandbox mode passed directly.
 
 .EXAMPLE
@@ -127,29 +127,29 @@ $ErrorActionPreference = 'Stop'
 # Where routing names two tiers for one command (a decide phase and a mechanical phase),
 # this maps to the tier of the phase that runs first / gates the rest.
 $commandProfiles = [ordered]@{
-    'brief-check'      = 'architect'   # writes nothing (brief-check.md, *Re-run*)
+    'brief'            = 'architect'   # writes nothing (brief.md, *Re-run*)
     'design'           = 'author'      # writes design/10-design.md
-    'contract'         = 'author'      # writes design/20-contract.md
-    'slices'           = 'author'      # writes design/30-slices.md
+    'spec'             = 'author'      # writes design/20-contract.md
+    'plan'             = 'author'      # writes design/30-slices.md
     'redteam'          = 'architect'   # strongest local profile; vendor diversity is on the caller
     'slice'            = 'builder'
-    'reconcile'        = 'author'      # deciding which side is correct gates its own mechanical edits
-    'make-human-docs'  = 'builder'
+    'align'            = 'author'      # deciding which side is correct gates its own mechanical edits
+    'docs'             = 'builder'
     'track'            = 'builder'
-    'verify'           = 'builder'
+    'check'            = 'builder'
     'pr'               = 'builder'
     'resolve'          = 'builder'
     'fix'              = 'builder'
-    'refine'           = 'builder'
+    'tune'             = 'builder'
     'install'          = 'builder'
     'install-all'      = 'builder'
-    'kit-sync'         = 'builder'
-    'kit-help'         = 'quick'
-    'next'             = 'builder'    # orients like /kit-help but acts, so it needs write access
+    'sync'             = 'builder'
+    'help'             = 'quick'
+    'next'             = 'builder'    # orients like /help but acts, so it needs write access
     'clean'            = 'quick'
-    'install-code-review-agent' = 'builder'
-    'freeze'           = 'builder'
-    # 'unfreeze' is deliberately absent here - it needs two profiles in one run (see the
+    'install-review'   = 'builder'
+    'hold'             = 'builder'
+    # 'resume' is deliberately absent here - it needs two profiles in one run (see the
     # special case below, issue #253), which a single entry in this table cannot express.
 }
 
@@ -274,12 +274,12 @@ if ($List) {
             Tier     = $profileTiers[$_.Value]
         }
     } | Format-Table -AutoSize
-    Write-Output "/unfreeze runs two processes, not one - 'author'/high for its reconcile phase, then 'builder'/medium for its track phase. See -Command unfreeze -WhatIf."
+    Write-Output "/resume runs two processes, not one - 'author'/high for its align phase, then 'builder'/medium for its track phase. See -Command resume -WhatIf."
     return
 }
 
 if (-not $Command) {
-    throw "No command given. Pass a command name (e.g. 'kit-help') or -List to see the table."
+    throw "No command given. Pass a command name (e.g. 'help') or -List to see the table."
 }
 
 $normalized = $Command.TrimStart('/')
@@ -288,46 +288,46 @@ $normalized = $Command.TrimStart('/')
 # launch, from the launch directory, and applied to every codex process this script starts.
 $projectDocBudget = Get-ProjectDocByteBudget
 
-# /unfreeze's own procedure (skills/unfreeze/SKILL.md, Phase 2 and Phase 3) requires its
-# reconcile phase at deep-reasoning tier and its track phase at implementation tier, "in this
+# /resume's own procedure (skills/resume/SKILL.md, Phase 2 and Phase 3) requires its
+# align phase at deep-reasoning tier and its track phase at implementation tier, "in this
 # same session." Codex profiles cannot switch mid-session (codex/PROFILES.md), so one `codex`
 # invocation can never satisfy both halves - issue #253. This chains two separate `codex`
 # processes instead, so the human still runs this script once and nothing prompts them
-# in between: the reconcile half is a real 'author' session, the track half a real 'builder'
-# session, and each is stamped with its own tier exactly as a standalone /reconcile or /track
+# in between: the align half is a real 'author' session, the track half a real 'builder'
+# session, and each is stamped with its own tier exactly as a standalone /align or /track
 # invocation would be.
-if ($normalized -eq 'unfreeze') {
-    $unfreezeSkill = Get-SkillContent -Name 'unfreeze'
+if ($normalized -eq 'resume') {
+    $resumeSkill = Get-SkillContent -Name 'resume'
 
-    $reconcilePrompt = @'
-This is session 1 of /unfreeze's Split across sessions. Its full procedure follows.
+    $alignPrompt = @'
+This is session 1 of /resume's Split across sessions. Its full procedure follows.
 
-'@ + $unfreezeSkill + @'
+'@ + $resumeSkill + @'
 
 
 Run it as session 1: refuse if not frozen, Phase 1, Phase 2, and Commit. Stop there - a
 second, separately-launched process runs session 2.
 '@
     $trackPrompt = @'
-This is session 2 of /unfreeze's Split across sessions. Its full procedure follows.
+This is session 2 of /resume's Split across sessions. Its full procedure follows.
 
-'@ + $unfreezeSkill + @'
+'@ + $resumeSkill + @'
 
 
 Run it as session 2: read session 1's commit, then run Phase 3 and Report exactly as
 written there.
 '@
 
-    $reconcileConfig = $profileConfig['author']
+    $alignConfig = $profileConfig['author']
     $trackConfig = $profileConfig['builder']
 
-    $reconcileArgs = @(
-        '-m', $reconcileConfig.Model,
-        '-c', "model_reasoning_effort=$($reconcileConfig.Effort)",
+    $alignArgs = @(
+        '-m', $alignConfig.Model,
+        '-c', "model_reasoning_effort=$($alignConfig.Effort)",
         '-c', "project_doc_max_bytes=$projectDocBudget",
-        '-a', $reconcileConfig.Approval,
-        '-s', $reconcileConfig.Sandbox
-    ) + $CodexArgs + @($reconcilePrompt)
+        '-a', $alignConfig.Approval,
+        '-s', $alignConfig.Sandbox
+    ) + $CodexArgs + @($alignPrompt)
 
     $trackArgs = @(
         '-m', $trackConfig.Model,
@@ -338,33 +338,33 @@ written there.
         $trackPrompt
     )
 
-    $reconcileStamp = [ordered]@{
+    $alignStamp = [ordered]@{
         AGENTKIT_TIER    = $profileTiers['author']
-        AGENTKIT_MODEL   = $reconcileConfig.Model
-        AGENTKIT_EFFORT  = $reconcileConfig.Effort
-        AGENTKIT_COMMAND = '/unfreeze-reconcile'
+        AGENTKIT_MODEL   = $alignConfig.Model
+        AGENTKIT_EFFORT  = $alignConfig.Effort
+        AGENTKIT_COMMAND = '/resume-align'
         AGENTKIT_PROFILE = 'author'
     }
     $trackStamp = [ordered]@{
         AGENTKIT_TIER    = $profileTiers['builder']
         AGENTKIT_MODEL   = $trackConfig.Model
         AGENTKIT_EFFORT  = $trackConfig.Effort
-        AGENTKIT_COMMAND = '/unfreeze-track'
+        AGENTKIT_COMMAND = '/resume-track'
         AGENTKIT_PROFILE = 'builder'
     }
 
     if ($WhatIf) {
-        $reconcileStampText = ($reconcileStamp.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ' '
+        $alignStampText = ($alignStamp.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ' '
         $trackStampText = ($trackStamp.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ' '
-        Write-Output "$reconcileStampText codex $($reconcileArgs -join ' ')"
+        Write-Output "$alignStampText codex $($alignArgs -join ' ')"
         Write-Output "$trackStampText codex $($trackArgs -join ' ')"
         return
     }
 
-    foreach ($entry in $reconcileStamp.GetEnumerator()) { Set-Item -Path "Env:$($entry.Key)" -Value $entry.Value }
-    & codex @reconcileArgs
+    foreach ($entry in $alignStamp.GetEnumerator()) { Set-Item -Path "Env:$($entry.Key)" -Value $entry.Value }
+    & codex @alignArgs
     if ($LASTEXITCODE -ne 0) {
-        throw "/unfreeze's reconcile phase (codex process 1 of 2, 'author' profile) exited $LASTEXITCODE - stopping before the track phase runs against a possibly-incomplete reconcile."
+        throw "/resume's align phase (codex process 1 of 2, 'author' profile) exited $LASTEXITCODE - stopping before the track phase runs against a possibly-incomplete align."
     }
 
     foreach ($entry in $trackStamp.GetEnumerator()) { Set-Item -Path "Env:$($entry.Key)" -Value $entry.Value }
@@ -373,7 +373,7 @@ written there.
 }
 
 if (-not $commandProfiles.Contains($normalized)) {
-    $known = (@($commandProfiles.Keys) + 'unfreeze' | Sort-Object | ForEach-Object { "/$_" }) -join ', '
+    $known = (@($commandProfiles.Keys) + 'resume' | Sort-Object | ForEach-Object { "/$_" }) -join ', '
     throw "No profile mapping for '/$normalized'. Known commands: $known. Pass --profile to codex directly for anything else."
 }
 

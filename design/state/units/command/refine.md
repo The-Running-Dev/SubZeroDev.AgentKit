@@ -1,11 +1,11 @@
 # unit/command/refine
 Kind: command
 Status: active
-Anchor: skills/refine/SKILL.md
+Anchor: skills/tune/SKILL.md
 Consumes:
 Exposes:
 Binds:
-Live:
+Live: decision/2026-09-15-twelve-commands-shorten-to-natural-names
 Questions:
 Work:
 Evidence:

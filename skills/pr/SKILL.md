@@ -13,7 +13,7 @@ It may override: `vocabulary`, `extra-steps`, `gate-commands`, `tightened-author
 
 Take the work on the current branch to merge-ready, in three phases, in order.
 
-**This command owns the sequence. It does not own the procedure of any phase it delegates.** Phase 2 is `skills/verify/SKILL.md` and phase 3 is `skills/resolve/SKILL.md`, run in full, in this same session. Those files stay the single home for how a gate is discovered and how a thread is classified — this one never restates them, because a second copy of a rule is a promise it will diverge (`AGENTS.shared.md`, *Single ownership*). Both remain invocable on their own: `/verify` to run the gates against any tree, `/resolve` to work threads on a pull request this command did not open.
+**This command owns the sequence. It does not own the procedure of any phase it delegates.** Phase 2 is `skills/check/SKILL.md` and phase 3 is `skills/resolve/SKILL.md`, run in full, in this same session. Those files stay the single home for how a gate is discovered and how a thread is classified — this one never restates them, because a second copy of a rule is a promise it will diverge (`AGENTS.shared.md`, *Single ownership*). Both remain invocable on their own: `/check` to run the gates against any tree, `/resolve` to work threads on a pull request this command did not open.
 
 **This repository's convention outranks any default in this command.** They genuinely differ — one sibling enables auto-merge as standard practice, another forbids it outright, a third leaves every merge to its owner. **Read the repository's own instruction file before doing anything**, and follow what it says. If it is silent, open the PR and leave the merge alone.
 
@@ -67,10 +67,10 @@ Not yet run — the gates run next and this section is replaced with their repor
 
 ## Phase 2 — the gates
 
-**Run `skills/verify/SKILL.md` in full**, against the branch and worktree this PR points at, then replace the description's `Verified` section with its report **verbatim** — the same three lists, not a summary. Restating it from memory is the fabricated gate result that command exists to prevent. `/verify` validates its own `.claude/verify-report.json` before rendering it (`tools/Test-VerifyReport.ps1`); a report that fails that validation is not copied into the PR — fix the artifact and re-render first.
+**Run `skills/check/SKILL.md` in full**, against the branch and worktree this PR points at, then replace the description's `Verified` section with its report **verbatim** — the same three lists, not a summary. Restating it from memory is the fabricated gate result that command exists to prevent. `/check` validates its own `.claude/verify-report.json` before rendering it (`tools/Test-VerifyReport.ps1`); a report that fails that validation is not copied into the PR — fix the artifact and re-render first.
 
 - **Do not claim a check passed that did not run.** The did-not-run list goes into the description word for word, including the reason each entry did not run.
-- **Do not fix a failing gate here.** That prohibition belongs to `/verify` and this command does not relax it by wrapping it — a failing gate ends in a decision put to the user, not a repair (`AGENTS.shared.md`, *Working with me*).
+- **Do not fix a failing gate here.** That prohibition belongs to `/check` and this command does not relax it by wrapping it — a failing gate ends in a decision put to the user, not a repair (`AGENTS.shared.md`, *Working with me*).
 
 ## Phase 3 — review threads
 

@@ -11,7 +11,7 @@ It may override: `vocabulary`, `document-map`, `extra-steps`. It may never overr
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
 <!-- companion:declared:end -->
 
-`/kit-help` answers "where am I and what runs next" and then stops, so the answer has to be typed
+`/help` answers "where am I and what runs next" and then stops, so the answer has to be typed
 back in by hand every time. This command answers the same question and then **runs it** — with one
 rule that keeps it from breaking the contract it operates under.
 
@@ -25,7 +25,7 @@ restate the table. Read it, decide which side the next step falls on, and then:
 - **Same session** — run the command. `/pr` after `/slice`, `/resolve` after `/pr`, `/clean` after
   a merge. No confirmation, no announcement first; act and report.
 - **Fresh session** — do **not** run it. Emit the boundary banner in the form `AGENTS.shared.md` defines
-  and stop. Merge → `/track`, implementation → `/reconcile`, `/design` → `/redteam`, and every
+  and stop. Merge → `/track`, implementation → `/align`, `/design` → `/redteam`, and every
   artifact-writing stage to the one after it, all land here.
 - **Deep-reasoning tier** — do not run it under this command's `sonnet`/`medium` routing even
   where no boundary applies. Name the command and its tier, and stop. The work-start banner in
@@ -39,7 +39,7 @@ the session straight back to `/clean`. A handoff that never checks is a loop.
 
 ## Orient
 
-`/kit-help` owns the stage map and this command reads it rather than carrying a copy — go there
+`/help` owns the stage map and this command reads it rather than carrying a copy — go there
 for what stage 0 through 6 mean and which command belongs to each. What this command adds is a
 check of what is *outstanding*, which orientation alone does not answer. `./tools/` below is the kit install root, not this repo (`AGENTS.shared.md` § *House conventions* → Home-install convention) — run from that root, or resolve it first:
 
@@ -68,7 +68,7 @@ stop, so the next invocation decides against a tree that has actually moved.
 
 | If | Then |
 |---|---|
-| `design/FROZEN.md` exists **and** the next step is `/design`, `/contract`, `/slices`, `/reconcile` or `/track` | Report `Frozen because` and `Lifts when` **verbatim** and stop. Do not route around a freeze |
+| `design/FROZEN.md` exists **and** the next step is `/design`, `/spec`, `/plan`, `/align` or `/track` | Report `Frozen because` and `Lifts when` **verbatim** and stop. Do not route around a freeze |
 | The tree is dirty with work in progress | Report what is uncommitted and stop. Guessing whose work it is, is how it gets lost |
 | A branch is checked out with an open pull request | `/pr` — same session, run it |
 | A branch is checked out with unpushed commits and no pull request | Commit by named path, push, open the pull request. `AGENTS.shared.md` § *Git and delivery* delegates all four |
@@ -76,7 +76,7 @@ stop, so the next invocation decides against a tree that has actually moved.
 | `/clean` just ran, or a merge landed with nothing local left to clean | **Boundary.** Banner for `/track`, fresh session, `sonnet`/`medium`. Stop |
 | `Test-DesignDrift.ps1` or `Test-DesignState.ps1` reports a blocking finding | Report the finding and name the command that owns it. Do not fix it here |
 | An issue exists with unticked `Done when` boxes and no branch in flight | `/slice S<n>` — **boundary**, one slice per session. Banner and stop |
-| `design/30-slices.md` § *Outstanding* is empty and every issue is closed | Say the slice set is exhausted, and name `/reconcile` (**boundary**, `opus`/`high`) as what follows |
+| `design/30-slices.md` § *Outstanding* is empty and every issue is closed | Say the slice set is exhausted, and name `/align` (**boundary**, `opus`/`high`) as what follows |
 | Nothing above matches | Say so plainly. "Nothing is owed" is a valid answer and is the one this command exists to be able to give |
 
 ## Report
@@ -92,7 +92,7 @@ in the response, set off as `AGENTS.shared.md` requires — not folded into a cl
   measures; carried context is.
 - **Run more than one routed command per invocation.** Each one changes the state the next
   decision is made from.
-- **Invent a step.** Where the table above matches nothing and `/kit-help`'s stage map matches
+- **Invent a step.** Where the table above matches nothing and `/help`'s stage map matches
   nothing either, say the state matches no stage and ask. An invented next step in the command
   whose entire job is naming the next step is the one that gets followed.
 - **Run `/redteam`.** Its routing requires a different vendor from the design author, which this

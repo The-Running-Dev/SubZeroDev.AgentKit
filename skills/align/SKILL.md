@@ -1,11 +1,11 @@
 ---
-name: reconcile
+name: align
 description: Check the design docs against the tree, and decide the differences that are decisions
 disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `skills/reconcile/SKILL-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/align/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `document-map`, `extra-steps`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
@@ -26,14 +26,14 @@ This is the step that stops the docs becoming fiction. A stale design doc is wor
 **This is a check, not a rewrite.** Two things were taken off it deliberately, and taking either back is how it becomes generative again — which is the loop `AGENTS.shared.md`, *The design freeze* exists to escape.
 
 - **Descriptive drift is already gone.** A declaration, parameter list, field name, path or count that disagreed with the tree was corrected in the slice that found it, in that slice's commit (`AGENTS.shared.md`, *Hard rules*). Anything of that kind still here is a slice that missed it: correct it, in one line, and move on. **Do not open it as a fork** — there is no decision in a transcription error, and turning one into a question is most of what made this command expensive.
-- **`design/30-slices.md` is out of scope entirely, and an unlanded slice's acceptance criteria are never edited here.** Landing slice N and then rewriting slice N+1's criteria is the first link in the churn loop, and it is the one link this command owns. A problem found with an unlanded slice's criteria is escalated to `/slices` or written to `## Open` in `90-decisions.md` — never resolved in this pass. `/track` compares the tracker against that document; if this command has just rewritten it, the two were never independent.
+- **`design/30-slices.md` is out of scope entirely, and an unlanded slice's acceptance criteria are never edited here.** Landing slice N and then rewriting slice N+1's criteria is the first link in the churn loop, and it is the one link this command owns. A problem found with an unlanded slice's criteria is escalated to `/plan` or written to `## Open` in `90-decisions.md` — never resolved in this pass. `/track` compares the tracker against that document; if this command has just rewritten it, the two were never independent.
 
 Produce a drift report first, before editing anything:
 
 ## Contract drift
 Places where the code and `20-contract.md` disagree **about meaning**: an error variant raised under conditions the contract does not describe, a documented retry story the caller does not implement, a field the contract says is meaningful only under one state being populated under another, an invariant no longer held. For each: which is currently correct, and what the other should become.
 
-`20-contract.md` no longer restates declarations, so a signature difference is not reportable here — it is either a descriptive correction (above) or, where a public interface genuinely changed, a contract amendment that belongs to `/contract`. Say which; do not absorb it.
+`20-contract.md` no longer restates declarations, so a signature difference is not reportable here — it is either a descriptive correction (above) or, where a public interface genuinely changed, a contract amendment that belongs to `/spec`. Say which; do not absorb it.
 
 ## Design drift
 Places where the implemented structure differs from `10-design.md` — module boundaries crossed, control flow changed, a failure mode handled differently or not at all.
@@ -50,7 +50,7 @@ This is a reading — `tools/Test-DesignState.ps1` declares the id and never rai
 Anything the design assumed that implementation showed to be false.
 
 ## Generated-guide drift
-If `docs/docs/guide.md` (or `guide.md`) exists, compare it against the design and contract. It is generated, so it goes stale silently. Report only **semantic** divergence — behaviour it describes that the design no longer specifies, or design changes it does not reflect. Do not report wording differences; a regenerated file is never byte-identical. If it is stale, say so and recommend `/make-human-docs`; do not regenerate it as part of this command.
+If `docs/docs/guide.md` (or `guide.md`) exists, compare it against the design and contract. It is generated, so it goes stale silently. Report only **semantic** divergence — behaviour it describes that the design no longer specifies, or design changes it does not reflect. Do not report wording differences; a regenerated file is never byte-identical. If it is stale, say so and recommend `/docs`; do not regenerate it as part of this command.
 
 ## Lessons
 Things that cost time and would cost it again. Each one must name what it actually cost — a lesson with no cost attached is a preference, and preferences go in `AGENTS.md`, not `agent.md`. Propose these for `agent.md`; do not append them yourself. If nothing here would have changed a decision, say "none" rather than padding.
