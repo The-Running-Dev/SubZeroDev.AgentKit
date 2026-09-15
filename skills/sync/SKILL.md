@@ -1,12 +1,12 @@
 ---
-name: kit-sync
-description: Clone or update the shared kit checkout at ~/.agent-kit, then run INSTALL.md's reconciliation against this repository. Usage - /kit-sync, or /kit-sync <branch>
+name: sync
+description: Clone or update the shared kit checkout at ~/.agent-kit, then run INSTALL.md's reconciliation against this repository. Usage - /sync, or /sync <branch>
 argument-hint: "[branch]"
 disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `skills/kit-sync/SKILL-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/sync/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `extra-steps`, `tightened-authorization`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.

@@ -1,12 +1,12 @@
 ---
-name: kit-help
-description: Where this repository is in the pipeline, and what to run next. Usage - /kit-help, or /kit-help all
+name: help
+description: Where this repository is in the pipeline, and what to run next. Usage - /help, or /help all
 argument-hint: "[all, or a stage or command name]"
 disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `skills/kit-help/SKILL-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/help/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `document-map`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
@@ -48,16 +48,16 @@ Each is its own session. Every one ends in a committed file, and that file is wh
 | # | Step | Session | Ends when |
 |---|---|---|---|
 | 0 | Write `design/00-brief.md` **yourself** | — | Problem, non-goals, definition of done, and a `Lifespan` line are all real |
-| 1 | `/brief-check` | fresh | The four lists come back thin. It writes nothing — **you** edit the brief from them |
+| 1 | `/brief` | fresh | The four lists come back thin. It writes nothing — **you** edit the brief from them |
 | 2 | `/design` | fresh | `10-design.md` has rejected alternatives in every section that needed a choice |
 | 3 | `/redteam` | fresh, **different vendor** | One pass, adjudicated. Never ask for another |
-| 4 | `/contract` | fresh | `20-contract.md` has no `## Unresolved` section left |
-| 5 | `/slices` | fresh | The `Delivers:` lines read as a set, and no slice is too big for one session |
+| 4 | `/spec` | fresh | `20-contract.md` has no `## Unresolved` section left |
+| 5 | `/plan` | fresh | The `Delivers:` lines read as a set, and no slice is too big for one session |
 | — | `/track` | fresh | One issue per slice. Idempotent — run it whenever `design/` changes |
 
 Stages 1 and 3 write nothing, so their output exists only in that session. Act on it before the session ends.
 
-Three of these stop rather than proceed, and that is the cheapest failure available: `/design` stops if the brief is too thin, `/contract` stops on a signature the design does not determine, and `/redteam` produces findings but never a fix. Sending work back a stage costs a few thousand tokens; discovering it in stage 6 costs a re-implementation.
+Three of these stop rather than proceed, and that is the cheapest failure available: `/design` stops if the brief is too thin, `/spec` stops on a signature the design does not determine, and `/redteam` produces findings but never a fix. Sending work back a stage costs a few thousand tokens; discovering it in stage 6 costs a re-implementation.
 
 ### Per slice — stage 6, on repeat
 
@@ -70,11 +70,11 @@ One slice, one branch, one session. Do not start slice N+1 because you noticed s
 5. **`/next`** — **new session**, after `/clean`. Reads what is actually outstanding and runs it, or emits the next boundary banner and stops. Usually that is `/track`; often it is nothing, which is the answer `/clean` naming `/track` unconditionally could never give.
 6. **`/track`** — whenever `/next` routes to it. Closes the issue if every box is ticked, refreshes the work mirror, and commits that refresh **straight to the default branch** — no branch, no pull request (`AGENTS.shared.md`, *Git and delivery*), because a pull request per refresh is what made this loop back on itself.
 
-`/verify` and `/resolve` are phases 2 and 3 of `/pr` and own their own procedure; both stay callable on their own when you want the gates run against a tree, or threads worked on a PR `/pr` did not open.
+`/check` and `/resolve` are phases 2 and 3 of `/pr` and own their own procedure; both stay callable on their own when you want the gates run against a tree, or threads worked on a PR `/pr` did not open.
 
 **`/next`** — any time you would otherwise ask "what now". It answers the same question this command does and then acts on the answer, stopping at any session boundary rather than crossing it. This command stays the one to reach for when you want the map rather than the move.
 
-**`/kit-sync`** — any time, in a repository the kit is already installed in. Updates the shared `~/.agent-kit` checkout and re-runs `INSTALL.md`'s reconciliation against this repository, so upgrading the kit itself never depends on someone having it checked out at a path you happen to know.
+**`/sync`** — any time, in a repository the kit is already installed in. Updates the shared `~/.agent-kit` checkout and re-runs `INSTALL.md`'s reconciliation against this repository, so upgrading the kit itself never depends on someone having it checked out at a path you happen to know.
 
 Then back to 1 for the next slice.
 
@@ -84,12 +84,12 @@ Then back to 1 for the next slice.
 
 ### When the slices run out
 
-- **`/reconcile`** — fresh session. Reports contract drift, design drift, undocumented decisions, invalidated assumptions, and proposed `agent.md` lessons; the user decides each direction and it applies the edits after. This is the step that stops the docs becoming fiction.
-- **`/make-human-docs`** — generates the guide from the design docs. Never hand-edit the result; `/reconcile` checks it for semantic drift.
+- **`/align`** — fresh session. Reports contract drift, design drift, undocumented decisions, invalidated assumptions, and proposed `agent.md` lessons; the user decides each direction and it applies the edits after. This is the step that stops the docs becoming fiction.
+- **`/docs`** — generates the guide from the design docs. Never hand-edit the result; `/align` checks it for semantic drift.
 
 ### If the ask fits none of that
 
-**`/refine`.** Every other command assumes you are already inside the pipeline. It routes the ask to the command that owns it where one exists, and otherwise emits a prompt carrying the constraints that bind it — for the user to run at the tier it names.
+**`/tune`.** Every other command assumes you are already inside the pipeline. It routes the ask to the command that owns it where one exists, and otherwise emits a prompt carrying the constraints that bind it — for the user to run at the tier it names.
 
 ### Skipping most of it
 

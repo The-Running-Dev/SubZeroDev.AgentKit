@@ -1,12 +1,12 @@
 ---
-name: refine
-description: Turn a rough ask into a prompt carrying this repository's binding constraints. Usage - /refine make install handle an occupied design folder
+name: tune
+description: Turn a rough ask into a prompt carrying this repository's binding constraints. Usage - /tune make install handle an occupied design folder
 argument-hint: <rough ask>
 disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `skills/refine/SKILL-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/tune/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `document-map`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
@@ -22,20 +22,20 @@ The value here is not better wording. It is that you do not have to remember whi
 
 | The ask is about | Use |
 |---|---|
-| Which stage this is, or what to run next | `/kit-help` |
-| Whether the brief is sound | `/brief-check` |
+| Which stage this is, or what to run next | `/help` |
+| Whether the brief is sound | `/brief` |
 | Architecture, data model, failure modes | `/design` |
-| Types, schemas, signatures, errors | `/contract` |
-| Breaking work into units | `/slices` |
+| Types, schemas, signatures, errors | `/spec` |
+| Breaking work into units | `/plan` |
 | Implementing a defined unit | `/slice S<n>` |
-| Whether the code and the docs still agree | `/reconcile` |
-| Running this repository's gates | `/verify` |
+| Whether the code and the docs still agree | `/align` |
+| Running this repository's gates | `/check` |
 | Issues, milestones, anything on GitHub | `/track` |
 | Opening a pull request | `/pr` |
 | Review comments on a pull request | `/resolve` |
 | Putting the kit into a repository | `/install` |
 
-Refine only what falls between them — a change to the kit's own files, a question about the tooling, a fix that is not a slice, a one-off task with no upstream document.
+Tune only what falls between them — a change to the kit's own files, a question about the tooling, a fix that is not a slice, a one-off task with no upstream document.
 
 ## Gather only what changes the work
 
@@ -47,7 +47,7 @@ Ask when:
 - The ask would touch a rule, a public interface, or a schema, and it is unclear whether that is intended.
 - Something already answers the ask and it is unclear whether you mean to change that answer.
 
-Do not ask for information you can read. Do not interrogate the idea — that is `/brief-check`, and it operates on a brief, not on an ask.
+Do not ask for information you can read. Do not interrogate the idea — that is `/brief`, and it operates on a brief, not on an ask.
 
 ## Emit
 

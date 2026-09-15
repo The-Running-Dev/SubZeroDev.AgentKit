@@ -1,11 +1,11 @@
 ---
-name: brief-check
+name: brief
 description: Interrogate the concept brief before any design work
 disable-model-invocation: true
 ---
 
 <!-- companion:declared:start -->
-**Per-repo companion:** `skills/brief-check/SKILL-local.md`. Read it now, if it exists — an absent,
+**Per-repo companion:** `skills/brief/SKILL-local.md`. Read it now, if it exists — an absent,
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `document-map`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.

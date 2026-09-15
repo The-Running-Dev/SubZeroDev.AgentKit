@@ -51,7 +51,7 @@ This command does not carry a second copy of `/pr`'s rules, or of the gate and t
 
 ## Never
 
-- Edit `design/`. A bug fix is not a design change; where fixing this one turns out to need a contract or schema change, that is `/contract`'s or `/design`'s, and this command stops rather than making it.
+- Edit `design/`. A bug fix is not a design change; where fixing this one turns out to need a contract or schema change, that is `/spec`'s or `/design`'s, and this command stops rather than making it.
 - Open a pull request as a draft.
 - Resolve a review thread. That is `/pr`'s final phase, under the delegation `AGENTS.shared.md` § *Git and delivery* states.
 - Merge.

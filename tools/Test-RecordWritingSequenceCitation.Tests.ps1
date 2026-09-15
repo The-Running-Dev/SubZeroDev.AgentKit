@@ -2,7 +2,7 @@
 #Requires -Modules Pester
 
 <#
-  Regression coverage for #44: /reconcile, /contract and /design each cited "the record-writing
+  Regression coverage for #44: /align, /spec and /design each cited "the record-writing
   sequence in design/10-design.md § Record" - a citation that only ever resolved in this
   repository. design/10-design.md is repository-specific content (the design of whatever this
   particular repository's design/ describes), never overwritten by /kit-sync, so an installed
@@ -33,10 +33,10 @@ Describe 'the record-writing sequence citation resolves to a real AGENTS.md head
         $script:AgentsHeadings | Should -Contain 'Writing a design-state record'
     }
 
-    It '/reconcile, /contract and /design each cite AGENTS.shared.md, not design/10-design.md, for the sequence' {
+    It '/align, /spec and /design each cite AGENTS.shared.md, not design/10-design.md, for the sequence' {
         $commandPaths = @(
-            'skills/reconcile/SKILL.md',
-            'skills/contract/SKILL.md',
+            'skills/align/SKILL.md',
+            'skills/spec/SKILL.md',
             'skills/design/SKILL.md'
         ) | ForEach-Object { Join-Path $script:RepoRoot $_ }
 
