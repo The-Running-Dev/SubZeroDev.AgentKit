@@ -2,7 +2,7 @@
 #Requires -Modules Pester
 
 <#
-  Invoke-CodexCommand.ps1 maps each command name to a Codex profile per AGENTS.md's
+  Invoke-CodexCommand.ps1 maps each command name to a Codex profile per AGENTS.shared.md's
   *Command routing* table. The regression this guards (issue #116): /done was renamed to
   /clean (issue #127) but the map kept the old 'done' key, so /clean fell through to the
   "no profile mapping" error - exactly the manual profile selection the script exists to
@@ -11,7 +11,7 @@
 #>
 
 <#
-  W3 correspondence parsers. These read AGENTS.md's *Command routing* table and
+  W3 correspondence parsers. These read AGENTS.shared.md's *Command routing* table and
   codex/PROFILES.md's 0.134+ profile blocks as data, so the tests below (and their fixture
   counterparts) catch drift between what those documents say and what
   Invoke-CodexCommand.ps1 actually does - instead of the hand-kept-in-sync comments that
@@ -59,7 +59,7 @@ function Get-CommandRoutingRows {
     <#
       Parses any markdown table row whose first cell contains one or more `` `/name` ``
       tokens and is not a *Session boundaries*-style "`/a` -> `/b`" transition row - which
-      in practice leaves only AGENTS.md's *Command routing* table, since *Session
+      in practice leaves only AGENTS.shared.md's *Command routing* table, since *Session
       boundaries* is the only other table writing a slash-prefixed command name in
       backticks, and its first cell always names a transition rather than a single
       command's row. Returns one object per row: Commands (the slash names, without the
@@ -274,7 +274,7 @@ Describe 'Invoke-CodexCommand resolved effort and sandbox match AGENTS.md (issue
 
     It 'gives implementation-tier housekeeping commands medium effort, not low' {
         foreach ($name in 'kit-help', 'clean') {
-            (Get-Resolved $name).Effort | Should -Be 'medium' -Because "/$name is implementation tier per AGENTS.md's Command routing table"
+            (Get-Resolved $name).Effort | Should -Be 'medium' -Because "/$name is implementation tier per AGENTS.shared.md's Command routing table"
         }
     }
 
@@ -328,7 +328,7 @@ Describe 'Invoke-CodexCommand /unfreeze prompts inline unfreeze/SKILL.md, not a 
       with the kit checkout once the kit is home-installed, so a prompt that told the process
       to go open a kit file by path could hand it a path it cannot read. The prompts inline
       skills/unfreeze/SKILL.md's actual text instead (Get-SkillContent), read fresh from the
-      install root on every run - not a second, hand-kept-in-sync copy (AGENTS.md, Single
+      install root on every run - not a second, hand-kept-in-sync copy (AGENTS.shared.md, Single
       ownership: there is exactly one copy of the procedure text; this only changes how it
       reaches the codex process).
     #>
@@ -376,7 +376,7 @@ Describe 'Invoke-CodexCommand /unfreeze prompts inline unfreeze/SKILL.md, not a 
 
 Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, home install)' {
     <#
-      Resolution order per AGENTS.md's Home-install convention: (1) self-hosted - this
+      Resolution order per AGENTS.shared.md's Home-install convention: (1) self-hosted - this
       script's own containing checkout, when it has a .git folder, so kit development reads
       live uncommitted edits rather than a possibly-stale synced copy; (2) $env:AGENTKIT_HOME,
       when set and present; (3) $HOME/.agent-kit, the location /kit-sync maintains. Exercised
@@ -450,7 +450,7 @@ Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, 
     }
 }
 
-Describe 'Invoke-CodexCommand command routing matches AGENTS.md Command routing (W3, issue #299)' {
+Describe 'Invoke-CodexCommand command routing matches AGENTS.shared.md Command routing (W3, issue #299)' {
     <#
       Regression coverage for the gap the #252 Describe block above disclosed once corrected:
       nothing previously parsed AGENTS.md's own *Command routing* table and compared it
@@ -463,7 +463,7 @@ Describe 'Invoke-CodexCommand command routing matches AGENTS.md Command routing 
     #>
 
     BeforeAll {
-        $script:AgentsMdPath = Join-Path $script:RepoRoot 'AGENTS.md'
+        $script:AgentsMdPath = Join-Path $script:RepoRoot 'AGENTS.shared.md'
         $script:AgentsMdText = Get-Content -Raw -LiteralPath $script:AgentsMdPath
         $script:CanonicalTierMap = Get-AgentsCanonicalTierMap -Text $script:AgentsMdText
         $script:RoutingRows = Get-CommandRoutingRows -Text $script:AgentsMdText
