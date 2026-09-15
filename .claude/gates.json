@@ -1,14 +1,14 @@
 {
-  "manifestHash": "e1d6006a2519067ec99f3ce04d8f56809b22b376ea8a783cdf1f09f057acb48b",
-  "generated": "2026-09-08",
+  "manifestHash": "68a55104d0a966dd2ccf2f7902cdcbf33acb31064f78ab9236873ecd5f8b8fc0",
+  "generated": "2026-09-15",
   "gates": [
     {
       "name": "Parse-check PowerShell scripts",
-      "command": "parse-ps1"
+      "command": "parse-check"
     },
     {
       "name": "Run Pester tests",
-      "command": "Invoke-Pester -Path tools -Output Detailed -PassThru"
+      "command": "pester"
     },
     {
       "name": "Validate the core/companion split",

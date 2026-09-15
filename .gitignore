@@ -10,6 +10,11 @@ Thumbs.db
 # the transcripts at any time, and meaningless on another machine.
 .claude/session-costs.tsv
 
+# Per-machine junction so Claude Code discovers this repo's skills/ as
+# project skills. Not portable across machines/OSes; recreate with
+# `mklink /J .claude/skills skills` on Windows.
+.claude/skills/
+
 # graphify — regenerable and expensive; never commit
 graphify-out/
 .graphify_*
