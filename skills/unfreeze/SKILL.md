@@ -11,13 +11,13 @@ It may override: `vocabulary`, `document-map`, `extra-steps`. It may never overr
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
 <!-- companion:declared:end -->
 
-Lift the freeze `/freeze` set. This command runs unattended, without a confirmation prompt — that is a deliberate policy in this repository (`AGENTS.md`, *The design freeze*), not an oversight, so do not add one back.
+Lift the freeze `/freeze` set. This command runs unattended, without a confirmation prompt — that is a deliberate policy in this repository (`AGENTS.shared.md`, *The design freeze*), not an oversight, so do not add one back.
 
-**This command owns the sequence. It does not own the procedure of either phase.** Phase 2 is `skills/reconcile/SKILL.md` and phase 3 is `skills/track/SKILL.md`, run in full. Those files stay the single home for how drift is compared and how the tracker is resynced — this one never restates them (`AGENTS.md`, *Single ownership*). Both remain invocable on their own.
+**This command owns the sequence. It does not own the procedure of either phase.** Phase 2 is `skills/reconcile/SKILL.md` and phase 3 is `skills/track/SKILL.md`, run in full. Those files stay the single home for how drift is compared and how the tracker is resynced — this one never restates them (`AGENTS.shared.md`, *Single ownership*). Both remain invocable on their own.
 
 ## Split across sessions
 
-The ordinary case is one session, start to finish (`AGENTS.md`, *The design freeze*). Where the launching tool cannot change tier mid-session — Codex; `tools/Invoke-CodexCommand.ps1` chains two separate processes for exactly this reason, issue #253 — the run splits into two sessions instead, at this boundary:
+The ordinary case is one session, start to finish (`AGENTS.shared.md`, *The design freeze*). Where the launching tool cannot change tier mid-session — Codex; `tools/Invoke-CodexCommand.ps1` chains two separate processes for exactly this reason, issue #253 — the run splits into two sessions instead, at this boundary:
 
 - **Session 1** runs *Refuse if not frozen*, Phase 1, Phase 2, and *Commit*.
 - **Session 2** runs Phase 3 and *Report*.
@@ -44,11 +44,11 @@ Delete `design/FROZEN.md`. This command is the one exception to `/reconcile`'s o
 
 ## Commit
 
-Always commit the marker's own deletion — it is *Split across sessions*' handoff whether or not this run actually splits. If reconciliation touched `design/`, stage those files by name and commit them together with the deletion, per `AGENTS.md`, *Git and delivery*, in one commit, not two. If reconciliation touched nothing, commit the deletion alone.
+Always commit the marker's own deletion — it is *Split across sessions*' handoff whether or not this run actually splits. If reconciliation touched `design/`, stage those files by name and commit them together with the deletion, per `AGENTS.shared.md`, *Git and delivery*, in one commit, not two. If reconciliation touched nothing, commit the deletion alone.
 
 ## Report
 
-State the freeze is lifted, and point at the commit *Commit* produced and the issues `/track` touched rather than restating either phase's own report (`AGENTS.md`, *Output discipline*). If `/reconcile` or `/track` surfaced something that needs a decision — a contested drift, a slice that turns out to need a contract amendment — stop there and ask, one item at a time, rather than resolving it inline.
+State the freeze is lifted, and point at the commit *Commit* produced and the issues `/track` touched rather than restating either phase's own report (`AGENTS.shared.md`, *Output discipline*). If `/reconcile` or `/track` surfaced something that needs a decision — a contested drift, a slice that turns out to need a contract amendment — stop there and ask, one item at a time, rather than resolving it inline.
 
 ## Re-run
 

@@ -158,7 +158,7 @@ Describe 'Get-NextOrientation' {
         }
     }
 
-    Context 'Summary wording (AGENTS.md, Output discipline: meaning before identifier)' {
+    Context 'Summary wording (AGENTS.shared.md, Output discipline: meaning before identifier)' {
 
         BeforeEach {
             $script:SavedPath = $env:PATH

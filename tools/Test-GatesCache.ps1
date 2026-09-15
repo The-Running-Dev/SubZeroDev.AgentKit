@@ -11,7 +11,7 @@
     judgement the first time - CI is the authoritative list, and matching a workflow's
     steps to local commands takes reading, not just globbing - but re-deriving the same
     answer from an unchanged manifest on every run is the repeated-scan cost
-    AGENTS.md's own model-work table calls out as maybe-avoidable.
+    AGENTS.shared.md's own model-work table calls out as maybe-avoidable.
 
     This script does not discover gates itself - that stays /verify's judgement call, and
     stays owned by verify.md. It only remembers the answer /verify already worked out, and

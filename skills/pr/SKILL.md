@@ -13,11 +13,11 @@ It may override: `vocabulary`, `extra-steps`, `gate-commands`, `tightened-author
 
 Take the work on the current branch to merge-ready, in three phases, in order.
 
-**This command owns the sequence. It does not own the procedure of any phase it delegates.** Phase 2 is `skills/verify/SKILL.md` and phase 3 is `skills/resolve/SKILL.md`, run in full, in this same session. Those files stay the single home for how a gate is discovered and how a thread is classified — this one never restates them, because a second copy of a rule is a promise it will diverge (`AGENTS.md`, *Single ownership*). Both remain invocable on their own: `/verify` to run the gates against any tree, `/resolve` to work threads on a pull request this command did not open.
+**This command owns the sequence. It does not own the procedure of any phase it delegates.** Phase 2 is `skills/verify/SKILL.md` and phase 3 is `skills/resolve/SKILL.md`, run in full, in this same session. Those files stay the single home for how a gate is discovered and how a thread is classified — this one never restates them, because a second copy of a rule is a promise it will diverge (`AGENTS.shared.md`, *Single ownership*). Both remain invocable on their own: `/verify` to run the gates against any tree, `/resolve` to work threads on a pull request this command did not open.
 
 **This repository's convention outranks any default in this command.** They genuinely differ — one sibling enables auto-merge as standard practice, another forbids it outright, a third leaves every merge to its owner. **Read the repository's own instruction file before doing anything**, and follow what it says. If it is silent, open the PR and leave the merge alone.
 
-> Three rules below — push before announcing, no AI attribution, and no deployed URL before the deploy succeeds — are stated canonically in `AGENTS.md` (*Git and delivery*, *House conventions*, *Verification*). They are repeated here because this file is injected on its own and the rules fire at exactly these moments. If they ever disagree, `AGENTS.md` is correct and this file has drifted.
+> Three rules below — push before announcing, no AI attribution, and no deployed URL before the deploy succeeds — are stated canonically in `AGENTS.shared.md` (*Git and delivery*, *House conventions*, *Verification*). They are repeated here because this file is injected on its own and the rules fire at exactly these moments. If they ever disagree, `AGENTS.shared.md` is correct and this file has drifted.
 
 ## Phase 1 — the pull request and its description
 
@@ -38,7 +38,7 @@ gh pr view --json number,isDraft,url,title 2>$null
 
 **Never open a pull request as a draft.** A draft is invisible to the reviewers and CI gates that ignore drafts, which makes "opened" and "actually in review" two different states someone has to remember to reconcile. Open it ready.
 
-**Check for a PR already open on this branch before creating one.** `/slice` and `/fix` open theirs when they finish (`skills/slice/SKILL.md`, `skills/fix/SKILL.md`). If `gh pr view` finds one, write the real description onto it and do not open a second. If none exists — work predating this convention, or `/pr` run standalone — open one; that write is carved out of the authorization rule (`AGENTS.md`, *Git and delivery*). Merging is not, and never becomes so here.
+**Check for a PR already open on this branch before creating one.** `/slice` and `/fix` open theirs when they finish (`skills/slice/SKILL.md`, `skills/fix/SKILL.md`). If `gh pr view` finds one, write the real description onto it and do not open a second. If none exists — work predating this convention, or `/pr` run standalone — open one; that write is carved out of the authorization rule (`AGENTS.shared.md`, *Git and delivery*). Merging is not, and never becomes so here.
 
 Same shape as an issue — human first, agent detail fenced:
 
@@ -70,17 +70,17 @@ Not yet run — the gates run next and this section is replaced with their repor
 **Run `skills/verify/SKILL.md` in full**, against the branch and worktree this PR points at, then replace the description's `Verified` section with its report **verbatim** — the same three lists, not a summary. Restating it from memory is the fabricated gate result that command exists to prevent. `/verify` validates its own `.claude/verify-report.json` before rendering it (`tools/Test-VerifyReport.ps1`); a report that fails that validation is not copied into the PR — fix the artifact and re-render first.
 
 - **Do not claim a check passed that did not run.** The did-not-run list goes into the description word for word, including the reason each entry did not run.
-- **Do not fix a failing gate here.** That prohibition belongs to `/verify` and this command does not relax it by wrapping it — a failing gate ends in a decision put to the user, not a repair (`AGENTS.md`, *Working with me*).
+- **Do not fix a failing gate here.** That prohibition belongs to `/verify` and this command does not relax it by wrapping it — a failing gate ends in a decision put to the user, not a repair (`AGENTS.shared.md`, *Working with me*).
 
 ## Phase 3 — review threads
 
 **Check review *threads*, not requested reviewers.** An automated reviewer can leave threads that block merge and do **not** appear in `gh pr view --json reviewRequests,latestReviews`. If `required_review_thread_resolution` is on, the unresolved count *is* the merge blocker regardless of what the checks say.
 
-**Run `skills/resolve/SKILL.md` in full** — its query, its five classes, its fixed order of operations, its delegation. Fixing and resolving are delegated in this repository and need no separate ask (`AGENTS.md`, *Git and delivery*); `Ambiguous` threads still come to the user one at a time.
+**Run `skills/resolve/SKILL.md` in full** — its query, its five classes, its fixed order of operations, its delegation. Fixing and resolving are delegated in this repository and need no separate ask (`AGENTS.shared.md`, *Git and delivery*); `Ambiguous` threads still come to the user one at a time.
 
 **This phase always runs — never leave it to a separate invocation.** Query the threads as soon as the PR is open and the `Verified` section is written. A PR opened ready starts its automated reviewers immediately, so "no threads yet" at the moment of opening means *not yet*, not *none*.
 
-Where the query comes back empty, **give the automated reviewers one bounded wait rather than declaring the PR clean**: `pwsh -File tools/Wait-PullRequestCheck.ps1 -PullRequest <n> -HeadSha <pushed SHA>` (path relative to the kit install root, not this repo — `AGENTS.md` § *House conventions* → Home-install convention), then re-query the threads once. Threads found on the re-query are classified and worked exactly as above.
+Where the query comes back empty, **give the automated reviewers one bounded wait rather than declaring the PR clean**: `pwsh -File tools/Wait-PullRequestCheck.ps1 -PullRequest <n> -HeadSha <pushed SHA>` (path relative to the kit install root, not this repo — `AGENTS.shared.md` § *House conventions* → Home-install convention), then re-query the threads once. Threads found on the re-query are classified and worked exactly as above.
 
 **Then stop, whatever the result.** One wait, not a poll loop — phases 1 and 2 are minutes and a human reviewer is however long a human takes, and those are not the same wait. Report the check outcomes and the thread count, and say plainly that `/pr` (or `/resolve` on its own) picks this phase up again when later review arrives. Re-running `/pr` on a branch whose description and `Verified` section are already current is a no-op through phases 1 and 2 and lands straight here.
 

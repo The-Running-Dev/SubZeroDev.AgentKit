@@ -52,7 +52,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # Read-DesignState.ps1's relative-path substring math assumes $Path is already absolute (a
-# pre-existing defect outside this slice's Touches list, not fixed here - AGENTS.md, "You find
+# pre-existing defect outside this slice's Touches list, not fixed here - AGENTS.shared.md, "You find
 # a defect outside this slice. Note it, do not fix it."). Resolving here, once, keeps every
 # call into it well-formed without touching that file.
 $Path = (Resolve-Path -LiteralPath $Path).Path
@@ -136,7 +136,7 @@ function New-DesignStateResult {
 # The reader. Dot-sourced at script scope - not inside a function, which would confine its
 # functions (Read-DesignStateGraph, Get-DesignPathInfo, the New-DesignState* factories) to that
 # function's own local scope - so every function below can reuse them rather than duplicating
-# them (AGENTS.md, Single ownership). The guard inside Read-DesignState.ps1 means dot-sourcing
+# them (AGENTS.shared.md, Single ownership). The guard inside Read-DesignState.ps1 means dot-sourcing
 # it here never runs its own top-level invocation.
 # ---------------------------------------------------------------------------------------------
 $script:ReaderPath = Join-Path $PSScriptRoot 'Read-DesignState.ps1'
@@ -1674,7 +1674,7 @@ function Test-TrackerClasses {
 # ---------------------------------------------------------------------------------------------
 # The freeze gate. While design/FROZEN.md exists, every blocking class is downgraded to
 # reported, the count downgraded is stated, and the marker's Frozen because / Lifts when lines
-# are reproduced verbatim (AGENTS.md § "The design freeze"; S5.8). Exit 2 still stands.
+# are reproduced verbatim (AGENTS.shared.md § "The design freeze"; S5.8). Exit 2 still stands.
 # ---------------------------------------------------------------------------------------------
 function Get-FreezeMarker {
     param([Parameter(Mandatory)][string] $RepoPath)

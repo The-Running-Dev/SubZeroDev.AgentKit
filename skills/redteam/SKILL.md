@@ -73,7 +73,7 @@ Cost: <cheap to fix now / expensive to fix later, and why>
 - **`Status:` is `unadjudicated` and this command never changes it.** The adjudicating session writes `defect`, `accepted risk`, `brief conflict`, or `not sustained` in place, on the line, as I rule on each one. That keeps the classification next to the finding it classifies rather than in a chat log nobody can find later.
 - **Ids are stable within a file** (`F1`, `F2`) and are what a decision-log entry or an issue cites.
 - **`Target:` pins a sha.** A finding against a revision of the design that no longer exists is still evidence, but a reader has to be able to tell.
-- **Commit and push it.** `AGENTS.md` § *Git and delivery* delegates the branch, the commit, the push and the pull request; this file is ordinary work and takes the ordinary path. It is the only thing this command writes.
+- **Commit and push it.** `AGENTS.shared.md` § *Git and delivery* delegates the branch, the commit, the push and the pull request; this file is ordinary work and takes the ordinary path. It is the only thing this command writes.
 - **This is not the design doc and writing it is not proposing a fix.** The rule above is unchanged: no fixes, no verdict, no summary.
 
 ## Stopping rule
@@ -83,6 +83,6 @@ Cost: <cheap to fix now / expensive to fix later, and why>
 - One invocation authorizes **exactly one complete pass**. At most one pass per materially changed design revision.
 - **Never automatically recommend or start another pass.** Repeat only when I ask and the design has materially changed since the last one.
 - After a pass, stop. Present findings **one at a time** for adjudication, and classify each as I rule on it: **defect**, **accepted risk**, **brief conflict**, or **not sustained**.
-- **Recommend a classification for each, but never a fix.** The general rule is that a reconciliation ends in a decision rather than a report (`AGENTS.md`, *Working with me*); this command is the one place it is narrowed. Naming a fix invites me to accept your framing of the problem — naming a *severity and category* does not.
+- **Recommend a classification for each, but never a fix.** The general rule is that a reconciliation ends in a decision rather than a report (`AGENTS.shared.md`, *Working with me*); this command is the one place it is narrowed. Naming a fix invites me to accept your framing of the problem — naming a *severity and category* does not.
 - **A known-and-retained decision is not a new defect.** It becomes one only if new evidence shows it contradicts a higher-precedence source, or creates a consequence not already recorded. Name that evidence or consequence — without one, it is the same finding again.
 - For a local correction, verify the correction. Do not reread and re-attack the whole design because wording changed.

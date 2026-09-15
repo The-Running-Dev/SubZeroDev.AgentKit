@@ -19,17 +19,17 @@ rule that keeps it from breaking the contract it operates under.
 
 **Act where the next step is legal in this session. Stop where it is not.**
 
-`AGENTS.md` § *Session boundaries* is the authority on which is which, and this command does not
+`AGENTS.shared.md` § *Session boundaries* is the authority on which is which, and this command does not
 restate the table. Read it, decide which side the next step falls on, and then:
 
 - **Same session** — run the command. `/pr` after `/slice`, `/resolve` after `/pr`, `/clean` after
   a merge. No confirmation, no announcement first; act and report.
-- **Fresh session** — do **not** run it. Emit the boundary banner in the form `AGENTS.md` defines
+- **Fresh session** — do **not** run it. Emit the boundary banner in the form `AGENTS.shared.md` defines
   and stop. Merge → `/track`, implementation → `/reconcile`, `/design` → `/redteam`, and every
   artifact-writing stage to the one after it, all land here.
 - **Deep-reasoning tier** — do not run it under this command's `sonnet`/`medium` routing even
   where no boundary applies. Name the command and its tier, and stop. The work-start banner in
-  `AGENTS.md` § *Model, effort, and review budget* is what gates that, and it gates this command
+  `AGENTS.shared.md` § *Model, effort, and review budget* is what gates that, and it gates this command
   the same as any other.
 
 **Nothing is ever assumed owed.** Every step below is decided from something read, not from what
@@ -41,7 +41,7 @@ the session straight back to `/clean`. A handoff that never checks is a loop.
 
 `/kit-help` owns the stage map and this command reads it rather than carrying a copy — go there
 for what stage 0 through 6 mean and which command belongs to each. What this command adds is a
-check of what is *outstanding*, which orientation alone does not answer. `./tools/` below is the kit install root, not this repo (`AGENTS.md` § *House conventions* → Home-install convention) — run from that root, or resolve it first:
+check of what is *outstanding*, which orientation alone does not answer. `./tools/` below is the kit install root, not this repo (`AGENTS.shared.md` § *House conventions* → Home-install convention) — run from that root, or resolve it first:
 
 ```powershell
 git status --short --branch
@@ -71,7 +71,7 @@ stop, so the next invocation decides against a tree that has actually moved.
 | `design/FROZEN.md` exists **and** the next step is `/design`, `/contract`, `/slices`, `/reconcile` or `/track` | Report `Frozen because` and `Lifts when` **verbatim** and stop. Do not route around a freeze |
 | The tree is dirty with work in progress | Report what is uncommitted and stop. Guessing whose work it is, is how it gets lost |
 | A branch is checked out with an open pull request | `/pr` — same session, run it |
-| A branch is checked out with unpushed commits and no pull request | Commit by named path, push, open the pull request. `AGENTS.md` § *Git and delivery* delegates all four |
+| A branch is checked out with unpushed commits and no pull request | Commit by named path, push, open the pull request. `AGENTS.shared.md` § *Git and delivery* delegates all four |
 | A pull request merged and its local branch still exists | `/clean` — same session, run it |
 | `/clean` just ran, or a merge landed with nothing local left to clean | **Boundary.** Banner for `/track`, fresh session, `sonnet`/`medium`. Stop |
 | `Test-DesignDrift.ps1` or `Test-DesignState.ps1` reports a blocking finding | Report the finding and name the command that owns it. Do not fix it here |
@@ -83,8 +83,8 @@ stop, so the next invocation decides against a tree that has actually moved.
 
 One short block, in this order: **what you read**, **what you concluded**, **what you did or why
 you stopped**. State meaning before identifier — a gate's `Summary`, not its raw `ExitCode`
-(`AGENTS.md` § *Output discipline*). Where you stopped at a boundary, the banner is the last thing
-in the response, set off as `AGENTS.md` requires — not folded into a closing sentence.
+(`AGENTS.shared.md` § *Output discipline*). Where you stopped at a boundary, the banner is the last thing
+in the response, set off as `AGENTS.shared.md` requires — not folded into a closing sentence.
 
 ## Never
 

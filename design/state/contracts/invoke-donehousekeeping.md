@@ -5,7 +5,7 @@ Declaration: tools/Invoke-DoneHousekeeping.ps1
 
 ## Semantics
 The mechanical half of `/clean`, whose consumer is an authorization rule rather than a module:
-`AGENTS.md` § *Git and delivery* delegates a force-delete on two of its field names.
+`AGENTS.shared.md` § *Git and delivery* delegates a force-delete on two of its field names.
 `SquashMergeCandidates` lists a branch only when a merged pull request exists for it **and** the
 local branch tip equals that pull request's `headRefOid`, so the branch named is exactly the
 commit that merged — the tip comparison, not the pull request's existence, is what makes the

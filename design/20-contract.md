@@ -12,7 +12,7 @@ Three languages are under contract, and they are not carried the same way.
 
 `tools/` is PowerShell Core, and its shape — parameter lists, result fields, the state and
 failure vocabularies — **is declared in the scripts themselves and is not restated here**
-(`AGENTS.md`, *Single ownership*). This document names where each declaration lives and
+(`AGENTS.shared.md`, *Single ownership*). This document names where each declaration lives and
 then states what a declaration cannot: when a field is meaningful, what may never be
 normalised, which parameter must not acquire a default and what that would defeat.
 
@@ -22,7 +22,7 @@ what it must output, what it must not do — which is what gives `/reconcile` so
 compare a command file against.
 
 **The state set is constrained Markdown with a line grammar, declared in
-`tools/Read-DesignState.ps1`** (`AGENTS.md`, *Single ownership*), not restated here. What
+`tools/Read-DesignState.ps1`** (`AGENTS.shared.md`, *Single ownership*), not restated here. What
 survives that pointer is everything in this document a grammar cannot state.
 
 ## Types
@@ -43,7 +43,7 @@ is the divergence *Single ownership* forbids. Where this contract needs to refer
 names the class in prose.
 
 `AuthorizationBatch` is **retired.** There is no batch: `/resolve` resolves a `Defect`-class
-thread its pushed fix satisfies without asking first, under `AGENTS.md`, *Git and delivery*.
+thread its pushed fix satisfies without asking first, under `AGENTS.shared.md`, *Git and delivery*.
 I3 and I4 are retired with it and are absent from § *Invariants* below; their ids stay
 resolvable, which is what retirement is for (`design/90-decisions.md`, 2026-08-19).
 
@@ -154,7 +154,7 @@ per-kind vocabulary, citing it. What neither can state:
   inventing one would be a model judging prose, which is `SemanticDisagreement`'s permanently
   reported territory. **One exclusion is named rather than left to that form rule: a decision's
   `Claim` never carries the rejected alternatives.** They stay in the log, which is what it
-  exists for (`AGENTS.md`, *Decision logging*), and they are read when relitigating a choice
+  exists for (`AGENTS.shared.md`, *Decision logging*), and they are read when relitigating a choice
   rather than when orienting. This is the one content rule the length rule above does not
   already imply — a terse list of rejections is not a summary and would pass "a claim rather
   than a summary" — and it is the rule I23's ceiling rests on, because extracting the largest
@@ -215,7 +215,7 @@ What the table cannot state:
 ### What the reader emits
 
 `New-DesignRecord`, `New-DesignStateGraph` and `New-DesignStateFailure` are declared in
-`tools/Read-DesignState.ps1`, not restated here (`AGENTS.md`, *Single ownership*). What those
+`tools/Read-DesignState.ps1`, not restated here (`AGENTS.shared.md`, *Single ownership*). What those
 signatures cannot state:
 
 - **`New-DesignStateFailure` carries `Text` verbatim.** The offending line is reproduced, not
@@ -227,7 +227,7 @@ signatures cannot state:
 ### What the checker emits
 
 `New-DesignFinding`, `New-CouldNotEvaluate` and `New-DesignStateResult` are declared in
-`tools/Test-DesignState.ps1`, not restated here (`AGENTS.md`, *Single ownership*) — one factory per
+`tools/Test-DesignState.ps1`, not restated here (`AGENTS.shared.md`, *Single ownership*) — one factory per
 list, and the result object that carries all three. What those signatures cannot state:
 
 - **`Failures` is never folded into `Findings` and the two never substitute for each other.**
@@ -299,7 +299,7 @@ Keys, and what the mapping cannot state:
   to the units both sessions touched. A lock would be a second answer to a question the branch
   already answers, and one that can be held after the session holding it is gone.
 
-**Grammar.** Declared in `tools/Read-DesignState.ps1`, not restated here (`AGENTS.md`, *Single
+**Grammar.** Declared in `tools/Read-DesignState.ps1`, not restated here (`AGENTS.shared.md`, *Single
 ownership*). What the declaration cannot say: the grammar has no permissive fallback for a line
 matching neither production, and adding one would reintroduce the silently dropped id the I12
 precedent exists for.
@@ -432,7 +432,7 @@ cannot state:
 
 - It is **read-only against both sides.** It never edits `design/`, never edits an issue,
   and never opens or closes one. Which side of a drift is wrong is the user's call
-  (`AGENTS.md`, *Tracking work*) — this script only establishes that the two disagree.
+  (`AGENTS.shared.md`, *Tracking work*) — this script only establishes that the two disagree.
 - Exit codes: 0 no drift, 1 drift found, 2 could not evaluate. **1 and 2 are different
   answers and must never collapse into each other** — "the ids disagree" is a finding,
   "`gh` is not authenticated" is the absence of one, and reporting the second as the first
@@ -459,7 +459,7 @@ cannot state:
 ### `tools/Read-DesignState.ps1`
 
 The record reader. **Its `param` block and its per-kind field vocabulary (`$script:FieldTables`)
-are declared there and are not copied here** (`AGENTS.md`, *Single ownership*); `Get-DesignPathInfo`
+are declared there and are not copied here** (`AGENTS.shared.md`, *Single ownership*); `Get-DesignPathInfo`
 implements the id-to-path mapping this document fixes under *Persisted schemas*. What those
 declarations cannot state:
 
@@ -591,7 +591,7 @@ in the projector and may grow, but may not shrink below this:
 
 | Projection | Renders | Required by |
 |---|---|---|
-| `agent` | An issue's agent block | `AGENTS.md`, *Tracking work* — the existing instance |
+| `agent` | An issue's agent block | `AGENTS.shared.md`, *Tracking work* — the existing instance |
 | `units` | The unit index: id, kind, anchor | *Offline and unaided* — the id scheme is readable, the corpus still needs a table of contents |
 | `bound-by` | Per invariant, the units that bind it | *Explicit current state* — a derived edge with no other legal home |
 | `consumers` | Per contract, the units that consume it | as above |
@@ -629,7 +629,7 @@ generator. What that block cannot state:
   leaves every record byte-identical and reports that it changed nothing. That is what stops a
   `/track` run manufacturing a diff — and with it a branch, a pull request, and a `/clean` pass —
   out of the commit sha alone, on a repository where no work may land on the default branch
-  (`AGENTS.md`, *Git and delivery*). The unconditional-write rule this replaces made the mirror's
+  (`AGENTS.shared.md`, *Git and delivery*). The unconditional-write rule this replaces made the mirror's
   content a function of repository history rather than of tracker state, so every `/track` run
   produced a commit whose entire content was a stamp and whose merge guaranteed the next run
   would do it again.
@@ -648,14 +648,14 @@ generator. What that block cannot state:
   without anything saying so.
 - **`gh` absent or unauthenticated is could-not-evaluate, not an empty mirror.** An empty
   mirror written on an unreachable tracker asserts there is no outstanding work.
-- **Never runs while `design/FROZEN.md` exists**, because `/track` does not (`AGENTS.md`,
+- **Never runs while `design/FROZEN.md` exists**, because `/track` does not (`AGENTS.shared.md`,
   *The design freeze*). The mirror going stale during a freeze is the freeze working.
 
 ### `tools/Invoke-DoneHousekeeping.ps1`
 
 **The parameter list is the script's own `param` block and is not copied here.** The mechanical
 half of `/clean`, and the one entry in this section that exposes no surface to another module:
-its consumer is an authorization rule — `AGENTS.md` § *Git and delivery* delegates a force-delete
+its consumer is an authorization rule — `AGENTS.shared.md` § *Git and delivery* delegates a force-delete
 on the strength of two of its field names — and a restatement under a delegation of a destructive
 action is the unchecked kind I15 forbids until a record resolves it (`design/90-decisions.md`,
 2026-08-31). What the block cannot state:
@@ -720,7 +720,7 @@ trusted to become a pull request's `Verified` section. What the block cannot sta
 - **Never decides what the gates are or whether one should have passed.** That is `/verify`'s
   judgement, the same division `Test-DesignDrift.ps1` draws for which side of a drift is correct.
   It only refuses to let a malformed report reach a pull request body unnoticed.
-- **Mechanically enforces three of `AGENTS.md`'s honesty rules**: every gate carries exactly one
+- **Mechanically enforces three of `AGENTS.shared.md`'s honesty rules**: every gate carries exactly one
   outcome from the fixed vocabulary `Passed`/`Failed`/`DidNotRun`; a `Failed` gate's `detail` is
   present and long enough to plausibly be pasted output rather than a label; a `DidNotRun` gate's
   `reason` is present.
@@ -824,7 +824,7 @@ The existing contract stands. Three changes:
 |---|---|
 | Ordering | Classification completes over the full thread table **before** any thread is acted on |
 | Delegation | "Confirm the checks are green on the new head SHA" is discharged by `Wait-PullRequestCheck.ps1`, not by reading `gh pr checks` by eye |
-| Authorization | Cites `AGENTS.md`, *Git and delivery* — a `Defect`-class thread the pushed fix satisfies is resolved without asking first; `Ambiguous` threads are still brought individually, and in a repository the account does not own every action reverts to an individual ask (I9) |
+| Authorization | Cites `AGENTS.shared.md`, *Git and delivery* — a `Defect`-class thread the pushed fix satisfies is resolved without asking first; `Ambiguous` threads are still brought individually, and in a repository the account does not own every action reverts to an individual ask (I9) |
 
 Everything else — the GraphQL query, the five classes, the fixed order, the report shape,
 the `Never` list — is unchanged and stays owned by that file.
@@ -837,13 +837,13 @@ Stated once here rather than enumerated per command, because the obligation is t
 - **Degrade to today's behaviour when the state set is absent** (I27). This, not a version
   check, is what makes the brief's zero-hard-stops promise mechanical. A command that requires
   `design/state/` has broken eighteen repositories.
-- **A decision writes a record**, by the sequence in `AGENTS.md` § *Writing a design-state
+- **A decision writes a record**, by the sequence in `AGENTS.shared.md` § *Writing a design-state
   record* — the canonical copy, and the one a target repository carries. It is not restated
   here, and the two ordering constraints it fixes are the ones a command may not reorder:
   a `StatedIn` site is named in the same change that writes the section it points at, and
   regeneration precedes the check, never the reverse.
 - **An `## Open` item and a question record are different things, and becoming an issue does
-  not discharge a question.** `AGENTS.md`, *Tracking work*, owns `## Open` as a staging area
+  not discharge a question.** `AGENTS.shared.md`, *Tracking work*, owns `## Open` as a staging area
   bound for the tracker; a *question* is the other thing that section currently absorbs —
   something undecided that blocks reasoning about a unit (`design/10-design.md` § *Question*).
   Separating them is what makes "unresolved questions affecting this unit" answerable at all,
@@ -863,7 +863,7 @@ Stated once here rather than enumerated per command, because the obligation is t
 - **Never read a generated region as an input** (I14).
 - **Orienting on a unit reads its closure, and `design/90-decisions.md` is not opened**
   (`design/10-design.md` § *Orient*, step 3). The log is opened when relitigating a choice —
-  which is what its rejected alternatives are for (`AGENTS.md`, *Decision logging*) — never to
+  which is what its rejected alternatives are for (`AGENTS.shared.md`, *Decision logging*) — never to
   establish what is currently true. Nothing enforces this and nothing can: no artifact records
   what a session read. It is stated because the brief's first done criterion is otherwise
   defeated by habit rather than by any decision anyone made.
@@ -872,7 +872,7 @@ Stated once here rather than enumerated per command, because the obligation is t
 
 | Document | Owns | What it may not do |
 |---|---|---|
-| `AGENTS.md` | The marked-region rule — both kinds — generalised from the agent-fence rule it states today; the freeze rule; the review-thread delegation; I9 | State the rule twice, or leave the agent-fence wording behind as a second copy. **Exactly one document states it**, and `.claude/COMPANIONS.md` names `companion` as declared without restating what declared means |
+| `AGENTS.shared.md` | The marked-region rule — both kinds — generalised from the agent-fence rule it states today; the freeze rule; the review-thread delegation; I9 | State the rule twice, or leave the agent-fence wording behind as a second copy. **Exactly one document states it**, and `.claude/COMPANIONS.md` names `companion` as declared without restating what declared means |
 | `design/20-contract.md` | The closed divergence-class list and each class's blocking status (below) | Decide blocking-ness per finding at the call site, or carry a class the checker does not declare |
 | `.claude/COMPANIONS.md` | The companion mechanism, and that `companion` is a **declared** region | Acquire a projection, or restate the marker form this document fixes |
 | `skills/resolve/SKILL.md` | `ThreadClass` and its five values | — |
@@ -910,7 +910,7 @@ below, where prose cannot cost a check its input:
 - **The `command` row carries no exclusion.** A companion lives at `skills/<name>/SKILL-local.md` — inside the `skills/` tree, but its filename never matches the literal `SKILL.md` leaf the glob requires, so the glob needs nothing to keep it out.
 - **`*.Tests.ps1`** — a test is `Evidence`, not a unit.
 - **`design/FROZEN.md`** — transient by design.
-- **`CLAUDE.md`** — a loader that imports `AGENTS.md` and states nothing of its own.
+- **`CLAUDE.md`** — a loader that imports `AGENTS.shared.md` and `AGENTS.md` and states nothing of its own.
 - **The `invariant` row has no pattern in either cell**, which is what excludes it from the
   comparison. Its set is **every `I<n>` row in § *Invariants* below**, and nothing is excluded from
   it: a rule the kit binds itself to is a unit whether or not any document quotes it.
@@ -1175,7 +1175,7 @@ declaration is what lets `ClassListDisagreement` see one list, and the raiser is
 compares a unit's `Live` against the artifact it is live on, which is a reconciliation pass and
 is where the 2026-08-31 breach was found. **Its payload is the unit, the decision, and the site
 the terms appear to stand at, in `StatedIn`'s own `<id> § <heading>` form**, so that acting on
-the finding is copying the payload into the record and dropping the id — step 4 of `AGENTS.md`
+the finding is copying the payload into the record and dropping the id — step 4 of `AGENTS.shared.md`
 § *Writing a design-state record* in isolation — or stating in the pull request why the terms do
 not stand there, which is the shape S24.2 fixed. The candidate is held to the reach rule once
 written, by `SiteAmbiguous` and `SiteOutOfReach`, exactly as any site is; this class asserts
@@ -1353,14 +1353,14 @@ placement rather than a mechanism to choose (`design/90-decisions.md`, 2026-08-2
 and a question record are different things. `design/10-design.md` does not say who separates
 them.
 
-`AGENTS.md` § *Writing a design-state record* gives a flow for a decision, and there is no
+`AGENTS.shared.md` § *Writing a design-state record* gives a flow for a decision, and there is no
 question equivalent anywhere in it or in the design. The one question record this repository
 has was written by hand at S11, during a migration that runs once and never in a target, so
 nothing about the steady state can be read off it.
 
 The candidates each imply a different command's surface. `/track` already reads `## Open` and
 already distinguishes a question from a task (`skills/track/SKILL.md`), which makes it the
-obvious writer — and it is also the one command `AGENTS.md` says owns every GitHub write it can
+obvious writer — and it is also the one command `AGENTS.shared.md` says owns every GitHub write it can
 make idempotent, so giving it a `design/state/` write crosses a boundary that was drawn
 deliberately. The session that *notices* the question is the other candidate, on the same
 argument that makes a decision's record the writing session's; that has no single command to

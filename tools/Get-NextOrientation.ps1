@@ -9,7 +9,7 @@
     scripts. None of that is a judgement call - next.md says so explicitly ("What this command
     adds is a check of what is outstanding, which orientation alone does not answer"). This
     script runs exactly those six reads and returns them as one object, so a person (or a
-    model session opened afterward) can pick the row in AGENTS.md § *Session boundaries* /
+    model session opened afterward) can pick the row in AGENTS.shared.md § *Session boundaries* /
     next.md's decision table without a model having spent anything gathering the inputs to it.
 
     This script decides nothing. It does not pick a row, and it does not open a session.
@@ -71,7 +71,7 @@ function Invoke-GateScript {
     #
     # -Quiet suppresses the target's own Write-Host report and leaves its result object as
     # the only thing on the pipeline, so $resultObj is that object itself - never the merged,
-    # stringified dump `*>&1 | Out-String` used to produce here (AGENTS.md, *Output discipline*).
+    # stringified dump `*>&1 | Out-String` used to produce here (AGENTS.shared.md, *Output discipline*).
     param([string]$Path, [string]$WorkingDir, [hashtable]$ExtraArgs = @{})
     if (-not (Test-Path -LiteralPath $Path)) {
         return [pscustomobject]@{ Ran = $false; ExitCode = $null; Result = $null }

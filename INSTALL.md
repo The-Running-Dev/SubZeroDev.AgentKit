@@ -4,7 +4,7 @@ You are an agent. The normal case: you are working **in the kit** and have been 
 
 **Installing is a reconciliation, not a copy.** A target repository that already has agent instructions has them for a reason, and those reasons are usually better informed than this kit's defaults — they were written against a real codebase. Where the kit and the target disagree, that is a finding to report, not a file to overwrite.
 
-The kit's own `AGENTS.md` binds you while you do this. In particular: read completely before editing, present findings one at a time for sign-off, stage by named path, and do not write anything in phases 0–2.
+The kit's own `AGENTS.shared.md` binds you while you do this. In particular: read completely before editing, present findings one at a time for sign-off, stage by named path, and do not write anything in phases 0–2.
 
 ---
 
@@ -52,7 +52,8 @@ The artifacts:
 
 | Artifact | Notes |
 |---|---|
-| `AGENTS.md` | The contract. Most often divergent |
+| `AGENTS.shared.md` | The shared contract, the part every repository using the kit holds in common |
+| `AGENTS.md` | The target's project contract. Most often divergent. **The kit's own `AGENTS.md` is its project part, not a seed** |
 | `CLAUDE.md` | Pointer to `AGENTS.md` in the kit's arrangement — but see below |
 | `agent.md` | Lessons. Seeded, then pruned |
 | `skills/<name>/SKILL.md` | The stage commands, plus `install.md`. **Cores — the kit owns these outright**, so they are not classified against the target's copy at all; see below |
@@ -138,7 +139,7 @@ The kit's arrangement is: `AGENTS.md` holds the contract, `CLAUDE.md` is a point
 
 **Work out which file holds content before touching either.** A file of a few hundred bytes that links to the other is a pointer, and a pointer is a deliberate arrangement, not an empty file waiting to be filled. Merging the kit's sections into one is the single most destructive thing this install can do.
 
-- **Neither exists** — install the kit's `AGENTS.md`, and add a project identity section at the top: what the repository owns, what it does not, and its companions. Get that from the target's `README.md` and existing instructions rather than inventing it. `CLAUDE.md` becomes the pointer.
+- **Neither exists** — install the kit's `AGENTS.shared.md`, and write an `AGENTS.md` that points to it the way the kit's own does, with a project identity section at the top: what the repository owns, what it does not, and its companions. Get that from the target's `README.md` and existing instructions rather than inventing it. `CLAUDE.md` becomes the pointer.
 - **One holds content, the other is a pointer** — **keep the direction as it stands.** Install the kit's sections into the file that holds content and leave the pointer alone. Do not flip it to match the kit. If the pointer file states *why* it is a pointer, read that reason before proposing anything — at least one repository's pointer exists because an earlier mechanical copy rewrote nine real references into paths that do not exist.
 - **One holds content, the other is absent** — present the fork: move the content into `AGENTS.md` and reduce the other to a pointer, or leave the content where it is and make `AGENTS.md` the pointer. Recommend keeping the existing direction; it is the smaller change and it is what the project's history refers to.
 - **Both hold content** — stop and report. The target already has the failure the kit exists to prevent, and resolving it is the user's call, not a side effect of installing.
@@ -167,7 +168,7 @@ The kit ships this seeded with lessons harvested from other projects. It says so
 
 ### Rules the target already states
 
-The kit's `AGENTS.md` carries conventions harvested from several projects. If the target already states one of them, **do not add a second copy**. Report it as already-satisfied. Two copies of a rule is a promise they will diverge.
+The kit's `AGENTS.shared.md` carries conventions harvested from several projects. If the target already states one of them, **do not add a second copy**. Report it as already-satisfied. Two copies of a rule is a promise they will diverge.
 
 ## Phase 3 — Report, then wait
 
@@ -189,7 +190,7 @@ Decisions needing you:    <the forks, one at a time, recommendation first>
 Dirty files, untouched:   <paths from phase 0>
 ```
 
-**An install is a reconciliation, so it ends in a decision, not a report** (`AGENTS.md`, *Working with me*). The block above is not the deliverable — closing with the questions is. Every divergence you listed becomes a question with a recommendation and the cost of each alternative.
+**An install is a reconciliation, so it ends in a decision, not a report** (`AGENTS.shared.md`, *Working with me*). The block above is not the deliverable — closing with the questions is. Every divergence you listed becomes a question with a recommendation and the cost of each alternative.
 
 Present the decisions **one at a time**. Do not batch them, and do not proceed on the ones you think are obvious while waiting on the rest — a later answer can change an earlier one. If nothing diverged, say the install is a no-op; do not invent a fork to have something to ask.
 
@@ -248,7 +249,7 @@ Only after sign-off.
    placeholder deferring to `/pr`, and not a summary of one; `/pr` does not run here.
 
 Name the branch and link the pull request — its body already carries what was created and reconciled, so the
-chat report adds only what remains for the user to decide (`AGENTS.md`, *Output discipline*).
+chat report adds only what remains for the user to decide (`AGENTS.shared.md`, *Output discipline*).
 
 ---
 

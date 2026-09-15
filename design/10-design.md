@@ -63,7 +63,7 @@ deletion* below. The active record carries:
 
 | Field | Type | Notes |
 |---|---|---|
-| `Id` | stable string | Assigned once. **Never reused, never renumbered** — the criterion-id precedent in `AGENTS.md` (*Tracking work*) applies to every id in this system |
+| `Id` | stable string | Assigned once. **Never reused, never renumbered** — the criterion-id precedent in `AGENTS.shared.md` (*Tracking work*) applies to every id in this system |
 | `Kind` | command \| script \| document \| invariant \| component | |
 | `Status` | `active` \| `retired` | Retirement's representation. A retired record keeps its id resolvable, leaves every closure, and stops having its `Anchor` checked against the tree |
 | `Anchor` | tree path, or an invariant number | A **checked** restatement, not a copy — see *Every restatement is either forbidden or checked* below |
@@ -108,7 +108,7 @@ A named surface one unit exposes and others consume.
 | `Status` | `active` \| `retired` | As on `Unit`, and for the same reason |
 | `Owner` | unit id | Exactly one. A contract with two owners is a defect in the split, not a feature. **The one reverse edge that stays written** — see *Derived* below, which also says what checks it |
 | `Declaration` | tree pointer, or `prose` | Where the *shape* is declared. `prose` only for a Markdown command surface, which has no declaration to point at |
-| `Semantics` | prose | **What the declaration cannot say** — when a field is meaningful, what must never be normalised, which parameter must not acquire a default. `AGENTS.md`, *Single ownership*, unchanged and now mechanically addressable |
+| `Semantics` | prose | **What the declaration cannot say** — when a field is meaningful, what must never be normalised, which parameter must not acquire a default. `AGENTS.shared.md`, *Single ownership*, unchanged and now mechanically addressable |
 | `Consumers` | — | **Derived.** Never written |
 
 ### Invariant
@@ -181,7 +181,7 @@ puts it on the side that is **not** counted once the decision has been executed,
 makes the ceiling a bound instead of a countdown. *Alternatives considered* records the fork.
 
 **The rejected alternatives stay in the log and are not extracted.** They are the reason the
-log exists (`AGENTS.md`, *Decision logging*) and they are read when relitigating a choice, not
+log exists (`AGENTS.shared.md`, *Decision logging*) and they are read when relitigating a choice, not
 when orienting. Pulling them into the state layer would put the largest and least-consulted
 half of the corpus back inside the per-unit budget.
 
@@ -240,7 +240,7 @@ source named in the marker would be a second copy at the one site with hundreds 
 `design/20-contract.md` § *Marked regions* fixes the two marker forms and says why the bare one
 means projected.
 
-This **generalises the existing agent-fence rule** rather than replacing it. `AGENTS.md`
+This **generalises the existing agent-fence rule** rather than replacing it. `AGENTS.shared.md`
 (*Tracking work*) already says an issue's `<!-- agent:start -->` block is regenerable and
 everything outside it is not; that rule becomes the general one, stated once, and the issue
 block becomes an instance of it. Every command that currently restates it points at it
@@ -286,7 +286,7 @@ mechanism carries its weight rather than being a documentation nicety.
 
 ### Every restatement is either forbidden or checked
 
-The governing rule, and the honest generalisation of `AGENTS.md`'s *a document states only
+The governing rule, and the honest generalisation of `AGENTS.shared.md`'s *a document states only
 what the tree cannot*.
 
 A record's `Anchor`, a contract's `Declaration`, an invariant's `Evidence`, a decision's
@@ -352,7 +352,7 @@ Three properties, and all three are needed:
   amending that script's **contract** — `<contract id> § Semantics`, a record already one hop
   away — rather than by writing prose into code. The restriction falls out of the mechanism
   instead of being a second rule someone has to remember, and it lands the claim exactly where
-  `AGENTS.md`'s *a document states only what the tree cannot* would have put it.
+  `AGENTS.shared.md`'s *a document states only what the tree cannot* would have put it.
 
 **Why this ends monotonic growth, which supersession could not.** A decision about a policy
 document is *executed* by writing the rule into that document. Absorption is therefore the
@@ -559,7 +559,7 @@ current-looking and wrong.
 | The budget meter | Closure computation and the ceiling | the reader, the tree | Findings, and the largest unit and its largest contributor by name |
 | The mirror generator | Refreshing `WorkRef` mirrors | `gh`, the reader | Written mirrors. **`/track`'s alone** |
 | The divergence checker | The closed class list, the freeze gate, the three-list report | validator, projection checker, budget meter, `design/FROZEN.md` | Three lists and an exit code |
-| `AGENTS.md` | The marked-region rule; the freeze rule | nothing | The rule every command cites |
+| `AGENTS.shared.md` | The marked-region rule; the freeze rule | nothing | The rule every command cites |
 | `design/20-contract.md` | The class ids and each one's blocking status | nothing | The list CI is judged against |
 
 Direction: `state set → reader → {validator, projector, meter} → checker → {CI, commands}`,
@@ -616,7 +616,7 @@ or not a decision was written into them. That is what makes absorption a strict 
 
 ### Record — a decision is made
 
-**The steps are `AGENTS.md` § *Writing a design-state record*'s and are not restated here.**
+**The steps are `AGENTS.shared.md` § *Writing a design-state record*'s and are not restated here.**
 That is the copy an installed target carries and the one `/reconcile`, `/contract` and `/design`
 cite; a second numbered list here is the copy that rots, and it rotted once already — the
 contract's abbreviated version outlived the insertion of the `StatedIn` step and went on
@@ -674,7 +674,7 @@ place. The failure modes below name what fails and what the caller sees; assigni
 is `/contract`'s.
 
 **A freeze suppresses findings, not failures.** Exit 2 stands during a freeze. The freeze
-permits known staleness (`AGENTS.md`, *The design freeze*); it does not permit a checker that
+permits known staleness (`AGENTS.shared.md`, *The design freeze*); it does not permit a checker that
 could not run, and treating those the same would make the freeze a way to turn the gate off.
 
 ### Migrate — once, on this repository only
@@ -755,7 +755,7 @@ is the user's decision, and a checker that resolved one would be making it.
 
 ## Concurrency and ordering
 
-**Nothing is concurrent.** One author, sequential sessions by policy (`AGENTS.md`, *Session
+**Nothing is concurrent.** One author, sequential sessions by policy (`AGENTS.shared.md`, *Session
 boundaries*), and the brief states this outright.
 
 What enforces it is git and nothing else. Two sessions writing state on divergent branches
@@ -914,7 +914,7 @@ own budget.
 **Staleness detection: regenerate and compare.** Rejected: **a digest of the source stored in
 the region marker**, which is cheaper and needs no generator at check time, but is a second
 copy of a fact and matches happily when both sides were edited together. And **convention
-alone** — the rule stated in `AGENTS.md` and nothing checking it — which is precisely the
+alone** — the rule stated in `AGENTS.shared.md` and nothing checking it — which is precisely the
 shape `design/90-decisions.md` (2026-08-10) records failing within a day of being written,
 where a repin claimed as done had reached one issue of seventeen.
 

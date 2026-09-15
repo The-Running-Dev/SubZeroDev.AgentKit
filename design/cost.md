@@ -208,7 +208,7 @@ they were taken; re-run the script against the same session ids for corrected on
 ## Output
 
 What a session writes stays in its context, so it is paid for again on every later call. This is
-why `AGENTS.md`, *Output discipline* exists. The script reports only what a transcript states
+why `AGENTS.shared.md`, *Output discipline* exists. The script reports only what a transcript states
 exactly, per session, command segment, and subagent total:
 
 - **Output tokens per response**, counted once per `message.id`.

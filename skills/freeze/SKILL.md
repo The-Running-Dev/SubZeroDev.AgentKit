@@ -11,7 +11,7 @@ It may override: `vocabulary`, `document-map`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
 <!-- companion:declared:end -->
 
-Write `design/FROZEN.md`. Its existence is the whole mechanism — the rule, what it gates, and the marker's format are owned by `AGENTS.md`, *The design freeze*; this command only produces the file correctly and does not restate the rule.
+Write `design/FROZEN.md`. Its existence is the whole mechanism — the rule, what it gates, and the marker's format are owned by `AGENTS.shared.md`, *The design freeze*; this command only produces the file correctly and does not restate the rule.
 
 ## Refuse if already frozen
 
@@ -46,8 +46,8 @@ Use today's date and the short SHA from above.
 
 ## Commit it
 
-Stage `design/FROZEN.md` by name — never a broad add. Commit and push per `AGENTS.md`, *Git and delivery*: on a non-default branch this is delegated, commit and push without a separate ask; on the default branch, ask before pushing.
+Stage `design/FROZEN.md` by name — never a broad add. Commit and push per `AGENTS.shared.md`, *Git and delivery*: on a non-default branch this is delegated, commit and push without a separate ask; on the default branch, ask before pushing.
 
 ## Report
 
-State the file was written, quote `Frozen because` and `Lifts when` back, and name the commands that now refuse per `AGENTS.md` § *The design freeze*.
+State the file was written, quote `Frozen because` and `Lifts when` back, and name the commands that now refuse per `AGENTS.shared.md` § *The design freeze*.
