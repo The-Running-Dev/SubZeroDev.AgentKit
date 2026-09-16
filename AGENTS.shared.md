@@ -1,5 +1,7 @@
 # Agent contract
 
+<!-- phase3-trial-marker: home-install update/rollback roundtrip probe, safe to remove -->
+
 This file is the shared part of the agent contract, binding for every agent session in any repository that uses the kit, regardless of tool or model. "This repository" below means the repository the session is working in. That repository's own `AGENTS.md` adds its project rules on top of this file.
 
 ## Source of truth
