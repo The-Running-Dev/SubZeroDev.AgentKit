@@ -264,6 +264,7 @@ function Sync-KitCheckout {
         # A branch checkout should track the remote's tip, not whatever the local ref last had.
         & git -C $InstallRoot show-ref --verify --quiet "refs/remotes/origin/$version"
         $isBranch = ($LASTEXITCODE -eq 0)
+        $global:LASTEXITCODE = 0
         if ($isBranch) {
             $null = Invoke-Git -GitArgs @('reset', '--hard', "origin/$version") -WorkingDir $InstallRoot
         }
