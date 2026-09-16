@@ -180,10 +180,10 @@ Prove it end-to-end on a small real project before touching the rest.
 
 **Done when**
 
-- [ ] All three tools ran kit skills in that repo with no copies present.
-- [ ] The repo's `-local.md` companions are still read.
-- [ ] Session-cost logging still records the session, in that repo's log.
-- [ ] Update and rollback both took effect without any change to the repo.
+- [x] All three tools ran kit skills in that repo with no copies present. Codex: `/next` ran for real through `Invoke-CodexCommand.ps1` (`builder` profile), correctly oriented on repo state, no file changes. Claude and Copilot: skill *discovery* confirmed (Claude's `--debug-file` log shows 24 skills loaded from `~/.claude/skills/`, `project: 0`; Copilot's `skill list` shows all 23 as Personal skills, no collisions), but actual dispatch via slash syntax couldn't be driven headlessly — both tools' non-interactive modes (`claude -p`, `copilot -p`) treat a leading `/` as literal text/path rather than invoking the skill. Ben accepted the discovery-log evidence as sufficient for these two legs (2026-09-16) rather than requiring a manual interactive run.
+- [ ] The repo's `-local.md` companions are still read. Not tested — this repo has no `.claude/commands/<name>-local.md` companions to exercise.
+- [ ] Session-cost logging still records the session, in that repo's log. The hook is registered globally in `~/.claude/settings.json` (not per-repo), pointed at the installed `Measure-Session.ps1`, so removing this repo's copied kit files can't have broken it structurally — but no genuine (non-`<synthetic>`) row has landed since the migration commit, and `claude -p` was confirmed not to fire `SessionEnd` at all. Needs one real interactive session to close out.
+- [x] Update and rollback both took effect without any change to the repo. Released `v2026.09.17` with a one-line marker in `AGENTS.shared.md` ([#319](https://github.com/The-Running-Dev/SubZeroDev.AgentKit/pull/319)), ran `Install-AgentKit.ps1 -Version v2026.09.17`, confirmed the marker visible through HotCorners' `@`-import pointer, rolled back to `v2026.09.16`, confirmed it gone — `git status` in HotCorners showed no change either time.
 
 ### Phase 4 — Replace the copy-into-repo tooling (a few days)
 
