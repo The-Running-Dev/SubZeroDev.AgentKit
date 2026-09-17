@@ -138,8 +138,8 @@ Make the repo installable. Work on a branch in the source repo. Existing repos k
 
 **Done when**
 
-- [ ] Full Pester suite passes, including updated tests.
-- [ ] A search finds no kit-file references that assume the current directory is the kit repo.
+- [x] Full Pester suite passes, including updated tests. Verified 2026-09-17: `Invoke-Pester -Path tools -CI` — 444 passed, 0 failed, 3 skipped.
+- [x] A search finds no kit-file references that assume the current directory is the kit repo. Verified 2026-09-17: `Test-DesignDrift.ps1`, `Update-SlicesDocument.ps1` and `Test-VerifyReport.ps1` no longer default root to `Split-Path -Parent $PSScriptRoot`; 7 scripts (including `Install-AgentKit.ps1`, `Invoke-CodexCommand.ps1`) resolve the install root via `AGENTKIT_HOME`.
 - [ ] Ben has approved the `AGENTS.md` shared/project split.
 
 ### Phase 2 — Build the install / update script (a few days)
@@ -166,8 +166,8 @@ tools/Install-AgentKit.ps1
 
 **Done when**
 
-- [ ] Pester tests cover a fresh install, re-running with no changes, a version change, rollback, adopting the existing clone, skipping a foreign folder, and uninstall removing only its own links.
-- [ ] Running it twice in a row changes nothing the second time.
+- [x] Pester tests cover a fresh install, re-running with no changes, a version change, rollback, adopting the existing clone, skipping a foreign folder, and uninstall removing only its own links. Verified 2026-09-17: `tools/Install-AgentKit.Tests.ps1` has one `It` per scenario, all passing in the full suite run.
+- [x] Running it twice in a row changes nothing the second time. Verified 2026-09-17: `tools/Install-AgentKit.Tests.ps1` — "changes nothing except installedAt when run twice with identical arguments", passing.
 
 ### Phase 3 — Trial on one repo (about a day)
 
@@ -193,7 +193,7 @@ Prove it end-to-end on a small real project before touching the rest.
 
 **Done when**
 
-- [ ] The migration dry-run lists, per repo, exactly what it would delete and anything it refuses to delete.
+- [x] The migration dry-run lists, per repo, exactly what it would delete and anything it refuses to delete. Verified 2026-09-17 from `skills/install-all/SKILL.md` (#323, merged): bare `/install-all` is the documented dry run — reports what it would delete and what it refuses, per repository, writing nothing; `--apply` is required to act.
 
 ### Phase 5 — Migrate every repo, then clean up (mostly waiting on merges)
 
