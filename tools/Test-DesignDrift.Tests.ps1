@@ -202,6 +202,65 @@ None.
         }
     }
 
+    Context 'slice issue lookup' {
+
+        BeforeEach {
+            $script:SliceLookupDoc = New-SlicesDoc -Content @'
+# Slices
+
+## S3 — Close the laptop, open the phone
+
+Acceptance:
+  - S3.1 The first criterion holds.
+  - S3.3 Spill catch-up completes.
+'@
+            # The newer criterion bug precedes the closed slice issue in tracker order.
+            $script:CriterionBug = New-Issue -Number 300 -Title 'S3.3 spill-catch-up test intermittently times out' -Body 'Investigate the intermittent timeout.'
+            $script:SliceIssue = New-Issue -Number 4 -Title 'S3 — Close the laptop, open the phone' -Body "- [x] **S3.1** first`n- [x] **S3.3** spill catch-up"
+            $script:SliceIssue.state = 'CLOSED'
+        }
+
+        It 'selects the real slice issue even when a criterion bug appears first' {
+            Mock Get-TrackerIssue { New-Tracker -Issues @($script:CriterionBug, $script:SliceIssue) }
+
+            $r = Invoke-DriftCheck -SlicesPath $script:SliceLookupDoc
+
+            $r.State | Should -Be 'Clean'
+            $r.SlicesCompared | Should -Be 1
+            $r.Findings.Count | Should -Be 0
+            $r.Failures.Count | Should -Be 0
+            Get-DriftExitCode -State $r.State | Should -Be 0
+        }
+
+        It 'attributes genuine drift to the real slice issue, not the criterion bug' {
+            $script:SliceIssue.body = '- [x] **S3.1** first'
+            Mock Get-TrackerIssue { New-Tracker -Issues @($script:CriterionBug, $script:SliceIssue) }
+
+            $r = Invoke-DriftCheck -SlicesPath $script:SliceLookupDoc
+
+            $r.State | Should -Be 'Drifted'
+            $r.SlicesCompared | Should -Be 1
+            $r.Findings.Count | Should -Be 1
+            $r.Findings[0].Kind | Should -Be 'InDocNotIssue'
+            $r.Findings[0].Detail | Should -Be 'S3.3'
+            $r.Findings[0].Issue | Should -Be 4
+            Get-DriftExitCode -State $r.State | Should -Be 1
+        }
+
+        It 'reports NoIssue when only the criterion bug exists' {
+            Mock Get-TrackerIssue { New-Tracker -Issues @($script:CriterionBug) }
+
+            $r = Invoke-DriftCheck -SlicesPath $script:SliceLookupDoc
+
+            $r.State | Should -Be 'Drifted'
+            $r.SlicesCompared | Should -Be 0
+            $r.Findings.Count | Should -Be 1
+            $r.Findings[0].Kind | Should -Be 'NoIssue'
+            $r.Findings[0].Issue | Should -Be 0
+            Get-DriftExitCode -State $r.State | Should -Be 1
+        }
+    }
+
     Context 'pin ancestry' {
 
         BeforeEach {
