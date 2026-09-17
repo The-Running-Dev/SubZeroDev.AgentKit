@@ -1,8 +1,8 @@
 # decision/2026-08-08-kit-sync-new-command
 Date: 2026-08-08
 Anchor: 2026-08-08 — `/kit-sync` is a new command: a shared `~/.agent-kit` checkout, updated then reconciled
-Status: accepted
-StatedIn: unit/command/kit-sync § Clone or update `~/.agent-kit`, unit/command/kit-sync § Reconcile
+Status: superseded
+SupersededBy: decision/2026-09-17-global-front-door-both-codex-modes
 
 ## Claim
 `skills/kit-sync/SKILL.md` maintains a single shared checkout at `~/.agent-kit`, fast-forwarded on later runs and never reset, with the branch remembered as a field on `.claude/kit.json`. Once current, it reads `INSTALL.md` from that checkout and follows it exactly against the current repository, inheriting every classification and the phase 3 sign-off gate rather than restating them.

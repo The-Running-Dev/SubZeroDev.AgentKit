@@ -12,9 +12,15 @@ It may override: `extra-steps`, `tightened-authorization`. It may never override
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
 <!-- companion:declared:end -->
 
-Install the agent kit. **$1** is the other end — the target if you are running this from the kit, the kit if you are running this from a target.
+Install the project-owned part of AgentKit. In a global skill invocation the adapter names the
+canonical kit root; otherwise resolve `$env:AGENTKIT_HOME`, then `$HOME/.agent-kit`. Read that
+runtime's `INSTALL.md`. The kit itself is not the target repository.
 
-Work out which is which before anything else: the kit is the tree containing `INSTALL.md` and `skills/design/SKILL.md`. If both ends look like kits, or neither does, stop and ask.
+**$1** is the target repository path. When invoked from a target with the canonical kit path as
+`$1` (the legacy reverse invocation), keep the current repository as the target. If the target is
+omitted, use the current repository. If both ends are kits, stop and ask. If no runtime exists,
+follow README.md's public clone-and-setup instructions; never require a developer checkout or
+copy kit-owned cores and scripts into the target.
 
 Read `INSTALL.md` from the kit and follow it exactly. It is the procedure; this command only locates it.
 
@@ -28,7 +34,6 @@ occupied fork resolved on a prior run is only skipped once the target's own tree
 resolution, not because this command remembers asking before. Re-running after a fork was
 answered must not ask the same fork again.
 
-Command files do not reclassify at all: `INSTALL.md` takes each core outright, and the target's
-own per-command content lives in a companion this command never reads or writes. An
-`Unmigrated-Blocked` row keeps appearing on every run until the target moves that edit into its
-companion — the same "the tree resolves it, not my memory" rule as any other fork.
+Kit-owned command cores do not reclassify or copy into a target. The target's own per-command
+content lives in a companion this command never reads or writes; adapters and owned links resolve
+the core from the canonical installed checkout.

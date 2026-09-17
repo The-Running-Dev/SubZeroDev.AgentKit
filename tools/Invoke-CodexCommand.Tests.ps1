@@ -403,6 +403,7 @@ Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, 
             New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'tools') -Force | Out-Null
             New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'skills/resume') -Force | Out-Null
             Copy-Item -LiteralPath $script:ScriptPath -Destination (Join-Path $fixtureRoot 'tools/Invoke-CodexCommand.ps1')
+            Copy-Item -LiteralPath (Join-Path $script:RepoRoot 'tools/Get-AgentKitSkill.ps1') -Destination (Join-Path $fixtureRoot 'tools/Get-AgentKitSkill.ps1')
             Copy-Item -LiteralPath (Join-Path $script:RepoRoot 'skills/resume/SKILL.md') -Destination (Join-Path $fixtureRoot 'skills/resume/SKILL.md')
             return (Join-Path $fixtureRoot 'tools/Invoke-CodexCommand.ps1')
         }
@@ -592,5 +593,83 @@ sandbox_mode = "workspace-write"
         $doc = Get-ProfileTomlBlocks -Text $badDocText
         $doc['builder'].model | Should -Be 'gpt-5.6-sol'
         $doc['builder'].model | Should -Not -Be 'gpt-5.6-terra' -Because 'a real correspondence check against this fixture would now fail, which is the point: builder is really gpt-5.6-terra'
+    }
+}
+
+Describe 'Invoke-CodexCommand canonical skill prompts' {
+    It 'inlines the selected canonical SKILL.md and preserves user arguments as one JSON array' {
+        $arguments = @('contains spaces', 'quote " and apostrophe ''', "line one`nline two", '-not-a-launcher-switch')
+        $expectedJson = ConvertTo-Json -InputObject $arguments -Compress
+        $result = & $script:ScriptPath -Command 'help' -WhatIf -SkillArguments $arguments
+        $skill = & (Join-Path $script:RepoRoot 'tools/Get-AgentKitSkill.ps1') -Command help
+
+        $result | Should -Match ([regex]::Escape($skill))
+        $result | Should -Match 'Do not invoke\s+another AgentKit wrapper, skill-dispatch command, or global adapter'
+        $result | Should -Match ([regex]::Escape($expectedJson))
+    }
+
+    It 'uses the canonical prompt only for explicit SkillArguments' {
+        $launcher = Get-Content -Raw -LiteralPath $script:ScriptPath
+        $launcher | Should -Match '\$useSkillArguments = \$PSBoundParameters\.ContainsKey\(''SkillArguments''\)'
+        $launcher | Should -Match '& \$reader -Command \$Name'
+        $launcher | Should -Match '\$codexInvocationArgs \+= \$CodexArgs'
+    }
+
+    It 'preserves legacy CodexArgs passthrough without a canonical skill prompt' {
+        $result = & $script:ScriptPath -Command help -WhatIf '--legacy-flag' 'legacy prompt'
+        $result | Should -Match '--legacy-flag legacy prompt'
+        $result | Should -Not -Match 'canonical skills/help/SKILL.md'
+    }
+}
+
+Describe 'Invoke-CodexCommand /resume execution chain' {
+    BeforeEach {
+        $global:AgentKitCodexCalls = [System.Collections.Generic.List[object]]::new()
+        $global:AgentKitCodexExitCodes = @(0, 0)
+        $global:AgentKitCodexCallIndex = 0
+        function global:codex {
+            param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Arguments)
+            $global:AgentKitCodexCalls.Add([pscustomobject]@{
+                Arguments = $Arguments
+                Command   = $env:AGENTKIT_COMMAND
+                Profile   = $env:AGENTKIT_PROFILE
+                Tier      = $env:AGENTKIT_TIER
+            })
+            $global:LASTEXITCODE = $global:AgentKitCodexExitCodes[$global:AgentKitCodexCallIndex]
+            $global:AgentKitCodexCallIndex++
+        }
+    }
+
+    AfterEach {
+        Remove-Item Function:global:codex -ErrorAction SilentlyContinue
+        Remove-Variable AgentKitCodexCalls, AgentKitCodexExitCodes, AgentKitCodexCallIndex -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'runs author then builder in order with the user handoff in both prompts' {
+        & $script:ScriptPath -Command resume -SkillArguments @('handoff id')
+
+        $global:AgentKitCodexCalls.Count | Should -Be 2
+        $global:AgentKitCodexCalls[0].Command | Should -Be '/resume-align'
+        $global:AgentKitCodexCalls[0].Profile | Should -Be 'author'
+        $global:AgentKitCodexCalls[1].Command | Should -Be '/resume-track'
+        $global:AgentKitCodexCalls[1].Profile | Should -Be 'builder'
+        foreach ($call in $global:AgentKitCodexCalls) {
+            ($call.Arguments -join "`n") | Should -Match ([regex]::Escape('["handoff id"]'))
+        }
+    }
+
+    It 'fails fast after the author process and never starts builder' {
+        $global:AgentKitCodexExitCodes = @(23, 0)
+
+        { & $script:ScriptPath -Command resume -SkillArguments @('handoff id') } | Should -Throw '*align phase*exited 23*'
+        $global:AgentKitCodexCalls.Count | Should -Be 1
+        $global:AgentKitCodexCalls[0].Command | Should -Be '/resume-align'
+    }
+
+    It 'preserves legacy resume arguments on the align process only' {
+        $result = & $script:ScriptPath -Command resume -WhatIf 'legacy resume id'
+        $result[0] | Should -Match 'legacy resume id'
+        $result[1] | Should -Not -Match 'legacy resume id'
+        $result | Should -Not -Match 'User arguments \(JSON array'
     }
 }
