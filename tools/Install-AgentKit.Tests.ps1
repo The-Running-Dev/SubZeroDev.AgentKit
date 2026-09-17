@@ -4,7 +4,9 @@ BeforeAll {
     $script:KitSource = Split-Path -Parent $PSScriptRoot
     $script:FrontDoor = Join-Path $script:KitSource 'setup.ps1'
     function Git-Fixture([string] $Repo, [string[]] $Arguments) {
-        $output = & git -C $Repo -c user.email=test@example.com -c user.name=Test @Arguments 2>&1
+        # Use the same line-ending policy for fixture writes/clones and setup's
+        # child Git calls; host core.autocrlf must not manufacture a dirty clone.
+        $output = & git -C $Repo -c core.autocrlf=false -c user.email=test@example.com -c user.name=Test @Arguments 2>&1
         if ($LASTEXITCODE) { throw "$output" }
         $output
     }
@@ -35,7 +37,8 @@ BeforeAll {
         $json = ConvertTo-Json -InputObject $optionsCopy -Compress -Depth 8
         $b64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
         $entry = $script:FrontDoor.Replace("'","''")
-        $code = "`$p = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$b64')) | ConvertFrom-Json -AsHashtable; & '$entry' @p"
+        # Capture the exception message, not a width-wrapped/CLIXML terminal view.
+        $code = "`$p = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$b64')) | ConvertFrom-Json -AsHashtable; try { & '$entry' @p } catch { [Console]::Error.WriteLine(`$_.Exception.Message); exit 1 }"
         $psi = [Diagnostics.ProcessStartInfo]::new((Join-Path $PSHOME $(if ($IsWindows) {'pwsh.exe'} else {'pwsh'})))
         $psi.ArgumentList.Add('-NoProfile'); $psi.ArgumentList.Add('-EncodedCommand')
         $psi.ArgumentList.Add([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($code)))

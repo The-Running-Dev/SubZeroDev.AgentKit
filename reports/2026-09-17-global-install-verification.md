@@ -74,6 +74,15 @@ fixed it and the full rerun above passed the byte-for-byte no-op assertion. An e
 blocked by automatic approval review after PowerShell attempted telemetry; subsequent runs used
 the supported `POWERSHELL_TELEMETRY_OPTOUT=1` and `POWERSHELL_UPDATECHECK=Off` settings.
 
+The first Windows CI run on PR #325 reported **471 passed, 5 failed, 1 skipped**. Four failures
+came from fixture Git calls inheriting `core.autocrlf=true` while installer child calls explicitly
+used `false`, manufacturing dirty clones; the adoption failure was reproduced locally with
+`GIT_CONFIG_KEY_0=core.autocrlf` and `GIT_CONFIG_VALUE_0=true`. The fifth assertion read a
+width-wrapped CLIXML error rather than the recovery exception message. Fixture calls now share
+the child line-ending policy and capture the exception message directly. The production dirty
+checkout refusal is unchanged. With the host line-ending setting reproduced locally, all
+28 installer tests now pass. The Windows rerun is authoritative for this correction.
+
 ## Did not run
 
 - Full design-state gate: exit 2, `TrackerUnavailable: gh missing or unauthenticated;
