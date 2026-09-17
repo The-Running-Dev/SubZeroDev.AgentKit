@@ -273,7 +273,7 @@ function Invoke-DriftCheck {
 
     foreach ($number in ($doc.Slices.Keys | Sort-Object)) {
         $docIds = @($doc.Slices[$number] | Sort-Object -Unique)
-        $issue  = $tracker.Issues | Where-Object { $_.title -match "^S$number\b" } | Select-Object -First 1
+        $issue  = $tracker.Issues | Where-Object { $_.title -match "^S$number(\s|$)" } | Select-Object -First 1
 
         if (-not $issue) {
             $findings.Add((New-Finding -Kind 'NoIssue' -Slice "S$number" -Detail 'slice has no issue; /track opens one' -Issue 0))
