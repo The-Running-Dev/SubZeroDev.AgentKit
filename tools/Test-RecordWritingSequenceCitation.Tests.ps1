@@ -5,7 +5,7 @@
   Regression coverage for #44: /align, /spec and /design each cited "the record-writing
   sequence in design/10-design.md § Record" - a citation that only ever resolved in this
   repository. design/10-design.md is repository-specific content (the design of whatever this
-  particular repository's design/ describes), never overwritten by /kit-sync, so an installed
+  particular repository's design/ describes), never overwritten by /sync, so an installed
   target has no reason to carry a "Record" heading there at all. A session in a target repository
   had to guess the sequence instead of following a rule, and a guess that happens to pass the
   gates looks identical to one that followed the rule.

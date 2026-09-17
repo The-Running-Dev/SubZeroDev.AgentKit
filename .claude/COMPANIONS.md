@@ -101,17 +101,11 @@ having no companion. `tools/Test-Companion.ps1` reports it rather than silently 
 
 ## What this means for installing and syncing
 
-Because the core is kit-owned outright, it needs no reconciliation:
-
-- **The target's core file matches what it was last given** — take the kit's current version
-  outright. No classification, no proposal, no fork. This is the steady state and it is what
-  sixteen of eighteen measured targets already look like.
-- **The target's core file was edited locally, and no companion exists for it** — the edit has
-  not been migrated. It is reported as `Unmigrated-Blocked` and left alone. Moving it into a
-  companion is the fix; overwriting it is not, because that edit is the accumulated knowledge
-  the kit does not have. This is a one-time migration state, not an ongoing reconciliation.
-- **A companion exists** — the companion is the target's, always, and no automated path reads,
-  merges, rewrites or deletes it. The core beside it is still taken outright.
-
-`tools/Sync-Kit.ps1` implements exactly this. `INSTALL.md` phase 1 folds its report into the
-classification, and `/install-all` and `/sync` inherit it unchanged.
+Because the core is kit-owned outright, a target repository never holds its own copy of it and
+there is nothing to reconcile against drift — `AGENTS.shared.md` § *House conventions* → *Home-install
+convention*. `tools/Test-Companion.ps1` validates a target's companions against the installed
+kit's cores (`SKILL.md`, `.claude/COMPANIONS.md`, resolved the same way), reading only the target's
+own `skills/<name>/SKILL-local.md` files locally: the core side of the check can never fail with
+"edited locally," since there is no local copy to edit. `/install-all`'s one-time migration
+(`INSTALL.md` phase 4) is the exception that proves this: it exists only to delete the copies a
+repository still carries from before the kit stopped copying them, not to keep copies current.

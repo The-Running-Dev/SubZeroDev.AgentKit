@@ -79,8 +79,7 @@ one of them looks trivial, and including when a session is already touching that
 
 - **No target repository is migrated.** The eighteen installed `SubZeroDev.*` repositories are
   owed a compatibility promise (see *Definition of done*) and nothing more. `/install`,
-  `/install-all`, `/sync` and `tools/Sync-Kit.ps1` are not in scope for change beyond what
-  that promise requires.
+  `/install-all` and `/sync` are not in scope for change beyond what that promise requires.
 - **The existing decision log is not retroactively restructured.** `design/90-decisions.md`
   stays append-only prose. Live facts are extracted out of it; the entries themselves are not
   rewritten, reformatted, split, or reordered.

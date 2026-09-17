@@ -483,11 +483,12 @@ declarations cannot state:
   units have retired nothing, so requiring the file would make the common case carry an empty
   one and put its bytes in the state set for nothing. The reverse — a companion with no active
   record — is the finding, because that direction is a unit that has lost its live half.
-- **It is invoked as a script, not imported as a module.** `INSTALL.md` and
-  `tools/Sync-Kit.ps1` both treat `tools/*.ps1` as the kit-owned glob, so a `.psm1` would not
-  ship and the checker would arrive broken in eighteen repositories. `Sync-Kit.ps1`'s call into
-  `Test-Companion.ps1` is the established shape and this follows it, including the throw-if-missing
-  guard that names why both ship together.
+- **It is invoked as a script, not imported as a module.** `tools/*.ps1` is the kit-owned glob at
+  the installed kit root, resolved by every caller through the Home-install convention
+  (`AGENTS.shared.md` § *House conventions*), never assumed relative to a caller's own
+  `$PSScriptRoot`. `INSTALL.md`'s own invocation of `Test-Companion.ps1` (phase 4) is the
+  established shape and this follows it, including the throw-if-missing guard that names why
+  both ship together.
 
 ### `tools/Test-DesignState.ps1`
 
@@ -571,7 +572,8 @@ three-list report.
 The projector.
 
 - **`-DryRun` renders to the success stream and writes nothing.** This is the checker's entry
-  point, and it is the same `-DryRun` vocabulary `Sync-Kit.ps1` already established.
+  point, and it is the same `-DryRun` vocabulary `Install-AgentKit.ps1` and
+  `Update-DesignProjection.ps1` already established.
 - **Writes only between the markers of a projected region.** Never a byte outside a region,
   never a new region, never a file that has no region in it, and **never inside a declared
   region** (I18, I29). A projector that could create a region could create one around
