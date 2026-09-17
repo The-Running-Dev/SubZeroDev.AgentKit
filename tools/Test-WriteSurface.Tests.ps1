@@ -36,8 +36,8 @@ Describe 'Test-WriteSurface' {
     It 'changes only within the allowed prefixes are InSurface, exit 0' {
         $repo = New-TestRepo -Name 'clean'
         Set-Content -LiteralPath (Join-Path $repo 'AGENTS.md') -Value 'updated'
-        New-Item -ItemType Directory -Path (Join-Path $repo 'tools') -Force | Out-Null
-        Set-Content -LiteralPath (Join-Path $repo 'tools/New-Thing.ps1') -Value '# new'
+        New-Item -ItemType Directory -Path (Join-Path $repo 'design') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $repo 'design/00-brief.md') -Value '# new'
 
         $r = Invoke-WriteSurfaceCheck -TargetRepo $repo
 
@@ -45,6 +45,47 @@ Describe 'Test-WriteSurface' {
         $r.OffendingPaths.Count | Should -Be 0
         $r.ChangedPaths.Count | Should -Be 2
         Get-WriteSurfaceExitCode -State $r.State | Should -Be 0
+    }
+
+    It 'deleting a tracked file under a delete-only prefix is InSurface, exit 0' {
+        $repo = New-TestRepo -Name 'delete-only-allowed'
+        New-Item -ItemType Directory -Path (Join-Path $repo 'tools') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $repo 'tools/Old-Thing.ps1') -Value '# old'
+        & git -C $repo add tools/Old-Thing.ps1
+        & git -C $repo -c user.email='test@example.com' -c user.name='Test' commit -m 'seed tools file' --quiet | Out-Null
+        Remove-Item -LiteralPath (Join-Path $repo 'tools/Old-Thing.ps1')
+
+        $r = Invoke-WriteSurfaceCheck -TargetRepo $repo
+
+        $r.State | Should -Be 'InSurface'
+        Get-WriteSurfaceExitCode -State $r.State | Should -Be 0
+    }
+
+    It 'adding a file under a delete-only prefix is OutOfSurface, exit 1' {
+        $repo = New-TestRepo -Name 'delete-only-add-rejected'
+        New-Item -ItemType Directory -Path (Join-Path $repo 'tools') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $repo 'tools/New-Thing.ps1') -Value '# new'
+
+        $r = Invoke-WriteSurfaceCheck -TargetRepo $repo
+
+        $r.State | Should -Be 'OutOfSurface'
+        $r.OffendingPaths.Path | Should -Contain 'tools/New-Thing.ps1'
+        Get-WriteSurfaceExitCode -State $r.State | Should -Be 1
+    }
+
+    It 'modifying a tracked file under a delete-only prefix is OutOfSurface, exit 1' {
+        $repo = New-TestRepo -Name 'delete-only-modify-rejected'
+        New-Item -ItemType Directory -Path (Join-Path $repo 'skills/sync') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $repo 'skills/sync/SKILL.md') -Value 'original'
+        & git -C $repo add skills/sync/SKILL.md
+        & git -C $repo -c user.email='test@example.com' -c user.name='Test' commit -m 'seed core' --quiet | Out-Null
+        Set-Content -LiteralPath (Join-Path $repo 'skills/sync/SKILL.md') -Value 'edited'
+
+        $r = Invoke-WriteSurfaceCheck -TargetRepo $repo
+
+        $r.State | Should -Be 'OutOfSurface'
+        $r.OffendingPaths.Path | Should -Contain 'skills/sync/SKILL.md'
+        Get-WriteSurfaceExitCode -State $r.State | Should -Be 1
     }
 
     It 'a change outside the allowed prefixes is OutOfSurface, names the path, exit 1' {

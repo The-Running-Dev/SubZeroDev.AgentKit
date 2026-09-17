@@ -72,7 +72,6 @@ means no record exists yet, not that nothing is true.
 | `unit/script/new-reducedprompt` | script | `tools/New-ReducedPrompt.ps1` |
 | `unit/script/read-designstate` | script | `tools/Read-DesignState.ps1` |
 | `unit/script/repoaliases` | script | `tools/RepoAliases.ps1` |
-| `unit/script/sync-kit` | script | `tools/Sync-Kit.ps1` |
 | `unit/script/test-companion` | script | `tools/Test-Companion.ps1` |
 | `unit/script/test-designdrift` | script | `tools/Test-DesignDrift.ps1` |
 | `unit/script/test-designstate` | script | `tools/Test-DesignState.ps1` |
@@ -191,7 +190,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-08-08-done-housekeeping-scripts-everything-before-ask | `unit/command/clean`, `unit/script/invoke-donehousekeeping` |
 | decision/2026-08-08-kit-sync-new-command | `unit/command/kit-sync` |
 | decision/2026-08-08-pr-absorbs-gates-drafts-abolished | `unit/command/fix`, `unit/command/pr`, `unit/command/slice`, `unit/document/agents-md` |
-| decision/2026-08-08-sync-kit-built | `unit/document/install-md`, `unit/script/sync-kit` |
+| decision/2026-08-08-sync-kit-built | `unit/script/sync-kit` |
 | decision/2026-08-08-tier-mismatch-gates-symmetrically | `unit/document/agents-md` |
 | decision/2026-08-10-frozen-md-marker | `unit/document/agents-md` |
 | decision/2026-08-11-documents-state-only-what-tree-cannot | `unit/command/reconcile`, `unit/document/agents-md`, `unit/document/design-20-contract`, `unit/document/design-30-slices` |
@@ -281,6 +280,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-15-agents-md-splits-into-shared-and-project | `unit/document/project-agents-md` |
 | decision/2026-09-15-install-agentkit-built | `unit/script/install-agentkit` |
 | decision/2026-09-15-twelve-commands-shorten-to-natural-names | `unit/command/brief-check`, `unit/command/contract`, `unit/command/freeze`, `unit/command/install-code-review-agent`, `unit/command/kit-help`, `unit/command/kit-sync`, `unit/command/make-human-docs`, `unit/command/reconcile`, `unit/command/refine`, `unit/command/slices`, `unit/command/unfreeze`, `unit/command/verify` |
+| decision/2026-09-17-home-install-stops-copying-kit-owned-files | `unit/command/install-all`, `unit/document/install-md` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered

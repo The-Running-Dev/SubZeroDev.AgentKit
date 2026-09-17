@@ -8,12 +8,18 @@
     Ported from `oz/repo_local.py::assert_write_surface` (research/oz-for-oss.md, F2/P7):
     a mechanically enforced write surface for an unattended, multi-repository pass. Oz runs
     `git diff --name-only base...branch` before push and aborts on anything outside an
-    allowed-prefix list. This kit's `/install-all` never commits or pushes at all
-    (`INSTALL.md`, "What installing must not do") - it writes straight to the target's
-    working tree and leaves staging and committing to the user - so there is no push to gate
-    on. The adaptation: this script reads `git status --porcelain` in the target instead of
+    allowed-prefix list. This script reads `git status --porcelain` in the target instead of
     a commit range, and is run once per target immediately after that target's writes are
     applied, before /install-all reports that target as done.
+
+    Since home install (`INSTALL.md` phase 4), `skills/`, `tools/` and `.claude/COMPANIONS.md`
+    are kit-owned and never copied into a target - `/install-all`'s one-time migration only
+    ever *deletes* a previously-copied file under one of those, matching a released kit
+    version, and never adds or edits one. So they are not full write-surface entries: a
+    deletion under one is allowed, an addition or modification is not. `-DeleteOnlyPrefixes`
+    carries that narrower permission; `-AllowedPrefixes` keeps its old meaning of "add, edit,
+    or delete freely" for the per-repo files `/install-all` still writes (the pointer section
+    in `AGENTS.md`/`CLAUDE.md`, `design/`'s seed, issue templates, `.claude/kit.json`).
 
     This is the canonical, checkable list of what /install-all is allowed to write - keep it
     in step with INSTALL.md's phase 1 artifact table and .claude/kit.json/`syncedCommit`
@@ -28,8 +34,13 @@
     Repository whose working tree is checked. Defaults to the current directory.
 
 .PARAMETER AllowedPrefixes
-    Overrides the default allowed-prefix list. Exact strings match a single file; strings
-    ending in `/` match themselves as a directory and everything under it.
+    Overrides the default add-or-delete allowed-prefix list. Exact strings match a single
+    file; strings ending in `/` match themselves as a directory and everything under it.
+
+.PARAMETER DeleteOnlyPrefixes
+    Overrides the default delete-only prefix list - matched the same way as
+    -AllowedPrefixes, but a change under one of these is only in-surface when it is a
+    deletion. An add or a modification there is out of surface even though the path matches.
 
 .PARAMETER Revert
     Reverts every offending path after reporting it - `git checkout --` for a tracked
@@ -50,6 +61,7 @@
 param(
     [string]   $TargetRepo = (Get-Location).Path,
     [string[]] $AllowedPrefixes,
+    [string[]] $DeleteOnlyPrefixes,
     [switch]   $Revert,
     [switch]   $Quiet
 )
@@ -67,12 +79,23 @@ function Get-DefaultAllowedPrefixes {
         'AGENTS.md'
         'CLAUDE.md'
         'agent.md'
-        'skills/'
-        'tools/'
         'design/'
         '.github/ISSUE_TEMPLATE/'
         'codex/PROFILES.md'
         '.claude/kit.json'
+    )
+}
+
+<#
+    skills/, tools/ and .claude/COMPANIONS.md are kit-owned and never copied into a target
+    (INSTALL.md phase 4) - /install-all's one-time migration only deletes a previously-copied
+    file under one of these, never adds or edits one, so they carry delete-only permission
+    rather than sitting in Get-DefaultAllowedPrefixes.
+#>
+function Get-DefaultDeleteOnlyPrefixes {
+    @(
+        'skills/'
+        'tools/'
         '.claude/COMPANIONS.md'
     )
 }
@@ -87,6 +110,26 @@ function Test-PathInSurface {
         } elseif ($normalized -eq $prefix) {
             return $true
         }
+    }
+    $false
+}
+
+<#
+    A deletion shows as 'D ' (staged) or ' D' (unstaged) in --porcelain=v1's two-character
+    status; a rename/copy line was already reduced to its destination path in
+    Get-ChangedPaths, which is never itself a deletion.
+#>
+function Test-PathIsAllowedChange {
+    param(
+        [Parameter(Mandatory)][string] $Path,
+        [Parameter(Mandatory)][string] $Status,
+        [Parameter(Mandatory)][string[]] $AllowedPrefixes,
+        [Parameter(Mandatory)][string[]] $DeleteOnlyPrefixes
+    )
+
+    if (Test-PathInSurface -Path $Path -AllowedPrefixes $AllowedPrefixes) { return $true }
+    if (Test-PathInSurface -Path $Path -AllowedPrefixes $DeleteOnlyPrefixes) {
+        return $Status.Contains('D')
     }
     $false
 }
@@ -123,7 +166,8 @@ function Get-ChangedPaths {
 function Invoke-WriteSurfaceCheck {
     param(
         [Parameter(Mandatory)][string] $TargetRepo,
-        [string[]] $AllowedPrefixes = (Get-DefaultAllowedPrefixes)
+        [string[]] $AllowedPrefixes = (Get-DefaultAllowedPrefixes),
+        [string[]] $DeleteOnlyPrefixes = (Get-DefaultDeleteOnlyPrefixes)
     )
 
     $changed = Get-ChangedPaths -TargetRepo $TargetRepo
@@ -136,7 +180,9 @@ function Invoke-WriteSurfaceCheck {
         }
     }
 
-    $offending = @($changed | Where-Object { -not (Test-PathInSurface -Path $_.Path -AllowedPrefixes $AllowedPrefixes) })
+    $offending = @($changed | Where-Object {
+            -not (Test-PathIsAllowedChange -Path $_.Path -Status $_.Status -AllowedPrefixes $AllowedPrefixes -DeleteOnlyPrefixes $DeleteOnlyPrefixes)
+        })
     $state = if ($offending.Count -gt 0) { 'OutOfSurface' } else { 'InSurface' }
 
     [pscustomobject]@{
@@ -199,7 +245,8 @@ function Write-WriteSurfaceReport {
 # Test-DesignDrift.ps1/Wait-PullRequestCheck.ps1 for the same structure and why.
 if ($MyInvocation.InvocationName -ne '.') {
     $prefixes = if ($AllowedPrefixes) { $AllowedPrefixes } else { Get-DefaultAllowedPrefixes }
-    $result = Invoke-WriteSurfaceCheck -TargetRepo $TargetRepo -AllowedPrefixes $prefixes
+    $deleteOnlyPrefixes = if ($DeleteOnlyPrefixes) { $DeleteOnlyPrefixes } else { Get-DefaultDeleteOnlyPrefixes }
+    $result = Invoke-WriteSurfaceCheck -TargetRepo $TargetRepo -AllowedPrefixes $prefixes -DeleteOnlyPrefixes $deleteOnlyPrefixes
 
     if ($Revert -and $result.State -eq 'OutOfSurface') {
         Invoke-WriteSurfaceRevert -TargetRepo $TargetRepo -OffendingItems $result.OffendingPaths | Out-Null
