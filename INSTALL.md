@@ -52,34 +52,15 @@ The artifacts:
 
 | Artifact | Notes |
 |---|---|
-| `AGENTS.shared.md` | The shared contract, the part every repository using the kit holds in common |
 | `AGENTS.md` | The target's project contract. Most often divergent. **The kit's own `AGENTS.md` is its project part, not a seed** |
 | `CLAUDE.md` | Pointer to `AGENTS.md` in the kit's arrangement — but see below |
+| Pointer section | A short, hand-written section inside whichever of `AGENTS.md`/`CLAUDE.md` holds content, naming the path to read `AGENTS.shared.md` from. See *The pointer section*, phase 2 |
 | `agent.md` | Lessons. Seeded, then pruned |
-| `skills/<name>/SKILL.md` | The stage commands, plus `install.md`. **Cores — the kit owns these outright**, so they are not classified against the target's copy at all; see below |
-| `skills/<name>/SKILL-local.md` | **The target's companions. Never an installed artifact, never classified, never written or deleted by anything here.** The kit ships none |
-| `.claude/COMPANIONS.md` | The core/companion mechanism itself. Kit-owned outright, same as a core |
-| `tools/*.ps1` | Reporting helpers and their Pester tests. The set is whatever the kit's `tools/` directory currently holds — phase 2's "copy every command and tool script in the kit" is the authority, not an enumeration here, which would only go stale again as scripts are added. Root `tools/` is commonly occupied — classify the directory before writing into it, and stop if it holds something unrelated rather than sharing it |
 | `templates/design/*.md` | Five seed design docs, written to `design/` in the target. Check phase 2 before creating the directory |
 | `.github/ISSUE_TEMPLATE/*.md` | `bug.md`, `story.md`. **If the target already has templates, stop and report** — do not overwrite or merge. A repository with its own templates has a triage process, and replacing it silently changes how every future issue is filed |
 | `codex/PROFILES.md` | **Skip by default**, and report it as skipped. Install only if the target shows evidence of Codex use — a `.codex/` directory, a profile reference, or the user saying so. Asking in every install is noise |
 
-**A core command file is not reconciled.** `.claude/COMPANIONS.md` splits every command into a core the target never edits and an optional companion at `skills/<name>/SKILL-local.md` that the target owns entirely. That removes the reconciliation for this class structurally rather than solving it again on every pass: a core installs or updates **outright**, with no proposal, no fork, and no phase 2. Read that file before running this one; it is the single home for the category vocabulary, the never-list, and the absence rule, and none of it is restated here.
-
-Two states remain, and both come out of `Sync-Kit.ps1`'s report rather than being judged by eye:
-
-- **`Unmigrated-Blocked`** — the target edited a core and has no companion for it. Nothing is overwritten. It carries into phase 3 as a fork whose recommended resolution is always the same: move the edit into `skills/<name>/SKILL-local.md`, within the categories that core declares. This is a one-time migration, not a recurring reconciliation.
-- **`Superseded`** — the target edited a core *and* has a companion for it, so the core was taken outright and the edit overwritten. Report it; do not treat it as needing a decision. Adopting a companion is the decision.
-
-**On a re-install (`.claude/kit.json` already present), classify `skills/<name>/SKILL.md`, `.claude/COMPANIONS.md` and `tools/*.ps1` by running `tools/Sync-Kit.ps1 -TargetRepo <target> -KitRoot <kit-root> -DryRun`, not by reading each file.** It diffs every kit-owned file against the sha the target was last synced from and reports Added/Updated (unmodified, safe to take), Superseded and Unmigrated-Blocked (the two core states above), Divergent-Skipped (a **non-command** kit-owned file the target edited — carry into phase 2 as a fork, same as any other divergence), Collision-Skipped (a new kit file whose name the target already used for something else), and RemovedUpstream (the kit deleted it upstream). Fold its report into phase 1's classification directly — an `Updated`/`Added`/`Superseded` row is **Identical-once-applied**, a `Divergent-Skipped`/`Collision-Skipped` row is **Divergent**, and `Unmigrated-Blocked` and `RemovedUpstream-Skipped` have no state in the table above and go into phase 3 as their own kinds of fork. **On a first install (no `.claude/kit.json` yet), skip it and classify by hand as usual** — everything is Absent, and the script needs a recorded sha to diff from that does not exist yet.
-
-**Validate the split after any write to `skills/`:**
-
-```powershell
-pwsh <kit-root>/tools/Test-Companion.ps1 -TargetRepo <target>
-```
-
-Exit 1 names every core missing its declaration block and every companion overriding a category its core does not allow. Exit 2 means it could not evaluate — `.claude/COMPANIONS.md` absent or its table unreadable — and is not a pass.
+**`AGENTS.shared.md`, `skills/<name>/SKILL.md`, `skills/<name>/SKILL-local.md`, `.claude/COMPANIONS.md` and `tools/*.ps1` are not installed into the target at all.** They are kit-owned and live once, machine-wide, at the installed kit root (`AGENTS.shared.md` § *House conventions* → Home-install convention) — a repository never holds its own copy, so there is nothing here to classify, reconcile, or update on a re-install. The pointer section (phase 2) is what lets a target's `AGENTS.md`/`CLAUDE.md` reach `AGENTS.shared.md` without copying it. A `skills/<name>/SKILL-local.md` companion, if the target has one, is its own — this procedure never reads, writes, or classifies it.
 
 `INSTALL.md` itself is **not** installed into targets. It is the kit's procedure, and a copy in the target is a copy that drifts.
 
@@ -97,7 +78,7 @@ git -C <kit> log --oneline <recorded>..HEAD
 
 That list is what the upgrade actually consists of. Without it, "is this repo current?" is answerable only by hashing every file, which is what the first three installs had to do.
 
-**`branch` is an optional fourth field, written only by `/kit-sync`** (`skills/kit-sync/SKILL.md`), recording which branch of the kit that command last synced from. Plain `/install` neither reads nor writes it. A `kit.json` without it is not stale — it just means `/kit-sync` has never run here.
+**`branch` is an optional fourth field, written only by `/sync`** (`skills/sync/SKILL.md`), recording which branch of the kit that command last synced from. Plain `/install` neither reads nor writes it. A `kit.json` without it is not stale — it just means `/sync` has never run here.
 
 **Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately.
 
@@ -148,6 +129,18 @@ Merging into whichever file holds content: the kit's sections are the baseline; 
 
 Never delete a rule you do not understand. An instruction with no obvious reason usually has an expensive one.
 
+### The pointer section
+
+`AGENTS.shared.md` is kit-owned and is never copied into the target (see phase 1). The file that holds content (`AGENTS.md` or `CLAUDE.md`, per the direction just established) instead carries a short, hand-written section naming where to read it from:
+
+```markdown
+**Read [`AGENTS.shared.md`](<resolved-path>) completely before this file.** It holds the rules every repository using the kit shares.
+```
+
+**Resolve `<resolved-path>` at install time and write it concretely** — an absolute path (or, for a tool that supports it, an `@`-import of one) to the installed kit's `AGENTS.shared.md`, following the same order `AGENTS.shared.md` § *House conventions* → Home-install convention defines for a script: `$env:AGENTKIT_HOME` if set, else `$HOME/.agent-kit`. Do not write the resolution algorithm itself into the target — the target has no local copy of `AGENTS.shared.md` yet to read that convention from, so this section is what bootstraps a session to it, the same way `Install-AgentKit.ps1` writes a concrete resolved path into each tool's own global configuration.
+
+A first install writes this section fresh, next to (or inside) the project-identity content described above. A re-install checks the path still resolves to where the kit is actually installed and updates it if not — the target may have been rehomed to a different machine or a different `AGENTKIT_HOME` since the last install.
+
 ### `agent.md`
 
 The kit ships this seeded with lessons harvested from other projects. It says so in its own header, and it says to delete what does not apply.
@@ -158,13 +151,7 @@ The kit ships this seeded with lessons harvested from other projects. It says so
 
 **Check provenance before offering any lesson back.** The kit's seed was harvested from real repositories, and some of those repositories are targets. Re-installing a lesson into the repository it came from re-imports that repo's own hard-won specifics in generalised, evidence-stripped form — and it will read as new, because the wording has changed. If a kit lesson describes something that already appears in the target's own file with more detail, it did not come from somewhere else; it came from here. Drop it silently and say so in the report.
 
-### `skills/` and `tools/`
-
-**First install:** copy every command and tool script in the kit, plus `.claude/COMPANIONS.md`. If the target already has a command of the same name, stop and report — a same-named command doing something else is a trap for whoever types it next. Rewrite the `design/` path inside them if phase 2 relocated it.
-
-**Re-install:** this is `tools/Sync-Kit.ps1`'s report from phase 1, already computed. Nothing left to propose for the `Added`/`Updated`/`Superseded` rows — they apply in phase 4 by re-running the same command without `-DryRun`. The `Divergent-Skipped`, `Collision-Skipped`, `Unmigrated-Blocked` and `RemovedUpstream-Skipped` rows are what phase 3 asks about, one at a time.
-
-**A relocated `design/` path is now an `Unmigrated-Blocked` command, not a `Divergent-Skipped` one**, and its resolution has changed with it. Rewriting the path inside every command file that names `design/` was always a local edit the kit could never take back; under the split it belongs in each affected command's companion, under `document-map`, and the core stays the kit's. That is what makes a relocated target able to receive command updates at all — the case the 2026-08-05 sync entry recorded as latent and unfixed.
+**A relocated `design/` path is a target-local fact the kit cannot take back.** Where a command needs to know it, that belongs in the affected command's own companion at `skills/<name>/SKILL-local.md`, under `document-map` (`.claude/COMPANIONS.md`) — not in this procedure, which no longer writes or reconciles command files at all.
 
 ### Rules the target already states
 
@@ -182,8 +169,7 @@ Absent (will create):     <paths>
 Identical (skipping):     <paths>
 Divergent (proposed):     <path> — <what differs, what I propose, why>
 Occupied (blocked):       <path> — <what holds it>
-Cores taken outright:     <paths> — no reconciliation; Superseded rows named separately
-Unmigrated cores:         <path> — local edit, no companion; move it into SKILL-local.md
+Pointer section:          <resolved path written, or unchanged if already correct>
 Already satisfied:        <target rule> covers <kit rule>
 Pruning from agent.md:    <lesson> — <why it cannot apply here>
 Decisions needing you:    <the forks, one at a time, recommendation first>
@@ -204,7 +190,7 @@ Only after sign-off.
    this kit assumes. Say in the closing report that you created it.
 
 2. **Re-check the target's state first.** Phase 0's snapshot is stale by now — a long reconciliation gives the user time to commit, branch, or edit the very file you are about to move. Re-run `git status --short --branch` and diff your source-of-truth for any moved content against `HEAD`, not against what you read in phase 0.
-3. Write the approved files. Preserve UTF-8 and LF. **On a re-install, apply `skills/<name>/SKILL.md`, `.claude/COMPANIONS.md` and `tools/*.ps1` by re-running `tools/Sync-Kit.ps1 -TargetRepo <target> -KitRoot <kit-root>` — the same call as phase 1, without `-DryRun`.** It applies every `Added`/`Updated`/`Superseded` file, advances the target's `syncedCommit`, and leaves every `Divergent-Skipped`/`Collision-Skipped`/`Unmigrated-Blocked` file untouched by design; write those by hand only where phase 3's sign-off approved it. Pass `-Force` only if a `RemovedUpstream` row was approved for deletion. **Never write a `-local.md` companion** — a companion is the target's, and an installer that authors one has written the repository's policy for it.
+3. Write the approved files. Preserve UTF-8 and LF. This is only ever `AGENTS.md`/`CLAUDE.md` (including the pointer section), `agent.md`, the `design/` seed, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md`, and `.claude/kit.json` — nothing under `skills/` or `tools/`, and no `.claude/COMPANIONS.md`, is ever written here.
 4. **Record every fork that had a real alternative** — the relocation, the `AGENTS.md`/`CLAUDE.md` direction, anything the target overrode, anything skipped. **Rejected alternatives included**; without them the next install relitigates the same choices, and the commonest question a re-install faces is "why is it set up this way here?"
 
    The log's home, in this order — the first that applies:
@@ -220,8 +206,8 @@ Only after sign-off.
    - **Nothing was lost in a move.** Every non-blank line of the file you moved content out of must appear in the file you moved it into. Diff it mechanically; do not eyeball it. Expect exactly the lines you deliberately changed, and be able to name each one.
    - **No rule appears twice.** Search the target for the distinctive phrase of each rule you added — not for the rule's topic. You are looking for your own duplicates, and you will have made some: this install's own verification caught two that careful authoring did not.
    - **No stale paths.** If you relocated anything, search for the old path. Hits in the decision log are correct; hits anywhere else are not.
-   - **The core/companion split holds.** `pwsh <kit-root>/tools/Test-Companion.ps1 -TargetRepo <target>`, exit 0. A companion the target wrote during this install to resolve an `Unmigrated-Blocked` row is exactly what this catches when it overrides a category its core does not allow.
-6. **Write `.claude/kit.json`**'s `commit` field with the kit's current HEAD sha and today's date — now, after the work succeeded, not before it. This is the whole-kit reconciliation marker and stays this phase's to write. If step 3 ran `Sync-Kit.ps1`, it has already written `syncedCommit` itself, scoped to what it actually synced — a separate field, not a second copy of this one.
+   - **The pointer section resolves.** The path it names actually exists on this machine and is the installed kit's `AGENTS.shared.md` — not a stale path left over from a prior install or a different `AGENTKIT_HOME`.
+6. **Write `.claude/kit.json`**'s `commit` field with the kit's current HEAD sha and today's date — now, after the work succeeded, not before it. This is this repository's own install-marker, recording which kit commit its per-repo files (the pointer section, the seed, the templates) were last reconciled against.
 7. `git -C <target> status --short` and `git diff --check`.
 8. **Deliver on a feature branch, and open the pull request.** Branch from the target's default branch,
    stage **by named path**, commit, push, and open a pull request against the default branch. Never commit
@@ -257,7 +243,7 @@ chat report adds only what remains for the user to decide (`AGENTS.shared.md`, *
 
 Installing again upgrades. The classification in phase 1 is what makes it safe: an unchanged file is identical and skipped, and a file the target has since edited is divergent and reconciled with the target winning. **Never treat a re-install as a reset** — the target's edits since the last install are the accumulated knowledge the kit does not have.
 
-**Command files are the exception, and it is the point of the split.** A core is the kit's outright, so a re-install takes it without asking; the target's accumulated knowledge for a command lives in its companion, which no re-install reads or writes. The one case that still stops is `Unmigrated-Blocked` — an edit that has not moved there yet — and it stops precisely so the knowledge is not lost on the way.
+**Command files are not part of this at all.** They are never copied into the target, so a re-install neither reconciles nor upgrades them — the installed kit at `AGENTKIT_HOME` (or wherever it resolves) is always current, and `/sync` is what advances it. Re-running `/install` here only ever refreshes this repository's own per-repo files and the pointer section.
 
 **Open by reading `.claude/kit.json` and naming the gap.** `git -C <kit> log --oneline <recorded>..HEAD` is the upgrade, stated as commits rather than as a diff of files. Report it before phase 1, because it tells the user what they are about to get. Update the recorded commit only in phase 4, after the install actually succeeds — a version marker written ahead of the work claims an upgrade that did not happen.
 
@@ -269,4 +255,4 @@ Installing again upgrades. The classification in phase 1 is what makes it safe: 
 - Not run `git add -A`, `git add .`, or a bare-directory add.
 - Not delete anything without explicit approval, including lessons it proposes pruning.
 - Not install `codex/PROFILES.md` into a repository that has never been used with Codex.
-- Not write, rewrite, or delete any `skills/*/SKILL-local.md`. Proposing what one should contain to clear an `Unmigrated-Blocked` row is this procedure's job; authoring it is the target's.
+- Not write, rewrite, or delete anything under `skills/` or `tools/`, or `.claude/COMPANIONS.md`. Those are kit-owned and live once, machine-wide — never in a target repository.

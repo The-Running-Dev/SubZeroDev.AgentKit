@@ -1,13 +1,18 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Validates the core/companion split in a repository's skills/ directory.
+    Validates the core/companion split between the installed kit and a target repository.
 
 .DESCRIPTION
-    Per .claude/COMPANIONS.md: every skills/<name>/SKILL.md ships as a core the consuming
-    repository never edits, optionally paired with a companion beside it at
+    Per .claude/COMPANIONS.md: every skills/<name>/SKILL.md ships as a core a target repository
+    never copies or edits, optionally paired with a companion the target holds itself at
     skills/<name>/SKILL-local.md. The core enumerates which categories the companion may
     override; COMPANIONS.md owns the category vocabulary and the never-list.
+
+    Cores and .claude/COMPANIONS.md itself are kit-owned and read from the installed kit
+    (AGENTS.shared.md, *House conventions* -> Home-install convention: self-hosted, then
+    $env:AGENTKIT_HOME, then $HOME/.agent-kit) - a target repository holds no copy of either.
+    Companions are the target's own and are read from -TargetRepo.
 
     The core's fence is a declared marked region, id "companion" (AGENTS.shared.md, *Marked regions*):
     <!-- companion:declared:start --> ... <!-- companion:declared:end -->. The bare form means
@@ -28,7 +33,7 @@
       WrongCompanionPath      The fence names a path other than <name>-local.md
       NoCategories            A core declares an empty override list
       UnknownCategory         A core declares an id absent from COMPANIONS.md's table
-      OrphanCompanion         A <name>-local.md with no <name>.md core beside it
+      OrphanCompanion         A <name>-local.md in the target with no <name>/SKILL.md core in the kit
       UnknownCompanionHeading A companion heading that is not a category id
       UndeclaredCategory      A companion overrides a category its core did not allow
       EmptyCategory           A companion heading with nothing under it
@@ -38,27 +43,62 @@
     override of nothing is precisely the bug this rule exists to prevent.
 
 .PARAMETER TargetRepo
-    Repository to validate. Defaults to the current directory.
+    Repository whose companions are validated. Defaults to the current directory.
+
+.PARAMETER KitRoot
+    Installed kit to read cores and .claude/COMPANIONS.md from. Defaults to the Home-install
+    convention's resolution order (self-hosted, then $env:AGENTKIT_HOME, then $HOME/.agent-kit).
 
 .PARAMETER Quiet
     Suppress the printed report; the result object and exit code are unchanged.
 
 .EXAMPLE
     ./tools/Test-Companion.ps1
-    Validate this repository's command cores and companions.
+    Validate this repository's companions against the resolved installed kit.
 
 .EXAMPLE
     ./tools/Test-Companion.ps1 -TargetRepo D:\Projects\Some.Repo
-    Validate another repository's.
+    Validate another repository's companions against the same resolved kit.
 #>
 [CmdletBinding()]
 param(
     [string] $TargetRepo = (Get-Location).Path,
+    [string] $KitRoot,
     [switch] $Quiet
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+function Resolve-AgentKitRoot {
+    <#
+        Home-install convention (AGENTS.shared.md, *House conventions*): self-hosted checkout
+        first (a live kit working tree, so kit development reads its own uncommitted edits),
+        then $env:AGENTKIT_HOME, then $HOME/.agent-kit. Same shape as Invoke-CodexCommand.ps1's
+        Get-AgentKitInstallRoot and New-DesignDocs.ps1's Resolve-KitRoot.
+    #>
+    param([string] $Explicit)
+
+    if ($Explicit) {
+        return (Resolve-Path -LiteralPath $Explicit).Path
+    }
+
+    $selfHosted = Split-Path -Parent $PSScriptRoot
+    if (Test-Path -LiteralPath (Join-Path $selfHosted '.git')) {
+        return $selfHosted
+    }
+
+    if ($env:AGENTKIT_HOME -and (Test-Path -LiteralPath $env:AGENTKIT_HOME)) {
+        return $env:AGENTKIT_HOME
+    }
+
+    $synced = Join-Path $HOME '.agent-kit'
+    if (Test-Path -LiteralPath $synced) {
+        return $synced
+    }
+
+    throw "Could not find a kit checkout under '$selfHosted', `$env:AGENTKIT_HOME, or '$synced'. Pass -KitRoot explicitly."
+}
 
 function New-CompanionFinding {
     param(
@@ -167,21 +207,24 @@ function Get-CompanionHeading {
 }
 
 function Invoke-CompanionCheck {
-    param([Parameter(Mandatory)][string] $TargetRepo)
+    param(
+        [Parameter(Mandatory)][string] $TargetRepo,
+        [Parameter(Mandatory)][string] $KitRoot
+    )
 
-    $skillsDir = Join-Path $TargetRepo 'skills'
-    $companionsDoc = Join-Path $TargetRepo '.claude/COMPANIONS.md'
+    $kitSkillsDir = Join-Path $KitRoot 'skills'
+    $companionsDoc = Join-Path $KitRoot '.claude/COMPANIONS.md'
 
-    if (-not (Test-Path -LiteralPath $skillsDir)) {
+    if (-not (Test-Path -LiteralPath $kitSkillsDir)) {
         return [pscustomobject]@{
             State = 'NotEvaluated'; Findings = @(); CoreCount = 0; CompanionCount = 0; AbsentCount = 0
-            Detail = "'$TargetRepo' has no skills/ directory."
+            Detail = "Installed kit at '$KitRoot' has no skills/ directory."
         }
     }
     if (-not (Test-Path -LiteralPath $companionsDoc)) {
         return [pscustomobject]@{
             State = 'NotEvaluated'; Findings = @(); CoreCount = 0; CompanionCount = 0; AbsentCount = 0
-            Detail = "'$TargetRepo' has no .claude/COMPANIONS.md - the category vocabulary is read from it, so there is nothing to validate against."
+            Detail = "Installed kit at '$KitRoot' has no .claude/COMPANIONS.md - the category vocabulary is read from it, so there is nothing to validate against."
         }
     }
 
@@ -193,23 +236,25 @@ function Invoke-CompanionCheck {
         }
     }
 
-    $skillDirs = @(Get-ChildItem -LiteralPath $skillsDir -Directory | Sort-Object Name)
+    $targetSkillsDir = Join-Path $TargetRepo 'skills'
+    $kitNames = @(if (Test-Path -LiteralPath $kitSkillsDir) { Get-ChildItem -LiteralPath $kitSkillsDir -Directory | Select-Object -ExpandProperty Name } else { @() })
+    $targetNames = @(if (Test-Path -LiteralPath $targetSkillsDir) { Get-ChildItem -LiteralPath $targetSkillsDir -Directory | Select-Object -ExpandProperty Name } else { @() })
+    $allNames = @($kitNames + $targetNames | Select-Object -Unique | Sort-Object)
 
     $findings = [System.Collections.Generic.List[object]]::new()
     $coreCount = 0
     $companionCount = 0
     $absentCount = 0
 
-    foreach ($dir in $skillDirs) {
-        $name = $dir.Name
-        $corePath = Join-Path $dir.FullName 'SKILL.md'
-        $companionPath = Join-Path $dir.FullName 'SKILL-local.md'
+    foreach ($name in $allNames) {
+        $corePath = Join-Path $kitSkillsDir "$name/SKILL.md"
+        $companionPath = Join-Path $targetSkillsDir "$name/SKILL-local.md"
         $coreRel = "skills/$name/SKILL.md"
         $companionRel = "skills/$name/SKILL-local.md"
 
         if (-not (Test-Path -LiteralPath $corePath)) {
             if (Test-Path -LiteralPath $companionPath) {
-                $findings.Add((New-CompanionFinding $companionRel 'OrphanCompanion' "No core at $coreRel. A companion overrides a core; on its own it overrides nothing and will never be read."))
+                $findings.Add((New-CompanionFinding $companionRel 'OrphanCompanion' "No core at $coreRel in the installed kit. A companion overrides a core; on its own it overrides nothing and will never be read."))
             }
             continue
         }
@@ -297,7 +342,8 @@ function Write-CompanionReport {
 # Guarded so the tests can dot-source this instead - same structure as Test-WriteSurface.ps1
 # and Test-DesignDrift.ps1, and for the same reason.
 if ($MyInvocation.InvocationName -ne '.') {
-    $result = Invoke-CompanionCheck -TargetRepo $TargetRepo
+    $resolvedKitRoot = Resolve-AgentKitRoot -Explicit $KitRoot
+    $result = Invoke-CompanionCheck -TargetRepo $TargetRepo -KitRoot $resolvedKitRoot
     if (-not $Quiet) { Write-CompanionReport -Result $result }
     $result
     exit (Get-CompanionExitCode -State $result.State)

@@ -35,7 +35,7 @@
 .PARAMETER KitRoot
     Path to a checkout holding templates/design/ (the kit itself, or ~/.agent-kit).
     Defaults to this script's own repository if it is running from inside the kit,
-    otherwise ~/.agent-kit (the location /kit-sync maintains).
+    otherwise ~/.agent-kit (the location /sync maintains).
 
 .PARAMETER Force
     Overwrite a Divergent seed file with the template. Never bypasses an Occupied

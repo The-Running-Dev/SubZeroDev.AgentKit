@@ -39,20 +39,31 @@ BeforeAll {
         'A stop condition or a refusal.'
     ) -join "`n"
 
-    function New-Fixture {
+    # Cores and .claude/COMPANIONS.md live in a fixture "kit root"; companions live in a
+    # separate fixture "target repo" - the same split Test-Companion.ps1 now reads, since
+    # Phase 4 stopped a target repo from ever holding a copy of either (AGENTS.shared.md,
+    # *House conventions* -> Home-install convention).
+    function New-KitRoot {
         param([Parameter(Mandatory)][string] $Name, [switch] $NoCompanionsDoc)
+        $kitRoot = Join-Path $TestDrive $Name
+        New-Item -ItemType Directory -Path (Join-Path $kitRoot 'skills') -Force | Out-Null
+        if (-not $NoCompanionsDoc) {
+            New-Item -ItemType Directory -Path (Join-Path $kitRoot '.claude') -Force | Out-Null
+            [System.IO.File]::WriteAllText((Join-Path $kitRoot '.claude/COMPANIONS.md'), $script:CompanionsDoc, [System.Text.UTF8Encoding]::new($false))
+        }
+        $kitRoot
+    }
+
+    function New-TargetRepo {
+        param([Parameter(Mandatory)][string] $Name)
         $repo = Join-Path $TestDrive $Name
         New-Item -ItemType Directory -Path (Join-Path $repo 'skills') -Force | Out-Null
-        if (-not $NoCompanionsDoc) {
-            New-Item -ItemType Directory -Path (Join-Path $repo '.claude') -Force | Out-Null
-            [System.IO.File]::WriteAllText((Join-Path $repo '.claude/COMPANIONS.md'), $script:CompanionsDoc, [System.Text.UTF8Encoding]::new($false))
-        }
         $repo
     }
 
     function Write-Fixture {
-        param([Parameter(Mandatory)][string] $Repo, [Parameter(Mandatory)][string] $RelPath, [Parameter(Mandatory)][AllowEmptyString()][string] $Content)
-        $full = Join-Path $Repo $RelPath
+        param([Parameter(Mandatory)][string] $Root, [Parameter(Mandatory)][string] $RelPath, [Parameter(Mandatory)][AllowEmptyString()][string] $Content)
+        $full = Join-Path $Root $RelPath
         $parent = Split-Path -Parent $full
         if (-not (Test-Path -LiteralPath $parent)) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
         [System.IO.File]::WriteAllText($full, $Content, [System.Text.UTF8Encoding]::new($false))
@@ -60,7 +71,7 @@ BeforeAll {
 
     function New-Core {
         param(
-            [Parameter(Mandatory)][string] $Repo,
+            [Parameter(Mandatory)][string] $KitRoot,
             [Parameter(Mandatory)][string] $Name,
             [string[]] $Categories = @('vocabulary'),
             [string] $CompanionPath,
@@ -80,25 +91,25 @@ BeforeAll {
         $body = @("---", "description: fixture $Name", "---", "")
         for ($i = 0; $i -lt $BlockCount; $i++) { $body += @($block, '') }
         $body += @("Do the $Name thing.", '')
-        Write-Fixture -Repo $Repo -RelPath "skills/$Name/SKILL.md" -Content (($body -join "`n"))
+        Write-Fixture -Root $KitRoot -RelPath "skills/$Name/SKILL.md" -Content (($body -join "`n"))
     }
 
     function New-CoreWithoutBlock {
-        param([Parameter(Mandatory)][string] $Repo, [Parameter(Mandatory)][string] $Name)
-        Write-Fixture -Repo $Repo -RelPath "skills/$Name/SKILL.md" -Content "---`ndescription: fixture $Name`n---`n`nDo the $Name thing.`n"
+        param([Parameter(Mandatory)][string] $KitRoot, [Parameter(Mandatory)][string] $Name)
+        Write-Fixture -Root $KitRoot -RelPath "skills/$Name/SKILL.md" -Content "---`ndescription: fixture $Name`n---`n`nDo the $Name thing.`n"
     }
 
     # The bare form means projected (AGENTS.shared.md, *Marked regions*), so a core still carrying it
     # is indistinguishable from one with no fence at all - MissingBlock, not a parsed block.
     function New-CoreWithBareBlock {
-        param([Parameter(Mandatory)][string] $Repo, [Parameter(Mandatory)][string] $Name)
+        param([Parameter(Mandatory)][string] $KitRoot, [Parameter(Mandatory)][string] $Name)
         $block = @(
             '<!-- companion:start -->'
             "**Per-repo companion:** ``skills/$Name/SKILL-local.md``."
             'It may override: `vocabulary`.'
             '<!-- companion:end -->'
         ) -join "`n"
-        Write-Fixture -Repo $Repo -RelPath "skills/$Name/SKILL.md" -Content "---`ndescription: fixture $Name`n---`n`n$block`n`nDo the $Name thing.`n"
+        Write-Fixture -Root $KitRoot -RelPath "skills/$Name/SKILL.md" -Content "---`ndescription: fixture $Name`n---`n`n$block`n`nDo the $Name thing.`n"
     }
 }
 
@@ -110,10 +121,11 @@ AfterAll {
 Describe 'Test-Companion — positive cases' {
 
     It 'a core with a well-formed block and no companion is Valid, counted absent, exit 0' {
-        $repo = New-Fixture -Name 'valid-no-companion'
-        New-Core -Repo $repo -Name 'slice' -Categories @('vocabulary', 'document-map')
+        $kitRoot = New-KitRoot -Name 'valid-no-companion-kit'
+        $repo = New-TargetRepo -Name 'valid-no-companion-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @('vocabulary', 'document-map')
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Valid'
         $r.Findings.Count | Should -Be 0
@@ -124,9 +136,10 @@ Describe 'Test-Companion — positive cases' {
     }
 
     It 'a companion overriding only declared categories is Valid' {
-        $repo = New-Fixture -Name 'valid-companion'
-        New-Core -Repo $repo -Name 'slice' -Categories @('vocabulary', 'document-map')
-        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content @"
+        $kitRoot = New-KitRoot -Name 'valid-companion-kit'
+        $repo = New-TargetRepo -Name 'valid-companion-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @('vocabulary', 'document-map')
+        Write-Fixture -Root $repo -RelPath 'skills/slice/SKILL-local.md' -Content @"
 ## vocabulary
 
 Slices are units here; their ids are ``W<n>``.
@@ -136,7 +149,7 @@ Slices are units here; their ids are ``W<n>``.
 The canonical design docs are compound files with marked blocks.
 "@
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Valid'
         $r.CompanionCount | Should -Be 1
@@ -154,8 +167,9 @@ The canonical design docs are compound files with marked blocks.
         $ids.Count | Should -Be 5
     }
 
-    It 'this repository itself is Valid' {
-        $r = Invoke-CompanionCheck -TargetRepo (Split-Path -Parent $PSScriptRoot)
+    It 'this repository itself is Valid, as both its own kit root and target' {
+        $selfHosted = Split-Path -Parent $PSScriptRoot
+        $r = Invoke-CompanionCheck -TargetRepo $selfHosted -KitRoot $selfHosted
 
         $r.State | Should -Be 'Valid'
         $r.CoreCount | Should -BeGreaterThan 0
@@ -165,40 +179,44 @@ The canonical design docs are compound files with marked blocks.
 Describe 'Test-Companion — absence is not an override' {
 
     It 'a missing companion is absent' {
-        $repo = New-Fixture -Name 'absent-missing'
-        New-Core -Repo $repo -Name 'slice'
+        $kitRoot = New-KitRoot -Name 'absent-missing-kit'
+        $repo = New-TargetRepo -Name 'absent-missing-target'
+        New-Core -KitRoot $kitRoot -Name 'slice'
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
         $r.AbsentCount | Should -Be 1
         $r.State | Should -Be 'Valid'
     }
 
     It 'an empty companion is absent, not an override' {
-        $repo = New-Fixture -Name 'absent-empty'
-        New-Core -Repo $repo -Name 'slice'
-        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content ''
+        $kitRoot = New-KitRoot -Name 'absent-empty-kit'
+        $repo = New-TargetRepo -Name 'absent-empty-target'
+        New-Core -KitRoot $kitRoot -Name 'slice'
+        Write-Fixture -Root $repo -RelPath 'skills/slice/SKILL-local.md' -Content ''
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
         $r.AbsentCount | Should -Be 1
         $r.Findings.Count | Should -Be 0
     }
 
     It 'a whitespace-only companion is absent' {
-        $repo = New-Fixture -Name 'absent-whitespace'
-        New-Core -Repo $repo -Name 'slice'
-        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content "  `n`n`t`n"
+        $kitRoot = New-KitRoot -Name 'absent-whitespace-kit'
+        $repo = New-TargetRepo -Name 'absent-whitespace-target'
+        New-Core -KitRoot $kitRoot -Name 'slice'
+        Write-Fixture -Root $repo -RelPath 'skills/slice/SKILL-local.md' -Content "  `n`n`t`n"
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
         $r.AbsentCount | Should -Be 1
         $r.Findings.Count | Should -Be 0
     }
 
     It 'a frontmatter-only companion is absent' {
-        $repo = New-Fixture -Name 'absent-frontmatter'
-        New-Core -Repo $repo -Name 'slice'
-        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content "---`ndescription: reserved`n---`n`n"
+        $kitRoot = New-KitRoot -Name 'absent-frontmatter-kit'
+        $repo = New-TargetRepo -Name 'absent-frontmatter-target'
+        New-Core -KitRoot $kitRoot -Name 'slice'
+        Write-Fixture -Root $repo -RelPath 'skills/slice/SKILL-local.md' -Content "---`ndescription: reserved`n---`n`n"
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
         $r.AbsentCount | Should -Be 1
         $r.Findings.Count | Should -Be 0
     }
@@ -207,10 +225,11 @@ Describe 'Test-Companion — absence is not an override' {
 Describe 'Test-Companion — negative cases, one per rule' {
 
     It 'MissingBlock — a core with no fenced block' {
-        $repo = New-Fixture -Name 'neg-missing-block'
-        New-CoreWithoutBlock -Repo $repo -Name 'slice'
+        $kitRoot = New-KitRoot -Name 'neg-missing-block-kit'
+        $repo = New-TargetRepo -Name 'neg-missing-block-target'
+        New-CoreWithoutBlock -KitRoot $kitRoot -Name 'slice'
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'MissingBlock'
@@ -218,10 +237,11 @@ Describe 'Test-Companion — negative cases, one per rule' {
     }
 
     It 'MissingBlock — a core carrying the bare (projected) form rather than the declared form' {
-        $repo = New-Fixture -Name 'neg-bare-block'
-        New-CoreWithBareBlock -Repo $repo -Name 'slice'
+        $kitRoot = New-KitRoot -Name 'neg-bare-block-kit'
+        $repo = New-TargetRepo -Name 'neg-bare-block-target'
+        New-CoreWithBareBlock -KitRoot $kitRoot -Name 'slice'
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'MissingBlock'
@@ -229,84 +249,92 @@ Describe 'Test-Companion — negative cases, one per rule' {
     }
 
     It 'DuplicateBlock — a core with two fenced blocks' {
-        $repo = New-Fixture -Name 'neg-duplicate-block'
-        New-Core -Repo $repo -Name 'slice' -BlockCount 2
+        $kitRoot = New-KitRoot -Name 'neg-duplicate-block-kit'
+        $repo = New-TargetRepo -Name 'neg-duplicate-block-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -BlockCount 2
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'DuplicateBlock'
     }
 
     It 'WrongCompanionPath — the block names another command''s companion' {
-        $repo = New-Fixture -Name 'neg-wrong-path'
-        New-Core -Repo $repo -Name 'slice' -CompanionPath 'skills/track/SKILL-local.md'
+        $kitRoot = New-KitRoot -Name 'neg-wrong-path-kit'
+        $repo = New-TargetRepo -Name 'neg-wrong-path-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -CompanionPath 'skills/track/SKILL-local.md'
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'WrongCompanionPath'
     }
 
     It 'NoCategories — a core declaring an empty override list' {
-        $repo = New-Fixture -Name 'neg-no-categories'
-        New-Core -Repo $repo -Name 'slice' -Categories @()
+        $kitRoot = New-KitRoot -Name 'neg-no-categories-kit'
+        $repo = New-TargetRepo -Name 'neg-no-categories-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @()
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'NoCategories'
     }
 
     It 'UnknownCategory — a core declaring an id absent from COMPANIONS.md' {
-        $repo = New-Fixture -Name 'neg-unknown-category'
-        New-Core -Repo $repo -Name 'slice' -Categories @('vocabulary', 'behaviour')
+        $kitRoot = New-KitRoot -Name 'neg-unknown-category-kit'
+        $repo = New-TargetRepo -Name 'neg-unknown-category-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @('vocabulary', 'behaviour')
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Invalid'
         ($r.Findings | Where-Object Rule -eq 'UnknownCategory').Detail | Should -Match 'behaviour'
     }
 
-    It 'OrphanCompanion — a companion with no core beside it' {
-        $repo = New-Fixture -Name 'neg-orphan'
-        New-Core -Repo $repo -Name 'slice'
-        Write-Fixture -Repo $repo -RelPath 'skills/ghost/SKILL-local.md' -Content "## vocabulary`n`nSomething.`n"
+    It 'OrphanCompanion — a companion in the target with no core in the installed kit' {
+        $kitRoot = New-KitRoot -Name 'neg-orphan-kit'
+        $repo = New-TargetRepo -Name 'neg-orphan-target'
+        New-Core -KitRoot $kitRoot -Name 'slice'
+        Write-Fixture -Root $repo -RelPath 'skills/ghost/SKILL-local.md' -Content "## vocabulary`n`nSomething.`n"
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'OrphanCompanion'
     }
 
     It 'UnknownCompanionHeading — a companion heading that is not a category' {
-        $repo = New-Fixture -Name 'neg-unknown-heading'
-        New-Core -Repo $repo -Name 'slice'
-        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## stop-conditions`n`nNever stop.`n"
+        $kitRoot = New-KitRoot -Name 'neg-unknown-heading-kit'
+        $repo = New-TargetRepo -Name 'neg-unknown-heading-target'
+        New-Core -KitRoot $kitRoot -Name 'slice'
+        Write-Fixture -Root $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## stop-conditions`n`nNever stop.`n"
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'UnknownCompanionHeading'
     }
 
     It 'UndeclaredCategory — a valid category its core does not allow' {
-        $repo = New-Fixture -Name 'neg-undeclared'
-        New-Core -Repo $repo -Name 'slice' -Categories @('vocabulary')
-        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## tightened-authorization`n`nAsk per thread.`n"
+        $kitRoot = New-KitRoot -Name 'neg-undeclared-kit'
+        $repo = New-TargetRepo -Name 'neg-undeclared-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @('vocabulary')
+        Write-Fixture -Root $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## tightened-authorization`n`nAsk per thread.`n"
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'UndeclaredCategory'
     }
 
     It 'EmptyCategory — a declared heading with nothing under it' {
-        $repo = New-Fixture -Name 'neg-empty-category'
-        New-Core -Repo $repo -Name 'slice' -Categories @('vocabulary', 'document-map')
-        Write-Fixture -Repo $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## vocabulary`n`n## document-map`n`nReal content.`n"
+        $kitRoot = New-KitRoot -Name 'neg-empty-category-kit'
+        $repo = New-TargetRepo -Name 'neg-empty-category-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @('vocabulary', 'document-map')
+        Write-Fixture -Root $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## vocabulary`n`n## document-map`n`nReal content.`n"
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'EmptyCategory'
@@ -315,33 +343,49 @@ Describe 'Test-Companion — negative cases, one per rule' {
 
 Describe 'Test-Companion — NotEvaluated' {
 
-    It 'no skills/ directory is NotEvaluated, exit 2' {
-        $bare = Join-Path $TestDrive 'not-a-kit'
-        New-Item -ItemType Directory -Path $bare -Force | Out-Null
+    It 'no skills/ directory in the installed kit is NotEvaluated, exit 2' {
+        $bareKit = Join-Path $TestDrive 'not-a-kit'
+        New-Item -ItemType Directory -Path $bareKit -Force | Out-Null
+        $repo = New-TargetRepo -Name 'not-a-kit-target'
 
-        $r = Invoke-CompanionCheck -TargetRepo $bare
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $bareKit
 
         $r.State | Should -Be 'NotEvaluated'
         Get-CompanionExitCode -State $r.State | Should -Be 2
     }
 
-    It 'no .claude/COMPANIONS.md is NotEvaluated rather than silently Valid' {
-        $repo = New-Fixture -Name 'no-companions-doc' -NoCompanionsDoc
-        New-Core -Repo $repo -Name 'slice'
+    It 'no .claude/COMPANIONS.md in the installed kit is NotEvaluated rather than silently Valid' {
+        $kitRoot = New-KitRoot -Name 'no-companions-doc-kit' -NoCompanionsDoc
+        $repo = New-TargetRepo -Name 'no-companions-doc-target'
+        New-Core -KitRoot $kitRoot -Name 'slice'
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'NotEvaluated'
         $r.Detail | Should -Match 'COMPANIONS.md'
     }
 
     It 'a COMPANIONS.md with no parseable table is NotEvaluated, not an empty vocabulary' {
-        $repo = New-Fixture -Name 'empty-table'
-        Write-Fixture -Repo $repo -RelPath '.claude/COMPANIONS.md' -Content "# Companions`n`nNo table here.`n"
-        New-Core -Repo $repo -Name 'slice'
+        $kitRoot = New-KitRoot -Name 'empty-table-kit'
+        $repo = New-TargetRepo -Name 'empty-table-target'
+        Write-Fixture -Root $kitRoot -RelPath '.claude/COMPANIONS.md' -Content "# Companions`n`nNo table here.`n"
+        New-Core -KitRoot $kitRoot -Name 'slice'
 
-        $r = Invoke-CompanionCheck -TargetRepo $repo
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'NotEvaluated'
+    }
+}
+
+Describe 'Resolve-AgentKitRoot' {
+
+    It 'returns the explicit path when given one, resolved to its full form' {
+        $kitRoot = New-KitRoot -Name 'explicit-kit-root'
+
+        (Resolve-AgentKitRoot -Explicit $kitRoot) | Should -Be (Resolve-Path -LiteralPath $kitRoot).Path
+    }
+
+    It 'throws when an explicit path does not exist, rather than silently falling through' {
+        { Resolve-AgentKitRoot -Explicit (Join-Path $TestDrive 'does-not-exist') } | Should -Throw
     }
 }

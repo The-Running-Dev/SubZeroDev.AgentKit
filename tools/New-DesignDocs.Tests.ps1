@@ -3,7 +3,7 @@
 
 <#
   Regression coverage for New-DesignDocs.ps1's Resolve-KitRoot only - the home-install root
-  resolution it shares in shape with Sync-Kit.ps1 and Invoke-CodexCommand.ps1 (AGENTS.shared.md §
+  resolution it shares in shape with Invoke-CodexCommand.ps1 (AGENTS.shared.md §
   House conventions → Home-install convention). The rest of the script (seeding design/ from
   templates/design/) has no test coverage yet; that is a pre-existing gap this file does not
   attempt to close.
@@ -34,8 +34,7 @@ Describe 'New-DesignDocs Resolve-KitRoot' {
             # Dot-source with a -KitRoot that does not exist, so Resolve-KitRoot throws on
             # Resolve-Path immediately - after every function in the script is already defined
             # - leaving Resolve-KitRoot itself callable directly, against the fixture's own
-            # $PSScriptRoot, for the tests below. Same pattern as Sync-Kit.Tests.ps1's
-            # 'Invoke-GitRaw decodes git output as UTF-8...' Context.
+            # $PSScriptRoot, for the tests below.
             try {
                 . $script:FixtureScript -TargetRepo $TestDrive -KitRoot (Join-Path $TestDrive 'does-not-exist-explicit') -ErrorAction Stop
             } catch {
