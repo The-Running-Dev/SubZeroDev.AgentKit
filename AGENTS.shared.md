@@ -51,6 +51,7 @@ Name model *families*, never pinned versions. Version identifiers churn; family 
 - **Never use `max` effort unless I ask for it by name.**
 - **`xhigh` is for one question, not one pipeline.** Running a whole design phase at `xhigh` is not rigour, it is a substitute for asking a precise question.
 - **Escalate rather than guess.** An implementation task that raises an architectural question becomes deep reasoning. **Do not keep implementing while that uncertainty is unresolved.**
+- **Native Codex skills are the one narrow exception to the model gate.** A generated native AgentKit skill runs in the already-open Codex session, so it may proceed using that session's chosen model and approval context even when the normal tier comparison would stop it. This exception applies only to that native skill body; it does not change the table, alias resolution, command routing, or any profile assignment. The generated `-routed` skill invokes `Start-AgentKitCodex.ps1` and keeps the ordinary routed profile, approval, sandbox, and gate behaviour.
 - **Open substantive work with a banner, then gate on it.** Before starting anything beyond a trivial lookup, state what the work is (task or command, plus slice id if applicable) and the tier it requires per *Command routing* or the table above. **It is a heading, not a sentence** — three plain lines fenced above and below by a rule of `=`, labels and tier names in Title Case, never folded into a paragraph. For example:
 
   ```

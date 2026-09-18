@@ -2,6 +2,33 @@
 
 Append-only. Newest at the top. The rejected alternatives are the point — without them, every future session relitigates the same choice.
 
+### 2026-09-17 — The global front door offers both native and routed Codex modes
+Context: The home install had a safe machine-wide checkout and a routed Codex launcher, but no
+stable public entry point and no way to use a command directly in an already-open Codex session.
+Keeping every Codex command routed forces a second session even when the user deliberately chose
+the current one; exposing only the current session drops the profile, approval, and sandbox
+selection that `Invoke-CodexCommand.ps1` exists to provide. A default that falls back from a
+missing release tag to `main` would also turn a stable update into an unannounced branch update.
+Chosen: **`setup.ps1` is the global front door.** It delegates from the checked-out disk copy to
+`tools/Install-AgentKit.ps1` with the same install/update/rollback surface. Bootstrap clones the
+canonical public GitHub source into `AGENTKIT_HOME` or `$HOME/.agent-kit` only when absent and
+checks an existing checkout's `origin` before invoking it. Its default is the newest valid stable
+`vYYYY.MM.DD` tag, with an optional `.N` suffix; there is no fallback to `main`, which remains an
+explicit version request. Any selected tag, branch, or SHA without `setup.ps1` is refused before
+checkout, so rollback is limited to front-door-capable releases. Codex receives two thin adapters
+per command: native `$<command>` resolves and executes the canonical skill in the current session under one narrow
+model-gate exception; `$<command>-routed` calls `Start-AgentKitCodex.ps1` with the command and a
+JSON arguments file and `-NewWindow` in a visible Windows terminal, preserving the existing routed profiles,
+approval policy, and sandbox. The exception changes neither the routing table nor any profile
+assignment.
+Rejected: **Routed Codex only** — preserves routing but denies the explicitly selected current
+session. **Native Codex only** — removes the route that provides repeatable profile, approval,
+and sandbox selection. **Falling back to `main` when no stable tag exists** — makes an apparently
+stable update track an unpinned branch. **Downloading and evaluating a bootstrap script inline**
+— obscures the code being run and bypasses the checkout-origin check.
+Reversibility: cheap in the kit checkout; installed adapters can be removed through the existing
+ownership-tracked uninstall. A release already selected by users remains a durable reference.
+
 ### 2026-09-17 — Home install stops copying kit-owned files into target repositories
 Context: Phase 4 of the home-install plan. With the kit installed once at `~/.agent-kit` (phases 0–3), `INSTALL.md`, `tools/Sync-Kit.ps1`, and `/install-all` still copied `skills/<name>/SKILL.md`, `tools/*.ps1`, `.claude/COMPANIONS.md`, and `AGENTS.shared.md` into every target repository and reconciled drift between the copy and the source on every re-run — the exact per-repo-copy burden the home install exists to remove, now paid on top of the machine-wide checkout rather than instead of it.
 Chosen: `INSTALL.md`/`/install` handle only per-repo files — the target's own `AGENTS.md`, `agent.md`, `design/` seed, issue templates, and a new **pointer section** written into whichever of the target's `AGENTS.md`/`CLAUDE.md` holds content, naming the concrete resolved path to the installed kit's `AGENTS.shared.md` (mirroring how `Install-AgentKit.ps1` already writes a concrete resolved path into each host tool's global configuration, since the target has no local copy of `AGENTS.shared.md` to bootstrap the Home-install resolution order from). `skills/`, `tools/*.ps1`, `.claude/COMPANIONS.md`, and `AGENTS.shared.md` are never copied into a target at all; a target's own `skills/<name>/SKILL-local.md` companions are untouched. `/kit-sync` is `/sync`, unchanged; `tools/Sync-Kit.ps1` is retired (`unit/script/sync-kit`, `Status: retired`) since there is nothing left to diff once nothing is copied. `/install-all` becomes a one-time migration: per repository, on a branch, it deletes each previously-copied kit file only if it matches a released kit version (otherwise reports and leaves it), keeps companions, ensures the pointer section, and opens a pull request for the user to merge — reversing its prior "no commit, no push, no pull request" rule.
