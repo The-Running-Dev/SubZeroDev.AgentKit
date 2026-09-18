@@ -1163,6 +1163,39 @@ Describe 'Test-DesignState: absorption sites (S21)' {
         $findings.Count | Should -Be 0
     }
 
+    It 'S21.2: SiteAmbiguous fires when a site names an id with no record at all' -Tag 'Fires', 'SiteAmbiguous' {
+        $unit = New-Record -Id 'unit/document/present' -Scalars @{ Kind = 'document'; Status = 'active'; Anchor = 'PRESENT.md' }
+        $decision = New-Record -Id 'decision/unknown-id' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('unit/document/absent § Some Heading') }
+        $byId = @{ 'unit/document/present' = $unit; 'decision/unknown-id' = $decision }
+
+        $findings = Test-SiteAmbiguous -Records @($unit, $decision) -ById $byId -RepoPath $TestDrive
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'decision/unknown-id'
+        $findings[0].Detail | Should -Match '0 heading'
+    }
+
+    It 'S21.2: SiteAmbiguous fires when a site names a unit whose Anchor is blank' -Tag 'Fires', 'SiteAmbiguous' {
+        $unit = New-Record -Id 'unit/document/anchorless' -Scalars @{ Kind = 'document'; Status = 'active'; Anchor = '' }
+        $decision = New-Record -Id 'decision/blank-anchor' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('unit/document/anchorless § Some Heading') }
+        $byId = @{ 'unit/document/anchorless' = $unit; 'decision/blank-anchor' = $decision }
+
+        $findings = Test-SiteAmbiguous -Records @($unit, $decision) -ById $byId -RepoPath $TestDrive
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'decision/blank-anchor'
+        $findings[0].Detail | Should -Match '0 heading'
+    }
+
+    It 'S21.2: SiteAmbiguous fires when a site names a record that is neither a unit nor a contract' -Tag 'Fires', 'SiteAmbiguous' {
+        $other = New-Record -Id 'decision/not-a-site' -Kind 'Decision' -Scalars @{ Status = 'accepted' }
+        $decision = New-Record -Id 'decision/wrong-kind' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('decision/not-a-site § Some Heading') }
+        $byId = @{ 'decision/not-a-site' = $other; 'decision/wrong-kind' = $decision }
+
+        $findings = Test-SiteAmbiguous -Records @($other, $decision) -ById $byId -RepoPath $TestDrive
+        $findings.Count | Should -Be 1
+        $findings[0].Subject | Should -Be 'decision/wrong-kind'
+        $findings[0].Detail | Should -Match '0 heading'
+    }
+
     It 'S21.3: SiteOutOfReach fires when no unit''s own identity or one-hop closure names the site''s id' -Tag 'Fires', 'SiteOutOfReach' {
         $unit = New-Record -Id 'unit/document/unrelated' -Scalars @{ Status = 'active' }
         $decision = New-Record -Id 'decision/orphan-site' -Kind 'Decision' -Scalars @{ Status = 'accepted' } -Lists @{ StatedIn = @('unit/document/nowhere § Some Heading') }
