@@ -98,6 +98,12 @@ Describe 'Global front door with isolated homes and local Git origin' {
         $result.Output | Should -Match 'occupied'
         Get-Content (Join-Path $f.Root 'mine.txt') | Should -Be 'mine'
     }
+    It 'clones into a pre-existing empty root rather than refusing it as occupied' {
+        New-Item -ItemType Directory -Path $f.Root | Out-Null
+        $result=Run-Setup $f; Assert-Success $result
+        $result.Output | Should -Not -Match 'occupied'
+        (Join-Path $f.Root '.git') | Should -Exist
+    }
     It 'refuses wrong origin unless Force explicitly repoints the correct runtime clone' {
         Assert-Success (Run-Setup $f)
         Git-Fixture $f.Root @('remote','set-url','origin','https://example.invalid/foreign.git') | Out-Null
