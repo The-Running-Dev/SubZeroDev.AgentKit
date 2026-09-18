@@ -37,7 +37,20 @@ design/                       the kit's own design. Never installed
 
 Install AgentKit once for the machine, then use its skills from any project. PowerShell 7 and Git are required. The checkout is `$env:AGENTKIT_HOME` when that variable is set, otherwise `$HOME/.agent-kit`.
 
-Paste this into an agent when you want it to perform the setup: **Install the public AgentKit checkout globally in `AGENTKIT_HOME` or `$HOME/.agent-kit`; verify an existing checkout's origin is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`; then run its on-disk `setup.ps1` for the newest stable release. Detect and register every supported host, verify the result, and report the version, commit, registrations and collisions. Do not modify the current project or use `iex`, implicit `main`, or an unverified origin.**
+**Quick install**, one line, run it yourself:
+
+```powershell
+$k = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }; git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git $k; & (Join-Path $k 'setup.ps1')
+```
+
+macOS or Linux, PowerShell 7 (`pwsh`) still required — this line clones with `git`, then hands off to `pwsh`:
+
+```bash
+command -v pwsh >/dev/null 2>&1 || { echo 'AgentKit requires PowerShell 7 (pwsh) on PATH. Install: https://aka.ms/pwsh'; exit 1; }
+k="${AGENTKIT_HOME:-$HOME/.agent-kit}"; git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git "$k" && pwsh "$k/setup.ps1"
+```
+
+Both lines are the unverified form: no origin check, no re-run safety beyond what `setup.ps1` itself does. Paste this into an agent instead when you want the checked, agent-guided version: **Install the public AgentKit checkout globally in `AGENTKIT_HOME` or `$HOME/.agent-kit`; verify an existing checkout's origin is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`; then run its on-disk `setup.ps1` for the newest stable release. Detect and register every supported host, verify the result, and report the version, commit, registrations and collisions. Do not modify the current project or use `iex`, implicit `main`, or an unverified origin.**
 
 ```powershell
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'AgentKit requires PowerShell 7. Run this in pwsh.' }
@@ -46,8 +59,8 @@ $kitHome = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME
 $source = 'https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git'
 
 if (-not (Test-Path -LiteralPath (Join-Path $kitHome '.git'))) {
-    if (Test-Path -LiteralPath $kitHome) {
-        throw "'$kitHome' exists but is not an AgentKit checkout. Choose an empty path or set AGENTKIT_HOME."
+    if ((Test-Path -LiteralPath $kitHome) -and (Get-ChildItem -LiteralPath $kitHome -Force -ErrorAction SilentlyContinue)) {
+        throw "'$kitHome' exists and is not empty, and is not an AgentKit checkout. Choose an empty path or set AGENTKIT_HOME."
     }
     git clone $source $kitHome
     if ($LASTEXITCODE -ne 0) { throw 'AgentKit clone failed; setup was not run.' }
