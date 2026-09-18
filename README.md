@@ -9,7 +9,7 @@ AGENTS.shared.md              binding contract every repo using the kit shares
 AGENTS.md                     this repo's project rules on top of it, read by Codex
 CLAUDE.md                     imports both, read by Claude Code
 agent.md                      lessons learned the hard way
-setup.ps1                     global front door — install, update, roll back the shared checkout
+setup.ps1                     global front door — bootstrap, update, roll back the shared checkout
 INSTALL.md                    how the kit installs into a repo
 skills/<name>/SKILL.md        slash commands. Cores — the kit owns these outright
 skills/<name>/SKILL-local.md  optional per-repo companions. The target owns these
@@ -35,7 +35,7 @@ design/                       the kit's own design. Never installed
 
 ## Installing
 
-Install AgentKit once for the machine, then use its skills from any project. PowerShell 7 and Git are required. The checkout is `$env:AGENTKIT_HOME` when that variable is set, otherwise `$HOME/.agent-kit`.
+Quick-install AgentKit once for the machine, then use its skills from any project. PowerShell 7 and Git are required. The checkout is `$env:AGENTKIT_HOME` when that variable is set, otherwise `$HOME/.agent-kit`.
 
 **Quick install**, one line, run it yourself:
 
@@ -50,7 +50,7 @@ command -v pwsh >/dev/null 2>&1 || { echo 'AgentKit requires PowerShell 7 (pwsh)
 k="${AGENTKIT_HOME:-$HOME/.agent-kit}"; git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git "$k" && pwsh "$k/setup.ps1"
 ```
 
-Both lines are the unverified form: no origin check, no re-run safety beyond what `setup.ps1` itself does. Paste this into an agent instead when you want the checked, agent-guided version: **Install the public AgentKit checkout globally in `AGENTKIT_HOME` or `$HOME/.agent-kit`; verify an existing checkout's origin is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`; then run its on-disk `setup.ps1` for the newest stable release. Detect and register every supported host, verify the result, and report the version, commit, registrations and collisions. Do not modify the current project or use `iex`, implicit `main`, or an unverified origin.**
+Both lines are the unverified form: no origin check, no re-run safety beyond what `setup.ps1` itself does. Paste this into an agent instead when you want the checked, agent-guided version: **Bootstrap the public AgentKit checkout globally in `AGENTKIT_HOME` or `$HOME/.agent-kit`; verify an existing checkout's origin is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`; then run its on-disk `setup.ps1` for the newest stable release. Detect and register every supported host, verify the result, and report the version, commit, registrations and collisions. Do not modify the current project or use `iex`, implicit `main`, or an unverified origin.**
 
 ```powershell
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'AgentKit requires PowerShell 7. Run this in pwsh.' }
@@ -91,7 +91,7 @@ try {
 
 The default installs the newest valid stable tag named `vYYYY.MM.DD` (with an optional `.N` release suffix). It never falls back to `main`: pass `-Version main` only when you deliberately want that branch. Omit `-Hosts` to detect available host CLI executables and their personal directories: Claude uses `~/.claude`, Codex uses `$CODEX_HOME` when set or `~/.codex` otherwise, and Copilot uses `~/.copilot` (with `~/.agents` also counted for detection). Select a host explicitly when you want only that host refreshed.
 
-To update, roll back, select a branch or SHA, change names, preview, or remove the install, run the same checked-out entry point:
+To update, roll back, select a branch or SHA, change names, preview, or remove the checkout, run the same checked-out entry point:
 
 ```powershell
 $kitHome = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }
@@ -111,9 +111,9 @@ $kitHome = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME
 
 Any selected tag, branch, or SHA that lacks `setup.ps1` is unsupported and is refused before checkout. Rollback is therefore limited to front-door-capable releases. The bootstrap always runs the script from disk; it does not fetch and execute text with `iex`.
 
-On a fresh machine, cloning is the one necessary write before `-DryRun` can inspect an installed checkout. Once the checkout exists, `-DryRun` makes no install, registration, or version-selection changes.
+On a fresh machine, cloning is the one necessary write before `-DryRun` can inspect an installed checkout. Once the checkout exists, `-DryRun` makes no bootstrap, registration, or version-selection changes.
 
-**No published release carries `setup.ps1` yet.** `v2026.09.15`, `v2026.09.16` and `v2026.09.17` all predate it, so a default install — which selects the newest stable tag — currently refuses with *"predates the global front door"*. Until a release is cut, pass `-Version main` to install the unreleased work deliberately.
+**No published release carries `setup.ps1` yet.** `v2026.09.15`, `v2026.09.16` and `v2026.09.17` all predate it, so a default bootstrap — which selects the newest stable tag — currently refuses with *"predates the global front door"*. Until a release is cut, pass `-Version main` to bootstrap the unreleased work deliberately.
 
 Create a stable release only after the merged SHA has passed its required workflow gates. A repository maintainer then chooses an unused `vYYYY.MM.DD` or `vYYYY.MM.DD.N` tag and points it at that merged SHA, and runs (substitute the verified SHA and unused date tag):
 
@@ -125,7 +125,7 @@ git tag -a $releaseTag $releaseCommit -m "AgentKit $releaseTag: global native an
 git push origin "refs/tags/$releaseTag"
 ```
 
-Then exercise the fresh install block above without `-Version` and confirm the reported commit includes the global-install work. Tagging still requires the maintainer's authorization.
+Then exercise the fresh bootstrap block above without `-Version` and confirm the reported commit includes the global-install work. Tagging still requires the maintainer's authorization.
 
 Once the kit is installed, work in a target repository and use `/install <path>` when that repository needs its project-owned files seeded or reconciled. The command reads [`INSTALL.md`](INSTALL.md) from the installed kit.
 
@@ -203,7 +203,7 @@ You write `Frozen because` and `Lifts when` yourself; a command never invents th
 
 `/slice` takes the slice id, or no argument at all — bare, it takes the lowest-numbered slice whose issue is neither closed nor fully ticked and whose dependencies are done, says which it picked, and proceeds. It asks rather than guessing when the tracker cannot be read, since doneness is not observable from the working tree.
 
-**Codex** — installation creates two explicit skills per command. `$<command>` is the native mode: it reads the canonical skill from the installed checkout and works in the current Codex session. It intentionally uses that session's model and approval context; the shared contract carries the narrow model-gate exception for this native path. `$<command>-routed` runs `Start-AgentKitCodex.ps1` with `-NewWindow`, which opens a visible Windows terminal and launches the command through the existing profile, approval, and sandbox routing. Approvals and interaction happen in that visible terminal; opening it is not proof the command has completed.
+**Codex** — the bootstrap creates two explicit skills per command. `$<command>` is the native mode: it reads the canonical skill from the installed checkout and works in the current Codex session. It intentionally uses that session's model and approval context; the shared contract carries the narrow model-gate exception for this native path. `$<command>-routed` runs `Start-AgentKitCodex.ps1` with `-NewWindow`, which opens a visible Windows terminal and launches the command through the existing profile, approval, and sandbox routing. Approvals and interaction happen in that visible terminal; opening it is not proof the command has completed.
 
 Use native mode when the current session is the one you want to work in. Use routed mode when command routing and its profiles must select the session. Both read the same canonical skill and preserve the command arguments.
 
@@ -213,9 +213,9 @@ For direct automation, call the routed launcher rather than rebuilding a prompt 
 & (Join-Path $kitHome 'tools/Start-AgentKitCodex.ps1') -Command slice -ArgumentsFile .\agentkit-arguments.json -NewWindow
 ```
 
-**Copilot** — installation writes one native adapter per command to `~/.copilot/skills/<name>/SKILL.md`, plus the pointer file `~/.copilot/copilot-instructions.md`. There is no routed mode: the `-routed` pair is Codex-only, because routing means launching a session under a profile and only the Codex launcher does that. Each adapter reads the same canonical skill through `Get-AgentKitSkill.ps1` and executes it under this host's normal model policy, which means **the model gate is yours to apply by hand here** — nothing selects a model for you, so check the banner's stated tier against the session you are actually in.
+**Copilot** — the bootstrap writes one native adapter per command to `~/.copilot/skills/<name>/SKILL.md`, plus the pointer file `~/.copilot/copilot-instructions.md`. There is no routed mode: the `-routed` pair is Codex-only, because routing means launching a session under a profile and only the Codex launcher does that. Each adapter reads the same canonical skill through `Get-AgentKitSkill.ps1` and executes it under this host's normal model policy, which means **the model gate is yours to apply by hand here** — nothing selects a model for you, so check the banner's stated tier against the session you are actually in.
 
-Two limits worth knowing before you rely on it. The install path is exercised by `tools/Install-AgentKit.Tests.ps1` — adapters are written, and uninstall removes them — but nothing here exercises *invoking* a command under Copilot, so treat host parity as unproven rather than established. And unlike the Claude adapters, Copilot's carry no `disable-model-invocation` flag, so the only thing discouraging the host from starting a command on its own initiative is the adapter description's "Use only when the user requests this command."
+Two limits worth knowing before you rely on it. The bootstrap path is exercised by `tools/Install-AgentKit.Tests.ps1` — adapters are written, and uninstall removes them — but nothing here exercises *invoking* a command under Copilot, so treat host parity as unproven rather than established. And unlike the Claude adapters, Copilot's carry no `disable-model-invocation` flag, so the only thing discouraging the host from starting a command on its own initiative is the adapter description's "Use only when the user requests this command."
 
 ## Cross-vendor rule for stage 3
 
@@ -248,7 +248,7 @@ It reports the four input classes separately because they are priced differently
 
 Two global hooks in `~/.claude/settings.json` run the same script automatically. `SessionEnd` appends one row per session to the current project's `.claude/session-costs.tsv`, which is gitignored — a convenience, not the record, since transcripts are durable and a session that ends without the hook firing is recovered by running the script again. `UserPromptSubmit` runs `-Watch`, which is silent until the session's context crosses a threshold and then says so on each prompt, while the session can still be ended.
 
-That second hook exists because measurement found session cost is roughly **quadratic in turn count** — per-call context grows with conversation length, and you pay it again every turn. Ending a long session is worth more than any per-command saving. These are global Claude settings managed by the install, not target-repository settings.
+That second hook exists because measurement found session cost is roughly **quadratic in turn count** — per-call context grows with conversation length, and you pay it again every turn. Ending a long session is worth more than any per-command saving. These are global Claude settings managed by setup.ps1, not target-repository settings.
 
 ## When to skip most of this
 
