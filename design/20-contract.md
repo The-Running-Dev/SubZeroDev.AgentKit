@@ -425,6 +425,34 @@ there. What that block cannot state, and what a change to it must preserve:
 - Never prompts. Never re-runs a check. Never merges, resolves, or writes anything.
 - `-Quiet` suppresses the progress line only; the `WaitResult` is always emitted.
 
+### `tools/Merge-PullRequest.ps1`
+
+**The parameter list is the script's own `param` block and is not copied here.** What that
+block cannot state:
+
+- `-HeadSha` is **mandatory and has no default, permanently**, for the same reason
+  `Wait-PullRequestCheck.ps1`'s is: defaulting it to the current head would merge a commit
+  pushed after the gates ran as though it had passed them.
+- The `MergeResult` is emitted on the success stream **always, including on every refusal.**
+  A caller that gets an exception loses the `Refusal` and the partial check list, which are
+  the parts worth reporting.
+- Exit codes carry the state: 0 `Merged` and `WouldMerge`, 1 `Refused`, 2 `NotEvaluated`.
+  **Only those two states map to 0**, and a caller branching on the exit code and a caller
+  reading `.State` must reach the same conclusion.
+- **Every unknown refuses.** `NoChecksConfigured` is the case worth naming, because it is the
+  one a permissive reading would wave through: a repository with no CI produces no green
+  signal, and the absence of a signal is never a pass (I32).
+- `--admin` is **never** passed, so branch protection remains an outer gate this script cannot
+  reach past; a protected-branch rejection surfaces as `Refused`/`MergeRejected` carrying
+  `gh`'s own text rather than being retried.
+- Check classification is **not this script's**. It delegates whole to
+  `Wait-PullRequestCheck.ps1` and carries that script's `NotEvaluated` failures through
+  verbatim, so bucket semantics and I2 keep exactly one home. Thread *classification* is
+  likewise not its own — it counts `isResolved:false` as a blocker and never reads a comment
+  body, answers a thread, or resolves one; that is `skills/resolve/SKILL.md`'s.
+- Never prompts. `-DryRun` evaluates every precondition and merges nothing, reporting
+  `WouldMerge` where a real run would have merged.
+
 ### `tools/Test-DesignDrift.ps1`
 
 **The parameter list is the script's own `param` block and is not copied here.** What it
@@ -1023,6 +1051,27 @@ No bare `throw` of a string, and no terminating error for any of the six conditi
 each returns a `WaitResult` carrying the reason, because a caller that gets an exception
 loses the partial check list, which is the part worth reporting.
 
+### `Merge-PullRequest.ps1`
+
+| `Refusal` | Raised when | Retryable | Caller does |
+|---|---|---|---|
+| `NotOpen` | The pull request is closed or already merged | No | Stop. Nothing is left to merge |
+| `IsDraft` | The pull request is a draft | No | Stop. A draft is not in review, so no gate it might carry has been asked for |
+| `HeadMoved` | `-HeadSha` ≠ the current head, at either of the two points it is read | Yes, with the new SHA | Re-gate the new head from the start. **Never** re-call with the old SHA |
+| `ChecksFailed` | `Wait-PullRequestCheck.ps1` returned `Failed` | Yes, after a fix | Report the failing checks. Do not merge |
+| `UnresolvedThreads` | One or more review threads report `isResolved:false` | Yes, after `/resolve` | Report the count. Do not merge |
+| `MergeRejected` | `gh pr merge` exited non-zero — branch protection, a stale `--match-head-commit`, a permission the token lacks | Sometimes, and only once the reported cause is fixed | Report `gh`'s text verbatim. **Never** retry with `--admin` or by a direct API merge |
+
+**A `NotEvaluated` result is not a refusal and not a failure**, and the distinction is the one
+this script exists to keep: it carries `Wait-PullRequestCheck.ps1`'s `WaitFailure` through
+verbatim as its own `Refusal`, so `NoChecksConfigured`, `TimedOut`, `UnknownBucket`,
+`GhUnavailable` and `PullRequestMissing` each mean the merge decision could not be computed
+rather than that it came out against merging. Either way nothing merges — which is what
+"fails closed" means here — but only the table above is a statement about the pull request.
+
+**A refusal is the answer, not an obstacle.** No condition in either list is worked around by
+the caller; each is reported and the merge is left undone (I32).
+
 ### The divergence classes
 
 **This is the closed list.** `Test-DesignState.ps1` declares the same ids and one blocking class
@@ -1268,6 +1317,7 @@ each against its regeneration.
 | **I29** | The projector never writes inside a declared region, and no id is both projected and declared. | `unit/script/update-designprojection` | code | tools/Update-DesignProjection.Tests.ps1 |
 | **I30** | A record with `Status: retired` keeps its id resolvable, is in no closure, and has its `Anchor` exempt from the tree check. Nothing else about it changes, and an active record naming it is a `HalfStatusMismatch` finding rather than the permitted reference it once was. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 | **I31** | A contract's `Owner` is the unique active unit whose `Exposes` names that contract. It is the only reverse edge written to a record, and it is written only because it is checked. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
+| **I32** | `Merge-PullRequest.ps1` merges only an open, non-draft pull request whose head is exactly the SHA named to it, whose every check reached a terminal passing state on that SHA, and whose review threads are all resolved. Every condition it cannot positively confirm — an unreadable API, a timeout, an unrecognised bucket, or a repository with no checks configured at all — refuses. | `unit/script/merge-pullrequest` | code | tools/Merge-PullRequest.Tests.ps1 |
 <!-- invariants:end -->
 
 **Enforcement is a claim about the tree as it stands, not about the tree as designed.** The

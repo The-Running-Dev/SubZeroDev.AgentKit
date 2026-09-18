@@ -12,4 +12,5 @@ Evidence:
 
 ## Owns
 States the shared agent contract binding every session in any repository that uses the kit: model
-routing, the review-thread delegation, the design freeze, and tracking conventions.
+routing, the review-thread and merge-when-green delegations, the design freeze, and tracking
+conventions.
