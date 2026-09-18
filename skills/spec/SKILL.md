@@ -50,6 +50,18 @@ Rules:
 - No implementation. No comments explaining intent — the design doc carries intent. File paths are permitted **only** as the pointers this section requires.
 - Anything you add here that was not implied by the design doc gets a decision-log entry. Where this repository's own `design/state/` exists, writing it also follows the record-writing sequence in `AGENTS.shared.md` § *Writing a design-state record* — not restated here.
 
+## Before the session ends, ask what it got wrong
+
+**`/redteam` attacks the design; nothing attacks this document.** It is the artifact every implementing session is constrained by, and it leaves this command on one session's single reading of `design/10-design.md`, with a session boundary immediately behind it. The first thing that tests it is then a slice implementing against it — by which point a wrong invariant is already in code, and correcting it is a contract amendment rather than an edit.
+
+So close by asking, in **one turn**, before the session ends:
+
+- **Where this document had to choose.** Each place `design/10-design.md` permitted more than one reading and this run picked one, named by section, with both readings stated. A design doc that determined everything produces an empty list — say so; do not manufacture entries (`AGENTS.shared.md`, *Budget discipline*).
+- **Where it went past the design.** Anything asserted here the design did not imply. Those already owe a decision-log entry (*Rules*, above); this is where they are said out loud before being written down, rather than discovered in the log afterwards.
+- **What sits in `## Unresolved`, and what each entry blocks.** Which work cannot start until it is answered.
+
+**One turn, not a loop.** Corrections land in the document in this run and the command ends; a brief answer, or none, is a complete one. Where an answer changes an invariant or the public surface, that amendment is made **here**, now — not deferred to the first slice that trips over it, which is a stop and an escalation rather than an edit.
+
 ## Re-run
 
 `design/20-contract.md` is **repository-scoped**: a landed path's standing contract — the
