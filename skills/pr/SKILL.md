@@ -40,6 +40,33 @@ gh pr view --json number,isDraft,url,title 2>$null
 
 **Check for a PR already open on this branch before creating one.** `/slice` and `/fix` open theirs when they finish (`skills/slice/SKILL.md`, `skills/fix/SKILL.md`). If `gh pr view` finds one, write the real description onto it and do not open a second. If none exists — work predating this convention, or `/pr` run standalone — open one; that write is carved out of the authorization rule (`AGENTS.shared.md`, *Git and delivery*), as is the merge phase 4 reaches by way of the script named there.
 
+**Before writing the description, compare what this branch was meant to do against what it changed.** The gates answer whether the tree still works; the review threads answer whether the code is good. Neither notices a file changed for a reason nothing stated, or a criterion reported met with nothing behind it. *One slice at a time* is the rule this repository leans on hardest and the only one nothing but an implementing session's own discipline enforces, so naming both directions here is what turns it from an instruction into something observable — and it happens in this phase because the result then goes into the body as it is composed rather than as a later edit.
+
+```powershell
+$default = gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name'
+git fetch origin $default --quiet
+git diff --name-only (git merge-base "origin/$default" HEAD) HEAD
+```
+
+**The stated intent comes from the front door, and there are three.** Take it from whichever opened this branch — never from your own recollection of the session, which is the one input that agrees with the diff by construction:
+
+- **`/slice`** — the criteria ids under the matching issue's `Done when`, plus the slice's `Touches` line in `design/30-slices.md`. Both are already authoritative and both are already ids and paths rather than prose: `/slice` reports by id and may not touch a file outside `Touches` without saying why first (`skills/slice/SKILL.md`), so the comparison is checkable rather than a judgement about a summary.
+- **`/fix`** — the issue's `<!-- agent:start -->` block, the cause `/fix` stated before it wrote the patch, and the reproduction that cause had to clear (`skills/fix/SKILL.md`). This path carries no criteria ids, so the second direction below has no left-hand side and the report says so rather than reporting it clean.
+- **Neither** — `/pr` standalone, or work predating the convention. Intent is the issue the branch closes, plus the commit messages.
+
+**Report both directions, by path and by id.**
+
+- **Changes nothing stated accounts for** — a path on the diff that no criterion, no `Touches` entry, and no named cause reaches. Name every one.
+- **Statements with nothing behind them** — a criterion about to be listed under `Criteria met` in the agent block below, with no path on the diff implementing it. This direction checks that block against itself, which is the reason it belongs in the phase that writes it and not in a later pass.
+
+Three kinds of path are accounted for without a criterion of their own, and naming one is a false positive rather than a finding: a `design/` file corrected as descriptive drift in this same commit (`skills/slice/SKILL.md` § *Correcting the document as you go*); the decision-log entry and design-state records a decision obliges (`AGENTS.shared.md`, *Writing a design-state record*); and `.claude/verify-report.json` where phase 2 wrote it into this branch rather than leaving it unstaged.
+
+**Where intent cannot be established, the verdict is `not assessed` and says why.** No issue, no ids, and commit messages that state no intent is a real state — and inferring the intent from the diff would make the check agree with itself every time, which is worse than not running it, because it reads as a clean result (`AGENTS.shared.md`, *A findings report states what it examined*).
+
+**It is informational, and it changes neither side.** It never blocks the pull request, never edits `design/30-slices.md` or an issue to match the diff, and never widens or reverts the diff to match the statement — *Report drift, change neither side* (`AGENTS.shared.md`, *Tracking work*). A scope check that blocks becomes a thing to argue past, and both this repository's rule and the mechanism this is adapted from agree on that.
+
+**The verdict line goes in the agent block, beside the two statements it is derived from. Where it is anything other than clean, one sentence naming it goes in the human-first paragraph as well.** That asymmetry is deliberate: a reviewer who reads only the top of the body is exactly the reader this check exists to reach, and a clean verdict is not worth their attention while a drifted one is.
+
 Same shape as an issue — human first, agent detail fenced:
 
 ```markdown
@@ -58,6 +85,8 @@ Not yet run — the gates run next and this section is replaced with their repor
 - **Slice:** S3 — `design/30-slices.md` § S3 @ `a1b2c3d`
 - **Criteria met:** S3.1, S3.2
 - **Left undone:** S3.3 — <why>
+- **Scope:** clean | drift | missing | not assessed — <the unaccounted paths, the
+  unevidenced ids, or why intent could not be established>
 <!-- agent:end -->
 </details>
 ```
