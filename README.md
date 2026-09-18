@@ -9,6 +9,7 @@ AGENTS.shared.md              binding contract every repo using the kit shares
 AGENTS.md                     this repo's project rules on top of it, read by Codex
 CLAUDE.md                     imports both, read by Claude Code
 agent.md                      lessons learned the hard way
+setup.ps1                     global front door — install, update, roll back the shared checkout
 INSTALL.md                    how the kit installs into a repo
 skills/<name>/SKILL.md        slash commands. Cores — the kit owns these outright
 skills/<name>/SKILL-local.md  optional per-repo companions. The target owns these
