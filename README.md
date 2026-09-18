@@ -40,17 +40,17 @@ Quick-install AgentKit once for the machine, then use its skills from any projec
 **Quick install**, one line, run it yourself:
 
 ```powershell
-$k = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }; git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git $k; & (Join-Path $k 'setup.ps1')
+$k = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }; if (Test-Path (Join-Path $k '.git')) { if ((git -C $k rev-parse --is-shallow-repository) -eq 'true') { git -C $k fetch --unshallow origin } else { git -C $k fetch origin main }; git -C $k merge --ff-only origin/main } else { git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git $k }; & (Join-Path $k 'setup.ps1')
 ```
 
 macOS or Linux, PowerShell 7 (`pwsh`) still required — this line clones with `git`, then hands off to `pwsh`:
 
 ```bash
 command -v pwsh >/dev/null 2>&1 || { echo 'AgentKit requires PowerShell 7 (pwsh) on PATH. Install: https://aka.ms/pwsh'; exit 1; }
-k="${AGENTKIT_HOME:-$HOME/.agent-kit}"; git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git "$k" && pwsh "$k/setup.ps1"
+k="${AGENTKIT_HOME:-$HOME/.agent-kit}"; if [ -d "$k/.git" ]; then if [ "$(git -C "$k" rev-parse --is-shallow-repository)" = "true" ]; then git -C "$k" fetch --unshallow origin; else git -C "$k" fetch origin main; fi && git -C "$k" merge --ff-only origin/main; else git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git "$k"; fi && pwsh "$k/setup.ps1"
 ```
 
-Both lines are the unverified form: no origin check, no re-run safety beyond what `setup.ps1` itself does. Paste this into an agent instead when you want the checked, agent-guided version: **Bootstrap the public AgentKit checkout globally in `AGENTKIT_HOME` or `$HOME/.agent-kit`; verify an existing checkout's origin is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`; then run its on-disk `setup.ps1` for the newest stable release. Detect and register every supported host, verify the result, and report the version, commit, registrations and collisions. Do not modify the current project or use `iex`, implicit `main`, or an unverified origin.**
+Both lines are the unverified form: they fast-forward an existing checkout rather than checking its origin, so a checkout pointed at a fork or a mirror is silently advanced from it. Paste this into an agent instead when you want the checked, agent-guided version: **Bootstrap the public AgentKit checkout globally in `AGENTKIT_HOME` or `$HOME/.agent-kit`; verify an existing checkout's origin is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`; then run its on-disk `setup.ps1` for the newest stable release. Detect and register every supported host, verify the result, and report the version, commit, registrations and collisions. Do not modify the current project or use `iex`, implicit `main`, or an unverified origin.**
 
 ```powershell
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'AgentKit requires PowerShell 7. Run this in pwsh.' }
