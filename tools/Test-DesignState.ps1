@@ -1117,7 +1117,12 @@ function Resolve-StatedInSiteFile {
 }
 
 function Get-MarkdownHeadingCount {
-    param([Parameter(Mandatory)][AllowNull()][string] $FilePath, [Parameter(Mandatory)][string] $Heading)
+    # AllowEmptyString is load-bearing, not belt-and-braces: Resolve-StatedInSiteFile returns
+    # $null for a site that resolves to nothing, and PowerShell coerces $null to '' for a
+    # [string] target before Mandatory is evaluated - so without it, Mandatory rejects the
+    # empty string at binding time and the guard below never runs. AllowNull alone does not
+    # cover that, because the coercion has already happened by the time it applies.
+    param([Parameter(Mandatory)][AllowNull()][AllowEmptyString()][string] $FilePath, [Parameter(Mandatory)][string] $Heading)
     if (-not $FilePath -or -not (Test-Path -LiteralPath $FilePath -PathType Leaf)) { return 0 }
     $count = 0
     foreach ($line in (Get-Content -LiteralPath $FilePath)) {
