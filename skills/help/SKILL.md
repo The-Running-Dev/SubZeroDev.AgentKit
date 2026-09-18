@@ -27,8 +27,8 @@ gh issue list --state all --limit 100 --json number,title,state 2>$null
 
 Read it this way, and say which signal you used:
 
-- **No `design/` at all** — the kit is installed but nothing has started. Stage 0.
-- **`00-brief.md` only** — stage 1. An empty or near-empty file is not a brief; say so rather than counting it.
+- **No `design/` at all** — the kit is installed but nothing has started. Stage 0: write the brief, or run `/interview` and answer it.
+- **`00-brief.md` only** — stage 1. An empty or near-empty file is not a brief; say so rather than counting it, and name `/interview` as the way through it rather than leaving a blank template as the next move.
 - **Each further doc present** — the stage after the last one written. `30-slices.md` present means stage 6.
 - **On the default branch with slices written** — the next move is a branch, not a command.
 - **The tracker** decides where inside stage 6 they are: no issues means `/track` has never run; an open issue with unticked boxes is the slice in flight.
@@ -47,7 +47,7 @@ Each is its own session. Every one ends in a committed file, and that file is wh
 
 | # | Step | Session | Ends when |
 |---|---|---|---|
-| 0 | Write `design/00-brief.md` **yourself** | — | Problem, non-goals, definition of done, and a `Lifespan` line are all real |
+| 0 | Write `design/00-brief.md` **yourself**, or run `/interview` and answer it | — or fresh | Problem, non-goals, definition of done, and a `Lifespan` line are all real |
 | 1 | `/brief` | fresh | The four lists come back thin. It writes nothing — **you** edit the brief from them |
 | 2 | `/design` | fresh | `10-design.md` has rejected alternatives in every section that needed a choice |
 | 3 | `/redteam` | fresh, **different vendor** | One pass, adjudicated. Never ask for another |
