@@ -319,9 +319,9 @@ that looks old.
 <!-- outstanding:start -->
 | Rank | Issue | Title | Criteria | Mirrored at |
 |---|---|---|---|---|
-| 211 | #211 | A script unit that exposes no contract has nowhere to absorb a decision into | — | `c63cae8f19298c5dc92a01883153c0f699c7b0c0` |
-| 248 | #248 | No command commissions the SemanticDisagreement reading | — | `ad8e94ab2332012c117968e8ae8c47ff6e4a8a65` |
-| 250 | #250 | Test-DesignState.ps1 cannot detect an unclaimed projected marked region | — | `ad8e94ab2332012c117968e8ae8c47ff6e4a8a65` |
-| 281 | #281 | Nothing checks heading uniqueness in a document whose sites are addressed by heading | — | `35f2cd8b46a6d0f358642938e1b1d48b1d03041d` |
-| milestone/3 | #33 | Move commands to a vendor-neutral path | — | `e77a5ff3bf63e4b2b4fea755fd8720f11dcc0171` |
+| 211 | #211 | A script unit that exposes no contract has nowhere to absorb a decision into | — | `1a520a412cf98a1aad6f8bab146268ab55099b99` |
+| 248 | #248 | No command commissions the SemanticDisagreement reading | — | `7d51b6b520a3f471d306ab16c66d529f8ac307ec` |
+| 250 | #250 | Test-DesignState.ps1 cannot detect an unclaimed projected marked region | — | `7d51b6b520a3f471d306ab16c66d529f8ac307ec` |
+| 281 | #281 | Nothing checks heading uniqueness in a document whose sites are addressed by heading | — | `cbd501cd78a1b4a57e587847a556e5f82ea6419b` |
+| milestone/3 | #33 | Move commands to a vendor-neutral path | — | `2fe2b41650c0dfd0c31f5e33618e7ac8c72cd465` |
 <!-- outstanding:end -->

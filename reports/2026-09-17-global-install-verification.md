@@ -1,6 +1,6 @@
 # Global skill installation verification — 2026-09-17
 
-Implemented from freshly resolved `main` at `f57a1e424d284f91d4e5c776e3de65f061641424`
+Implemented from freshly resolved `main` at `164e8dd14e01324f9c017c39d333bd891362da7f`
 on `feat/global-install-native-routed`. The user's explicit **both** selection authorizes
 native Codex skills in the current session alongside separately routed `-routed` skills.
 Only native skills receive the narrow model-gate exception; routed profiles remain unchanged.

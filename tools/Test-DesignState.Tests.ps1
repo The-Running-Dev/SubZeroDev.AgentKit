@@ -2024,7 +2024,7 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         }
     }
 
-    It 'S31.8: unit/script/test-designstate''s bounded closure after the S31 absorption is below 14,037 bytes - its figure at ed25608' {
+    It 'S31.8: unit/script/test-designstate''s bounded closure after the S31 absorption is below 14,037 bytes - its figure at 2fa6f3a' {
         $graph = Read-DesignStateGraph -Path $script:RepoRoot
         $byId = @{}
         foreach ($r in $graph.Records) { $byId[$r.Id] = $r }

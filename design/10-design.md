@@ -9,7 +9,7 @@
 > **This file previously held the design of the defect-to-merge path** (`/fix`,
 > `Wait-PullRequestCheck.ps1`, the authorization batch). That path landed as S1–S3; its
 > contract stands in `design/20-contract.md` and its body is recoverable at
-> `git show dfd1cab:design/10-design.md`, the same retirement convention
+> `git show 89a6752:design/10-design.md`, the same retirement convention
 > `design/30-slices.md` uses for a landed slice.
 
 The brief's problem is one sentence long: establishing what the design *currently is* costs a
