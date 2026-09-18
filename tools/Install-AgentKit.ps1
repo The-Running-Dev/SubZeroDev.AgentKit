@@ -99,8 +99,14 @@ function Assert-Root {
         throw "Unsafe install root '$installRoot'. Choose a dedicated AgentKit directory."
     }
     if (Test-Path -LiteralPath $installRoot) {
-        if (-not (Test-Path -LiteralPath (Join-Path $installRoot '.git') -PathType Container)) {
-            throw "Install root '$installRoot' is occupied and is not an AgentKit checkout."
+        $hasGit = Test-Path -LiteralPath (Join-Path $installRoot '.git') -PathType Container
+        if (-not $hasGit) {
+            # An existing-but-empty directory is not occupied: git clone accepts it.
+            $isEmpty = -not (Get-ChildItem -LiteralPath $installRoot -Force -ErrorAction SilentlyContinue | Select-Object -First 1)
+            if (-not $isEmpty) {
+                throw "Install root '$installRoot' is occupied and is not an AgentKit checkout."
+            }
+            return
         }
         if (-not (Test-Path -LiteralPath (Join-Path $installRoot 'tools/Install-AgentKit.ps1')) -or
             -not (Test-Path -LiteralPath (Join-Path $installRoot 'AGENTS.shared.md'))) {
