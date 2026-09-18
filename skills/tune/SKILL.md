@@ -23,6 +23,7 @@ The value here is not better wording. It is that you do not have to remember whi
 | The ask is about | Use |
 |---|---|
 | Which stage this is, or what to run next | `/help` |
+| An idea with no brief yet | `/interview` |
 | Whether the brief is sound | `/brief` |
 | Architecture, data model, failure modes | `/design` |
 | Types, schemas, signatures, errors | `/spec` |

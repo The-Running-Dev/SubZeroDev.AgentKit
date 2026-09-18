@@ -1,6 +1,6 @@
 # Design pipeline — agent kit
 
-Nine stages, eight of them commands — stage 0 is the brief, which you write. Most end in a committed artifact; the two review gates deliberately keep a verdict out of the design doc — `/brief` writes nothing at all, `/redteam` writes only a findings file under `design/redteam/`, never back into `design/10-design.md` itself. The artifact is the handoff, not the conversation.
+Nine stages, all nine now with a command — but stage 0's asks the questions rather than answering them: `/interview` types the brief from what you say and may not originate what goes in it, so the brief is still yours. Most end in a committed artifact; the two review gates deliberately keep a verdict out of the design doc — `/brief` writes nothing at all, `/redteam` writes only a findings file under `design/redteam/`, never back into `design/10-design.md` itself. The artifact is the handoff, not the conversation.
 
 ## Layout
 
@@ -22,7 +22,7 @@ codex/PROFILES.md             Codex profile definitions
 templates/design/*.md         seed copied into a target's design/
 reports/                      one-off verification and planning reports, kept for evidence
 design/                       the kit's own design. Never installed
-  00-brief.md                 mine
+  00-brief.md                 mine, typed by /interview or by hand
   10-design.md                /design
   20-contract.md              /spec
   30-slices.md                /plan
@@ -157,7 +157,7 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 
 | Stage | Command | Writes |
 |---|---|---|
-| 0 Brief | — | `00-brief.md` |
+| 0 Brief | `/interview`, or by hand | `00-brief.md` |
 | 1 Interrogate | `/brief` | nothing |
 | 2 Design | `/design` | `10-design.md`, `90-decisions.md` |
 | 3 Red team | `/redteam` | `design/redteam/<date>-<target>.md` |
@@ -191,7 +191,7 @@ That command holds the walkthrough, rather than this file, because global comman
 
 The loop above — slice lands, `/align` writes reality back, `/track` resyncs the tracker — is right while the design is still being settled and wrong once implementation is the bottleneck. Each pass is generative rather than merely checking, so landing slice N rewrites slice N+1's specification, which desyncs the tracker, which needs `/track`, which finds drift, which needs `/align`. There is no fixed point. Freezing is how you get out.
 
-`/hold` writes `design/FROZEN.md`, and the file's existence is the whole mechanism — it is tracked, because a freeze is a statement to everyone working in the repository rather than local state. While it is there, `/align` and `/track` do not run and `/design`, `/spec` and `/plan` refuse; slices implement against `20-contract.md` as a fixed artifact at the SHA the marker names, and a contradiction found while implementing is stated in that slice's pull request and deliberately left in the document. The tracker is allowed to go stale. That staleness is the point, and recording each contradiction in a PR is what makes the eventual reconciliation cheap.
+`/hold` writes `design/FROZEN.md`, and the file's existence is the whole mechanism — it is tracked, because a freeze is a statement to everyone working in the repository rather than local state. While it is there, `/align` and `/track` do not run and `/interview`, `/design`, `/spec` and `/plan` refuse; slices implement against `20-contract.md` as a fixed artifact at the SHA the marker names, and a contradiction found while implementing is stated in that slice's pull request and deliberately left in the document. The tracker is allowed to go stale. That staleness is the point, and recording each contradiction in a PR is what makes the eventual reconciliation cheap.
 
 `/resume` lifts it: deletes the marker, then runs one reconciliation pass — `/align`, then `/track`. It runs unattended, because the decision was already made when `/hold` was invoked.
 
@@ -199,7 +199,7 @@ You write `Frozen because` and `Lifts when` yourself; a command never invents th
 
 ## Invocation
 
-**Claude Code** — the commands are native. `/brief`, `/design`, `/redteam`, `/spec`, `/plan`, `/slice S3`, `/align`. Set the model per session with `/model`.
+**Claude Code** — the commands are native. `/interview`, `/brief`, `/design`, `/redteam`, `/spec`, `/plan`, `/slice S3`, `/align`. Set the model per session with `/model`.
 
 `/slice` takes the slice id, or no argument at all — bare, it takes the lowest-numbered slice whose issue is neither closed nor fully ticked and whose dependencies are done, says which it picked, and proceeds. It asks rather than guessing when the tracker cannot be read, since doneness is not observable from the working tree.
 
@@ -259,6 +259,10 @@ Minimum viable version for short-lived work: `00-brief.md` with real non-goals, 
 ## On stage 0
 
 The brief is the one artifact a model should not author. Models elaborate well and originate badly — they converge on the median of the training distribution. Handing the concept to ChatGPT gets you something competent and unsurprising. Write it yourself and let `/brief` attack it; that inverts the weakest link in the chain.
+
+**`/interview` is not a hole in that.** It asks; you answer. Five questions one at a time — what breaks today, what you do instead and what that costs, who exactly, the narrowest version worth having this week, whether it still matters in a year — each pushed until the answer is specific enough to write down, then a numbered premise list to agree or disagree with before anything is typed. It may not invent the problem, a non-goal, or a definition-of-done criterion, and a field nobody answered is written empty and reported as empty. Restricting a model from *authoring* the brief was always right; it was also, accidentally, stopping anyone from asking the questions, and those are the cheap half.
+
+Write it by hand if you would rather. The stage is identical either way, and `/brief` attacks the result the same.
 
 ---
 
