@@ -20,12 +20,17 @@ tools/Test-DesignDrift.ps1    criterion-id and commit-pin drift, doc against tra
 tools/Test-Companion.ps1      validates the core/companion split
 codex/PROFILES.md             Codex profile definitions
 templates/design/*.md         seed copied into a target's design/
+reports/                      one-off verification and planning reports, kept for evidence
 design/                       the kit's own design. Never installed
   00-brief.md                 mine
   10-design.md                /design
   20-contract.md              /spec
   30-slices.md                /plan
   90-decisions.md             append-only
+  cost.md                     measured session and output costs behind the budget rules
+  state/                      the kit's own design-state records — units, contracts,
+                              invariants, decisions, questions, and the work mirror
+  state-index.md              projection over state/, regenerated rather than written
 ```
 
 ## Installing
@@ -149,7 +154,7 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | 7 Reconcile | `/align` | design docs, `agent.md` |
 | 8 Human docs | `/docs` | `docs/docs/guide.md` (generated) |
 
-Outside the numbered stages: `/help` says where the repository is and what to run next, `/pr` takes a branch to merge-ready — description, then gates, then review threads — following the repo's own merge convention, `/check` and `/resolve` are `/pr`'s gate and thread phases and stay callable on their own, `/fix` reproduces and fixes a defect that has no slice, `/clean` switches back to the default branch and cleans up merged local branches, `/track` syncs `design/` to GitHub issues, `/install` reconciles a target repository's project-owned files, `/install-all` migrates those files across sibling repositories, and `/sync` updates the shared checkout before reconciling the current target.
+Outside the numbered stages: `/help` says where the repository is and what to run next, `/next` works the same thing out and then *does* it — stopping at a session boundary rather than crossing it — `/pr` takes a branch to merge-ready — description, then gates, then review threads — following the repo's own merge convention, `/check` and `/resolve` are `/pr`'s gate and thread phases and stay callable on their own, `/fix` reproduces and fixes a defect that has no slice, `/clean` switches back to the default branch and cleans up merged local branches, `/track` syncs `design/` to GitHub issues, `/install` reconciles a target repository's project-owned files, `/install-all` migrates those files across sibling repositories, `/install-review` writes the GitHub Actions workflow that puts automated Claude review on a repository's pull requests (the app installation and the API secret stay yours), and `/sync` updates the shared checkout before reconciling the current target. `/hold` and `/resume` drive the design freeze, below.
 
 `/tune` is the front door for asks that fall between the stages. Every other command assumes you are already inside the pipeline — `/slice` needs a slice, `/spec` needs a design. `/tune` takes a rough ask, routes it to the command that owns it where one does, and otherwise emits a prompt carrying the constraints that bind it. It emits rather than executes, because the tier it names is usually not the tier it is running at.
 
@@ -169,6 +174,16 @@ That command holds the walkthrough, rather than this file, because global comman
 
 **Which model runs each command is in [`AGENTS.shared.md`](AGENTS.shared.md), *Command routing*. Where a session must end is in [`AGENTS.shared.md`](AGENTS.shared.md), *Session boundaries*.** Both are binding policy, so each has one home and this is not it.
 
+## Freezing the design
+
+The loop above — slice lands, `/align` writes reality back, `/track` resyncs the tracker — is right while the design is still being settled and wrong once implementation is the bottleneck. Each pass is generative rather than merely checking, so landing slice N rewrites slice N+1's specification, which desyncs the tracker, which needs `/track`, which finds drift, which needs `/align`. There is no fixed point. Freezing is how you get out.
+
+`/hold` writes `design/FROZEN.md`, and the file's existence is the whole mechanism — it is tracked, because a freeze is a statement to everyone working in the repository rather than local state. While it is there, `/align` and `/track` do not run and `/design`, `/spec` and `/plan` refuse; slices implement against `20-contract.md` as a fixed artifact at the SHA the marker names, and a contradiction found while implementing is stated in that slice's pull request and deliberately left in the document. The tracker is allowed to go stale. That staleness is the point, and recording each contradiction in a PR is what makes the eventual reconciliation cheap.
+
+`/resume` lifts it: deletes the marker, then runs one reconciliation pass — `/align`, then `/track`. It runs unattended, because the decision was already made when `/hold` was invoked.
+
+You write `Frozen because` and `Lifts when` yourself; a command never invents them, and a refusing command quotes them back verbatim, so `Lifts when` wants a checkable condition — "tier one is code-complete", not "when we are ready". The marker's exact format and the full list of what the freeze gates are in [`AGENTS.shared.md`](AGENTS.shared.md), *The design freeze*.
+
 ## Invocation
 
 **Claude Code** — the commands are native. `/brief`, `/design`, `/redteam`, `/spec`, `/plan`, `/slice S3`, `/align`. Set the model per session with `/model`.
@@ -184,6 +199,10 @@ For direct automation, call the routed launcher rather than rebuilding a prompt 
 ```powershell
 & (Join-Path $kitHome 'tools/Start-AgentKitCodex.ps1') -Command slice -ArgumentsFile .\agentkit-arguments.json -NewWindow
 ```
+
+**Copilot** — installation writes one native adapter per command to `~/.copilot/skills/<name>/SKILL.md`, plus the pointer file `~/.copilot/copilot-instructions.md`. There is no routed mode: the `-routed` pair is Codex-only, because routing means launching a session under a profile and only the Codex launcher does that. Each adapter reads the same canonical skill through `Get-AgentKitSkill.ps1` and executes it under this host's normal model policy, which means **the model gate is yours to apply by hand here** — nothing selects a model for you, so check the banner's stated tier against the session you are actually in.
+
+Two limits worth knowing before you rely on it. The install path is exercised by `tools/Install-AgentKit.Tests.ps1` — adapters are written, and uninstall removes them — but nothing here exercises *invoking* a command under Copilot, so treat host parity as unproven rather than established. And unlike the Claude adapters, Copilot's carry no `disable-model-invocation` flag, so the only thing discouraging the host from starting a command on its own initiative is the adapter description's "Use only when the user requests this command."
 
 ## Cross-vendor rule for stage 3
 
