@@ -35,8 +35,8 @@ This is observable in the repository, not inferred:
   That is live contract drift, a fork `/align` would raise and an `opus` decision to
   settle, with no behaviour either way.
 - **The corpus that has to be reconstructed is already the largest artifact here.**
-  `design/90-decisions.md` is 133,512 bytes across 54 append-only entries, and it — not
-  `design/10-design.md` — is where the kit's twenty-one commands were designed.
+  `design/90-decisions.md` is 408,893 bytes across 136 append-only entries, and it — not
+  `design/10-design.md` — is where the kit's twenty-three commands were designed.
   `10-design.md` covers one path through the kit and nothing else; it, `20-contract.md` and
   `30-slices.md` each open with a warning saying so.
 - **Work state is a second database made of Markdown checkboxes.** Acceptance criteria live in
