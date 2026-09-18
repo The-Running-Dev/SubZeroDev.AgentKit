@@ -108,5 +108,6 @@ convention*. `tools/Test-Companion.ps1` validates a target's companions against 
 kit's cores (`SKILL.md`, `.claude/COMPANIONS.md`, resolved the same way), reading only the target's
 own `skills/<name>/SKILL-local.md` files locally: the core side of the check can never fail with
 "edited locally," since there is no local copy to edit. `/install-all`'s one-time migration
-(`INSTALL.md` phase 4) is the exception that proves this: it exists only to delete the copies a
-repository still carries from before the kit stopped copying them, not to keep copies current.
+(`skills/install-all/SKILL.md`) is the exception that proves this: it exists only to delete the
+copies a repository still carries from before the kit stopped copying them, not to keep copies
+current.

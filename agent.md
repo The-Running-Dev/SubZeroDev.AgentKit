@@ -1,12 +1,12 @@
 # Agent — lessons learned
 
 Retrospective notes for whoever (human or agent) works this repo next. Standing
-*instructions* live in [`AGENTS.md`](AGENTS.md); *decisions* live in
-`design/90-decisions.md`. This file is what was learned the hard way.
+*instructions* live in [`AGENTS.shared.md`](AGENTS.shared.md) and [`AGENTS.md`](AGENTS.md);
+*decisions* live in `design/90-decisions.md`. This file is what was learned the hard way.
 
 Keep it short — it loads into context, so length is a recurring cost. **Add a lesson only
 when it would have changed a decision.** A lesson with no cost attached is a preference,
-and preferences belong in `AGENTS.md`.
+and preferences belong in the agent contract.
 
 > **Everything below is inherited, not earned here.** It was harvested from ten existing
 > projects because these are the failures most likely to repeat, not because they have
@@ -82,8 +82,8 @@ and preferences belong in `AGENTS.md`.
   invoke one you will actually use.
 - **Prefer targeted search and offset reads for routine work**; a large spec can cost 30K
   tokens per full read. Full reads are for the drift pass, not for lookups.
-- **Start a fresh session at phase boundaries.** `AGENTS.md`, this file, and the design docs
-  re-prime a new session cheaply — which is the reason for keeping all three tight.
+- **Start a fresh session at phase boundaries.** The agent contract, this file, and the design
+  docs re-prime a new session cheaply — which is the reason for keeping all three tight.
 - **Knowledge-graph tooling is cheap on code and expensive on prose.** Code extracts
   structurally via AST with no model call; prose does not, and a full rebuild on a small
   prose corpus cost ~200K tokens and found fewer issues than reading the documents did.

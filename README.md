@@ -1,6 +1,6 @@
 # Design pipeline — agent kit
 
-Eight stages. Most end in a committed artifact; the two review gates deliberately keep a verdict out of the design doc — `/brief` writes nothing at all, `/redteam` writes only a findings file under `design/redteam/`, never back into `design/10-design.md` itself. The artifact is the handoff, not the conversation.
+Nine stages, eight of them commands — stage 0 is the brief, which you write. Most end in a committed artifact; the two review gates deliberately keep a verdict out of the design doc — `/brief` writes nothing at all, `/redteam` writes only a findings file under `design/redteam/`, never back into `design/10-design.md` itself. The artifact is the handoff, not the conversation.
 
 ## Layout
 
@@ -95,7 +95,9 @@ Any selected tag, branch, or SHA that lacks `setup.ps1` is unsupported and is re
 
 On a fresh machine, cloning is the one necessary write before `-DryRun` can inspect an installed checkout. Once the checkout exists, `-DryRun` makes no install, registration, or version-selection changes.
 
-Create a stable release only after the merged SHA has passed its required workflow gates. A repository maintainer then chooses an unused `vYYYY.MM.DD` or `vYYYY.MM.DD.N` tag and points it at that merged SHA. This implementation PR does not create a tag. Until a release containing it is published, default stable installation cannot satisfy the new global-install acceptance criteria. After merge and successful release gates, the maintainer runs (substitute the verified SHA and unused date tag):
+**No published release carries `setup.ps1` yet.** `v2026.09.15`, `v2026.09.16` and `v2026.09.17` all predate it, so a default install — which selects the newest stable tag — currently refuses with *"predates the global front door"*. Until a release is cut, pass `-Version main` to install the unreleased work deliberately.
+
+Create a stable release only after the merged SHA has passed its required workflow gates. A repository maintainer then chooses an unused `vYYYY.MM.DD` or `vYYYY.MM.DD.N` tag and points it at that merged SHA, and runs (substitute the verified SHA and unused date tag):
 
 ```powershell
 git fetch origin main --tags
@@ -105,7 +107,7 @@ git tag -a $releaseTag $releaseCommit -m "AgentKit $releaseTag: global native an
 git push origin "refs/tags/$releaseTag"
 ```
 
-Then exercise the fresh install block above without `-Version` and confirm the reported commit includes this implementation. Merge and tagging still require the maintainer's authorization.
+Then exercise the fresh install block above without `-Version` and confirm the reported commit includes the global-install work. Tagging still requires the maintainer's authorization.
 
 Once the kit is installed, work in a target repository and use `/install <path>` when that repository needs its project-owned files seeded or reconciled. The command reads [`INSTALL.md`](INSTALL.md) from the installed kit.
 
@@ -123,11 +125,11 @@ The installer owns the shared adapters and pointers. A target retains only its p
 
 ## Three files, three jobs
 
-`AGENTS.md`, `agent.md`, and `90-decisions.md` are easy to conflate and stop being useful the moment they overlap.
+The agent contract, `agent.md`, and `90-decisions.md` are easy to conflate and stop being useful the moment they overlap.
 
 | File | Holds | Test |
 |---|---|---|
-| `AGENTS.md` | Standing instructions. What to do, always. | Would an agent behave wrongly without it? |
+| `AGENTS.shared.md` + `AGENTS.md` | Standing instructions. What to do, always — the shared contract first, then this repository's own project rules on top of it. | Would an agent behave wrongly without it? |
 | `agent.md` | Lessons. What went wrong, and what it cost. | Would it have changed a decision? |
 | `90-decisions.md` | Decisions. What was chosen over what, and why. | Would a future reader ask "why?" |
 
