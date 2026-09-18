@@ -287,6 +287,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-15-twelve-commands-shorten-to-natural-names | `unit/command/brief-check`, `unit/command/contract`, `unit/command/freeze`, `unit/command/install-code-review-agent`, `unit/command/kit-help`, `unit/command/kit-sync`, `unit/command/make-human-docs`, `unit/command/reconcile`, `unit/command/refine`, `unit/command/slices`, `unit/command/unfreeze`, `unit/command/verify` |
 | decision/2026-09-17-global-front-door-both-codex-modes | `unit/document/agents-md` |
 | decision/2026-09-17-home-install-stops-copying-kit-owned-files | `unit/command/install-all`, `unit/document/install-md` |
+| decision/2026-09-18-install-creates-a-github-remote-and-pushes-when-the-target-has-none | `unit/document/install-md` |
 | decision/2026-09-18-merge-when-green-is-delegated-to-a-script | `unit/command/pr`, `unit/document/agents-md` |
 <!-- decision-affects:end -->
 
