@@ -11,9 +11,9 @@ It may override: `vocabulary`, `extra-steps`, `gate-commands`, `tightened-author
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
 <!-- companion:declared:end -->
 
-Take the work on the current branch to merge-ready, in three phases, in order.
+Take the work on the current branch to merged, in four phases, in order.
 
-**This command owns the sequence. It does not own the procedure of any phase it delegates.** Phase 2 is `skills/check/SKILL.md` and phase 3 is `skills/resolve/SKILL.md`, run in full, in this same session. Those files stay the single home for how a gate is discovered and how a thread is classified — this one never restates them, because a second copy of a rule is a promise it will diverge (`AGENTS.shared.md`, *Single ownership*). Both remain invocable on their own: `/check` to run the gates against any tree, `/resolve` to work threads on a pull request this command did not open.
+**This command owns the sequence. It does not own the procedure of any phase it delegates.** Phase 2 is `skills/check/SKILL.md`, phase 3 is `skills/resolve/SKILL.md`, and phase 4 is `tools/Merge-PullRequest.ps1`, each run in full, in this same session. Those files stay the single home for how a gate is discovered and how a thread is classified — this one never restates them, because a second copy of a rule is a promise it will diverge (`AGENTS.shared.md`, *Single ownership*). Both remain invocable on their own: `/check` to run the gates against any tree, `/resolve` to work threads on a pull request this command did not open.
 
 **This repository's convention outranks any default in this command.** They genuinely differ — one sibling enables auto-merge as standard practice, another forbids it outright, a third leaves every merge to its owner. **Read the repository's own instruction file before doing anything**, and follow what it says. If it is silent, open the PR and leave the merge alone.
 
@@ -38,7 +38,7 @@ gh pr view --json number,isDraft,url,title 2>$null
 
 **Never open a pull request as a draft.** A draft is invisible to the reviewers and CI gates that ignore drafts, which makes "opened" and "actually in review" two different states someone has to remember to reconcile. Open it ready.
 
-**Check for a PR already open on this branch before creating one.** `/slice` and `/fix` open theirs when they finish (`skills/slice/SKILL.md`, `skills/fix/SKILL.md`). If `gh pr view` finds one, write the real description onto it and do not open a second. If none exists — work predating this convention, or `/pr` run standalone — open one; that write is carved out of the authorization rule (`AGENTS.shared.md`, *Git and delivery*). Merging is not, and never becomes so here.
+**Check for a PR already open on this branch before creating one.** `/slice` and `/fix` open theirs when they finish (`skills/slice/SKILL.md`, `skills/fix/SKILL.md`). If `gh pr view` finds one, write the real description onto it and do not open a second. If none exists — work predating this convention, or `/pr` run standalone — open one; that write is carved out of the authorization rule (`AGENTS.shared.md`, *Git and delivery*), as is the merge phase 4 reaches by way of the script named there.
 
 Same shape as an issue — human first, agent detail fenced:
 
@@ -82,12 +82,26 @@ Not yet run — the gates run next and this section is replaced with their repor
 
 Where the query comes back empty, **give the automated reviewers one bounded wait rather than declaring the PR clean**: `pwsh -File tools/Wait-PullRequestCheck.ps1 -PullRequest <n> -HeadSha <pushed SHA>` (path relative to the kit install root, not this repo — `AGENTS.shared.md` § *House conventions* → Home-install convention), then re-query the threads once. Threads found on the re-query are classified and worked exactly as above.
 
-**Then stop, whatever the result.** One wait, not a poll loop — phases 1 and 2 are minutes and a human reviewer is however long a human takes, and those are not the same wait. Report the check outcomes and the thread count, and say plainly that `/pr` (or `/resolve` on its own) picks this phase up again when later review arrives. Re-running `/pr` on a branch whose description and `Verified` section are already current is a no-op through phases 1 and 2 and lands straight here.
+**One wait, not a poll loop** — phases 1 and 2 are minutes and a human reviewer is however long a human takes, and those are not the same wait. Re-running `/pr` on a branch whose description and `Verified` section are already current is a no-op through phases 1 and 2 and lands straight here.
 
-## Merging
+Where threads remain `Ambiguous` or otherwise unresolved after this phase, **that is where the command ends** — report the check outcomes and the thread count and stop, saying plainly that `/pr` (or `/resolve` on its own) picks this up again when later review arrives. Phase 4 is not reached, because the script it calls would refuse on exactly that state anyway.
 
-**Merging is an external write and is not yours to do** unless this repository's instruction file explicitly delegates it. Where it does, follow that wording exactly — including which checks must be green first, and whether auto-merge is enabled against a specific head SHA.
+## Phase 4 — merge
 
-Where it does not: report the check outcomes and the thread state, and stop.
+**Run `tools/Merge-PullRequest.ps1`** (path relative to the kit install root, not this repo — `AGENTS.shared.md` § *House conventions* → Home-install convention):
+
+```powershell
+pwsh -File tools/Merge-PullRequest.ps1 -PullRequest <n> -HeadSha <the SHA phase 2 gated>
+```
+
+`-HeadSha` is the commit phase 2's gates actually ran against, not whatever `gh pr view` reports now. Passing the current head instead would merge a commit that was pushed after the gates ran as though it had passed them — which is the single failure this whole phase is shaped to prevent.
+
+**The script decides, not you.** It confirms the pull request is open and not a draft, that its head is still that SHA, that every check reached a terminal passing state, and that no review thread is unresolved — then merges with `--match-head-commit`. Its preconditions and its fail-closed behaviour are its own (`AGENTS.shared.md`, *Git and delivery*); this file does not restate them, and you do not re-derive them by reading a checks page.
+
+- **A refusal is the answer, not an obstacle.** Report the `Refusal` verbatim and stop. Never re-run it with a different SHA to get a different result, never merge through `gh` or the API directly, and never reach for `--admin`.
+- **`NotEvaluated` is not a failure and must not be reported as one.** It means the state could not be read — an unavailable `gh`, a timeout, a repository with no checks configured. Name which, and leave the PR open.
+- `-DryRun` evaluates every gate and merges nothing; use it when you want the decision without the consequence.
+
+**Where this repository's instruction file withholds the merge delegation, skip this phase entirely** — report the check outcomes and the thread state, and stop. The rule at the top of this file holds: the repository's own convention outranks any default here, in this direction as much as the other.
 
 **Never state a deployed URL** until the deploy for that exact merge commit reports success. A merged PR is not a deployed site.
