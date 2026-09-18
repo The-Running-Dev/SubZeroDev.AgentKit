@@ -3,32 +3,32 @@
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Every *.ps1 under the repository parsed with [System.Management.Automation.Language.Parser]::ParseFile with zero parse errors."
+      "detail": "Every *.ps1 under the repo root and tools/ parsed cleanly with [System.Management.Automation.Language.Parser]::ParseFile — no parse errors."
     },
     {
       "name": "Run Pester tests",
-      "status": "Failed",
-      "detail": "Tests Passed: 473, Failed: 2, Skipped: 1, Total: 476.\n  [-] S12.5/S25.4: the check reports zero findings against this repository and exits 0 22ms (21ms|1ms)\n   Expected $null or empty, because could not evaluate: [TrackerUnavailable] gh missing or unauthenticated; WorkStateDivergence not compared, but got @{Reason=TrackerUnavailable; Detail=gh missing or unauthenticated; WorkStateDivergence not compared}.\n   at $script:RealResult.CouldNotEvaluate | Should -BeNullOrEmpty -Because \"could not evaluate: $($unevaluated -join ' | ')\", /workspace/scratch/b9e804c5768c/AgentKit/tools/Test-DesignState.Tests.ps1:2135\n  [-] S18.6: EnforcementUnevidenced rejects this repository's own superseded decision once its SupersededBy line is removed, and clears once it is restored 3.99s (3.99s|0ms)\n   Expected 1, but got 2.\n   at $strippedResult.ExitCode | Should -Be 1, /workspace/scratch/b9e804c5768c/AgentKit/tools/Test-DesignState.Tests.ps1:2237"
+      "status": "Passed",
+      "detail": "Invoke-Pester -Path tools -Output Detailed -PassThru: Tests completed in 317.58s. Tests Passed: 473, Failed: 0, Skipped: 4 NotRun: 0. TotalCount 477, Result: Passed. The 4 skipped are platform-conditional (self-hosted-checkout fallback paths, and a Windows-only launch guard), not failures."
     },
     {
       "name": "Validate the core/companion split",
       "status": "Passed",
-      "detail": "tools/Test-Companion.ps1 exit 0: Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion."
+      "detail": "./tools/Test-Companion.ps1: Companion split OK - 23 core(s) checked, 0 companion file(s) present, 23 core(s) with no companion. State: Valid. Exit 0."
     },
     {
       "name": "Check the design state against the tree",
-      "status": "DidNotRun",
-      "reason": "Exit 2: [TrackerUnavailable] gh missing or unauthenticated; WorkStateDivergence not compared. Tree comparison found zero blocking findings; live tracker comparison is not verified."
+      "status": "Passed",
+      "detail": "./tools/Test-DesignState.ps1: Findings (0), Exit code: 0. Reported (47) non-blocking MirrorStale entries under design/state/units/*/work/* — each names a work record whose MirroredAt sha predates the current HEAD 2c673ff396c03e5c6dde05c94ca5de4c4affa867; non-blocking, pre-existing, refreshed by /track rather than by this doc change. Largest closure: unit/script/test-designstate, 13239 bytes (ceiling 16384)."
     },
     {
       "name": "Typecheck videos/",
       "status": "Passed",
-      "detail": "npx tsc --noEmit in videos/: exit 0, no output."
+      "detail": "cd videos && npx tsc --noEmit: exit 0, no output (no type errors)."
     },
     {
       "name": "Lint videos/",
       "status": "Passed",
-      "detail": "npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts: Checked 46 files in 30ms. No fixes applied. Exit 0."
+      "detail": "cd videos && npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts: 'Checked 46 files in 28ms. No fixes applied.' Exit 0."
     }
   ]
 }
