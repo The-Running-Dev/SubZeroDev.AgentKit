@@ -5,9 +5,10 @@ repository never edits. Where a repository genuinely needs a command to behave d
 writes a **companion** beside it — `skills/<name>/SKILL-local.md` — and the core names
 exactly what that companion is allowed to change.
 
-This file is the mechanism. It is kit-owned and installed into every target, and it is the
-single home for the category vocabulary, the never-list, and the absence rule. A core command
-file names *which categories* apply to it; it does not restate any of what is below.
+This file is the mechanism. It is kit-owned in the canonical AgentKit checkout, and generated
+adapters and owned links resolve it there. It is the single home for the category vocabulary,
+the never-list, and the absence rule. A core command file names *which categories* apply to it;
+it does not restate any of what is below.
 
 ## The block is a declared region
 

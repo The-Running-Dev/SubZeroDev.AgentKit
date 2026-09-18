@@ -1,571 +1,422 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Installs, updates, rolls back, or removes the machine-wide AgentKit checkout at
-    ~/.agent-kit and links its skills into every detected AI tool's personal skills folder.
-
+    Installs, updates, rolls back, or uninstalls one machine-wide AgentKit runtime.
 .DESCRIPTION
-    Per reports/2026-09-14-home-install-plan.md, phase 2: one script replaces per-repo
-    copies of the kit with a single git checkout at $env:AGENTKIT_HOME (default
-    $HOME/.agent-kit), version-pinned by tag, branch or sha, linked into each tool's
-    personal skills folder with a Windows directory junction so nothing goes stale
-    between updates.
-
-    Codex is the documented exception (phase 0 findings): tools/Invoke-CodexCommand.ps1
-    reads skills/<name>/SKILL.md from the install root directly and does not rely on
-    Codex's own skill discovery, so no junctions are created under ~/.codex/skills for
-    AgentKit skills. Codex still needs $env:AGENTKIT_HOME set (or the default
-    $HOME/.agent-kit to exist) for that launcher to find the install; this script does
-    not set process-wide environment variables, since a child PowerShell process cannot
-    persist one into the user's shell profile without side effects this script has no
-    business taking silently.
-
-    Every link this script creates is recorded in a manifest outside the checkout
-    ($HOME/.agent-kit-state/installed.json), and -Uninstall (or a version change) only
-    ever removes links this script itself created. A same-named folder it did not create
-    is left alone with a warning, the way gstack protects a user's own skills.
-
+    Use the root setup.ps1 front door (README.md). This script owns Git state and
+    managed host registrations. It never copies kit cores or tools into a project.
+    Claude and Copilot receive native adapters; Codex receives native and routed
+    adapters. All adapters resolve dependencies from the one canonical checkout.
 .PARAMETER Version
-    Tag, branch or commit to check out. Defaults to the highest tag reachable from the
-    remote (by creation date), falling back to the default branch head if the remote has
-    no tags.
-
+    Tag, branch, or SHA. Omitted: newest valid vYYYY.MM.DD[.N] release, ordered by
+    date and numeric revision, never tag creation time. No implicit main fallback.
 .PARAMETER Source
-    Git URL or local path to clone/fetch from. Defaults to the origin already recorded
-    in the manifest from a prior install; required on a first install with no existing
-    checkout to read a recorded source from. A local path is how unreleased work is
-    tested (INSTALL.md's phase 2 "testing unreleased work" case).
-
+    Git origin. Defaults to the recorded source, otherwise the public AgentKit repo.
+    Local origins support isolated testing. Changing origin requires -Force.
 .PARAMETER Hosts
-    Which tools to link skills into: claude, codex, copilot. Defaults to auto-detecting
-    which of ~/.claude, ~/.codex, ~/.copilot exist. Codex is accepted for symmetry but
-    never receives skill junctions - see DESCRIPTION.
-
+    claude, codex, copilot; omitted: detect personal folders or installed executables.
+    Codex honors CODEX_HOME. Existing unselected managed hosts remain registered.
 .PARAMETER Prefix
-    Optional prefix for every linked skill's folder name, e.g. -Prefix ak- installs
-    /ak-slice instead of /slice. Guards against a future name clash; unset by default
-    since the phase 0 clash check found none on this machine.
-
+    Prefix each registered name; e.g. ak- gives ak-slice and ak-slice-routed.
 .PARAMETER DryRun
-    Print what would change - clone/fetch, checkout, links, hook edits, pointer blocks -
-    without writing anything.
-
+    Show operations without fetch, checkout, registration, or state writes. A fresh
+    dry run cannot resolve remote tags; an existing dry run uses cached references.
 .PARAMETER Uninstall
-    Remove every link, hook entry and pointer block this script's manifest says it
-    created, then clear the manifest. The checkout at the install root is left in place
-    unless -Force is also given, since deleting a git repository is the more destructive
-    of the two and warrants the explicit flag on its own.
-
+    Remove only unchanged managed registrations, exact hooks, and pointer blocks.
+    Keep the canonical checkout unless -Force is also supplied.
 .PARAMETER Force
-    Required for anything destructive: adopting an existing ~/.agent-kit clone that has
-    uncommitted changes (they are discarded via checkout -f / clean -fd), and deleting
-    the checkout itself during -Uninstall.
-
+    Explicitly permits discarding dirty checkout files or repointing origin, and
+    deleting the validated canonical checkout on uninstall. Never overwrites skills.
 .EXAMPLE
-    ./tools/Install-AgentKit.ps1 -Source https://github.com/you/SubZeroDev.AgentKit.git
-    First install: clone, pick the latest tag, link skills into every detected tool.
-
+    ./setup.ps1 -Hosts codex
+    Install latest stable for Codex, both native and explicitly routed skills.
 .EXAMPLE
-    ./tools/Install-AgentKit.ps1 -Version v2026.09.20
-    Update an existing install to a specific tag.
-
+    ./setup.ps1 -Version main -Hosts claude
+    Explicitly install unreleased main for Claude.
 .EXAMPLE
-    ./tools/Install-AgentKit.ps1 -Source D:\Dropbox\Projects\SubZeroDev.AgentKit -Version my-branch
-    Point the install at a local working branch to test unreleased kit changes.
-
+    ./setup.ps1 -Version v2026.09.20
+    Select a specific release; selecting an older supported release is rollback.
 .EXAMPLE
-    ./tools/Install-AgentKit.ps1 -Uninstall
-    Remove every link, hook and pointer block this script created. Leaves the checkout.
+    ./setup.ps1 -Uninstall
+    Remove managed registrations; keep checkout and customized files.
 #>
 [CmdletBinding()]
 param(
     [string] $Version,
     [string] $Source,
-    [ValidateSet('claude', 'codex', 'copilot')]
-    [string[]] $Hosts,
-    [string] $Prefix = '',
+    [ValidateSet('claude', 'codex', 'copilot')][string[]] $Hosts,
+    [ValidatePattern('^[a-z0-9-]*$')][string] $Prefix = '',
     [switch] $DryRun,
     [switch] $Uninstall,
-    [switch] $Force
+    [switch] $Force,
+    # Private second stage: re-enter the installer FROM the selected commit.
+    [switch] $RegisterOnly,
+    [string] $PreviousCommit,
+    [string] $RequestedVersion
 )
-
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-
-# --- Paths -------------------------------------------------------------------------
-
-function Get-InstallRoot {
-    if ($env:AGENTKIT_HOME) { return $env:AGENTKIT_HOME }
-    return (Join-Path $HOME '.agent-kit')
-}
-
-function Get-StateDir {
-    # Deliberately not inside the checkout: a `git clean` or a version rollback must never
-    # touch the manifest that says what this machine's tools currently link to.
-    return (Join-Path $HOME '.agent-kit-state')
-}
-
-function Get-ManifestPath {
-    return (Join-Path (Get-StateDir) 'installed.json')
-}
-
-$script:InstallRoot = Get-InstallRoot
-$script:ManifestPath = Get-ManifestPath
-
-# --- Manifest ------------------------------------------------------------------------
-
-function New-EmptyManifest {
-    [ordered]@{
-        version       = $null
-        source        = $null
-        installedAt   = $null
-        hosts         = [ordered]@{}
-        hooksManaged  = $false
-        pointers      = [ordered]@{}
-    }
-}
-
-function Read-Manifest {
-    if (-not (Test-Path -LiteralPath $script:ManifestPath)) {
-        return New-EmptyManifest
-    }
-    $raw = Get-Content -LiteralPath $script:ManifestPath -Raw | ConvertFrom-Json
-    # Normalise to hashtables so callers can add/remove keys freely regardless of what
-    # ConvertFrom-Json produced (PSCustomObject for an empty {} vs ordered dict otherwise).
-    $manifest = New-EmptyManifest
-    foreach ($prop in @('version', 'source', 'installedAt', 'hooksManaged')) {
-        if ($raw.PSObject.Properties.Name -contains $prop) {
-            $manifest.$prop = $raw.$prop
-        }
-    }
-    foreach ($section in @('hosts', 'pointers')) {
-        $target = [ordered]@{}
-        if ($raw.PSObject.Properties.Name -contains $section -and $raw.$section) {
-            foreach ($p in $raw.$section.PSObject.Properties) {
-                $target[$p.Name] = $p.Value
-            }
-        }
-        $manifest.$section = $target
-    }
-    return $manifest
-}
-
-function Write-Manifest {
-    param([Parameter(Mandatory)] $Manifest)
-    if ($script:DryRunActive) { return }
-    $stateDir = Get-StateDir
-    if (-not (Test-Path -LiteralPath $stateDir)) {
-        New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
-    }
-    $json = ConvertTo-Json -InputObject $Manifest -Depth 10
-    Set-Content -LiteralPath $script:ManifestPath -Value $json -NoNewline
-}
-
-$script:DryRunActive = [bool]$DryRun
-
-function Write-Plan {
-    param([string] $Message)
-    if ($script:DryRunActive) {
-        Write-Host "[DryRun] $Message"
-    } else {
-        Write-Host $Message
-    }
-}
-
-# --- Git plumbing ----------------------------------------------------------------------
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'AgentKit requires Git on PATH.' }
+$publicSource = 'https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git'
+$installRoot = [IO.Path]::GetFullPath($(if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }))
+$stateDir = Join-Path $HOME '.agent-kit-state'
+$manifestPath = Join-Path $stateDir 'installed.json'
+$codexRoot = if ($env:CODEX_HOME) { [IO.Path]::GetFullPath($env:CODEX_HOME) } else { Join-Path $HOME '.codex' }
+$collisions = [Collections.Generic.List[string]]::new()
+$registrations = [Collections.Generic.List[object]]::new()
+$pointerStart = '<!-- agentkit-pointer:start -->'
+$pointerEnd = '<!-- agentkit-pointer:end -->'
 
 function Invoke-Git {
-    param([string[]] $GitArgs, [string] $WorkingDir)
-    $result = & git -C $WorkingDir @GitArgs 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "git $($GitArgs -join ' ') failed in '$WorkingDir': $result"
+    param([string[]] $GitArgs, [string] $WorkingDir = $installRoot)
+    $output = & git -C $WorkingDir @GitArgs 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "git $($GitArgs -join ' ') failed (exit $LASTEXITCODE): $output" }
+    return $output
+}
+function Write-Plan([string] $Message) { Write-Host "$(if ($DryRun) { '[DryRun] ' })$Message" }
+function Save-Text([string] $Path, [string] $Text) {
+    if ($DryRun) { return }
+    if ((Test-Path -LiteralPath $Path -PathType Leaf) -and [IO.File]::ReadAllText($Path) -ceq $Text) { return }
+    $null = New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force
+    [IO.File]::WriteAllText($Path, $Text, [Text.UTF8Encoding]::new($false))
+}
+function Get-Hash([string] $Text) {
+    return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($Text)))
+}
+function Add-Collision([string] $Path) {
+    if (-not $collisions.Contains($Path)) { $collisions.Add($Path) }
+    Write-Warning "Foreign or modified entry '$Path' already exists - skipped and left unchanged."
+}
+function Normalize-Origin([string] $Value) {
+    if ($Value -match '^(https://github[.]com/|git@github[.]com:)(.+?)([.]git)?/?$') {
+        return ('github:' + $Matches[2].TrimEnd('/').ToLowerInvariant())
     }
-    return $result
+    if (Test-Path -LiteralPath $Value) { return [IO.Path]::GetFullPath($Value).TrimEnd('/','\') }
+    return $Value.TrimEnd('/')
 }
-
-function Test-CleanWorkingTree {
-    param([string] $RepoPath)
-    $status = & git -C $RepoPath status --porcelain 2>&1
-    return [string]::IsNullOrWhiteSpace(($status -join "`n"))
-}
-
-function Resolve-LatestTag {
-    param([string] $RepoPath)
-    $tags = & git -C $RepoPath tag --sort=-creatordate 2>&1
-    if ($LASTEXITCODE -ne 0 -or -not $tags) { return $null }
-    return @($tags)[0]
-}
-
-function Get-DefaultBranchHead {
-    param([string] $RepoPath)
-    $head = & git -C $RepoPath symbolic-ref refs/remotes/origin/HEAD 2>&1
-    if ($LASTEXITCODE -eq 0 -and $head) {
-        return ($head -replace '^refs/remotes/origin/', '')
+function Assert-Root {
+    if ($installRoot -eq [IO.Path]::GetPathRoot($installRoot) -or $installRoot -eq [IO.Path]::GetFullPath($HOME) -or $installRoot -eq $codexRoot) {
+        throw "Unsafe install root '$installRoot'. Choose a dedicated AgentKit directory."
     }
-    return 'main'
-}
-
-function Sync-KitCheckout {
-    param([string] $InstallRoot, [string] $Source, [string] $RequestedVersion)
-
-    $exists = Test-Path -LiteralPath (Join-Path $InstallRoot '.git')
-
-    if (-not $exists) {
-        if (-not $Source) {
-            throw "No checkout at '$InstallRoot' and no -Source given. Pass -Source <git url or local path> for the first install."
+    if (Test-Path -LiteralPath $installRoot) {
+        if (-not (Test-Path -LiteralPath (Join-Path $installRoot '.git') -PathType Container)) {
+            throw "Install root '$installRoot' is occupied and is not an AgentKit checkout."
         }
-        Write-Plan "Clone '$Source' into '$InstallRoot'."
-        if (-not $script:DryRunActive) {
-            New-Item -ItemType Directory -Path (Split-Path -Parent $InstallRoot) -Force | Out-Null
-            $null = Invoke-Git -GitArgs @('clone', $Source, $InstallRoot) -WorkingDir (Split-Path -Parent $InstallRoot)
-        }
-    } else {
-        $currentOrigin = (& git -C $InstallRoot remote get-url origin 2>&1)
-        if ($Source -and $LASTEXITCODE -eq 0 -and $currentOrigin -and ($currentOrigin -ne $Source)) {
-            Write-Warning "Existing checkout at '$InstallRoot' has origin '$currentOrigin', not the requested -Source '$Source'. Using the existing origin; pass -Force to re-point it."
-            if ($Force) {
-                Write-Plan "Re-point origin to '$Source'."
-                if (-not $script:DryRunActive) { $null = Invoke-Git -GitArgs @('remote', 'set-url', 'origin', $Source) -WorkingDir $InstallRoot }
-            }
-        }
-        if (-not (Test-CleanWorkingTree -RepoPath $InstallRoot)) {
-            if (-not $Force) {
-                throw "'$InstallRoot' has uncommitted changes. Commit, stash, or re-run with -Force to discard them."
-            }
-            Write-Plan "Discard uncommitted changes in '$InstallRoot' (-Force)."
-            if (-not $script:DryRunActive) {
-                $null = Invoke-Git -GitArgs @('checkout', '-f') -WorkingDir $InstallRoot
-                $null = Invoke-Git -GitArgs @('clean', '-fd') -WorkingDir $InstallRoot
-            }
-        }
-        Write-Plan "Fetch '$InstallRoot' (tags and branches)."
-        if (-not $script:DryRunActive) {
-            $null = Invoke-Git -GitArgs @('fetch', '--all', '--tags', '--prune') -WorkingDir $InstallRoot
+        if (-not (Test-Path -LiteralPath (Join-Path $installRoot 'tools/Install-AgentKit.ps1')) -or
+            -not (Test-Path -LiteralPath (Join-Path $installRoot 'AGENTS.shared.md'))) {
+            throw "Checkout '$installRoot' is not an AgentKit runtime."
         }
     }
-
-    $version = $RequestedVersion
-    if (-not $version) {
-        # A DryRun on a fresh clone can't resolve tags without the clone existing yet;
-        # report the fallback rule instead of a concrete answer in that one case.
-        if ($script:DryRunActive -and -not $exists) {
-            Write-Plan "Version not given: would resolve to the highest tag, else the default branch."
-            return $null
-        }
-        $version = Resolve-LatestTag -RepoPath $InstallRoot
-        if (-not $version) {
-            $version = Get-DefaultBranchHead -RepoPath $InstallRoot
-        }
-    }
-
-    Write-Plan "Check out '$version' in '$InstallRoot'."
-    if (-not $script:DryRunActive) {
-        $null = Invoke-Git -GitArgs @('checkout', $version) -WorkingDir $InstallRoot
-        # A branch checkout should track the remote's tip, not whatever the local ref last had.
-        & git -C $InstallRoot show-ref --verify --quiet "refs/remotes/origin/$version"
-        $isBranch = ($LASTEXITCODE -eq 0)
-        $global:LASTEXITCODE = 0
-        if ($isBranch) {
-            $null = Invoke-Git -GitArgs @('reset', '--hard', "origin/$version") -WorkingDir $InstallRoot
-        }
-    }
-
-    return $version
 }
-
-# --- Host detection and skills -----------------------------------------------------------
-
-function Get-HostSkillsDir {
-    param([string] $HostName)
-    switch ($HostName) {
-        'claude' { return (Join-Path $HOME '.claude/skills') }
-        'codex' { return (Join-Path $HOME '.codex/skills') }
-        'copilot' { return (Join-Path $HOME '.copilot/skills') }
+function Get-HostRoot([string] $Name) {
+    switch ($Name) {
+        claude { Join-Path $HOME '.claude' }
+        codex { $codexRoot }
+        copilot { Join-Path $HOME '.copilot' }
     }
 }
-
-function Get-HostRulesFile {
-    param([string] $HostName)
-    switch ($HostName) {
-        'claude' { return (Join-Path $HOME '.claude/CLAUDE.md') }
-        'codex' { return (Join-Path $HOME '.codex/AGENTS.md') }
-        'copilot' { return (Join-Path $HOME '.copilot/copilot-instructions.md') }
-    }
+function Get-RulesPath([string] $Name) {
+    $leaf = switch ($Name) { claude { 'CLAUDE.md' } codex { 'AGENTS.md' } copilot { 'copilot-instructions.md' } }
+    Join-Path (Get-HostRoot $Name) $leaf
 }
-
 function Get-DetectedHosts {
-    $found = [System.Collections.Generic.List[string]]::new()
-    if (Test-Path -LiteralPath (Join-Path $HOME '.claude')) { $found.Add('claude') }
-    if (Test-Path -LiteralPath (Join-Path $HOME '.codex')) { $found.Add('codex') }
-    if ((Test-Path -LiteralPath (Join-Path $HOME '.copilot')) -or (Test-Path -LiteralPath (Join-Path $HOME '.agents'))) { $found.Add('copilot') }
-    return $found
-}
-
-function Get-KitSkillNames {
-    param([string] $InstallRoot)
-    $skillsDir = Join-Path $InstallRoot 'skills'
-    if (-not (Test-Path -LiteralPath $skillsDir)) { return @() }
-    return @(Get-ChildItem -LiteralPath $skillsDir -Directory | Select-Object -ExpandProperty Name | Sort-Object)
-}
-
-function New-Junction {
-    param([string] $LinkPath, [string] $TargetPath)
-    if (Test-Path -LiteralPath $LinkPath) {
-        $item = Get-Item -LiteralPath $LinkPath -Force
-        if ($item.LinkType -eq 'Junction') {
-            Remove-Item -LiteralPath $LinkPath -Force
-        } else {
-            throw "'$LinkPath' exists and is not a junction this script manages. Refusing to overwrite it."
-        }
+    foreach ($name in @('claude','codex','copilot')) {
+        if ((Test-Path -LiteralPath (Get-HostRoot $name)) -or (Get-Command $name -ErrorAction SilentlyContinue) -or
+            ($name -eq 'copilot' -and (Test-Path -LiteralPath (Join-Path $HOME '.agents')))) { $name }
     }
-    New-Item -ItemType Junction -Path $LinkPath -Target $TargetPath | Out-Null
 }
-
-function Install-HostSkillLinks {
-    param([string] $HostName, [string] $InstallRoot, [string] $Prefix, $Manifest)
-
-    if ($HostName -eq 'codex') {
-        Write-Plan "codex: no skill junctions (Invoke-CodexCommand.ps1 reads skills/<name>/SKILL.md from the install root directly - see phase 0 findings)."
-        return @()
-    }
-
-    $skillsDir = Get-HostSkillsDir -HostName $HostName
-    $skillNames = @(Get-KitSkillNames -InstallRoot $InstallRoot)
-    $linked = [System.Collections.Generic.List[string]]::new()
-
-    Write-Plan "$($HostName): link $($skillNames.Count) skill(s) into '$skillsDir'."
-    if (-not $script:DryRunActive) {
-        if (-not (Test-Path -LiteralPath $skillsDir)) {
-            New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
-        }
-    }
-
-    foreach ($name in $skillNames) {
-        $linkName = "$Prefix$name"
-        $linkPath = Join-Path $skillsDir $linkName
-        $targetPath = Join-Path $InstallRoot "skills/$name"
-
-        $alreadyOwned = $Manifest.hosts.Contains($HostName) -and ($Manifest.hosts[$HostName] -contains $linkName)
-        if ((Test-Path -LiteralPath $linkPath) -and -not $alreadyOwned) {
-            $existing = Get-Item -LiteralPath $linkPath -Force -ErrorAction SilentlyContinue
-            if (-not $existing -or $existing.LinkType -ne 'Junction') {
-                Write-Warning "$($HostName): '$linkName' already exists at '$linkPath' and was not created by this script - skipped."
-                continue
+function Resolve-StableTag {
+    $tags = if ($DryRun) { @(Invoke-Git @('tag','--list')) } else { @(Invoke-Git @('ls-remote','--tags','--refs','origin') | ForEach-Object { ([string]$_ -split '\s+', 2)[1] -replace '^refs/tags/', '' }) }
+    $valid = foreach ($tag in $tags) {
+        if ($tag -cmatch '^v(\d{4})[.](\d{2})[.](\d{2})(?:[.](\d+))?$') {
+            $date = [datetime]::MinValue
+            if ([datetime]::TryParseExact("$($Matches[1])-$($Matches[2])-$($Matches[3])", 'yyyy-MM-dd',
+                [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::None, [ref]$date)) {
+                [pscustomobject]@{ Name = $tag; Date = $date; Revision = $(if ($Matches[4]) { [long]$Matches[4] } else { 0 }) }
             }
         }
-
-        Write-Plan "  $linkName -> $targetPath"
-        if (-not $script:DryRunActive) {
-            New-Junction -LinkPath $linkPath -TargetPath $targetPath
-        }
-        $linked.Add($linkName)
     }
-
-    return $linked
+    $best = @($valid | Sort-Object @{Expression='Date';Descending=$true}, @{Expression='Revision';Descending=$true}, Name | Select-Object -First 1)
+    if (-not $best.Count) { throw 'No valid stable release tag exists. Use -Version main only to opt into unreleased work.' }
+    return $best[0].Name
 }
 
-function Remove-HostSkillLinks {
-    param([string] $HostName, [string[]] $LinkNames)
-    if (-not $LinkNames -or $LinkNames.Count -eq 0) { return }
-    $skillsDir = Get-HostSkillsDir -HostName $HostName
-    foreach ($linkName in $LinkNames) {
-        $linkPath = Join-Path $skillsDir $linkName
-        if (-not (Test-Path -LiteralPath $linkPath)) { continue }
-        $item = Get-Item -LiteralPath $linkPath -Force -ErrorAction SilentlyContinue
-        if ($item -and $item.LinkType -eq 'Junction') {
-            Write-Plan "$($HostName): remove link '$linkPath'."
-            if (-not $script:DryRunActive) { Remove-Item -LiteralPath $linkPath -Force }
-        } else {
-            Write-Warning "$($HostName): '$linkPath' is no longer a junction this script owns - left in place."
-        }
+$manifest = if (Test-Path -LiteralPath $manifestPath) { Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json -AsHashtable } else { @{} }
+if ($manifest.ContainsKey('installRoot') -and $manifest.installRoot -ne $installRoot) { throw "Manifest belongs to '$($manifest.installRoot)', not '$installRoot'. Use that AGENTKIT_HOME first." }
+$effectiveSource = if ($Source) { $Source } elseif ($manifest.ContainsKey('source') -and $manifest.source) { $manifest.source } else { $publicSource }
+Assert-Root
+$exists = Test-Path -LiteralPath (Join-Path $installRoot '.git')
+if ($exists) {
+    $origin = [string](Invoke-Git @('remote','get-url','origin'))
+    if ((Normalize-Origin $origin) -ne (Normalize-Origin $effectiveSource)) {
+        if (-not $Force -or $Uninstall) { throw "Wrong origin '$origin'; expected '$effectiveSource'. Explicit -Source and -Force are required to re-point a checkout." }
+        Write-Plan "Re-point origin '$origin' to '$effectiveSource'."
+        if (-not $DryRun) { $null = Invoke-Git @('remote','set-url','origin',$effectiveSource) }
     }
 }
 
-# --- Claude session-cost hooks ----------------------------------------------------------
-
-function Get-ManagedHookEntry {
-    param([string] $InstallRoot, [string] $Mode)
-    [pscustomobject]@{
-        hooks = @(
-            [pscustomobject]@{
-                type    = 'command'
-                command = 'pwsh'
-                args    = @('-NoProfile', '-File', (Join-Path $InstallRoot 'tools/Measure-Session.ps1').Replace('\', '/'), $Mode)
-                timeout = if ($Mode -eq '-Hook') { 30 } else { 10 }
+# A manifest entry alone never licenses overwriting changed files or a retargeted link.
+function Test-Owned($Entry) {
+    if ($Entry.root -ne $installRoot) { return $false }
+    $item = Get-Item -LiteralPath $Entry.path -Force -ErrorAction SilentlyContinue
+    if (-not $item) { return $false }
+    if ($Entry.kind -eq 'link') {
+        return ($item.LinkType -in @('Junction','SymbolicLink') -and
+            [IO.Path]::GetFullPath([string]$item.Target) -eq [IO.Path]::GetFullPath($Entry.target))
+    }
+    if ($item.LinkType -or -not $item.PSIsContainer) { return $false }
+    $files = @(Get-ChildItem -LiteralPath $Entry.path -Force)
+    if ($files.Count -ne $Entry.files.Count) { return $false }
+    foreach ($file in $files) {
+        if ($file.PSIsContainer -or $file.LinkType -or -not $Entry.files.Contains($file.Name)) { return $false }
+        if ((Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash -ne $Entry.files[$file.Name]) { return $false }
+    }
+    return $true
+}
+function Remove-Registration($Entry) {
+    if (-not (Get-Item -LiteralPath $Entry.path -Force -ErrorAction SilentlyContinue)) { return }
+    if (-not (Test-Owned $Entry)) { Add-Collision $Entry.path; return }
+    Write-Plan "Remove managed registration '$($Entry.path)'."
+    if (-not $DryRun) {
+        if ($Entry.kind -eq 'link') { [IO.Directory]::Delete($Entry.path) }
+        else {
+            foreach ($file in $Entry.files.Keys) { Remove-Item -LiteralPath (Join-Path $Entry.path $file) -Force }
+            [IO.Directory]::Delete($Entry.path)
+        }
+    }
+}
+$oldRegistrations = @()
+if ($manifest.ContainsKey('registrations')) { $oldRegistrations = @($manifest.registrations) }
+elseif ($manifest.ContainsKey('hosts')) {
+    # v1 migration: only manifest-listed links anchored to this exact runtime count.
+    foreach ($name in $manifest.hosts.Keys) {
+        foreach ($link in @($manifest.hosts[$name])) {
+            $path = Join-Path (Get-HostRoot $name) "skills/$link"
+            $item = Get-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+            if ($item -and $item.LinkType -in @('Junction','SymbolicLink')) {
+                $target = [string]$item.Target
+                $parent = Split-Path -Parent $target
+                if ($parent -eq (Join-Path $installRoot 'skills')) {
+                    $oldRegistrations += @{ host=$name; name=$link; path=$path; root=$installRoot; kind='link'; target=$target }
+                }
             }
-        )
+        }
     }
 }
 
-function Update-ClaudeHooks {
-    param([string] $InstallRoot, [switch] $Remove)
-
-    $settingsPath = Join-Path $HOME '.claude/settings.json'
-    $settingsDir = Split-Path -Parent $settingsPath
-    $settings = @{}
-    if (Test-Path -LiteralPath $settingsPath) {
-        $raw = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json -AsHashtable
-        if ($raw) { $settings = $raw }
-    }
-    if (-not $settings.ContainsKey('hooks')) { $settings['hooks'] = @{} }
-
-    # A managed hook is identified by calling Measure-Session.ps1 wherever it lives -
-    # this script's own entry, not by position - so re-running never duplicates it and
-    # never touches an unrelated hook the user configured for the same event.
-    function Remove-ManagedFrom {
-        param($EventEntries)
-        if (-not $EventEntries) { return @() }
-        return @($EventEntries | Where-Object {
-                $args = @($_.hooks | ForEach-Object { $_.args })
-                -not ($args | Where-Object { $_ -like '*Measure-Session.ps1*' })
-            })
-    }
-
-    foreach ($eventName in @('SessionEnd', 'UserPromptSubmit')) {
-        $mode = if ($eventName -eq 'SessionEnd') { '-Hook' } else { '-Watch' }
-        $current = if ($settings['hooks'].ContainsKey($eventName)) { @($settings['hooks'][$eventName]) } else { @() }
-        $kept = @(Remove-ManagedFrom -EventEntries $current)
+function Get-Pointer {
+    $shared = (Join-Path $installRoot 'AGENTS.shared.md').Replace('\','/')
+    return "$pointerStart`nAgentKit shared rules: read [$shared]($shared) before using AgentKit.`n@$shared`n$pointerEnd"
+}
+function Update-Pointer([string] $Path, [switch] $Remove) {
+    $text = if (Test-Path -LiteralPath $Path) { [IO.File]::ReadAllText($Path) } else { '' }
+    $pattern = [regex]::Escape($pointerStart) + '.*?' + [regex]::Escape($pointerEnd)
+    $matches = [regex]::Matches($text, $pattern, 'Singleline')
+    $prior = $null
+    if ($manifest.ContainsKey('pointerBlocks') -and $manifest.pointerBlocks.Contains($Path)) { $prior = $manifest.pointerBlocks[$Path] }
+    if ($matches.Count -gt 1 -or ($text.Contains($pointerStart) -ne $text.Contains($pointerEnd))) { Add-Collision $Path; return }
+    if ($matches.Count -eq 1) {
+        $block = $matches[0].Value
+        # Legacy pointers must match the original generated body, not merely name
+        # this root: a recognizable but customized block still belongs to the user.
+        $legacyTarget = (Join-Path $installRoot 'AGENTS.md').Replace('\','/')
+        $legacyBody = "$pointerStart`nAgentKit shared rules, installed at '$installRoot'. Regenerated by tools/Install-AgentKit.ps1 -`nedit outside this block, never inside it.`n`n@$legacyTarget`n$pointerEnd"
+        $legacy = $manifest.ContainsKey('pointers') -and ($manifest.pointers.Values -contains $Path) -and
+            $block.Replace("`r`n", "`n") -ceq $legacyBody
+        if ($block -cne $prior -and -not $legacy) { Add-Collision $Path; return }
         if ($Remove) {
-            $settings['hooks'][$eventName] = $kept
-        } else {
-            $settings['hooks'][$eventName] = $kept + @((Get-ManagedHookEntry -InstallRoot $InstallRoot -Mode $mode))
+            Save-Text $Path ($text.Remove($matches[0].Index, $matches[0].Length))
+            return
         }
+        $updated = $text.Remove($matches[0].Index, $matches[0].Length).Insert($matches[0].Index, (Get-Pointer))
+    } else {
+        if ($Remove) { return }
+        $updated = $text + $(if ($text -and -not $text.EndsWith("`n")) { "`n" }) + (Get-Pointer) + "`n"
     }
-
-    Write-Plan "claude: $(if ($Remove) { 'remove' } else { 'refresh' }) session-cost hooks in '$settingsPath', pointed at '$InstallRoot'."
-    if (-not $script:DryRunActive) {
-        if (-not (Test-Path -LiteralPath $settingsDir)) { New-Item -ItemType Directory -Path $settingsDir -Force | Out-Null }
-        if (Test-Path -LiteralPath $settingsPath) {
-            Copy-Item -LiteralPath $settingsPath -Destination "$settingsPath.bak" -Force
-        }
-        $settingsJson = ConvertTo-Json -InputObject $settings -Depth 10
-        Set-Content -LiteralPath $settingsPath -Value $settingsJson -NoNewline
-    }
+    Save-Text $Path $updated
+    $script:pointerBlocks[$Path] = Get-Pointer
 }
-
-# --- Pointer blocks in personal rules files ----------------------------------------------
-
-$script:PointerBlockId = 'agentkit-pointer'
-
-function Get-PointerBlock {
-    param([string] $InstallRoot)
-    $startMarker = "<!-- $($script:PointerBlockId):start -->"
-    $endMarker = "<!-- $($script:PointerBlockId):end -->"
-    $sharedRules = (Join-Path $InstallRoot 'AGENTS.md').Replace('\', '/')
-    return @"
-$startMarker
-AgentKit shared rules, installed at '$InstallRoot'. Regenerated by tools/Install-AgentKit.ps1 -
-edit outside this block, never inside it.
-
-@$sharedRules
-$endMarker
-"@
-}
-
-function Update-PointerBlock {
-    param([string] $RulesFile, [string] $InstallRoot, [switch] $Remove)
-
-    $startMarker = "<!-- $($script:PointerBlockId):start -->"
-    $endMarker = "<!-- $($script:PointerBlockId):end -->"
-    $existing = if (Test-Path -LiteralPath $RulesFile) { Get-Content -LiteralPath $RulesFile -Raw } else { '' }
-
-    $pattern = [regex]::Escape($startMarker) + '.*?' + [regex]::Escape($endMarker)
-    $withoutBlock = if ($existing) { [regex]::Replace($existing, $pattern, '', 'Singleline') } else { '' }
-    $withoutBlock = $withoutBlock.TrimEnd()
-
-    if ($Remove) {
-        Write-Plan "Remove AgentKit pointer block from '$RulesFile'."
-        if (-not $script:DryRunActive -and (Test-Path -LiteralPath $RulesFile)) {
-            Set-Content -LiteralPath $RulesFile -Value $withoutBlock -NoNewline
-        }
-        return
+function Update-Hooks([switch] $Remove) {
+    $path = Join-Path $HOME '.claude/settings.json'
+    $settings = if (Test-Path -LiteralPath $path) { Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable } else { @{} }
+    if (-not $settings.ContainsKey('hooks')) { $settings.hooks = @{} }
+    foreach ($event in @('SessionEnd','UserPromptSubmit')) {
+        $mode = if ($event -eq 'SessionEnd') { '-Hook' } else { '-Watch' }
+        $entry = [ordered]@{ hooks = @([ordered]@{ type='command'; command='pwsh'; args=@('-NoProfile','-File',(Join-Path $installRoot 'tools/Measure-Session.ps1').Replace('\','/'),$mode); timeout=$(if ($mode -eq '-Hook') {30} else {10}) }) }
+        $serialized = ConvertTo-Json -InputObject $entry -Depth 10 -Compress
+        $kept = @($settings.hooks[$event] | Where-Object { $_ -and (ConvertTo-Json -InputObject $_ -Depth 10 -Compress) -cne $serialized })
+        $settings.hooks[$event] = if ($Remove) { @($kept) } else { @($kept) + @($entry) }
     }
-
-    $block = Get-PointerBlock -InstallRoot $InstallRoot
-    $updated = if ($withoutBlock) { "$withoutBlock`n`n$block`n" } else { "$block`n" }
-
-    Write-Plan "$(if (Test-Path -LiteralPath $RulesFile) { 'Refresh' } else { 'Write' }) AgentKit pointer block in '$RulesFile'."
-    if (-not $script:DryRunActive) {
-        $dir = Split-Path -Parent $RulesFile
-        if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        Set-Content -LiteralPath $RulesFile -Value $updated -NoNewline
+    $json = ConvertTo-Json -InputObject $settings -Depth 20
+    if ((Test-Path -LiteralPath $path) -and [IO.File]::ReadAllText($path) -cne $json -and -not $DryRun) {
+        # Never overwrite an earlier backup.
+        $backup = "$path.agentkit-$(Get-Hash ([IO.File]::ReadAllText($path))).bak"
+        if (-not (Test-Path -LiteralPath $backup)) { Copy-Item -LiteralPath $path -Destination $backup }
     }
+    Save-Text $path $json
 }
-
-# --- Main ------------------------------------------------------------------------------
-
-$manifest = Read-Manifest
+$pointerBlocks = [ordered]@{}
+if ($manifest.ContainsKey('pointerBlocks')) { foreach ($key in $manifest.pointerBlocks.Keys) { $pointerBlocks[$key] = $manifest.pointerBlocks[$key] } }
 
 if ($Uninstall) {
-    Write-Host "Uninstalling AgentKit links, hooks and pointer blocks (checkout at '$script:InstallRoot' is kept unless -Force)."
-
-    foreach ($hostName in $manifest.hosts.Keys) {
-        Remove-HostSkillLinks -HostName $hostName -LinkNames @($manifest.hosts[$hostName])
+    foreach ($entry in $oldRegistrations) { Remove-Registration $entry }
+    if ($manifest.ContainsKey('hooksManaged') -and $manifest.hooksManaged) { Update-Hooks -Remove }
+    $paths = @($pointerBlocks.Keys)
+    if ($manifest.ContainsKey('pointers')) { $paths += @($manifest.pointers.Values) }
+    foreach ($path in @($paths | Select-Object -Unique)) { Update-Pointer $path -Remove }
+    if (-not $DryRun -and (Test-Path -LiteralPath $manifestPath)) { Remove-Item -LiteralPath $manifestPath }
+    if ($Force -and $exists) {
+        Write-Plan "Delete validated canonical checkout '$installRoot' (-Force)."
+        if (-not $DryRun) { Remove-Item -LiteralPath $installRoot -Recurse -Force }
     }
-    if ($manifest.hooksManaged) {
-        Update-ClaudeHooks -InstallRoot $script:InstallRoot -Remove
-    }
-    foreach ($hostName in $manifest.pointers.Keys) {
-        Update-PointerBlock -RulesFile (Get-HostRulesFile -HostName $hostName) -InstallRoot $script:InstallRoot -Remove
-    }
-
-    Write-Plan "Clear manifest '$script:ManifestPath'."
-    if (-not $script:DryRunActive) {
-        if (Test-Path -LiteralPath $script:ManifestPath) { Remove-Item -LiteralPath $script:ManifestPath -Force }
-    }
-
-    if ($Force) {
-        Write-Plan "Delete checkout '$script:InstallRoot' (-Force)."
-        if (-not $script:DryRunActive -and (Test-Path -LiteralPath $script:InstallRoot)) {
-            Remove-Item -LiteralPath $script:InstallRoot -Recurse -Force
-        }
-    } else {
-        Write-Host "Checkout left at '$script:InstallRoot'. Re-run with -Uninstall -Force to delete it too."
-    }
-
+    Write-Host "Uninstall complete. Root: $installRoot; preserved collisions: $($collisions -join ', ')"
     return
 }
 
-$effectiveSource = if ($Source) { $Source } elseif ($manifest.source) { $manifest.source } else { $null }
-$resolvedVersion = Sync-KitCheckout -InstallRoot $script:InstallRoot -Source $effectiveSource -RequestedVersion $Version
-
-$effectiveHosts = @(if ($Hosts -and $Hosts.Count -gt 0) { $Hosts } else { Get-DetectedHosts })
-if ($effectiveHosts.Count -eq 0) {
-    Write-Warning "No AI tool folders detected under $HOME (~/.claude, ~/.codex, ~/.copilot / ~/.agents). Nothing to link. Pass -Hosts explicitly if one is installed elsewhere."
+if (-not $RegisterOnly) {
+    $previous = if ($exists) { [string](Invoke-Git @('rev-parse','HEAD')) } else { '' }
+    if ($exists) {
+        $dirty = Invoke-Git @('status','--porcelain')
+        if ($dirty) {
+            if (-not $Force) { throw "'$installRoot' has uncommitted changes. Commit, stash, or explicitly use -Force to discard them." }
+            Write-Plan "Discard uncommitted changes at '$installRoot' (-Force)."
+            if (-not $DryRun) { $null = Invoke-Git @('reset','--hard','HEAD'); $null = Invoke-Git @('clean','-fd') }
+        }
+        Write-Plan "Fetch tags and branches at '$installRoot'."
+        if (-not $DryRun) { $null = Invoke-Git @('fetch','origin','--tags','--prune','+refs/heads/*:refs/remotes/origin/*') }
+    } else {
+        Write-Plan "Clone '$effectiveSource' into '$installRoot'."
+        if (-not $DryRun) {
+            $parent = Split-Path -Parent $installRoot
+            $null = New-Item -ItemType Directory -Path $parent -Force
+            $null = Invoke-Git @('clone','--origin','origin',$effectiveSource,$installRoot) $parent
+        }
+    }
+    if ($DryRun -and -not $exists) {
+        Write-Host "DRY RUN: requested $(if ($Version) {$Version} else {'latest stable release'}); tags unresolved until clone. No files written."
+        return
+    }
+    $resolved = if ($Version) { $Version } else { Resolve-StableTag }
+    if ($resolved.StartsWith('-')) { throw 'Version must be a tag, branch, or SHA, not a Git option.' }
+    & git -C $installRoot show-ref --verify --quiet "refs/tags/$resolved"
+    $isTag = $LASTEXITCODE -eq 0
+    & git -C $installRoot show-ref --verify --quiet "refs/remotes/origin/$resolved"
+    $isBranch = -not $isTag -and $LASTEXITCODE -eq 0
+    $ref = if ($isTag) { "refs/tags/$resolved" } elseif ($isBranch) { "refs/remotes/origin/$resolved" } else { $resolved }
+    $sha = [string](Invoke-Git @('rev-parse','--verify',"$ref^{commit}"))
+    # Refuse a release predating the front door rather than claim it installs new behavior.
+    $frontDoor = & git -C $installRoot cat-file -e "${sha}:setup.ps1" 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "Version '$resolved' ($sha) predates the global front door. Publish a release containing this change after merge, or explicitly use -Version main for unreleased work." }
+    if ($isBranch) {
+        & git -C $installRoot show-ref --verify --quiet "refs/heads/$resolved"
+        if ($LASTEXITCODE -eq 0) {
+            & git -C $installRoot merge-base --is-ancestor "refs/heads/$resolved" $sha
+            if ($LASTEXITCODE -ne 0) { throw "Local branch '$resolved' has unpublished or divergent commits; not resetting it. Previous commit: $previous." }
+        }
+    }
+    Write-Plan "Requested: $(if ($Version) {$Version} else {'latest stable'}); resolved: $resolved ($sha)."
+    if ($DryRun) { Write-Host 'DRY RUN: checkout and refresh selected managed registrations, hooks and shared pointers; no files written.'; return }
+    if ($isBranch) {
+        $null = Invoke-Git @('checkout',$resolved)
+        $null = Invoke-Git @('merge','--ff-only',$sha)
+    } else { $null = Invoke-Git @('checkout','--detach',$sha) }
+    $argsForSelected = @{ Version=$resolved; Source=$effectiveSource; Prefix=$Prefix; RegisterOnly=$true; PreviousCommit=$previous; RequestedVersion=$(if ($Version) {$Version} else {'latest stable'}) }
+    if ($Hosts) { $argsForSelected.Hosts=$Hosts }
+    # Invoke freshly loaded definitions, even when this script was read before checkout moved.
+    try { & (Join-Path $installRoot 'tools/Install-AgentKit.ps1') @argsForSelected }
+    catch { throw "Setup failed after selecting $sha. Previous commit: $previous. No automatic reset. Recovery: pwsh -File '$installRoot/setup.ps1' -Version '$previous'. Error: $_" }
+    return
 }
 
-$newHostLinks = [ordered]@{}
+# Verify canonical dependencies before writing host state. A download of SKILL.md alone
+# cannot satisfy this boundary.
+foreach ($relative in @('AGENTS.shared.md','.claude/COMPANIONS.md','templates','tools/Invoke-CodexCommand.ps1','tools/Start-AgentKitCodex.ps1','tools/Get-AgentKitSkill.ps1')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $installRoot $relative))) { throw "Incomplete runtime: missing '$relative'." }
+}
+$skills = @(Get-ChildItem -LiteralPath (Join-Path $installRoot 'skills') -Directory | Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md') } | Sort-Object Name)
+$effectiveHosts = @(if ($Hosts) { $Hosts | Select-Object -Unique } else { Get-DetectedHosts })
+if (-not $effectiveHosts.Count) { Write-Warning 'No supported host detected. Pass -Hosts claude, codex, or copilot explicitly.' }
+foreach ($entry in $oldRegistrations) { if ($entry.host -notin $effectiveHosts) { $registrations.Add($entry) } }
+
+function New-Adapter([string] $Name, [string] $RegistrationName, [string] $HostName, [bool] $Routed) {
+    $root = $installRoot.Replace('\','/')
+    $escaped = $installRoot.Replace("'", "''")
+    $mode = if ($Routed) { 'routed, separate terminal' } elseif ($HostName -eq 'codex') { 'native, current session' } else { 'native' }
+    $header = "---`nname: $RegistrationName`ndescription: 'AgentKit /$Name ($mode). Use only when the user requests this command.'`n---`n"
+    if ($HostName -eq 'claude') { $header = $header.Replace("`n---`n", "`ndisable-model-invocation: true`n---`n") }
+    $dependencies = "Runtime: [$root]($root). Read [$root/AGENTS.shared.md]($root/AGENTS.shared.md) and [$root/.claude/COMPANIONS.md]($root/.claude/COMPANIONS.md). Kit scripts and templates resolve under this runtime; project files and companions stay relative to the current project.`n"
+    if ($Routed) {
+        return $header + $dependencies + @"
+
+This is an explicit routed invocation. Do not execute the command in this session.
+Write the user's command arguments verbatim as a UTF-8 JSON array of strings to a
+unique temporary file outside the project. Do not interpolate arguments into shell code.
+Invoke the following in PowerShell, substituting only the temporary file's literal path:
+
+``````powershell
+& '$escaped/tools/Start-AgentKitCodex.ps1' -Command '$Name' -ArgumentsFile '<temporary JSON path>' -NewWindow
+``````
+
+This opens a visible Windows terminal. The user interacts with that terminal for
+approvals and session completion. Report that it launched; do not claim the command
+completed. Never substitute headless codex exec or auto-answer child approvals.
+"@
+    }
+    $native = if ($HostName -eq 'codex') { 'Execution mode: native Codex. Keep the current session model and effort under the explicit native-mode exception in the shared rules linked above; do not claim routed tier verification. For enforced command routing use the corresponding -routed skill.' } else { 'Execute the core using this host and its normal model policy.' }
+    return $header + $dependencies + @"
+
+$native
+
+Load the complete canonical command through this reader, then execute the returned
+body with the user's arguments. The reader resolves kit dependencies to absolute
+paths without moving project companions or project files:
+
+``````powershell
+& '$escaped/tools/Get-AgentKitSkill.ps1' -Command '$Name'
+``````
+
+The source is [$root/skills/$Name/SKILL.md]($root/skills/$Name/SKILL.md).
+Treat the user's command arguments as data for the core's placeholders (including
+spaces, quotes and multiline text). Do not invoke this global adapter recursively.
+"@
+}
+
 foreach ($hostName in $effectiveHosts) {
-    # Drop links this run no longer produces (a version change removed a skill, or -Prefix
-    # changed) before creating this run's set, so a stale junction never survives an update.
-    $previousLinks = if ($manifest.hosts.Contains($hostName)) { @($manifest.hosts[$hostName]) } else { @() }
-    $freshLinks = @(Install-HostSkillLinks -HostName $hostName -InstallRoot $script:InstallRoot -Prefix $Prefix -Manifest $manifest)
-    $toRemove = @($previousLinks | Where-Object { $_ -notin $freshLinks })
-    Remove-HostSkillLinks -HostName $hostName -LinkNames $toRemove
-    if ($freshLinks.Count -gt 0) { $newHostLinks[$hostName] = $freshLinks }
+    $desired = [Collections.Generic.List[string]]::new()
+    foreach ($skill in $skills) {
+        foreach ($routed in @(if ($hostName -eq 'codex') { $false; $true } else { $false })) {
+            $name = "$Prefix$($skill.Name)$(if ($routed) {'-routed'})"
+            $path = Join-Path (Get-HostRoot $hostName) "skills/$name"
+            $desired.Add($path)
+            $old = @($oldRegistrations | Where-Object { $_.path -eq $path } | Select-Object -First 1)
+            $item = Get-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+            if ($item -and (-not $old.Count -or -not (Test-Owned $old[0]))) { Add-Collision $path; if ($old.Count) {$registrations.Add($old[0])}; continue }
+            if ($item -and $old[0].kind -eq 'link') { Remove-Registration $old[0] }
+            $text = New-Adapter $skill.Name $name $hostName $routed
+            $marker = "AgentKit registration`nRoot: $installRoot`nHost: $hostName`nName: $name`n"
+            Write-Plan "Register $hostName/$name -> $installRoot"
+            Save-Text (Join-Path $path 'SKILL.md') $text
+            Save-Text (Join-Path $path '.agentkit-owner') $marker
+            $registrations.Add([ordered]@{host=$hostName;name=$name;path=$path;root=$installRoot;kind='files';files=[ordered]@{'SKILL.md'=(Get-Hash $text);'.agentkit-owner'=(Get-Hash $marker)}})
+        }
+    }
+    foreach ($stale in @($oldRegistrations | Where-Object { $_.host -eq $hostName -and $_.path -notin $desired })) { Remove-Registration $stale }
+    Update-Pointer (Get-RulesPath $hostName)
 }
-
-if ('claude' -in $effectiveHosts) {
-    Update-ClaudeHooks -InstallRoot $script:InstallRoot
+if ('claude' -in $effectiveHosts) { Update-Hooks }
+$sha = [string](Invoke-Git @('rev-parse','HEAD'))
+$nextManifest = [ordered]@{
+    schemaVersion=2; installRoot=$installRoot; source=$effectiveSource; requestedVersion=$RequestedVersion;
+    version=$Version; commit=$sha; previousCommit=$(if ($manifest.ContainsKey('commit') -and $manifest.commit -eq $sha) {$manifest.previousCommit} else {$PreviousCommit}); registrations=@($registrations);
+    hooksManaged=('claude' -in $effectiveHosts -or ($manifest.ContainsKey('hooksManaged') -and [bool]$manifest.hooksManaged)); pointerBlocks=$pointerBlocks
 }
-
-$newPointers = [ordered]@{}
-foreach ($hostName in $effectiveHosts) {
-    $rulesFile = Get-HostRulesFile -HostName $hostName
-    Update-PointerBlock -RulesFile $rulesFile -InstallRoot $script:InstallRoot
-    $newPointers[$hostName] = $rulesFile
+Save-Text $manifestPath (ConvertTo-Json -InputObject $nextManifest -Depth 20)
+# A successful report is grounded in actual registration bytes and runtime dependencies.
+foreach ($entry in $registrations) {
+    if ($entry.path -notin $collisions -and -not (Test-Owned $entry)) { throw "Registration verification failed: $($entry.path)" }
 }
-
-$manifest.version = if ($resolvedVersion) { $resolvedVersion } else { $manifest.version }
-$manifest.source = $effectiveSource
-$manifest.installedAt = (Get-Date).ToString('o')
-$manifest.hosts = $newHostLinks
-$manifest.hooksManaged = ('claude' -in $effectiveHosts)
-$manifest.pointers = $newPointers
-Write-Manifest -Manifest $manifest
-
-if ($script:DryRunActive) {
-    Write-Host "`nDRY RUN - nothing above was written."
-} else {
-    Write-Host "`nInstalled AgentKit '$($manifest.version)' at '$script:InstallRoot' for: $($effectiveHosts -join ', ')."
-}
+Write-Host "AgentKit source: $effectiveSource"
+Write-Host "Requested: $RequestedVersion; resolved: $Version ($sha); root: $installRoot"
+Write-Host "Hosts: $($effectiveHosts -join ', '); registrations: $((@($registrations | ForEach-Object { "$($_.host)/$($_.name)" })) -join ', ')"
+Write-Host "Skipped collisions: $($collisions -join ', ')"
+Write-Host 'Verified: canonical runtime dependencies and owned registration bytes. Restart hosts for discovery; host execution is not claimed by setup.'

@@ -29,19 +29,96 @@ design/                       the kit's own design. Never installed
 
 ## Installing
 
-Work in this repo and say **"run this against `<path>`"**, or `/install <path>`. It works from the target end too, pointed back at the kit. Either way the agent reads [`INSTALL.md`](INSTALL.md) and follows it.
+Install AgentKit once for the machine, then use its skills from any project. PowerShell 7 and Git are required. The checkout is `$env:AGENTKIT_HOME` when that variable is set, otherwise `$HOME/.agent-kit`.
+
+Paste this into an agent when you want it to perform the setup: **Install the public AgentKit checkout globally in `AGENTKIT_HOME` or `$HOME/.agent-kit`; verify an existing checkout's origin is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`; then run its on-disk `setup.ps1` for the newest stable release. Detect and register every supported host, verify the result, and report the version, commit, registrations and collisions. Do not modify the current project or use `iex`, implicit `main`, or an unverified origin.**
+
+```powershell
+if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'AgentKit requires PowerShell 7. Run this in pwsh.' }
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'AgentKit requires Git on PATH.' }
+$kitHome = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }
+$source = 'https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git'
+
+if (-not (Test-Path -LiteralPath (Join-Path $kitHome '.git'))) {
+    if (Test-Path -LiteralPath $kitHome) {
+        throw "'$kitHome' exists but is not an AgentKit checkout. Choose an empty path or set AGENTKIT_HOME."
+    }
+    git clone $source $kitHome
+    if ($LASTEXITCODE -ne 0) { throw 'AgentKit clone failed; setup was not run.' }
+}
+
+$origin = (git -C $kitHome remote get-url origin).Trim()
+if ($origin -ne $source) {
+    throw "'$kitHome' has origin '$origin', not the canonical AgentKit source '$source'."
+}
+
+$bootstrapHome = $null
+try {
+    $entryRoot = $kitHome
+    if (-not (Test-Path -LiteralPath (Join-Path $entryRoot 'setup.ps1'))) {
+        # A managed checkout from an older release has no front door yet.
+        $bootstrapHome = Join-Path ([IO.Path]::GetTempPath()) ('agentkit-bootstrap-' + [guid]::NewGuid())
+        git clone --depth 1 $source $bootstrapHome
+        if ($LASTEXITCODE -ne 0) { throw 'AgentKit bootstrap clone failed.' }
+        $entryRoot = $bootstrapHome
+    }
+    & (Join-Path $entryRoot 'setup.ps1')
+} finally {
+    if ($bootstrapHome -and (Test-Path -LiteralPath $bootstrapHome)) {
+        Remove-Item -LiteralPath $bootstrapHome -Recurse -Force
+    }
+}
+```
+
+The default installs the newest valid stable tag named `vYYYY.MM.DD` (with an optional `.N` release suffix). It never falls back to `main`: pass `-Version main` only when you deliberately want that branch. Omit `-Hosts` to detect available host CLI executables and their personal directories: Claude uses `~/.claude`, Codex uses `$CODEX_HOME` when set or `~/.codex` otherwise, and Copilot uses `~/.copilot` (with `~/.agents` also counted for detection). Select a host explicitly when you want only that host refreshed.
+
+To update, roll back, select a branch or SHA, change names, preview, or remove the install, run the same checked-out entry point:
+
+```powershell
+$kitHome = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }
+& (Join-Path $kitHome 'setup.ps1') # Update to latest stable; also the idempotent re-run
+& (Join-Path $kitHome 'setup.ps1') -Hosts codex
+& (Join-Path $kitHome 'setup.ps1') -Hosts claude
+& (Join-Path $kitHome 'setup.ps1') -Version 'vYYYY.MM.DD' # Replace with an existing front-door-capable release
+& (Join-Path $kitHome 'setup.ps1') -Version '<commit-sha>' # Replace with a full commit SHA
+& (Join-Path $kitHome 'setup.ps1') -Version main
+& (Join-Path $kitHome 'setup.ps1') -Prefix ak-
+& (Join-Path $kitHome 'setup.ps1') -DryRun
+& (Join-Path $kitHome 'setup.ps1') -Uninstall
+& (Join-Path $kitHome 'setup.ps1') -Uninstall -Force
+```
+
+`-Prefix ak-` installs names such as `$ak-slice` and `$ak-slice-routed`. Existing foreign or modified skill entries are collisions: the installer warns, skips, and preserves them. `-Uninstall` removes only unchanged registrations, hooks, and pointers the manifest records; `-Uninstall -Force` additionally deletes the validated canonical checkout.
+
+Any selected tag, branch, or SHA that lacks `setup.ps1` is unsupported and is refused before checkout. Rollback is therefore limited to front-door-capable releases. The bootstrap always runs the script from disk; it does not fetch and execute text with `iex`.
+
+On a fresh machine, cloning is the one necessary write before `-DryRun` can inspect an installed checkout. Once the checkout exists, `-DryRun` makes no install, registration, or version-selection changes.
+
+Create a stable release only after the merged SHA has passed its required workflow gates. A repository maintainer then chooses an unused `vYYYY.MM.DD` or `vYYYY.MM.DD.N` tag and points it at that merged SHA. This implementation PR does not create a tag. Until a release containing it is published, default stable installation cannot satisfy the new global-install acceptance criteria. After merge and successful release gates, the maintainer runs (substitute the verified SHA and unused date tag):
+
+```powershell
+git fetch origin main --tags
+$releaseCommit = '<verified-merged-sha>'
+$releaseTag = 'vYYYY.MM.DD' # Or vYYYY.MM.DD.N when that date is already used
+git tag -a $releaseTag $releaseCommit -m "AgentKit $releaseTag: global native and routed skills"
+git push origin "refs/tags/$releaseTag"
+```
+
+Then exercise the fresh install block above without `-Version` and confirm the reported commit includes this implementation. Merge and tagging still require the maintainer's authorization.
+
+Once the kit is installed, work in a target repository and use `/install <path>` when that repository needs its project-owned files seeded or reconciled. The command reads [`INSTALL.md`](INSTALL.md) from the installed kit.
 
 Installing is a **reconciliation, not a copy**. A repository that already has agent instructions has them for a reason, usually a better-informed one than this kit's defaults. The installer classifies every artifact as absent, identical, divergent, or occupied; proposes a resolution for each; and stops for sign-off before writing. Re-running it upgrades, with the target winning wherever it has since been edited.
 
-**Command files are outside that, on purpose.** Each one ships as a **core** the consuming repository never edits, optionally paired with a **companion** at `skills/<name>/SKILL-local.md` that the repository owns entirely. The core names which categories its companion may override — vocabulary, document map, extra steps, gate commands, a tightened authorization — and [`.claude/COMPANIONS.md`](.claude/COMPANIONS.md) holds the vocabulary and the never-list. A core installs outright, with no reconciliation pass at all; a companion is never read, written, or deleted by any automated path. `tools/Test-Companion.ps1` checks the split holds.
+**Command files are outside that, on purpose.** Each host receives an ownership-tracked generated adapter that resolves the canonical skill body in the installed checkout. Codex receives both a thin native skill and a thin `-routed` skill for each command. A target repository never receives a core copy; it may keep a companion at `skills/<name>/SKILL-local.md` that it owns entirely. The core names which categories its companion may override — vocabulary, document map, extra steps, gate commands, a tightened authorization — and [`.claude/COMPANIONS.md`](.claude/COMPANIONS.md) holds the vocabulary and the never-list. A companion is never read, written, or deleted by an automated path. `tools/Test-Companion.ps1` checks the split holds.
 
 `/install-all` runs the same reconciliation unattended, across every `SubZeroDev.*` sibling repository in one pass. It applies only the resolutions `INSTALL.md` already states as deterministic; anything that would otherwise stop for sign-off is skipped per repository and reported as needing a decision, not guessed.
 
-Once a repository has the kit installed, `/sync` keeps it current without anyone having to locate the kit by hand: it clones (or fast-forwards) a shared checkout at `~/.agent-kit`, then runs the same `INSTALL.md` reconciliation against the current repository as the target. It asks which branch the first time, and remembers the answer in `.claude/kit.json`.
+Use the same global `setup.ps1` command to update or roll back the shared checkout. `/sync` updates that checkout to the newest stable release (or an explicitly requested version), then reconciles the current target repository.
 
 Design docs install at `design/` in the repository root, deliberately — `docs/` is usually occupied by a documentation site, and a design directory inside its build context gets baked into the published image. `INSTALL.md` still checks the path before creating anything.
 
-To do it by hand instead: copy `AGENTS.shared.md`, `CLAUDE.md`, `agent.md`, `.claude/`, `skills/`, and `design/` into the repo root, then write an `AGENTS.md` that points to `AGENTS.shared.md` the way this repo's does. Profiles go in `~/.codex/`, not the repo.
+The installer owns the shared adapters and pointers. A target retains only its project rules, design, lessons, issue templates, and any local companions.
 
 ## Three files, three jobs
 
@@ -69,7 +146,7 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | 7 Reconcile | `/align` | design docs, `agent.md` |
 | 8 Human docs | `/docs` | `docs/docs/guide.md` (generated) |
 
-Outside the numbered stages: `/help` says where the repository is and what to run next, `/pr` takes a branch to merge-ready — description, then gates, then review threads — following the repo's own merge convention, `/check` and `/resolve` are `/pr`'s gate and thread phases and stay callable on their own, `/fix` reproduces and fixes a defect that has no slice, `/clean` switches back to the default branch and cleans up merged local branches, `/track` syncs `design/` to GitHub issues, `/install` puts the kit into a repo, `/install-all` runs that same install unattended across every sibling repo, and `/sync` updates a shared `~/.agent-kit` checkout and re-runs that install against the current repo.
+Outside the numbered stages: `/help` says where the repository is and what to run next, `/pr` takes a branch to merge-ready — description, then gates, then review threads — following the repo's own merge convention, `/check` and `/resolve` are `/pr`'s gate and thread phases and stay callable on their own, `/fix` reproduces and fixes a defect that has no slice, `/clean` switches back to the default branch and cleans up merged local branches, `/track` syncs `design/` to GitHub issues, `/install` reconciles a target repository's project-owned files, `/install-all` migrates those files across sibling repositories, and `/sync` updates the shared checkout before reconciling the current target.
 
 `/tune` is the front door for asks that fall between the stages. Every other command assumes you are already inside the pipeline — `/slice` needs a slice, `/spec` needs a design. `/tune` takes a rough ask, routes it to the command that owns it where one does, and otherwise emits a prompt carrying the constraints that bind it. It emits rather than executes, because the tier it names is usually not the tier it is running at.
 
@@ -81,7 +158,7 @@ Effort tracks irreversibility, not stage prestige. Schemas and public interfaces
 
 **Run [`/help`](skills/help/SKILL.md).** It works out where the repository actually is — which design docs exist, which branch you are on, what the tracker says — and tells you the current step, the next one, and whether it needs a fresh session. `/help all` shows the whole flow.
 
-That command holds the walkthrough, rather than this file, because commands install into target repositories and this README does not. The shape it walks:
+That command holds the walkthrough, rather than this file, because global command adapters and target-specific reconciliation have different scopes. The shape it walks:
 
 - **Stages 0 to 5, once per project.** One session each, ending in a committed file that is the next stage's only input. Three of them stop rather than proceed — `/design` on a thin brief, `/spec` on a signature the design does not determine, `/redteam` at findings. Sending work back a stage costs a few thousand tokens; finding it in stage 6 costs a re-implementation.
 - **Stage 6, once per slice.** `/slice` (branches, implements, commits, pushes, opens the PR — never as a draft — ticks the boxes it confirms) → `/pr` (writes the real description, runs the gates into its `Verified` section, then works the review threads) → merge → `/track` in a new session. One slice, one branch, one session.
@@ -95,52 +172,22 @@ That command holds the walkthrough, rather than this file, because commands inst
 
 `/slice` takes the slice id, or no argument at all — bare, it takes the lowest-numbered slice whose issue is neither closed nor fully ticked and whose dependencies are done, says which it picked, and proceeds. It asks rather than guessing when the tracker cannot be read, since doneness is not observable from the working tree.
 
-**Codex CLI** — no slash-command equivalent, so pipe the command body in:
+**Codex** — installation creates two explicit skills per command. `$<command>` is the native mode: it reads the canonical skill from the installed checkout and works in the current Codex session. It intentionally uses that session's model and approval context; the shared contract carries the narrow model-gate exception for this native path. `$<command>-routed` runs `Start-AgentKitCodex.ps1` with `-NewWindow`, which opens a visible Windows terminal and launches the command through the existing profile, approval, and sandbox routing. Approvals and interaction happen in that visible terminal; opening it is not proof the command has completed.
+
+Use native mode when the current session is the one you want to work in. Use routed mode when command routing and its profiles must select the session. Both read the same canonical skill and preserve the command arguments.
+
+For direct automation, call the routed launcher rather than rebuilding a prompt manually:
 
 ```powershell
-# stage 2
-codex --profile architect exec (Get-Content skills/design/SKILL.md -Raw)
-
-# stage 3, adversarial, sandboxed read-only
-codex --profile architect exec (Get-Content skills/redteam/SKILL.md -Raw)
-
-# stage 6, one slice
-codex --profile builder exec ((Get-Content skills/slice/SKILL.md -Raw) -replace '\$1','S3')
-
-# stage 6, whichever slice is next
-codex --profile builder exec ((Get-Content skills/slice/SKILL.md -Raw) -replace '\$1','')
-
-# stage 6, mechanical edits only
-codex --profile quick exec ((Get-Content skills/slice/SKILL.md -Raw) -replace '\$1','S7')
+& (Join-Path $kitHome 'tools/Start-AgentKitCodex.ps1') -Command slice -ArgumentsFile .\agentkit-arguments.json -NewWindow
 ```
-
-Wrap it:
-
-```powershell
-# Invoke-Stage.ps1
-param(
-  [Parameter(Mandatory)][string]$Stage,
-  [string]$Slice,
-  [ValidateSet('architect','builder','quick')][string]$Profile = 'builder'
-)
-$body = Get-Content "skills/$Stage/SKILL.md" -Raw
-if ($Slice) { $body = $body -replace '\$1', $Slice }
-codex --profile $Profile exec $body
-```
-
-```powershell
-.\Invoke-Stage.ps1 -Stage design -Profile architect
-.\Invoke-Stage.ps1 -Stage slice -Slice S3
-```
-
-The YAML frontmatter in each command file is inert to Codex — harmless, ignored.
 
 ## Cross-vendor rule for stage 3
 
 Stage 3 only works if the reviewer did not write the design. Same model, fresh context, is weak — it recognises its own output distribution and defends it. Alternate:
 
-- Design in Claude Code (Opus) → red team with `codex --profile architect`
-- Design with `codex --profile architect` (Sol) → red team in Claude Code (Opus)
+- Design in Claude Code (Opus) → red team with `$redteam-routed`
+- Design with Codex through `$design-routed` → red team in Claude Code (Opus)
 
 That the two never share a session is stated in [`AGENTS.shared.md`](AGENTS.shared.md), *Session boundaries*, with the rest of them.
 
@@ -164,9 +211,9 @@ It reports the four input classes separately because they are priced differently
 
 **Claude Code only, and it errors rather than guessing.** Every transcript is shape-checked before it is summed, because a foreign transcript parsed for `message.usage` sums to zero and a zero is indistinguishable from a session that cost nothing. Codex stores `~/.codex/sessions/**/rollout-*.jsonl` and records usage as `token_count` events under `payload.info` — readable in principle, unimplemented here, and counted per turn rather than per call. Copilot stores `globalStorage/github.copilot-chat/session-store.db`, whose `turns` table has no usage column at all; it meters premium requests, not tokens, so there is nothing to read at any effort. Both are named explicitly when the script meets one.
 
-Two hooks in `.claude/settings.json` run the same script automatically. `SessionEnd` appends one row per session to `.claude/session-costs.tsv`, which is gitignored — a convenience, not the record, since transcripts are durable and a session that ends without the hook firing is recovered by running the script again. `UserPromptSubmit` runs `-Watch`, which is silent until the session's context crosses a threshold and then says so on each prompt, while the session can still be ended.
+Two global hooks in `~/.claude/settings.json` run the same script automatically. `SessionEnd` appends one row per session to the current project's `.claude/session-costs.tsv`, which is gitignored — a convenience, not the record, since transcripts are durable and a session that ends without the hook firing is recovered by running the script again. `UserPromptSubmit` runs `-Watch`, which is silent until the session's context crosses a threshold and then says so on each prompt, while the session can still be ended.
 
-That second hook exists because measurement found session cost is roughly **quadratic in turn count** — per-call context grows with conversation length, and you pay it again every turn. Ending a long session is worth more than any per-command saving. These two hooks are the only thing an install may write into a target's `settings.json`, under the conditions in [`INSTALL.md`](INSTALL.md).
+That second hook exists because measurement found session cost is roughly **quadratic in turn count** — per-call context grows with conversation length, and you pay it again every turn. Ending a long session is worth more than any per-command saving. These are global Claude settings managed by the install, not target-repository settings.
 
 ## When to skip most of this
 

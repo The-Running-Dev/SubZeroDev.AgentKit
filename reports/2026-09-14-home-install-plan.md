@@ -12,7 +12,7 @@ let Claude Code, Codex and Copilot use it from there in every project.
 
 - **Source repo:** `D:\Dropbox\Projects\SubZeroDev.AgentKit`
 - **Modelled on:** [garrytan/gstack](https://github.com/garrytan/gstack)
-- **Status:** phase 0 done ([findings](2026-09-14-home-install-phase0.md)); output-language work merged; phase 1 is next
+- **Status:** phases 0–4 have their historical evidence below; the consumer front door and dual Codex skills are implemented on the global-install feature branch. Phase 5 repository migration remains incomplete. See [consumer-install verification](2026-09-17-global-install-verification.md) for current evidence and release gates.
 
 ---
 
@@ -63,7 +63,7 @@ working branch.
 
 | Item | What it is |
 |---|---|
-| `skills/<name>/SKILL.md` | The 23 commands, converted to skills |
+| `skills/<name>/SKILL.md` | The command bodies, resolved from the canonical checkout by ownership-tracked generated host adapters |
 | `tools/*.ps1` | Scripts the skills call |
 | `AGENTS.md` (shared part) | Rules that apply to every project |
 | `.claude/COMPANIONS.md`, `INSTALL.md`, `templates/` | Rules for per-repo tweaks, repo setup procedure, seed design docs |
@@ -118,7 +118,7 @@ Findings: [`2026-09-14-home-install-phase0.md`](2026-09-14-home-install-phase0.m
 - **Junctions work** in all three tools, including across drives (`C:` → `D:`). No copy fallback.
 - **Personal skills folders:** Claude `~/.claude/skills/`, Codex `~/.codex/skills/`, Copilot `~/.copilot/skills/` or `~/.agents/skills/`.
 - **No name clashes** in this account's current skill list. `-Prefix` stays as the hedge.
-- **Codex runs kit commands through `Invoke-CodexCommand.ps1`**, which picks the model, effort and sandbox per command. Kit skills are not linked into `~/.codex/skills/`; the launcher reads them from the install instead (phase 1 step 3, phase 2 step 2).
+- **Codex has both modes:** a thin native skill in its personal skills folder resolves the canonical command body in the current session; a thin `-routed` skill calls `Start-AgentKitCodex.ps1`, which preserves `Invoke-CodexCommand.ps1`'s model, effort, approval, and sandbox routing. Both adapters read the installed checkout (phase 1 step 3, phase 2 step 2).
 
 Not answered by a real run, so checked in the phase 3 trial: a fresh Claude session lists a junctioned skill;
 a personal skill wins over a repo's copy in Claude and Copilot; `disable-model-invocation`; arguments arrive;
@@ -148,7 +148,7 @@ One PowerShell script does install, update, rollback, testing unreleased work, a
 
 ```text
 tools/Install-AgentKit.ps1
-  -Version  <tag | branch | sha>   # default: latest tag, else main
+  -Version  <tag | branch | sha>   # default: newest valid stable vYYYY.MM.DD[.N] tag
   -Source   <url | local path>     # default: recorded source; a local path tests unreleased work
   -Hosts    claude,codex,copilot   # default: auto-detect what's installed
   -Prefix                          # optional: install as /ak-slice instead of /slice
@@ -157,17 +157,18 @@ tools/Install-AgentKit.ps1
 ```
 
 1. Clone or fetch `~/.agent-kit`. The existing `/kit-sync` clone is adopted: check its `origin`, refuse if it has uncommitted changes. Check out the requested version.
-2. For each detected tool, create one junction per skill folder in that tool's personal skills folder, using the paths confirmed in phase 0. Codex is the exception: it gets no skill junctions, because kit commands reach it through the launcher.
-3. Record every link it made in a manifest outside the checkout (for example `~/.agent-kit-state/installed.json`). Only ever remove links listed there. If a folder with the same name exists and isn't in the manifest, skip it with a warning, the way gstack protects your own skills.
+2. For each detected tool, create ownership-tracked generated adapters in that tool's personal skills folder using the paths confirmed in phase 0. Each adapter resolves the canonical skill body without copying it. Codex receives a thin native adapter and a thin `-routed` adapter per command: the native mode keeps the current session, while routed mode calls `Start-AgentKitCodex.ps1` with the command, a JSON arguments file, and `-NewWindow` to open a visible Windows terminal.
+3. Record every generated adapter it made in a manifest outside the checkout (for example `~/.agent-kit-state/installed.json`). Only ever remove an adapter listed there after validating its ownership marker and content hashes. If a folder with the same name exists and isn't in the manifest, skip it with a warning, the way gstack protects your own skills.
 4. Add or refresh the kit's hooks in `~/.claude/settings.json`. Touch only its own entries and back the file up first.
 5. Add or refresh a marked pointer block in each tool's personal rules file so the shared `AGENTS.md` loads everywhere.
 6. Print the installed version and what changed. Add a thin `/kit-update` skill that just runs the script.
 7. Ship a `kit-sync` skill that only says to use `/kit-update`. A repo still carrying the old `/kit-sync` would otherwise check out `main` in `~/.agent-kit` and move every project off the pinned version. Relies on personal skills winning (phase 0).
+8. Ship root `setup.ps1` as the stable global front door. It accepts the installer's `-Version`, `-Source`, `-Hosts`, `-Prefix`, `-DryRun`, `-Uninstall`, and `-Force` surface and delegates from disk to `tools/Install-AgentKit.ps1`. On first use, clone the canonical public GitHub source into `AGENTKIT_HOME` or `$HOME/.agent-kit`; an existing checkout's `origin` must match first. With no version, select only the newest valid stable `vYYYY.MM.DD` or `vYYYY.MM.DD.N` tag. Do not fall back to `main`; selecting `main` is explicit. A requested historical release that lacks `setup.ps1` fails with a post-front-door-release requirement rather than claiming it is already installed.
 
 **Done when**
 
 - [x] Pester tests cover a fresh install, re-running with no changes, a version change, rollback, adopting the existing clone, skipping a foreign folder, and uninstall removing only its own links. Verified 2026-09-17: `tools/Install-AgentKit.Tests.ps1` has one `It` per scenario, all passing in the full suite run.
-- [x] Running it twice in a row changes nothing the second time. Verified 2026-09-17: `tools/Install-AgentKit.Tests.ps1` — "changes nothing except installedAt when run twice with identical arguments", passing.
+- [x] Running it twice in a row changes nothing the second time. Verified 2026-09-17: `tools/Install-AgentKit.Tests.ps1` — "reruns with identical registration bytes and no backup churn", passing; this now compares the manifest byte-for-byte too.
 
 ### Phase 3 — Trial on one repo (about a day)
 

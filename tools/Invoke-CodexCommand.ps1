@@ -85,9 +85,14 @@
 .PARAMETER WhatIf
     Print the resolved codex invocation instead of running it.
 
+.PARAMETER SkillArguments
+    Explicit routed-wrapper user arguments. They are encoded as a JSON array inside the canonical
+    skill prompt, preserving argument boundaries, quotes, spaces, and newlines. They are never
+    interpreted as additional Codex CLI flags or model/profile overrides.
+
 .PARAMETER CodexArgs
-    Everything after the command name/flags is passed through to `codex` verbatim (e.g.
-    the prompt text, or `resume <id>`).
+    Everything after the command name/flags is passed through to `codex` verbatim (for example,
+    prompt text or `resume <id>`). This is the legacy direct-launcher interface.
 
 .EXAMPLE
     ./tools/Invoke-CodexCommand.ps1 help
@@ -113,6 +118,8 @@ param(
     [switch] $List,
 
     [switch] $WhatIf,
+
+    [string[]] $SkillArguments,
 
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]] $CodexArgs = @()
@@ -208,11 +215,39 @@ function Get-SkillContent {
     param([Parameter(Mandatory)][string] $Name)
 
     $root = Get-AgentKitInstallRoot
-    $path = Join-Path $root "skills/$Name/SKILL.md"
-    if (-not (Test-Path -LiteralPath $path)) {
-        throw "Skill file not found at '$path' (install root '$root'). Set `$env:AGENTKIT_HOME or install the kit to `$HOME/.agent-kit."
+    $reader = Join-Path $root 'tools/Get-AgentKitSkill.ps1'
+    if (-not (Test-Path -LiteralPath $reader -PathType Leaf)) {
+        throw "Skill reader not found at '$reader' (install root '$root'). Set `$env:AGENTKIT_HOME or install the kit to `$HOME/.agent-kit."
     }
-    return Get-Content -LiteralPath $path -Raw
+    return & $reader -Command $Name
+}
+
+function New-AgentKitSkillPrompt {
+    <#
+        Builds the one prompt handed to Codex for an ordinary routed command. The command's
+        canonical SKILL.md is the instruction source; the launcher must not ask Codex to dispatch
+        through another wrapper, because that would either recurse or depend on a wrapper that is
+        absent from a home install. User arguments are represented as JSON so one argument cannot
+        become several arguments through shell parsing.
+    #>
+    param(
+        [Parameter(Mandatory)][string] $Name,
+        [string[]] $UserArguments = @()
+    )
+
+    $skill = Get-SkillContent -Name $Name
+    $argumentJson = ConvertTo-Json -InputObject @($UserArguments) -Compress
+    return @"
+Execute the canonical /$Name procedure below directly in this routed session. Do not invoke
+another AgentKit wrapper, skill-dispatch command, or global adapter.
+
+--- canonical skills/$Name/SKILL.md ---
+$skill
+--- end canonical skill ---
+
+User arguments (JSON array; preserve each element exactly):
+$argumentJson
+"@
 }
 
 function Get-ProjectDocByteBudget {
@@ -283,6 +318,7 @@ if (-not $Command) {
 }
 
 $normalized = $Command.TrimStart('/')
+$useSkillArguments = $PSBoundParameters.ContainsKey('SkillArguments')
 
 # See Get-ProjectDocByteBudget's own comment for the source citation. Computed once per
 # launch, from the launch directory, and applied to every codex process this script starts.
@@ -298,6 +334,7 @@ $projectDocBudget = Get-ProjectDocByteBudget
 # invocation would be.
 if ($normalized -eq 'resume') {
     $resumeSkill = Get-SkillContent -Name 'resume'
+    $resumeArguments = if ($useSkillArguments) { ConvertTo-Json -InputObject @($SkillArguments) -Compress } else { $null }
 
     $alignPrompt = @'
 This is session 1 of /resume's Split across sessions. Its full procedure follows.
@@ -307,7 +344,7 @@ This is session 1 of /resume's Split across sessions. Its full procedure follows
 
 Run it as session 1: refuse if not frozen, Phase 1, Phase 2, and Commit. Stop there - a
 second, separately-launched process runs session 2.
-'@
+'@ + $(if ($useSkillArguments) { "`nUser arguments (JSON array; preserve each element exactly):`n$resumeArguments" } else { '' })
     $trackPrompt = @'
 This is session 2 of /resume's Split across sessions. Its full procedure follows.
 
@@ -316,7 +353,7 @@ This is session 2 of /resume's Split across sessions. Its full procedure follows
 
 Run it as session 2: read session 1's commit, then run Phase 3 and Report exactly as
 written there.
-'@
+'@ + $(if ($useSkillArguments) { "`nUser arguments (JSON array; preserve each element exactly):`n$resumeArguments" } else { '' })
 
     $alignConfig = $profileConfig['author']
     $trackConfig = $profileConfig['builder']
@@ -327,7 +364,7 @@ written there.
         '-c', "project_doc_max_bytes=$projectDocBudget",
         '-a', $alignConfig.Approval,
         '-s', $alignConfig.Sandbox
-    ) + $CodexArgs + @($alignPrompt)
+    ) + $(if ($useSkillArguments) { @() } else { $CodexArgs }) + @($alignPrompt)
 
     $trackArgs = @(
         '-m', $trackConfig.Model,
@@ -388,7 +425,12 @@ $codexInvocationArgs = @(
     '-a', $selectedConfig.Approval,
     '-s', $selectedConfig.Sandbox
 )
-$codexInvocationArgs += $CodexArgs
+if ($useSkillArguments) {
+    $codexInvocationArgs += (New-AgentKitSkillPrompt -Name $normalized -UserArguments $SkillArguments)
+}
+else {
+    $codexInvocationArgs += $CodexArgs
+}
 
 # AGENTS.shared.md's tier gate is told to resolve a Codex session's tier from its configuration
 # rather than its self-report. On the profile that matters most - `architect`, which is

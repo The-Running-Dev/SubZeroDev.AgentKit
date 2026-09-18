@@ -62,6 +62,7 @@ means no record exists yet, not that nothing is true.
 | `unit/document/template-20-contract` | document | `templates/design/20-contract.md` |
 | `unit/document/template-30-slices` | document | `templates/design/30-slices.md` |
 | `unit/document/template-90-decisions` | document | `templates/design/90-decisions.md` |
+| `unit/script/get-agentkitskill` | script | `tools/Get-AgentKitSkill.ps1` |
 | `unit/script/get-nextorientation` | script | `tools/Get-NextOrientation.ps1` |
 | `unit/script/install-agentkit` | script | `tools/Install-AgentKit.ps1` |
 | `unit/script/invoke-codexcommand` | script | `tools/Invoke-CodexCommand.ps1` |
@@ -72,6 +73,7 @@ means no record exists yet, not that nothing is true.
 | `unit/script/new-reducedprompt` | script | `tools/New-ReducedPrompt.ps1` |
 | `unit/script/read-designstate` | script | `tools/Read-DesignState.ps1` |
 | `unit/script/repoaliases` | script | `tools/RepoAliases.ps1` |
+| `unit/script/start-agentkitcodex` | script | `tools/Start-AgentKitCodex.ps1` |
 | `unit/script/test-companion` | script | `tools/Test-Companion.ps1` |
 | `unit/script/test-designdrift` | script | `tools/Test-DesignDrift.ps1` |
 | `unit/script/test-designstate` | script | `tools/Test-DesignState.ps1` |
@@ -280,6 +282,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-15-agents-md-splits-into-shared-and-project | `unit/document/project-agents-md` |
 | decision/2026-09-15-install-agentkit-built | `unit/script/install-agentkit` |
 | decision/2026-09-15-twelve-commands-shorten-to-natural-names | `unit/command/brief-check`, `unit/command/contract`, `unit/command/freeze`, `unit/command/install-code-review-agent`, `unit/command/kit-help`, `unit/command/kit-sync`, `unit/command/make-human-docs`, `unit/command/reconcile`, `unit/command/refine`, `unit/command/slices`, `unit/command/unfreeze`, `unit/command/verify` |
+| decision/2026-09-17-global-front-door-both-codex-modes | `unit/document/agents-md` |
 | decision/2026-09-17-home-install-stops-copying-kit-owned-files | `unit/command/install-all`, `unit/document/install-md` |
 <!-- decision-affects:end -->
 
