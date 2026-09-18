@@ -73,7 +73,7 @@ stop, so the next invocation decides against a tree that has actually moved.
 | A branch is checked out with an open pull request | `/pr` — same session, run it |
 | A branch is checked out with unpushed commits and no pull request | Commit by named path, push, open the pull request. `AGENTS.shared.md` § *Git and delivery* delegates all four |
 | A pull request merged and its local branch still exists | `/clean` — same session, run it |
-| `/clean` just ran, or a merge landed with nothing local left to clean | **Boundary.** Banner for `/track`, fresh session, `sonnet`/`medium`. Stop |
+| `/clean` just ran, or a merge landed with nothing local left to clean, **and the tracker is owed something** — `Test-DesignDrift.ps1` reports findings, `design/90-decisions.md` § `## Open` holds an item with no issue, or an open issue has every `Done when` box ticked. `MirrorStale` is **not** one of them: it is stale by construction, never blocks, and never reaches zero (`design/20-contract.md` § *The divergence classes*) | **Boundary.** Banner for `/track`, fresh session, `sonnet`/`medium`. Stop |
 | `Test-DesignDrift.ps1` or `Test-DesignState.ps1` reports a blocking finding | Report the finding and name the command that owns it. Do not fix it here |
 | An issue exists with unticked `Done when` boxes and no branch in flight | `/slice S<n>` — **boundary**, one slice per session. Banner and stop |
 | `design/30-slices.md` § *Outstanding* is empty and every issue is closed | Say the slice set is exhausted, and name `/align` (**boundary**, `opus`/`high`) as what follows |
@@ -97,6 +97,12 @@ in the response, set off as `AGENTS.shared.md` requires — not folded into a cl
   whose entire job is naming the next step is the one that gets followed.
 - **Run `/redteam`.** Its routing requires a different vendor from the design author, which this
   session cannot satisfy by construction. Name it, banner it, stop.
+- **Name `/track` on the strength of a merge alone.** A merge is a fact about history, so it stays
+  true forever — while `/track` leaves no trace when the tracker has not moved, because
+  `Update-WorkMirror.ps1` writes only on change and a no-op run produces no commit for a later
+  invocation to see. A row keyed on the merge therefore matches again on the next invocation, and
+  the next, which is `/clean`'s old unconditional handoff wearing this command's name. Key it on
+  something *outstanding*, as the row above does.
 
 ## Re-run
 
