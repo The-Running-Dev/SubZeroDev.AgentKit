@@ -68,7 +68,7 @@ stop, so the next invocation decides against a tree that has actually moved.
 
 | If | Then |
 |---|---|
-| `design/FROZEN.md` exists **and** the next step is `/design`, `/spec`, `/plan`, `/align` or `/track` | Report `Frozen because` and `Lifts when` **verbatim** and stop. Do not route around a freeze |
+| `design/FROZEN.md` exists **and** the next step is `/interview`, `/design`, `/spec`, `/plan`, `/align` or `/track` | Report `Frozen because` and `Lifts when` **verbatim** and stop. Do not route around a freeze |
 | The tree is dirty with work in progress | Report what is uncommitted and stop. Guessing whose work it is, is how it gets lost |
 | A branch is checked out with an open pull request | `/pr` — same session, run it |
 | A branch is checked out with unpushed commits and no pull request | Commit by named path, push, open the pull request. `AGENTS.shared.md` § *Git and delivery* delegates all four |

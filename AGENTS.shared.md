@@ -90,6 +90,7 @@ The table above names each vendor's primary identity for a tier. A vendor's own 
 | Command | Tier | Notes |
 |---|---|---|
 | `/brief`, `/design`, `/spec`, `/plan` | `opus`, `high` | — |
+| `/interview` | `opus`, `high` | Conducts the interview that writes `design/00-brief.md`. Deep-reasoning tier because the pressure it applies is the whole product — a cheaper session accepts the first answer, which is the one failure the command exists to prevent. It types the brief; it never originates the problem, a non-goal, or a definition-of-done criterion |
 | `/redteam` | strongest model, **different vendor from the design author** | If it must be Claude, a fresh `opus`, `high` session |
 | `/slice` | `sonnet`, `medium` | `high` for a large or difficult slice |
 | `/align` | `opus`, `high` to decide which side of a drift is correct | `sonnet`, `medium` for the mechanical edits once I have decided |
@@ -185,13 +186,13 @@ The pipeline's normal loop keeps `design/` live: a slice lands, `/align` writes 
 **`design/FROZEN.md` is the marker, and its existence is the whole mechanism.** It is tracked, not ignored — a freeze is a statement to everyone working in the repository, not local state. While it exists:
 
 - **`/align` and `/track` do not run.** The tracker is deliberately allowed to go stale.
-- **`/design`, `/spec` and `/plan` refuse.** Authoring is gated too, so the docs cannot drift forward while the implementation is being checked against them.
+- **`/interview`, `/design`, `/spec` and `/plan` refuse.** Authoring is gated too, so the docs cannot drift forward while the implementation is being checked against them — and the brief is the furthest upstream thing there is to author.
 - **Slices implement against `20-contract.md` as a fixed artifact**, at the SHA the marker names.
 - **A contradiction found while implementing is stated in that slice's pull request and left in the document.** Do not fix it in `design/`. The staleness is the point; recording it in the PR is what makes the eventual reconciliation cheap.
 
 **`/hold` writes the marker; `/resume` lifts it** — deletes the file, then runs one reconciliation pass, `/align` then `/track`, ordinarily in the same session. Where the launching tool cannot change tier mid-session, `/resume` splits into two sessions instead, at the boundary `skills/resume/SKILL.md` § *Split across sessions* names — that file owns where the split falls and what carries across it, not this one. `/resume` runs unattended, without a confirmation prompt; the freeze itself is still the user's decision, made when `/hold` is invoked, and lifting it early is one command call away rather than gated a second time. A slice that turns out to need a contract amendment still stops and says so; that escalation is the user's to answer, and answering it may well be "thaw, amend, re-freeze."
 
-The marker's format, which the five gated commands read and must not restate:
+The marker's format, which the six gated commands read and must not restate:
 
 ```markdown
 # design/ is frozen
@@ -220,6 +221,7 @@ A command that refuses reports `Frozen because` and `Lifts when` **verbatim** ra
 - **Never state or imply a deployed URL or a published artifact** until the deploy for that exact commit reports success. A merged PR is not a deployed site. Poll; do not estimate.
 - **A regression test is verified by reverting the fix** and confirming it fails. A test that passes with and without the fix guards nothing.
 - **A schema or validator change is not done until it has rejected something.** Positive and negative cases both, with the counts stated. A validator that has never failed is not known to constrain anything.
+- **A claimed limitation is a claim, and needs the same evidence as any other.** "The API cannot do that", "that needs a credential we do not have", "this is not possible on Windows" are material assertions, and recognising a failure as one you have seen before is not evidence that it is that failure. State one only with the verbatim error text, the documented statement, or a live probe in hand — and where a cheap probe would settle it, run the probe **before** asking a question or declaring a step blocked. This is the same rule as *Verify, don't assert* pointed at the negative direction, which is the direction it gets skipped in: an unchecked "can't" closes an avenue silently, where an unchecked "can" gets caught the moment something runs.
 
 ## Output discipline
 
@@ -237,6 +239,13 @@ Risk/Blocker: <only when material>
 names, enums, booleans or exit codes; keep the exact identifier beside the meaning where it is
 needed to audit or act.
 
+**Gloss this repository's own vocabulary the first time a session uses it**, in a clause, and then
+use the term freely. *Closure*, *slice*, *unit record*, *projection*, *divergence class*, *tier* and
+the rest are curated names for local ideas, not general English, and the cost is asymmetric: a
+clause is four words, while a term read wrongly is a whole reply built on the wrong idea. **A term
+the user typed first is glossed too** — pasting a name back is not evidence they know it, and this
+is the case where it is most tempting to skip, because the word arrived looking established.
+
 A command adds the fields its own procedure requires, and nothing more by default: no narration of steps taken, no restating the task, no investigation chronology, no list of files read, no explanation of an obvious edit, no summary of a summary, no architecture commentary nobody asked for. **Anything already durable — a pull request, an issue, a design document, a decision record, `.claude/verify-report.json`, a log file — is named or linked in one line, never reproduced.**
 
 **Brevity never removes evidence.** Wherever another rule requires it, this is stated in full however long it runs: a failed or skipped gate and the did-not-run list (*Verification*); criterion results by id; text a rule requires verbatim; a stop condition; a fork or question only the user can decide (*Working with me*); a session-boundary banner (*Session boundaries*). A five-line report that omits a failed gate is wrong; a fifty-line one that states it is not.
@@ -249,6 +258,9 @@ A command adds the fields its own procedure requires, and nothing more by defaul
 
 - Present findings and review items **one at a time for sign-off**. Never bulk-apply findings unreviewed.
 - Surface real forks as a question with a recommendation, recommended option first. I routinely pick the more rigorous non-recommended option — so ask, do not assume.
+  - **The explanation comes before the options, in plain English, and it explains the problem rather than the choice.** Two to four sentences a bright teenager could follow: what is actually being decided, and what it costs to get it wrong — what breaks, what I would see, what is lost. A fork I have to reverse-engineer from a list of options is one I will answer from the option names, which is the same as not being asked. This is the one place in this file where plain language outranks precision: a term of this repository's own vocabulary belongs in the options, not in the sentence that has to land first.
+  - **Then the recommendation and its one-line reason**, with `(recommended)` on that option, followed by one short paragraph per option — what it covers, what it leaves unsolved, and how completely it answers the problem just stated.
+  - **How completely an option answers the problem is information, not a ranking.** State it; do not let it decide. The most complete option here is frequently the wrong one, because *Non-goals are binding* and *One slice at a time* both cut against coverage, and an option is legitimately preferred for being narrower. Where the options differ in kind rather than in coverage, say that instead of comparing them on a scale they do not share.
 - **A reconciliation ends in a decision, not a report.** Any time you compare two things and find they disagree — `/align`, `/install`, `/track` drift, or any time I say "reconcile" — the work is not finished at the findings. Close by asking, one divergence at a time, each with a recommendation and what the alternatives cost. **A report I have to turn into questions myself is half the job.** If a comparison genuinely found nothing, say that plainly rather than manufacturing a fork.
   - Recommend the **resolution**, not merely which side you prefer: name what changes, in which file, and what it costs to reverse.
   - `/redteam` is the one exception, and only partly — it must not propose fixes, since naming a fix frames the problem. It still recommends a **classification** for each finding: defect, accepted risk, brief conflict, or not sustained.

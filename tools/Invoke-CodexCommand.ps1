@@ -135,6 +135,7 @@ $ErrorActionPreference = 'Stop'
 # this maps to the tier of the phase that runs first / gates the rest.
 $commandProfiles = [ordered]@{
     'brief'            = 'architect'   # writes nothing (brief.md, *Re-run*)
+    'interview'        = 'author'      # writes design/00-brief.md
     'design'           = 'author'      # writes design/10-design.md
     'spec'             = 'author'      # writes design/20-contract.md
     'plan'             = 'author'      # writes design/30-slices.md

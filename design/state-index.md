@@ -27,6 +27,7 @@ means no record exists yet, not that nothing is true.
 | `unit/command/install` | command | `skills/install/SKILL.md` |
 | `unit/command/install-all` | command | `skills/install-all/SKILL.md` |
 | `unit/command/install-code-review-agent` | command | `skills/install-review/SKILL.md` |
+| `unit/command/interview` | command | `skills/interview/SKILL.md` |
 | `unit/command/kit-help` | command | `skills/help/SKILL.md` |
 | `unit/command/kit-sync` | command | `skills/sync/SKILL.md` |
 | `unit/command/make-human-docs` | command | `skills/docs/SKILL.md` |
@@ -289,6 +290,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-17-home-install-stops-copying-kit-owned-files | `unit/command/install-all`, `unit/document/install-md` |
 | decision/2026-09-18-install-creates-a-github-remote-and-pushes-when-the-target-has-none | `unit/document/install-md` |
 | decision/2026-09-18-merge-when-green-is-delegated-to-a-script | `unit/command/pr`, `unit/document/agents-md` |
+| decision/2026-09-18-stage-zero-gains-an-interview-command | `unit/command/interview`, `unit/document/agents-md`, `unit/document/template-00-brief` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered

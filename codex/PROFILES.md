@@ -68,7 +68,7 @@ model_reasoning_effort = "medium"
 ## Notes
 
 - `architect` is deliberately `read-only`. It backs `/redteam` (and `/brief`, which also writes nothing) — stages that have no business touching the working tree, where the sandbox is a cheaper guarantee than an instruction.
-- `author` is the same model and effort as `architect`, but `workspace-write`. It backs `/design`, `/spec`, `/plan`, and `/align` — deep-reasoning-tier commands whose normal work is writing to `design/`. Splitting it from `architect` keeps the read-only guarantee meaningful for `/redteam` instead of blocking every other deep-reasoning command from doing its job.
+- `author` is the same model and effort as `architect`, but `workspace-write`. It backs `/interview`, `/design`, `/spec`, `/plan`, and `/align` — deep-reasoning-tier commands whose normal work is writing to `design/`. Splitting it from `architect` keeps the read-only guarantee meaningful for `/redteam` instead of blocking every other deep-reasoning command from doing its job.
 - `xhigh` is expensive and is not either profile's default — see `AGENTS.shared.md`, *Model, effort, and review budget*: "`xhigh` is for one question, not one pipeline." Reach for it with `-Effort xhigh` on a single ambiguous question, not as a phase-wide default. `max` is Sol-only and worth reserving for a design you have already failed to get right twice.
 - Alt+`,` and Alt+`.` adjust effort mid-session. Profiles cannot be switched mid-session.
 - Model IDs churn. Verify against current Codex model docs before committing these to a repo.
