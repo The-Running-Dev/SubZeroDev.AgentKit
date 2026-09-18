@@ -58,6 +58,7 @@ Target: design/10-design.md @ <sha>
 Vendor: <vendor>
 Model: <model id, and effort if known>
 Date: <YYYY-MM-DD>
+Coverage: complete | partial | not assessed — <for anything but complete, which surfaces were not reached, and why>
 
 ## F1
 Severity: BLOCKING
@@ -73,6 +74,7 @@ Cost: <cheap to fix now / expensive to fix later, and why>
 - **`Status:` is `unadjudicated` and this command never changes it.** The adjudicating session writes `defect`, `accepted risk`, `brief conflict`, or `not sustained` in place, on the line, as I rule on each one. That keeps the classification next to the finding it classifies rather than in a chat log nobody can find later.
 - **Ids are stable within a file** (`F1`, `F2`) and are what a decision-log entry or an issue cites.
 - **`Target:` pins a sha.** A finding against a revision of the design that no longer exists is still evidence, but a reader has to be able to tell.
+- **`Coverage:` is the assessed scope**, over the attack surfaces above — the contract requires it of every findings report (`AGENTS.shared.md`, *Verification*). It is what makes "none at this level" readable: with it, a clean severity level is a result, and without it, it is either a result or a surface nobody reached, and the reader cannot tell which. A surface skipped because the pass ran short is `partial`, never `complete`.
 - **Commit and push it.** `AGENTS.shared.md` § *Git and delivery* delegates the branch, the commit, the push and the pull request; this file is ordinary work and takes the ordinary path. It is the only thing this command writes.
 - **This is not the design doc and writing it is not proposing a fix.** The rule above is unchanged: no fixes, no verdict, no summary.
 
