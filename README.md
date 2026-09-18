@@ -113,7 +113,7 @@ Any selected tag, branch, or SHA that lacks `setup.ps1` is unsupported and is re
 
 On a fresh machine, cloning is the one necessary write before `-DryRun` can inspect an installed checkout. Once the checkout exists, `-DryRun` makes no bootstrap, registration, or version-selection changes.
 
-**No published release carries `setup.ps1` yet.** `v2026.09.15`, `v2026.09.16` and `v2026.09.17` all predate it, so a default bootstrap — which selects the newest stable tag — currently refuses with *"predates the global front door"*. Until a release is cut, pass `-Version main` to bootstrap the unreleased work deliberately.
+`v2026.09.18` is the first published release carrying `setup.ps1`; `v2026.09.15`, `v2026.09.16` and `v2026.09.17` predate it and a default bootstrap — which selects the newest stable tag — refuses those with *"predates the global front door"*. Pass `-Version main` only to bootstrap unreleased work deliberately.
 
 Create a stable release only after the merged SHA has passed its required workflow gates. A repository maintainer then chooses an unused `vYYYY.MM.DD` or `vYYYY.MM.DD.N` tag and points it at that merged SHA, and runs (substitute the verified SHA and unused date tag):
 
