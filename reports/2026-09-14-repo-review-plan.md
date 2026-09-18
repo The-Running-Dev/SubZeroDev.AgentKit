@@ -1,6 +1,6 @@
 # AgentKit repository review: work plan
 
-Reviewed `main` at `d4c57c4` on 2026-09-14. `design/FROZEN.md` is absent.
+Reviewed `main` at `da1879b` on 2026-09-14. `design/FROZEN.md` is absent.
 
 The work is three decisions and three PRs. Implementation is sonnet/medium, and each PR is its own branch off `main`. Each PR goes through `/pr`, which runs the gates: Pester, `Update-DesignProjection` then `Test-DesignState`, `Test-DesignDrift`, and `git diff --check`. Where a decision changes policy, its PR writes the decision-log entry and the design-state record in the same commit (`AGENTS.md`, *Writing a design-state record*).
 

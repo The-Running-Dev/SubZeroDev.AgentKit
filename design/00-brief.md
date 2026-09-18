@@ -235,7 +235,7 @@ answer *what is the current design*, read directly by a human. Work state may re
 network (GitHub is authoritative for it) provided a checkout can still answer what the work is
 and in what order.
 
-**Scale, measured at `6bdd8dc` — the commit before this brief was written.**
+**Scale, measured at `1ddbf32` — the commit before this brief was written.**
 `design/90-decisions.md` is 133,512 bytes across 54 append-only entries. `design/` totals
 166,733 bytes; adding `AGENTS.md` (34,899), `agent.md` (7,566) and `.claude/COMPANIONS.md`
 (7,196), the standing corpus a session reads to orient is 216,394 bytes. The kit has 21 command

@@ -3,7 +3,7 @@
 *SubZeroDev.AgentKit · implementation plan · 2026-09-14*
 
 Ben's handoff plan (`agentkit-home-install.md`, 2026-09-14) merged with the output-language dependency and
-brought up to date with `main` at `f704bda`. **The design, the decided items and the phases are the handoff's.**
+brought up to date with `main` at `c295a0f`. **The design, the decided items and the phases are the handoff's.**
 What this revision adds is only what the repository now says: facts that changed, and the work items they create,
 folded into the phase they belong to.
 
@@ -39,7 +39,7 @@ If portability forces a change in report semantics rather than merely syntax or 
 that as a separate policy decision instead of folding it into the migration.
 
 **Met.** PR 2 and PR 3 of `reports/2026-09-14-repo-review-plan.md` have landed: W4 and W5 (#303), W6 (#304),
-and the housekeeping headings follow-up (#305). Phase 1 starts from `main` at or after `326d7b5`, and treats the
+and the housekeeping headings follow-up (#305). Phase 1 starts from `main` at or after `dbff89a`, and treats the
 wording those PRs produced as canonical. *Output discipline* moves into the shared `AGENTS.md` unchanged.
 
 **Report changes the handoff's own scope already implies** — not portability, so not a stop, but worth knowing
@@ -96,7 +96,7 @@ working branch.
 
 | Fact | Where it lands |
 |---|---|
-| `~/.agent-kit` already exists: a `/kit-sync` clone on `main` at `797f538`, clean, 23 commits behind `origin/main` | Phase 2 adopts it rather than cloning |
+| `~/.agent-kit` already exists: a `/kit-sync` clone on `main` at `6b32b0b`, clean, 23 commits behind `origin/main` | Phase 2 adopts it rather than cloning |
 | 23 repos carry the kit (plus a stray `SubZeroDev.Blog-kit-sync-2026-09-07` copy and a `SubZeroDev.PSGenerator;C` folder), on different versions: 21–24 command files, 10–23 scripts. All have `.claude/kit.json`; 18 register the session hook; companions in GameEngine (14), Platform.UI.LandingPage (1), SkyNetHR (1) | Phases 4–5 |
 | Command files hold 107 references to kit files (the handoff counted 54), 160 to project files, 104 to `AGENTS.md`, 16 argument placeholders | Phase 1 step 2 |
 | `Test-DesignDrift.ps1:351`, `Update-SlicesDocument.ps1:368`, `Test-VerifyReport.ps1:211` default their root to the kit's own folder (`Split-Path -Parent $PSScriptRoot`) | Phase 1 step 3 |

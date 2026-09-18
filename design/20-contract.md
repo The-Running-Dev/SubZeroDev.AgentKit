@@ -3,7 +3,7 @@
 > **Two paths are under contract here.** The **defect-to-merge path** (`/fix`,
 > `Wait-PullRequestCheck.ps1`, and the authorization batch S2 built and 2026-08-19 retired)
 > landed as S1–S3; its design body is
-> retired to `git show dfd1cab:design/10-design.md` and its contract stands below, unchanged.
+> retired to `git show 89a6752:design/10-design.md` and its contract stands below, unchanged.
 > The **explicit design-state mechanism** is designed in the current `design/10-design.md` and
 > is contracted below for the first time. Nothing in the first path is superseded by the
 > second.

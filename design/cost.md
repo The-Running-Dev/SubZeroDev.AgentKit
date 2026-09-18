@@ -73,7 +73,7 @@ force and does not survive S19's.
 
 ## Closure sizes under the artifact-inclusive definition (S19)
 
-The same command, at `15990d9`:
+The same command, at `6536f5c`:
 
 ```
 $ ./tools/Test-DesignState.ps1 -Quiet
@@ -113,7 +113,7 @@ against.
 definition `design/00-brief.md` and I23 state — the closure is the sum of the unit's own record
 plus every id it names directly, and the unit's own artifact is measured and reported separately,
 never folded into the bound. The run below is `Get-DesignClosure` and `Get-UnitArtifactBytes`
-against this repository at `c760cc9`, the commit S23 measured from — the first run of the amended
+against this repository at `958bc92`, the commit S23 measured from — the first run of the amended
 meter, replacing the arithmetic-derived table above.
 
 **Two units breach on their records; five of the seven clear immediately.**
@@ -130,7 +130,7 @@ meter, replacing the arithmetic-derived table above.
 
 The two record-bounded figures match the arithmetic-derived table's exactly, which is the
 evidence that the derivation was sound; the artifact figures differ from the derived ones because
-the tree has moved since `fcef65b` — three fix commits (#197, #198, #199) and this slice's own
+the tree has moved since `9e79bc0` — three fix commits (#197, #198, #199) and this slice's own
 projection regeneration of I23's row all landed on `design/20-contract.md` and
 `tools/Test-DesignState.ps1` in between.
 

@@ -2,7 +2,7 @@
 
 > **Six paths appear here, all landed.** The **defect-to-merge path** landed as S1–S3; its
 > bodies are retired to the index under `## Landed` and its design body to
-> `git show dfd1cab:design/10-design.md`. The **explicit design-state mechanism**, designed in
+> `git show 89a6752:design/10-design.md`. The **explicit design-state mechanism**, designed in
 > the current `design/10-design.md` and contracted in `design/20-contract.md`, landed as
 > S4–S18; its bodies are retired to the same index. The **2026-08-29 revision to that
 > mechanism** — the retired companion, absorption, the half/status table, and the
@@ -70,7 +70,7 @@ than it retires, and that is a finding about absorption rather than a slice that
 
 The riskiest assumption in the seventh is **the closure headroom of the checker's own unit**,
 not either schema change. `unit/script/test-designstate` measures 14,037 of 16,384 bytes at
-`ed25608`, it consumes `contract/read-designstate`, and both of #277's decisions land on the
+`2fa6f3a`, it consumes `contract/read-designstate`, and both of #277's decisions land on the
 reader — so any absorption into the reader's contract grows the checker's closure too. S31 goes
 first because it is the half that can only *shrink* that closure: it deletes an `Owner` line from
 every invariant the checker binds and absorbs the one #277 decision in the checker's `Live`. S32
@@ -193,38 +193,38 @@ repository during S5–S11, not a defect, and it is why S12 rather than S5 carri
 
 | Slice | Name | Issue | Criteria | Body complete at |
 |---|---|---|---|---|
-| **S1** | Wait for a pull request's checks against a named commit | [#9](../../issues/9), closed | S1.1–S1.10 | `af610a6` |
-| **S2** | One approval covers push, pull request, and the threads it names | [#10](../../issues/10), closed | S2.1–S2.9 | `af610a6` |
-| **S3** | A defect that is not a slice gets a front door | [#11](../../issues/11), closed | S3.1–S3.14 | `af610a6` |
-| **S4** | The state set becomes readable, and today's cost goes on the record | [#47](../../issues/47), closed | S4.1–S4.11 | `45bd7c8` |
-| **S5** | The checker, and the ceiling is either met or the project stops | [#48](../../issues/48), closed | S5.1–S5.13 | `45bd7c8` |
-| **S6** | The marked-region rule is stated once, and `companion` says it is hand-written | [#49](../../issues/49), closed | S6.1–S6.7 | `45bd7c8` |
-| **S7** | Prose regions that regenerate, and prove they both overwrite and preserve | [#50](../../issues/50), closed | S7.1–S7.12 | `45bd7c8` |
-| **S8** | Every command in the kit has a record | [#51](../../issues/51), closed | S8.1–S8.6 | `45bd7c8` |
-| **S9** | Every script and standing document has a record | [#52](../../issues/52), closed | S9.1–S9.6 | `45bd7c8` |
-| **S10** | Every invariant has a record, and the contract's table is generated from them | [#53](../../issues/53), closed | S10.1–S10.6 | `45bd7c8` |
-| **S11** | Every logged decision has a record, and open questions become addressable | [#54](../../issues/54), closed | S11.1–S11.8 | `45bd7c8` |
-| **S12** | The check runs in CI, and has rejected one of every blocking class | [#55](../../issues/55), closed | S12.1–S12.6 | `45bd7c8` |
-| **S13** | Commands orient from the record, and keep working where there is none | [#56](../../issues/56), closed | S13.1–S13.6 | `45bd7c8` |
-| **S14** | Work state: a mirror that says when it was taken | [#57](../../issues/57), closed | S14.1–S14.8 | `45bd7c8` |
-| **S15** | The installed repositories keep working, and the cost is settled | [#58](../../issues/58), closed | S15.1–S15.6 | `45bd7c8` |
-| **S16** | Every part says what it offers and what it leans on | [#71](../../issues/71), closed | S16.1–S16.7 | `45bd7c8` |
-| **S17** | Every rule the kit binds itself to becomes a file | [#72](../../issues/72), closed | S17.1–S17.7 | `45bd7c8` |
-| **S18** | A record that says a claim was replaced has to say what replaced it | [#81](../../issues/81), closed | S18.1–S18.6 | `45bd7c8` |
-| **S19** | The ceiling counts the file a session actually opens | [#171](../../issues/171), closed | S19.1–S19.6 | `7d27606` |
-| **S20** | A unit's retired half moves to its own file | [#172](../../issues/172), closed | S20.1–S20.10 | `7d27606` |
-| **S21** | A rule written into a document stops being carried twice | [#173](../../issues/173), closed | S21.1–S21.6 | `7d27606` |
-| **S22** | Every decision says which parts of the kit it is in force for | [#174](../../issues/174), closed | S22.1–S22.7 | `c11f60c` |
-| **S23** | The ceiling reports what can be shrunk, separately from what cannot | [#193](../../issues/193), closed | S23.1–S23.9 | `060ca3f` |
-| **S24** | The agent contract stops making every session read its own history | [#194](../../issues/194), closed | S24.1–S24.6 | `060ca3f` |
-| **S25** | The interface contract stops making every session read its own history | [#195](../../issues/195), closed | S25.1–S25.6 | `060ca3f` |
-| **S26** | The checking scripts stop carrying the arguments that produced them | [#207](../../issues/207), closed | S26.1–S26.7 | `060ca3f` |
-| **S27** | The architecture document and the installation guide stop carrying theirs | [#208](../../issues/208), closed | S27.1–S27.6 | `060ca3f` |
-| **S28** | The six commands that carry the most history stop carrying it | [#209](../../issues/209), closed | S28.1–S28.6 | `060ca3f` |
-| **S29** | The rest of the commands stop carrying theirs, and the pass is discharged | [#210](../../issues/210), closed | S29.1–S29.6 | `060ca3f` |
-| **S30** | The check names the one thing that can quietly undo an absorption | [#222](../../issues/222), closed | S30.1–S30.7 | `8073431` |
-| **S31** | An invariant stops naming one owner, and says who holds it however many do | [#285](../../issues/285), closed | S31.1–S31.8 | `26108ba` |
-| **S32** | A project made of assemblies, modules or packages can record them as parts of its design | [#286](../../issues/286), closed | S32.1–S32.8 | `26108ba` |
+| **S1** | Wait for a pull request's checks against a named commit | [#9](../../issues/9), closed | S1.1–S1.10 | `6ea1296` |
+| **S2** | One approval covers push, pull request, and the threads it names | [#10](../../issues/10), closed | S2.1–S2.9 | `6ea1296` |
+| **S3** | A defect that is not a slice gets a front door | [#11](../../issues/11), closed | S3.1–S3.14 | `6ea1296` |
+| **S4** | The state set becomes readable, and today's cost goes on the record | [#47](../../issues/47), closed | S4.1–S4.11 | `79509d1` |
+| **S5** | The checker, and the ceiling is either met or the project stops | [#48](../../issues/48), closed | S5.1–S5.13 | `79509d1` |
+| **S6** | The marked-region rule is stated once, and `companion` says it is hand-written | [#49](../../issues/49), closed | S6.1–S6.7 | `79509d1` |
+| **S7** | Prose regions that regenerate, and prove they both overwrite and preserve | [#50](../../issues/50), closed | S7.1–S7.12 | `79509d1` |
+| **S8** | Every command in the kit has a record | [#51](../../issues/51), closed | S8.1–S8.6 | `79509d1` |
+| **S9** | Every script and standing document has a record | [#52](../../issues/52), closed | S9.1–S9.6 | `79509d1` |
+| **S10** | Every invariant has a record, and the contract's table is generated from them | [#53](../../issues/53), closed | S10.1–S10.6 | `79509d1` |
+| **S11** | Every logged decision has a record, and open questions become addressable | [#54](../../issues/54), closed | S11.1–S11.8 | `79509d1` |
+| **S12** | The check runs in CI, and has rejected one of every blocking class | [#55](../../issues/55), closed | S12.1–S12.6 | `79509d1` |
+| **S13** | Commands orient from the record, and keep working where there is none | [#56](../../issues/56), closed | S13.1–S13.6 | `79509d1` |
+| **S14** | Work state: a mirror that says when it was taken | [#57](../../issues/57), closed | S14.1–S14.8 | `79509d1` |
+| **S15** | The installed repositories keep working, and the cost is settled | [#58](../../issues/58), closed | S15.1–S15.6 | `79509d1` |
+| **S16** | Every part says what it offers and what it leans on | [#71](../../issues/71), closed | S16.1–S16.7 | `79509d1` |
+| **S17** | Every rule the kit binds itself to becomes a file | [#72](../../issues/72), closed | S17.1–S17.7 | `79509d1` |
+| **S18** | A record that says a claim was replaced has to say what replaced it | [#81](../../issues/81), closed | S18.1–S18.6 | `79509d1` |
+| **S19** | The ceiling counts the file a session actually opens | [#171](../../issues/171), closed | S19.1–S19.6 | `099c5e7` |
+| **S20** | A unit's retired half moves to its own file | [#172](../../issues/172), closed | S20.1–S20.10 | `099c5e7` |
+| **S21** | A rule written into a document stops being carried twice | [#173](../../issues/173), closed | S21.1–S21.6 | `099c5e7` |
+| **S22** | Every decision says which parts of the kit it is in force for | [#174](../../issues/174), closed | S22.1–S22.7 | `1331713` |
+| **S23** | The ceiling reports what can be shrunk, separately from what cannot | [#193](../../issues/193), closed | S23.1–S23.9 | `908d727` |
+| **S24** | The agent contract stops making every session read its own history | [#194](../../issues/194), closed | S24.1–S24.6 | `908d727` |
+| **S25** | The interface contract stops making every session read its own history | [#195](../../issues/195), closed | S25.1–S25.6 | `908d727` |
+| **S26** | The checking scripts stop carrying the arguments that produced them | [#207](../../issues/207), closed | S26.1–S26.7 | `908d727` |
+| **S27** | The architecture document and the installation guide stop carrying theirs | [#208](../../issues/208), closed | S27.1–S27.6 | `908d727` |
+| **S28** | The six commands that carry the most history stop carrying it | [#209](../../issues/209), closed | S28.1–S28.6 | `908d727` |
+| **S29** | The rest of the commands stop carrying theirs, and the pass is discharged | [#210](../../issues/210), closed | S29.1–S29.6 | `908d727` |
+| **S30** | The check names the one thing that can quietly undo an absorption | [#222](../../issues/222), closed | S30.1–S30.7 | `c642571` |
+| **S31** | An invariant stops naming one owner, and says who holds it however many do | [#285](../../issues/285), closed | S31.1–S31.8 | `e42c6c2` |
+| **S32** | A project made of assemblies, modules or packages can record them as parts of its design | [#286](../../issues/286), closed | S32.1–S32.8 | `e42c6c2` |
 
 What each delivered, in one line, because the index is the only place a reader now meets
 them:
@@ -290,7 +290,7 @@ them:
   `ClosureOverBudget` for it.
 - **S25** — ten of `unit/document/design-20-contract`'s twenty `Live` decisions absorb into
   `design/20-contract.md`, and the design-state check reports zero findings and exits 0 against
-  this repository for the first time since `4d06246`.
+  this repository for the first time since `da3da03`.
 - **S26** — the first absorption pass against a script unit: `test-companion`,
   `update-workmirror`, and one of `test-designstate`'s seven `Live` decisions gain a
   `contract/<slug> § Semantics` site; the five script units with no contract are proven
