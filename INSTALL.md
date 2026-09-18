@@ -226,9 +226,15 @@ Only after sign-off.
    Two cases where there is no branch to make:
 
    - **The repository was initialized in step 1.** There is no default branch carrying a commit yet, so there
-     is nothing to protect. Commit onto `main`, push only if a remote is configured, and say which in the report.
-   - **No remote configured.** Commit on the branch, and report that the push and the pull request did not run.
-     Do not infer a remote from the directory name.
+     is nothing to protect. Commit onto `main`.
+   - **No remote configured** (whether or not step 1 ran). **Create one and push, rather than stopping short.**
+     Run `gh repo create <folder-name> --private --source=. --remote=origin` from the resolved target root —
+     `<folder-name>` is the resolved root's own directory name, not an invented one — then push. If `gh` is
+     missing or not authenticated (`gh auth status` fails), fall back to reporting that a remote could not be
+     created and the push did not run; do not guess at a remote URL or invent an org/owner. This is the one
+     place this procedure creates a GitHub repository on its own — it is bounded to *no remote existing yet*
+     on the repository this install is already touching, never a second repository, and never a rename or
+     visibility change to one that already exists.
 
    **The pull request body is the phase 3 report plus what step 4 recorded** — what was created, what was
    reconciled and how, which forks were decided and what was rejected, and what is left for the user. Not a
