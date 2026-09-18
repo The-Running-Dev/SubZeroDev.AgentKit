@@ -40,6 +40,14 @@ Derive `fix/<issue>-<slug>` from the issue number and title, **after the issue e
 
 `git status --short` must be clean and on the default branch first, the same guard `/slice` uses (`AGENTS.shared.md`, *Safe start*). Uncommitted work that is not this defect's is not this command's to stash or discard — stop and say so.
 
+## Name the cause before writing the patch
+
+**A reproduction shows a symptom; it does not say why.** A patch written straight off a failing test is fitted to that test, and the two failures it leaves behind are the expensive ones — the same defect still reachable by another path, and a guard planted where the symptom surfaced rather than where the state went wrong. Before the first edit, state the cause in a sentence: which code produces the wrong value, order, or state, and why the reproduction reaches it. Where the issue's agent block already names a mechanism, say whether the reproduction actually confirms **that** one; a plausible mechanism that happens to be present is not the mechanism.
+
+**Where the cause will not come, stop and fix nothing.** Report what was traced, what was ruled out, and what evidence is missing — the same shape as a defect that will not reproduce. A patch that turns a test green with no cause stated is a guess wearing a tick, and it is worse than an open bug, because the bug stays visible and the guess does not.
+
+**Three failed attempts is a stop, not a fourth attempt.** Where three fixes have each been implemented and each failed to clear the reproduction, what is wrong is the diagnosis, and a fourth patch is being written against it. Stop and bring me the fork — the attempts, what each assumed, what each disproved — with a recommendation among: continue on the current diagnosis, escalate because the fix needs a contract or schema change this command may not make, or instrument first because the state at the moment of failure is not observable. The count is **within one invocation**; *Re-run* below is unchanged, and a later invocation legitimately starts at zero, because it reproduces fresh rather than resuming.
+
 ## Fix, then hand off
 
 Implement against the issue's agent block. When it is satisfied:
@@ -56,6 +64,7 @@ This command does not carry a second copy of `/pr`'s rules, or of the gate and t
 - Resolve a review thread. That is `/pr`'s final phase, under the delegation `AGENTS.shared.md` § *Git and delivery* states.
 - Merge.
 - File an issue for a defect that did not reproduce.
+- Patch a symptom whose cause has not been stated, or write a fourth fix after three have failed — *Name the cause before writing the patch*, above.
 - Fix an adjacent defect noticed along the way. Note it, do not widen the change — the same discipline `resolve.md` and `AGENTS.shared.md`'s *One slice at a time* already state.
 
 ## Re-run
