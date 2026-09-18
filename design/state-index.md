@@ -69,6 +69,7 @@ means no record exists yet, not that nothing is true.
 | `unit/script/invoke-donehousekeeping` | script | `tools/Invoke-DoneHousekeeping.ps1` |
 | `unit/script/invoke-housekeeping` | script | `tools/Invoke-Housekeeping.ps1` |
 | `unit/script/measure-session` | script | `tools/Measure-Session.ps1` |
+| `unit/script/merge-pullrequest` | script | `tools/Merge-PullRequest.ps1` |
 | `unit/script/new-designdocs` | script | `tools/New-DesignDocs.ps1` |
 | `unit/script/new-reducedprompt` | script | `tools/New-ReducedPrompt.ps1` |
 | `unit/script/read-designstate` | script | `tools/Read-DesignState.ps1` |
@@ -120,6 +121,7 @@ means no record exists yet, not that nothing is true.
 | I29 | `unit/script/update-designprojection` |
 | I30 | `unit/script/test-designstate` |
 | I31 | `unit/script/test-designstate` |
+| I32 | `unit/script/merge-pullrequest` |
 <!-- bound-by:end -->
 
 ## Contracts — consumers
@@ -129,6 +131,7 @@ means no record exists yet, not that nothing is true.
 |---|---|
 | contract/fix | — |
 | contract/invoke-donehousekeeping | `unit/script/invoke-housekeeping` |
+| contract/merge-pullrequest | `unit/command/pr` |
 | contract/read-designstate | `unit/script/test-designstate`, `unit/script/update-designprojection` |
 | contract/resolve | `unit/command/pr` |
 | contract/test-companion | `unit/command/install-all`, `unit/command/verify`, `unit/script/sync-kit` |
@@ -140,7 +143,7 @@ means no record exists yet, not that nothing is true.
 | contract/update-designprojection | `unit/script/test-designstate` |
 | contract/update-slicesdocument | `unit/command/track` |
 | contract/update-workmirror | `unit/command/track` |
-| contract/wait-pullrequestcheck | `unit/command/pr`, `unit/command/resolve` |
+| contract/wait-pullrequestcheck | `unit/command/pr`, `unit/command/resolve`, `unit/script/merge-pullrequest` |
 <!-- consumers:end -->
 
 ## Decisions — in force for
@@ -284,6 +287,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-15-twelve-commands-shorten-to-natural-names | `unit/command/brief-check`, `unit/command/contract`, `unit/command/freeze`, `unit/command/install-code-review-agent`, `unit/command/kit-help`, `unit/command/kit-sync`, `unit/command/make-human-docs`, `unit/command/reconcile`, `unit/command/refine`, `unit/command/slices`, `unit/command/unfreeze`, `unit/command/verify` |
 | decision/2026-09-17-global-front-door-both-codex-modes | `unit/document/agents-md` |
 | decision/2026-09-17-home-install-stops-copying-kit-owned-files | `unit/command/install-all`, `unit/document/install-md` |
+| decision/2026-09-18-merge-when-green-is-delegated-to-a-script | `unit/command/pr`, `unit/document/agents-md` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered
