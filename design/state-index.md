@@ -291,6 +291,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-18-install-creates-a-github-remote-and-pushes-when-the-target-has-none | `unit/document/install-md` |
 | decision/2026-09-18-merge-when-green-is-delegated-to-a-script | `unit/command/pr`, `unit/document/agents-md` |
 | decision/2026-09-18-stage-zero-gains-an-interview-command | `unit/command/interview`, `unit/document/agents-md`, `unit/document/template-00-brief` |
+| decision/2026-09-18-the-design-stage-gains-two-gates | `unit/command/design` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered
