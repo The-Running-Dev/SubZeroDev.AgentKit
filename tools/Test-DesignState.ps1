@@ -740,7 +740,10 @@ function Test-UnrecordedArtifact {
 # block lives on GitHub and is not evaluable from the checkout alone (I22), so it is out of
 # reach for a blocking class regardless. Matching requires the marker to be the entire
 # (trimmed) line, which is what keeps prose that merely *mentions* the marker syntax - this
-# document does, at length - from being misread as a region.
+# document does, at length - from being misread as a region. Fence state is tracked
+# separately so a marker shown as a worked example inside a fenced code block - a fence
+# opened with three or more backticks or tildes, closed only by the same character at the
+# same length or longer - is neither inventoried nor checked for balance.
 # ---------------------------------------------------------------------------------------------
 function Get-MarkedRegions {
     param([Parameter(Mandatory)][string] $RepoPath, [Parameter(Mandatory)][AllowEmptyCollection()][string[]] $Files)
@@ -756,9 +759,25 @@ function Get-MarkedRegions {
         if (-not (Test-Path -LiteralPath $full)) { continue }
         $lines = @(Get-Content -LiteralPath $full)
         $stack = [System.Collections.Generic.List[object]]::new() # { Id; Form }
+        $fenceChar = $null
+        $fenceLen = 0
 
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $line = $lines[$i].Trim()
+
+            if ($fenceChar) {
+                if ($line -match "^$([regex]::Escape($fenceChar)){$fenceLen,}$") {
+                    $fenceChar = $null
+                    $fenceLen = 0
+                }
+                continue
+            }
+
+            if ($line -match '^(`{3,}|~{3,})') {
+                $fenceChar = $Matches[1][0]
+                $fenceLen = $Matches[1].Length
+                continue
+            }
 
             if ($line -match $startRe) {
                 $id = $Matches[1]
