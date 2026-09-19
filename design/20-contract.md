@@ -764,6 +764,22 @@ What they cannot state:
   that judgement; it does not make it. This is `/next`'s no-model mechanical half, not an
   alternate command path.
 
+### `tools/RepoAliases.ps1`
+
+**The function declarations are the script's own public shape and are not copied here.** What they
+cannot state:
+
+- **Exposes `Invoke-AgentKitClean` and `Get-AgentKitNext` only through an interactive
+  PowerShell profile.** The script is dot-sourced rather than scheduled: concurrency is
+  sequential-by-policy, so an unattended run could stash or switch a branch under a session that
+  is mid-edit, and a stash made without a reader is not safe to leave behind.
+- **Delegates mechanical work and returns the wrapped result; it does not decide the outcome.**
+  `Invoke-AgentKitClean` preserves housekeeping's report, while `Get-AgentKitNext` writes the
+  orientation result's plain-language `Summary` values before returning the full object.
+- **Never opens a model session.** A judgement case remains in the output for the person at the
+  terminal to read and decide whether a session is needed; this profile surface is not an
+  alternate automatic command path.
+
 ### `tools/Test-GatesCache.ps1`
 
 **The parameter list is the script's own `param` block and is not copied here.** Read or write
