@@ -8,7 +8,7 @@ Binds: I9
 Live: decision/2026-08-02-lessons-live-in-agent-md, decision/2026-08-02-import-only-project-independent-conventions, decision/2026-08-08-pr-absorbs-gates-drafts-abolished
 Questions:
 Work:
-Evidence:
+Evidence: tools/Test-HandoffMode.Tests.ps1
 
 ## Owns
 States the shared agent contract binding every session in any repository that uses the kit: model

@@ -148,6 +148,7 @@ $commandProfiles = [ordered]@{
     'pr'               = 'builder'
     'resolve'          = 'builder'
     'fix'              = 'builder'
+    'handoff'          = 'builder'  # tier-neutral by AGENTS.shared.md *Handoff mode*; a launcher must still pick one
     'tune'             = 'builder'
     'install'          = 'builder'
     'install-all'      = 'builder'
