@@ -73,6 +73,15 @@ exit 0
         Set-Content -LiteralPath (Join-Path $BinDir 'gh.ps1') -Value $stub -Encoding utf8NoBOM
         $BinDir
     }
+
+    function New-PostCheckoutDirtyHook {
+        # Fires on every `git checkout`, including a no-op checkout of the branch already
+        # checked out - so the discovery pass's own checkout dirties the tree in time for
+        # the apply pass's dirty-tree check to see it, without mocking anything.
+        param([Parameter(Mandatory)][string] $RepoPath)
+        $hookPath = Join-Path $RepoPath '.git/hooks/post-checkout'
+        Set-Content -LiteralPath $hookPath -Value "#!/bin/sh`ntouch dirty-marker.txt`n" -Encoding utf8NoBOM -NoNewline
+    }
 }
 
 Describe 'Invoke-Housekeeping' {
@@ -164,6 +173,49 @@ Describe 'Invoke-Housekeeping' {
             $joined | Should -Match 'Kept feature/foo: Git refused the safe delete'
             $joined | Should -Not -Match '^Refused'
             $joined | Should -Match '\(Refused\)'
+        }
+    }
+
+    Context 'the apply pass itself stops - a judgement case discovery never saw' {
+        # Invoke-DoneHousekeeping.ps1 runs twice: once to discover candidates, again to
+        # delete them. The second run can hit its own Stopped condition (dirty tree,
+        # unmerged current branch, a failed checkout) independently of anything discovery
+        # found. A post-checkout hook that dirties the tree reproduces this without mocking
+        # anything - discovery's own checkout (of the branch it is already on) fires the
+        # hook, so by the time the apply pass starts, its dirty-tree check trips first,
+        # before it ever gets to -DeleteBranches.
+
+        It 'escalates on Applied.Stopped instead of reporting Escalate:false' {
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-apply-stop')
+            New-MergedBranch -RepoPath $repo -Branch 'feature/apply-stop'
+            New-PostCheckoutDirtyHook -RepoPath $repo
+
+            $result = & $script:ScriptPath -RepoRoot $repo -DefaultBranch main -SkipPull -WarningVariable warnings -WarningAction SilentlyContinue
+
+            $result.Applied.Stopped | Should -Be $true
+            $result.Applied.Reason | Should -Be 'DirtyTree'
+            $result.Escalate | Should -Be $true
+            # Discovery itself completed cleanly and never saw a judgement case of its own.
+            $result.Discover.Stopped | Should -Be $false
+            (& git -C $repo branch --list 'feature/apply-stop') | Should -Not -BeNullOrEmpty
+
+            $joined = (@($warnings | ForEach-Object ToString)) -join "`n"
+            $joined | Should -Match 'Stopped during apply: DirtyTree'
+        }
+
+        It 'still reports discovery''s own pull/prune results in the summary, not the apply pass''s' {
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-apply-stop-summary')
+            New-MergedBranch -RepoPath $repo -Branch 'feature/apply-stop-summary'
+            New-PostCheckoutDirtyHook -RepoPath $repo
+
+            & $script:ScriptPath -RepoRoot $repo -DefaultBranch main -SkipPull -InformationVariable lines | Out-Null
+
+            $joined = (@($lines | ForEach-Object ToString)) -join "`n"
+            # A Stopped:DirtyTree result from the apply pass carries DefaultBranch:$null and
+            # PrunedCount:0 (Invoke-DoneHousekeeping.ps1:131-146) - the summary must not
+            # source these lines from $applied, or discovery's real values are lost.
+            $joined | Should -Match 'Default branch: main \(not pulled\)'
+            $joined | Should -Not -Match 'Default branch:  \('
         }
     }
 }
