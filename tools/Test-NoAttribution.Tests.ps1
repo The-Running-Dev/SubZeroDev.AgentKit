@@ -155,3 +155,32 @@ Describe 'Test-NoAttribution.ps1: CI gate catches commits made without the hook 
         { & $script:GateScriptPath -BaseSha $script:CleanSha -HeadSha '' } | Should -Throw
     }
 }
+
+Describe 'INSTALL.md wires the commit-msg hook into every target (#340 S.1 / #354)' {
+
+    BeforeAll {
+        $script:RepoRoot   = Split-Path $PSScriptRoot -Parent
+        $script:InstallDoc = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'INSTALL.md') -Raw
+        $script:InstallAll = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'skills/install-all/SKILL.md') -Raw
+    }
+
+    It 'phase 1 classifies .git/hooks/commit-msg as an artifact of its own' {
+        $script:InstallDoc | Should -Match '\|\s*`\.git/hooks/commit-msg`\s*\|'
+    }
+
+    It 'phase 4 step 3 names the hook among the paths the install writes' {
+        $script:InstallDoc | Should -Match 'and `\.git/hooks/commit-msg` — nothing under `skills/`'
+    }
+
+    It 'the hook is skipped where core.hooksPath names anywhere but .git/hooks' {
+        $script:InstallDoc | Should -Match 'core\.hooksPath'
+    }
+
+    It 'an existing commit-msg hook the kit did not write is never overwritten' {
+        $script:InstallDoc | Should -Match 'Not overwrite, append to, or move aside a `commit-msg` hook'
+    }
+
+    It '/install-all writes no git hooks, because its own guard cannot see that write' {
+        $script:InstallAll | Should -Match 'No write to a target''s `\.git/hooks/`'
+    }
+}
