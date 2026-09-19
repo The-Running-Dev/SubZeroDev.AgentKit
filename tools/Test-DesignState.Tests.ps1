@@ -1868,11 +1868,24 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
         $script:RepoRoot = Split-Path $PSScriptRoot -Parent
         $script:StatusBefore = & git -C $script:RepoRoot status --short
         $script:RealResult = Invoke-DesignStateCheck -RepoPath $script:RepoRoot
+        # The "after" read is taken here, immediately following the check, rather than
+        # deferred to whenever Pester schedules the S5.9 It below - previously a gap of
+        # hundreds of lines and other tests' runtime, in which a concurrent commit in the
+        # real checkout could land and be misread as a mutation this check made (#339).
+        $script:StatusAfterCheck = & git -C $script:RepoRoot status --short
+    }
+
+    It 'B1.1 regression: BeforeAll captures the post-check status snapshot used by S5.9/I18' {
+        # S5.9/I18 must compare against a snapshot taken immediately after the check in
+        # BeforeAll, not a live re-read at assertion time - Get-Variable, not a value
+        # check, because an empty (clean-tree) string is a legitimate captured value and
+        # must not be mistaken for "never captured" (#339).
+        $variable = Get-Variable -Name StatusAfterCheck -Scope Script -ErrorAction SilentlyContinue
+        $variable | Should -Not -BeNullOrEmpty
     }
 
     It 'S5.9/I18: git status is unchanged by a real run against this repository' {
-        $after = & git -C $script:RepoRoot status --short
-        $after | Should -Be $script:StatusBefore
+        $script:StatusAfterCheck | Should -Be $script:StatusBefore
     }
 
     It 'S5.1: this repository''s design/20-contract.md declares exactly the same class ids as the script' {
@@ -2259,29 +2272,59 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
     }
 
     It 'S18.6: EnforcementUnevidenced rejects this repository''s own superseded decision once its SupersededBy line is removed, and clears once it is restored' {
-        $supersededPath = Join-Path $script:RepoRoot 'design/state/decisions/2026-08-03-ticking-checkbox-is-the-users.md'
-        $original = Get-Content -LiteralPath $supersededPath -Raw
-        $original | Should -Match '(?m)^SupersededBy:'
-        try {
-            $stripped = $original -replace '(?m)^SupersededBy:.*\r?\n', ''
-            Set-Content -LiteralPath $supersededPath -Value $stripped -Encoding utf8NoBOM -NoNewline
+        # #339: this used to strip/restore the field directly on the tracked file in the
+        # live checkout, which was genuinely dirty on disk for the duration of the test -
+        # visible to any concurrent `git status`, `git add`, or `gh pr create` in that
+        # window. It now mutates a disposable `git worktree` copy instead; the live
+        # checkout is never written to, so there is nothing on it to race or restore.
+        $relativePath = 'design/state/decisions/2026-08-03-ticking-checkbox-is-the-users.md'
+        $liveSupersededPath = Join-Path $script:RepoRoot $relativePath
+        $liveOriginal = Get-Content -LiteralPath $liveSupersededPath -Raw
 
-            $strippedResult = Invoke-DesignStateCheck -RepoPath $script:RepoRoot
+        $worktreePath = Join-Path ([System.IO.Path]::GetTempPath()) "agentkit-s18-6-$([guid]::NewGuid())"
+        try {
+            Push-Location $script:RepoRoot
+            & git worktree add --quiet --detach $worktreePath HEAD 2>&1 | Out-Null
+            $addExitCode = $LASTEXITCODE
+        } finally {
+            Pop-Location
+        }
+        if ($addExitCode -ne 0) { throw "git worktree add failed for '$worktreePath' (exit $addExitCode)" }
+
+        try {
+            $worktreeSupersededPath = Join-Path $worktreePath $relativePath
+            $original = Get-Content -LiteralPath $worktreeSupersededPath -Raw
+            $original | Should -Match '(?m)^SupersededBy:'
+
+            $stripped = $original -replace '(?m)^SupersededBy:.*\r?\n', ''
+            Set-Content -LiteralPath $worktreeSupersededPath -Value $stripped -Encoding utf8NoBOM -NoNewline
+
+            # B1.2 regression: the live checkout's own copy must be untouched while the
+            # worktree copy carries the stripped field - this fails against the old
+            # in-place edit, which strips the live file at exactly this point.
+            (Get-Content -LiteralPath $liveSupersededPath -Raw) | Should -Be $liveOriginal
+
+            $strippedResult = Invoke-DesignStateCheck -RepoPath $worktreePath
             $strippedResult.ExitCode | Should -Be 1
             $hit = @($strippedResult.Findings | Where-Object { $_.Class -eq 'EnforcementUnevidenced' -and $_.Subject -eq 'decision/2026-08-03-ticking-checkbox-is-the-users' })
             $hit.Count | Should -Be 1
             $hit[0].Detail | Should -Match 'SupersededBy'
-        } finally {
-            Set-Content -LiteralPath $supersededPath -Value $original -Encoding utf8NoBOM -NoNewline
-        }
 
-        # Restoring clears EnforcementUnevidenced; it does not clear ClosureOverBudget, which is
-        # this repository's adjudicated state (S12.5, and design/10-design.md "Whether the
-        # ceiling can be met"). Asserting exit 0 here asserted the ceiling was met.
-        $restoredResult = Invoke-DesignStateCheck -RepoPath $script:RepoRoot
-        (@($restoredResult.Findings | Where-Object { $_.Class -eq 'EnforcementUnevidenced' })).Count | Should -Be 0
-        (@($restoredResult.Findings | Where-Object { $_.Class -notin @('ClosureOverBudget') })).Count | Should -Be 0
-        (& git -C $script:RepoRoot status --short) | Should -Be $script:StatusBefore
+            Set-Content -LiteralPath $worktreeSupersededPath -Value $original -Encoding utf8NoBOM -NoNewline
+
+            # Restoring clears EnforcementUnevidenced; it does not clear ClosureOverBudget, which is
+            # this repository's adjudicated state (S12.5, and design/10-design.md "Whether the
+            # ceiling can be met"). Asserting exit 0 here asserted the ceiling was met.
+            $restoredResult = Invoke-DesignStateCheck -RepoPath $worktreePath
+            (@($restoredResult.Findings | Where-Object { $_.Class -eq 'EnforcementUnevidenced' })).Count | Should -Be 0
+            (@($restoredResult.Findings | Where-Object { $_.Class -notin @('ClosureOverBudget') })).Count | Should -Be 0
+
+            (Get-Content -LiteralPath $liveSupersededPath -Raw) | Should -Be $liveOriginal
+        } finally {
+            Push-Location $script:RepoRoot
+            & git worktree remove --force $worktreePath 2>&1 | Out-Null
+            Pop-Location
+        }
     }
 }
 
