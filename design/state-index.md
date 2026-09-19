@@ -24,6 +24,7 @@ means no record exists yet, not that nothing is true.
 | `unit/command/design` | command | `skills/design/SKILL.md` |
 | `unit/command/fix` | command | `skills/fix/SKILL.md` |
 | `unit/command/freeze` | command | `skills/hold/SKILL.md` |
+| `unit/command/handoff` | command | `skills/handoff/SKILL.md` |
 | `unit/command/install` | command | `skills/install/SKILL.md` |
 | `unit/command/install-all` | command | `skills/install-all/SKILL.md` |
 | `unit/command/install-code-review-agent` | command | `skills/install-review/SKILL.md` |
@@ -302,6 +303,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-19-check-renders-its-lists-from-the-file-read-back | `unit/command/verify` |
 | decision/2026-09-19-commit-msg-hook-installs-attended-only | `unit/command/install-all`, `unit/document/install-md`, `unit/script/test-writesurface` |
 | decision/2026-09-19-fix-names-the-cause-before-patching | `unit/command/fix` |
+| decision/2026-09-19-handoff-mode-leaves-the-pipeline | `unit/command/handoff`, `unit/document/agents-md` |
 | decision/2026-09-19-headingcollision-blocks-a-duplicate-heading | `unit/document/design-20-contract` |
 | decision/2026-09-19-pr-phase-1-compares-intent-against-the-diff | `unit/command/pr` |
 | decision/2026-09-19-script-unit-without-a-contract-acquires-one | `unit/document/design-20-contract` |

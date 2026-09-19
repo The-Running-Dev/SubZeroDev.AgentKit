@@ -171,6 +171,8 @@ Outside the numbered stages: `/help` says where the repository is and what to ru
 
 `/tune` is the front door for asks that fall between the stages. Every other command assumes you are already inside the pipeline — `/slice` needs a slice, `/spec` needs a design. `/tune` takes a rough ask, routes it to the command that owns it where one does, and otherwise emits a prompt carrying the constraints that bind it. It emits rather than executes, because the tier it names is usually not the tier it is running at.
 
+`/handoff` is the way out of the pipeline entirely. Where `/tune` takes a rough *ask* and hands back a prompt, `/handoff` takes finished *instructions* and implements them — branch, build, gates, pull request, merge — consulting no design document and leaving no slice, issue, or decision entry behind. [`AGENTS.shared.md`](AGENTS.shared.md), *Handoff mode* is the binding half: it suspends the pipeline and the design-protecting rules, keeps verification, delivery, and authorization, and says that the mode is declared in whatever words the user likes rather than only by the command. Work that is specified but not designed goes here; pushing it through stages 1–5 anyway is the failure this exists to stop.
+
 **Which model runs which command is in [`AGENTS.shared.md`](AGENTS.shared.md), *Command routing*** — it is binding policy, so it has one home and this is not it.
 
 Effort tracks irreversibility, not stage prestige. Schemas and public interfaces are expensive to change; code is cheap to throw away. Stages 2 and 4 are where the money goes. Stage 6 is where it usually gets wasted.

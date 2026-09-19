@@ -91,6 +91,8 @@ Then back to 1 for the next slice.
 
 **`/tune`.** Every other command assumes you are already inside the pipeline. It routes the ask to the command that owns it where one exists, and otherwise emits a prompt carrying the constraints that bind it — for the user to run at the tier it names.
 
+**`/handoff`** is the other answer, and it comes first when the ask is an *instruction* rather than a question. `/tune` routes and emits; `/handoff` implements. Where the user has already said what they want built, in enough detail to build it, the answer is `/handoff` — not a brief, not a design pass, not a slice. `AGENTS.shared.md` § *Handoff mode* binds this: a session that answers a handoff by proposing a pipeline stage is in breach, and that holds for this command's own recommendations too.
+
 ### Skipping most of it
 
 For something short-lived, the honest minimum is `00-brief.md` with real non-goals, `20-contract.md`, and `/slice`. Skip 1, 2, 3, 7, 8. The `Lifespan` line in the brief exists to force that call before the work starts rather than after.
