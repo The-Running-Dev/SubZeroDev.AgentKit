@@ -66,7 +66,7 @@ BeforeAll {
     }
 
     # A minimal but exact stand-in for the two sections of design/20-contract.md the checker
-    # parses about itself - the same 32 class ids Test-DesignState.ps1 declares, and a verbatim
+    # parses about itself - the same 33 class ids Test-DesignState.ps1 declares, and a verbatim
     # copy of § "Artifacts of a unit kind"'s table - so end-to-end tests below do not spuriously
     # raise ClassListDisagreement or GlobDisagreement while exercising something else entirely.
     # The glob table agrees with the enumeration over any tree by construction, which is exactly
@@ -102,6 +102,7 @@ BeforeAll {
 | `ClosureOverBudget` | x | x |
 | `ClassListDisagreement` | x | x |
 | `GlobDisagreement` | x | x |
+| `HeadingCollision` | x | x |
 | `RecordPairMalformed` | x | x |
 | `HalfStatusMismatch` | x | x |
 | `HalfOverlap` | x | x |
@@ -1230,6 +1231,46 @@ Describe 'Test-DesignState: absorption sites (S21)' {
         $findings = Test-SiteContradictsLive -Records @($liveUnit, $siteUnit, $decision)
         $findings.Count | Should -Be 0
     }
+
+    It 'S21.6: HeadingCollision fires when a file a site can name carries the same heading twice' -Tag 'Fires', 'HeadingCollision' {
+        New-TreeFile -RelativePath 'COLLIDES.md' -Content @'
+# Title
+
+## Repeated
+
+Body.
+
+## Repeated
+'@
+        $unit = New-Record -Id 'unit/document/collides' -Scalars @{ Kind = 'document'; Status = 'active'; Anchor = 'COLLIDES.md' }
+
+        $findings = Test-HeadingCollision -Records @($unit) -RepoPath $TestDrive
+        $findings.Count | Should -Be 1
+        $findings[0].Class | Should -Be 'HeadingCollision'
+        $findings[0].Subject | Should -Be 'COLLIDES.md'
+        $findings[0].Detail | Should -Match "heading 'Repeated' stands 2 times"
+        $findings[0].Detail | Should -Match '3, 7'
+    }
+
+    It 'S21.6: distinct headings are silent, and so is a collision behind a record that is not active' -Tag 'NearMiss', 'HeadingCollision' {
+        New-TreeFile -RelativePath 'DISTINCT.md' -Content @'
+# Title
+
+## One
+
+## Two
+'@
+        New-TreeFile -RelativePath 'RETIRED.md' -Content @'
+## Same
+
+## Same
+'@
+        $active = New-Record -Id 'unit/document/distinct' -Scalars @{ Kind = 'document'; Status = 'active'; Anchor = 'DISTINCT.md' }
+        $retired = New-Record -Id 'unit/document/retired' -Scalars @{ Kind = 'document'; Status = 'retired'; Anchor = 'RETIRED.md' }
+
+        $findings = Test-HeadingCollision -Records @($active, $retired) -RepoPath $TestDrive
+        $findings.Count | Should -Be 0
+    }
 }
 
 Describe 'Test-DesignState: DecisionUnplaced and SupersessionCycle (S22)' {
@@ -1340,7 +1381,7 @@ The claim text stands here, verbatim.
 
 Describe 'Test-DesignState: ClassListDisagreement (S5.1)' {
 
-    It 'raises nothing when the contract document declares exactly the same 32 ids' -Tag 'NearMiss','ClassListDisagreement' {
+    It 'raises nothing when the contract document declares exactly the same 33 ids' -Tag 'NearMiss','ClassListDisagreement' {
         New-TreeFile -RelativePath 'design/20-contract.md' -Content $script:MinimalContract
         $result = Test-ClassListAgreement -ContractPath (Join-Path $TestDrive 'design/20-contract.md')
         $result.Finding | Should -BeNullOrEmpty

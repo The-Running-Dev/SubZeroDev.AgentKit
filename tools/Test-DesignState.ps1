@@ -72,6 +72,7 @@ $script:BlockingClasses = @(
     'UnresolvedId', 'AnchorMissing', 'OwnerMismatch', 'UnrecordedArtifact', 'ProjectionStale',
     'RegionMalformed', 'IdCollision', 'DecisionAnchorAmbiguous', 'LogEntryUnrecorded',
     'EnforcementUnevidenced', 'ClosureOverBudget', 'ClassListDisagreement', 'GlobDisagreement',
+    'HeadingCollision',
     'RecordPairMalformed', 'HalfStatusMismatch', 'HalfOverlap',
     'SiteAmbiguous', 'SiteOutOfReach', 'SiteContradictsLive',
     'DecisionUnplaced', 'SupersessionCycle'
@@ -1160,6 +1161,57 @@ function Test-SiteAmbiguous {
 }
 
 <#
+    HeadingCollision. A file a StatedIn site can name must not carry two headings with the same
+    resolvable text (design/20-contract.md § "The divergence classes"). The set of such files is
+    exactly what Resolve-StatedInSiteFile can return - an active unit's Anchor where that anchor
+    is Markdown, and an active contract's own record file - and deliberately no wider: a duplicate
+    heading in a file no site can name is not an ambiguity this mechanism can suffer.
+
+    This fires before any site names either heading, which is the whole of why it is not
+    SiteAmbiguous: that class reports the count to whoever writes the first pointer in, who did
+    not cause it.
+#>
+function Test-HeadingCollision {
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records,
+        [Parameter(Mandatory)][string] $RepoPath
+    )
+
+    $findings = [System.Collections.Generic.List[object]]::new()
+
+    $targets = [ordered]@{}
+    foreach ($record in $Records) {
+        if ($record.Scalars['Status'] -ne 'active') { continue }
+        $file = Resolve-StatedInSiteFile -SiteId $record.Id -ById @{ $record.Id = $record } -RepoPath $RepoPath
+        if (-not $file) { continue }
+        if ($file -notmatch '\.md$') { continue }
+        if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { continue }
+        $resolved = (Resolve-Path -LiteralPath $file).Path
+        if (-not $targets.Contains($resolved)) { $targets[$resolved] = $file }
+    }
+
+    foreach ($resolved in @($targets.Keys)) {
+        $seen = [ordered]@{}
+        $lineNumber = 0
+        foreach ($line in (Get-Content -LiteralPath $resolved)) {
+            $lineNumber++
+            if ($line -match '^#{1,6}\s+(.+?)\s*$') {
+                $heading = $Matches[1]
+                if (-not $seen.Contains($heading)) { $seen[$heading] = [System.Collections.Generic.List[int]]::new() }
+                $seen[$heading].Add($lineNumber)
+            }
+        }
+        $relative = [System.IO.Path]::GetRelativePath($RepoPath, $resolved).Replace([char]0x5C, '/')
+        foreach ($heading in @($seen.Keys)) {
+            $lines = $seen[$heading]
+            if ($lines.Count -lt 2) { continue }
+            $findings.Add((New-DesignFinding -Class 'HeadingCollision' -Subject $relative -Detail "heading '$heading' stands $($lines.Count) times, at line(s) $($lines -join ', ')" -Blocking $true))
+        }
+    }
+    ,@($findings)
+}
+
+<#
     SiteOutOfReach. A site is in reach when some unit's own identity, or some unit's one-hop
     closure (Consumes, Exposes, Binds, Live, Questions), names the site's id - design/10-design.md
     § "Absorption", "somewhere that unit's reader already reaches: a section of the unit's own
@@ -1753,6 +1805,7 @@ function Invoke-DesignStateCheck {
     $blockingFindings.AddRange((Test-HalfStatusMismatch -Records $records -ById $byId))
     $blockingFindings.AddRange((Test-HalfOverlap -Records $records))
     $blockingFindings.AddRange((Test-SiteAmbiguous -Records $records -ById $byId -RepoPath $RepoPath))
+    $blockingFindings.AddRange((Test-HeadingCollision -Records $records -RepoPath $RepoPath))
     $blockingFindings.AddRange((Test-SiteOutOfReach -Records $records))
     $blockingFindings.AddRange((Test-SiteContradictsLive -Records $records))
     $blockingFindings.AddRange((Test-DecisionUnplaced -Records $records))

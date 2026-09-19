@@ -23,10 +23,12 @@ evaluated for it. An unreadable component row is `ContractListUnreadable` and le
 uncomputed, never clean. An empty or absent component row is an empty artifact set, not an
 uncomputed one: every active `component` record is anchored outside it and is `UnrecordedArtifact`.
 
-Declares `LiveAlreadyStated` in its reported class list and never raises it: whether a decision's
-terms already stand at a site is a model reading prose, the ground `SemanticDisagreement` already
-stands on, not a comparison this script performs. Declaring the id without raising it is what
-lets `ClassListDisagreement` see one list against `design/20-contract.md`'s copy.
+Declares `LiveAlreadyStated` and `SemanticDisagreement` in its reported class list and raises
+neither: whether a decision's terms already stand at a site, and whether a record's prose is true
+of its artifact, are both a model reading prose rather than a comparison this script performs.
+Both have a raiser, and it is not this script — `skills/align/SKILL.md` runs each as a reading.
+Declaring an id without raising it is what lets `ClassListDisagreement` see one list against
+`design/20-contract.md`'s copy.
 
 `OwnerMismatch` checks only `Contract.Owner`. An invariant's holders are never checked against a
 written field, because it has none — the `invariants` projection's `Held by` column renders the
