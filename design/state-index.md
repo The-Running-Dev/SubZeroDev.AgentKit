@@ -137,6 +137,7 @@ means no record exists yet, not that nothing is true.
 | contract/invoke-donehousekeeping | `unit/script/invoke-housekeeping` |
 | contract/merge-pullrequest | `unit/command/pr` |
 | contract/read-designstate | `unit/script/test-designstate`, `unit/script/update-designprojection` |
+| contract/repoaliases | — |
 | contract/resolve | `unit/command/pr` |
 | contract/test-companion | `unit/command/install-all`, `unit/command/verify`, `unit/script/sync-kit` |
 | contract/test-designdrift | `unit/command/track` |

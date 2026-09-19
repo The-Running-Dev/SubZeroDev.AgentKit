@@ -2,7 +2,7 @@
 Date: 2026-09-06
 Anchor: 2026-09-06 — `/clean` and `/next`'s mechanical halves run from a shell alias, and escalation stays a human's call
 Status: accepted
-StatedIn: unit/command/clean § No model needed for the ordinary case, unit/command/next § Orient, contract/get-nextorientation § Semantics
+StatedIn: unit/command/clean § No model needed for the ordinary case, unit/command/next § Orient, contract/get-nextorientation § Semantics, contract/repoaliases § Semantics
 
 ## Claim
 `tools/Invoke-Housekeeping.ps1` and `tools/Get-NextOrientation.ps1` run `/clean`'s branch-deletion
