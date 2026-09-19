@@ -30,6 +30,12 @@
     always skips (install-all.md, phase 2's "named fork with no default" list), so a write
     there is never expected and the guard should catch it, not allow it.
 
+    `.git/hooks/` is absent for a different reason, and must stay absent: `git status` does not
+    report writes inside `.git/` at all, so a prefix naming it would match nothing however the
+    hook was installed. INSTALL.md phase 1 does install a `commit-msg` hook there; it is guarded
+    by that phase's Occupied rule and by /install-all not writing it, never by this script. An
+    entry here would be dead configuration that reads as coverage.
+
 .PARAMETER TargetRepo
     Repository whose working tree is checked. Defaults to the current directory.
 
