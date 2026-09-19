@@ -3,9 +3,9 @@ Kind: script
 Status: active
 Anchor: tools/Invoke-Housekeeping.ps1
 Consumes: contract/invoke-donehousekeeping
-Exposes:
+Exposes: contract/invoke-housekeeping
 Binds:
-Live: decision/2026-09-06-clean-and-next-mechanical-halves-run-from-a-shell-alias
+Live:
 Questions:
 Work:
 Evidence: tools/Invoke-Housekeeping.Tests.ps1
