@@ -20,6 +20,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Catches a commit made without tools/git-hooks/commit-msg installed locally - that
+      # hook strips these silently, but nothing stops a contributor without it (#340 S.4).
+      # AGENTS.shared.md "House conventions" states the rule; tools/Test-NoAttribution.ps1
+      # does the check, kept in sync with the hook's own pattern list.
+      # verification: true
+      - name: Check commits carry no AI attribution
+        shell: pwsh
+        env:
+          ATTRIBUTION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          ATTRIBUTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: ./tools/Test-NoAttribution.ps1
+
       # verification: true
       - name: Parse-check PowerShell scripts
         shell: pwsh

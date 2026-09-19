@@ -80,6 +80,7 @@ means no record exists yet, not that nothing is true.
 | `unit/script/test-designdrift` | script | `tools/Test-DesignDrift.ps1` |
 | `unit/script/test-designstate` | script | `tools/Test-DesignState.ps1` |
 | `unit/script/test-gatescache` | script | `tools/Test-GatesCache.ps1` |
+| `unit/script/test-noattribution` | script | `tools/Test-NoAttribution.ps1` |
 | `unit/script/test-verifyreport` | script | `tools/Test-VerifyReport.ps1` |
 | `unit/script/test-writesurface` | script | `tools/Test-WriteSurface.ps1` |
 | `unit/script/update-designprojection` | script | `tools/Update-DesignProjection.ps1` |

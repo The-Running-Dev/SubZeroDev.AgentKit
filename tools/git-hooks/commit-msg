@@ -1,0 +1,12 @@
+#!/bin/sh
+# Strip AI attribution from every commit message in this checkout.
+# AGENTS.shared.md "House conventions": no AI attribution, anywhere, ever.
+# A model following a tooling reminder cannot bypass this; it runs after the message is written.
+# Strip, do not reject: this always exits 0, never blocks a commit (issue #340).
+# Pattern list kept in sync with tools/Test-NoAttribution.ps1's $script:AttributionPattern.
+msg="$1"
+grep -v -i -E '^(Co-authored-by:[[:space:]]*(Claude|Anthropic|GPT|Codex|Copilot))|(Generated with \[?(Claude|Codex|Copilot))|(🤖 Generated with)' "$msg" > "$msg.stripped"
+# drop any trailing blank lines the removal left behind
+awk 'BEGIN{n=0} {lines[NR]=$0} END{last=NR; while(last>0 && lines[last] ~ /^[[:space:]]*$/) last--; for(i=1;i<=last;i++) print lines[i]}' "$msg.stripped" > "$msg"
+rm -f "$msg.stripped"
+exit 0
