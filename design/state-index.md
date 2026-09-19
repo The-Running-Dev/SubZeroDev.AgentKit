@@ -133,6 +133,7 @@ means no record exists yet, not that nothing is true.
 | Contract | Consumers |
 |---|---|
 | contract/fix | — |
+| contract/get-nextorientation | — |
 | contract/invoke-donehousekeeping | `unit/script/invoke-housekeeping` |
 | contract/merge-pullrequest | `unit/command/pr` |
 | contract/read-designstate | `unit/script/test-designstate`, `unit/script/update-designprojection` |

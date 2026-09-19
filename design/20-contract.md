@@ -746,6 +746,24 @@ action is the unchecked kind I15 forbids until a record resolves it (`design/90-
   one failure mode a delegation resting on this script's field names cannot tolerate. The named
   three stay named because a caller branches on them; this one is deliberately the residue.
 
+### `tools/Get-NextOrientation.ps1`
+
+**The parameter list and result shape are declared in the script itself and are not copied here.**
+What they cannot state:
+
+- **Runs `/next`'s orientation reads without a model, scoped to `-RepoRoot` rather than the
+  process's ambient directory.** A caller may run the script from another checkout without
+  silently orienting on that checkout instead.
+- **A failed `gh` pull-request query is unavailable, never an empty pull-request list; an absent
+  design gate is reported as not present.** Neither absence is evidence that there are no pull
+  requests or no design finding.
+- **Every returned result carries a plain-language `Summary` beside its declared fields.** This
+  follows `AGENTS.shared.md` § *Output discipline*: meaning comes before an identifier a reader
+  would otherwise have to translate.
+- **Never chooses what runs next and never opens a model session.** The orientation data informs
+  that judgement; it does not make it. This is `/next`'s no-model mechanical half, not an
+  alternate command path.
+
 ### `tools/Test-GatesCache.ps1`
 
 **The parameter list is the script's own `param` block and is not copied here.** Read or write

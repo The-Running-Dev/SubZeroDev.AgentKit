@@ -3,9 +3,9 @@ Kind: script
 Status: active
 Anchor: tools/Get-NextOrientation.ps1
 Consumes:
-Exposes:
+Exposes: contract/get-nextorientation
 Binds:
-Live: decision/2026-09-06-clean-and-next-mechanical-halves-run-from-a-shell-alias
+Live:
 Questions:
 Work:
 Evidence:
