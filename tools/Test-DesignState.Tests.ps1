@@ -393,6 +393,40 @@ This paragraph mentions `<!-- agent:start -->` as an example of the syntax, inli
         $result.Inventory.Count | Should -Be 0
     }
 
+    It 'S358.1: a marker shown as a worked example inside a fenced code block is not a region' -Tag 'NearMiss','RegionMalformed' {
+        New-TreeFile -RelativePath '.claude/commands/fenced-example.md' -Content @'
+Here is what the block looks like:
+
+```markdown
+<!-- agent:start -->
+example body
+<!-- agent:end -->
+```
+
+after the fence
+'@
+        $result = Get-MarkedRegions -RepoPath $TestDrive -Files @('.claude/commands/fenced-example.md')
+        $result.Findings.Count | Should -Be 0
+        $result.Inventory.Count | Should -Be 0
+    }
+
+    It 'S358.1: a marker between tilde fences is not a region, and a real region after the fence still is' -Tag 'NearMiss','RegionMalformed' {
+        New-TreeFile -RelativePath '.claude/commands/tilde-fence.md' -Content @'
+~~~
+<!-- agent:start -->
+example body
+<!-- agent:end -->
+~~~
+<!-- companion:start -->
+real body
+<!-- companion:end -->
+'@
+        $result = Get-MarkedRegions -RepoPath $TestDrive -Files @('.claude/commands/tilde-fence.md')
+        $result.Findings.Count | Should -Be 0
+        $result.Inventory.Count | Should -Be 1
+        $result.Inventory[0].Id | Should -Be 'companion'
+    }
+
     It 'a mismatched closing marker is RegionMalformed' -Tag 'Fires','RegionMalformed' {
         New-TreeFile -RelativePath '.claude/commands/mismatch.md' -Content @'
 <!-- a:start -->
