@@ -331,9 +331,7 @@ that looks old.
 <!-- outstanding:start -->
 | Rank | Issue | Title | Criteria | Mirrored at |
 |---|---|---|---|---|
-| 211 | #211 | A script unit that exposes no contract has nowhere to absorb a decision into | — | `1a520a412cf98a1aad6f8bab146268ab55099b99` |
-| 248 | #248 | No command commissions the SemanticDisagreement reading | — | `7d51b6b520a3f471d306ab16c66d529f8ac307ec` |
-| 250 | #250 | Test-DesignState.ps1 cannot detect an unclaimed projected marked region | — | `7d51b6b520a3f471d306ab16c66d529f8ac307ec` |
-| 281 | #281 | Nothing checks heading uniqueness in a document whose sites are addressed by heading | — | `cbd501cd78a1b4a57e587847a556e5f82ea6419b` |
+| 358 | #358 | Get-MarkedRegions reads a fenced example as a live marked region | — | `ec1f2faefd5816e716f27bc06902c28ce6ab6a34` |
+| 359 | #359 | Give the six contract-less script units a contract record | — | `ec1f2faefd5816e716f27bc06902c28ce6ab6a34` |
 | milestone/3 | #33 | Move commands to a vendor-neutral path | — | `2fe2b41650c0dfd0c31f5e33618e7ac8c72cd465` |
 <!-- outstanding:end -->
