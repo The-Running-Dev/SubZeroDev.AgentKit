@@ -46,6 +46,13 @@ For each active unit, compare every decision named in its `Live` against the art
 
 This is a reading — `tools/Test-DesignState.ps1` declares the id and never raises it itself, for the same reason `SemanticDisagreement` cannot: judging whether a section states a decision's terms is a model reading prose, not a check a script can run. **This pass reports and never absorbs.** Acting on a match is the caller's own step 4 of `AGENTS.shared.md` § *Writing a design-state record* — copying the payload into the record and dropping the id from `Live` — or stating in the pull request why the terms do not stand there. That sign-off happens below, at *Then ask*, the same as every other divergence this command finds; absorbing it here instead would be running that step unattended.
 
+## SemanticDisagreement
+Over the same records the pass above already opened — the active units carrying a non-empty `Live`, plus the contracts and invariants reached in doing so — compare each record's **own prose** against the artifact it describes: a unit's `Owns`, a contract's `Semantics`, an invariant's `Statement`. Where the prose claims something the artifact does not do, report it under the name `SemanticDisagreement`. The payload is two parts: the record id and the field, and the line of the artifact that contradicts it.
+
+**Scope is the records this pass already had open, never the corpus.** Sweeping all of `design/state/` would re-read most of the tree on every run for a class that can never block, which is the cost that keeps a reading from being commissioned at all. A record outside that set is simply not examined, and the report says so rather than reading as clean (`AGENTS.shared.md`, *A findings report states what it examined*).
+
+This is a reading, for the reason given above and stated in `design/20-contract.md` § *The divergence classes*: `tools/Test-DesignState.ps1` declares the id so `ClassListDisagreement` sees one list, and never raises it, because a build that fails on a model's opinion is a build nobody trusts. **It reports and never edits.** A record whose prose is wrong is a divergence like any other, and which side is wrong — the prose or the artifact — is decided below at *Then ask*, not here.
+
 ## Invalidated assumptions
 Anything the design assumed that implementation showed to be false.
 

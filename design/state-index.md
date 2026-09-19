@@ -297,10 +297,14 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-18-stage-zero-gains-an-interview-command | `unit/command/interview`, `unit/document/agents-md`, `unit/document/template-00-brief` |
 | decision/2026-09-18-the-design-stage-gains-two-gates | `unit/command/design` |
 | decision/2026-09-19-a-challenge-to-a-given-direction-is-its-own-form | `unit/document/agents-md` |
+| decision/2026-09-19-a-fenced-marker-is-not-a-region | `unit/document/design-20-contract` |
+| decision/2026-09-19-align-commissions-the-semanticdisagreement-reading | `unit/command/reconcile`, `unit/document/design-20-contract`, `unit/script/test-designstate` |
 | decision/2026-09-19-check-renders-its-lists-from-the-file-read-back | `unit/command/verify` |
 | decision/2026-09-19-commit-msg-hook-installs-attended-only | `unit/command/install-all`, `unit/document/install-md`, `unit/script/test-writesurface` |
 | decision/2026-09-19-fix-names-the-cause-before-patching | `unit/command/fix` |
+| decision/2026-09-19-headingcollision-blocks-a-duplicate-heading | `unit/document/design-20-contract` |
 | decision/2026-09-19-pr-phase-1-compares-intent-against-the-diff | `unit/command/pr` |
+| decision/2026-09-19-script-unit-without-a-contract-acquires-one | `unit/document/design-20-contract` |
 | decision/2026-09-19-spec-asks-what-the-contract-got-wrong | `unit/command/contract` |
 | decision/2026-09-19-three-evidence-gaps-the-citation-gate-does-not-reach | `unit/command/redteam`, `unit/document/agents-md` |
 <!-- decision-affects:end -->

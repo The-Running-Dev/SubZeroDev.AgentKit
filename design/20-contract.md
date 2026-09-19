@@ -121,7 +121,17 @@ per-kind vocabulary, citing it. What neither can state:
   finding rather than a merge to resolve by preferring one. **A script unit cannot be absorbed
   into directly** and no rule says so — a `.ps1` has no headings for the pointer to resolve
   against, so the site names that script's contract `§ Semantics`, one hop away. The restriction
-  falls out of the check instead of being a second rule to remember.
+  falls out of the check instead of being a second rule to remember. **Where that script
+  exposes no contract, the answer is a contract record rather than an exemption.** A decision
+  landing on a script with nowhere to absorb into is a script whose surface was never recorded,
+  not a decision that needs a new site form: the six carrying one when this was settled each
+  exposed something another part of the kit already depends on by name. The two alternatives
+  were refused for what each costs the check. A site naming a headingless artifact leaves
+  `SiteAmbiguous` nothing to resolve against, which trades a checked pointer for an unchecked
+  claim at the one place the reach rule exists to hold. An accepted exemption leaves a `Live`
+  set asserting *in flight* about a decision that shipped, monotonically, with
+  `ClosureOverBudget` as its only bound — and a bound that fires years later is not a statement
+  about the decision it is wrong about.
 - **`Decision.Affects` may never be empty; `Question.Affects` may.** An accepted decision must be
   named by some unit's `Live` or place at least one site, and a superseded one must be named by
   some `Archival`, or it is `DecisionUnplaced` — an interrupted write, indistinguishable from a
@@ -239,7 +249,7 @@ list, and the result object that carries all three. What those signatures cannot
 
 ## Persisted schemas
 
-### The defect-to-merge path
+### Persisted state on the defect-to-merge path
 
 **None.** No file, no cache, no state directory. This is a deliberate constraint, not an
 absence: a persisted classification or approval is one that can be reused after the fact
@@ -368,6 +378,20 @@ exists to forbid, one level up.
 - **A projected id and a declared id share one namespace.** The same id in both forms is an
   `IdCollision`, not two regions — otherwise a rename that dropped `:declared:` would read as a
   new region rather than as a region that changed kind.
+- **A marker inside a fenced code block is not a region.** Every document that explains this
+  mechanism has to show the marker, so a scanner that cannot tell an example from an instance
+  reports the documentation as though it were the tree — `skills/track/SKILL.md` and
+  `skills/pr/SKILL.md` each carry one inside a fenced example today. Requiring the marker to be
+  the whole trimmed line is what stops a prose mention being misread, and it does nothing here,
+  because inside a fence the example *is* the whole line.
+- **Nothing checks that a projected region has a projector, and that is deferred rather than
+  pending.** Such a check needs the registry the top of this section refuses, for the reason
+  given there — a mistyped id in it goes silently unchecked, in exactly the direction the check
+  exists to catch — and the case that raised the question is answered without one: a region
+  written by a tool outside the kit carries the declared form, which `AGENTS.md` § *Marked
+  regions* asserts of its own `videowright` block and the installer overwrites on re-install.
+  What is left unchecked is a projected id no projector claims, and it stays unchecked
+  deliberately.
 - **Nested and unbalanced markers are findings, not parse failures to route around.** A
   projector that recovers from an unbalanced region writes into a span nobody delimited. This
   holds for both kinds; a declared region is checked for well-formedness exactly as a projected
@@ -1112,6 +1136,7 @@ list.
 | `SupersessionCycle` | A `SupersededBy` chain revisits a decision, or a decision names itself | The cycle, in order |
 | `ClassListDisagreement` | The checker's declared class ids differ from this document's list | Both sets, and the difference in each direction |
 | `GlobDisagreement` | For a unit kind the checker enumerates independently, the file set § *Artifacts of a unit kind*'s patterns resolve to differs from the set that enumeration returns | The kind, the direction, and the paths |
+| `HeadingCollision` | A file a `StatedIn` site can name carries two headings with the same resolvable text | The file, the heading, the count, and every line it stands on |
 
 **`ClosureOverBudget` carries the excluded term, and that is why its payload has four parts
 rather than three.** The report line names the artifact beside the bounded figure for the
@@ -1209,6 +1234,27 @@ divergence, and what closed it was resolving both sides against the checkout ins
 their names. A definition has no checkout to resolve against, so that remedy does not carry, and
 nothing on the closed list closes this one.
 
+**`HeadingCollision` is `SiteAmbiguous` moved one step earlier, and the step is the whole
+point.** `SiteAmbiguous` fires on a site that resolves to two headings, so an ambiguity is
+reported to whoever writes the first pointer into it — who has done nothing wrong, is told the
+count and not the cause, and must go and find the collision themselves. The collision is a
+property of the file and is evaluable the moment it appears, so this class reports it against
+the file that has it, before any site names either heading. This document carried one for
+eighteen days and nothing said so.
+
+**It is scoped to the files a site can name, and that is narrower than the document glob.** A
+`StatedIn` resolves against a unit's `Anchor` where that anchor is Markdown, or against a
+contract's own record file, and nothing else — so a duplicate heading anywhere else is not an
+ambiguity this mechanism can suffer, and sweeping every Markdown file in the tree would report
+collisions no pointer could ever hit. **It is its own id rather than a widening of
+`SiteAmbiguous`**, on the test this list has applied twice already: two rules with two remedies
+stay apart, and here they are also two subjects — one is a finding about a decision's pointer,
+the other a finding about a file. Widening the existing class would have changed what it detects
+without changing its id, which is the divergence `ClassListDisagreement` cannot see and which
+this document has already named as outliving the widening that exposed it. **It qualifies as
+blocking on I22's own terms**: a string comparison over headings in the checkout, no network, no
+tracker, no service.
+
 **Reported, never blocking.** Each fails in exactly the environment where the failure means
 nothing, which is why none of them is on the list above.
 
@@ -1217,7 +1263,7 @@ nothing, which is why none of them is on the list above.
 | `MirrorStale` | A `WorkRef`'s `MirroredAt` is not the current commit | The mirror is stale by construction; that is its documented state, not a divergence |
 | `WorkStateDivergence` | A `WorkRef` disagrees with the tracker | Needs `gh`. A build that fails on an unauthenticated CLI reports an absent comparison as a divergence |
 | `PinAncestry` | A cited commit is not an ancestor of the default branch | A shallow CI checkout has no history to answer with, and "could not check" must not read as "checked and failed" |
-| `SemanticDisagreement` | A model judges a record's claim untrue | Permanently reported. The brief's *no formal specification of behaviour* non-goal puts it out of reach, and a build that fails on a model's opinion is a build nobody trusts |
+| `SemanticDisagreement` | A model judges a record's claim untrue | Permanently reported, and by a reading rather than by the script. The brief's *no formal specification of behaviour* non-goal puts it out of reach, and a build that fails on a model's opinion is a build nobody trusts |
 | `LiveAlreadyStated` | A decision in a unit's `Live` whose terms already stand somewhere that unit's reader reaches — a section of its own `Anchor`, or of a record one hop from it — with no site naming that place | Permanently reported, and by a reading rather than by the script. Whether a section states a claim is a model judging prose, which is `SemanticDisagreement`'s territory and which I22 admits nothing that needs. It names the candidate site so the caller can absorb; it never absorbs |
 
 **`LiveAlreadyStated` exists because `Live` is the one bound that is maintained rather than
@@ -1238,6 +1284,18 @@ the finding is copying the payload into the record and dropping the id — step 
 not stand there, which is the shape S24.2 fixed. The candidate is held to the reach rule once
 written, by `SiteAmbiguous` and `SiteOutOfReach`, exactly as any site is; this class asserts
 nothing those two would not re-check.
+
+**`SemanticDisagreement` has a raiser, and it is the same reading.** `skills/align/SKILL.md`
+commissions it, over the records whose artifacts that pass already opens for the class above —
+the units carrying a non-empty `Live`. A class this document describes and no command performs
+is worse than an absent one, because the description reads as coverage: a caller looking for
+what checks a record's prose finds the row, finds the *Raised when* cell, and has no way to
+learn that nothing ever raises it. **The scope is what keeps the cost honest and is stated here
+rather than left to the command**: the reading compares a record's own prose — a unit's `Owns`,
+a contract's `Semantics`, an invariant's `Statement` — against the artifact already open in
+front of it, and never sweeps the corpus. That prose is the one part of the mechanism nothing
+else checks, and the brief's offline criterion rests on it being true. How the pass is run is
+`skills/align/SKILL.md`'s and is not restated here.
 
 **Adding it opened the `ClassListDisagreement` window this document has opened before**, at the
 2026-08-30 amendment that carried eight blocking ids ahead of their detection. Between this class
