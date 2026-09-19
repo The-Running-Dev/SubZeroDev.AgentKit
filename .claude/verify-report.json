@@ -3,37 +3,37 @@
     {
       "name": "Check commits carry no AI attribution",
       "status": "Passed",
-      "detail": "New gate, added by this change (issue #340 S.4). ./tools/Test-NoAttribution.ps1, run directly against known ranges in a scratch repo via tools/Test-NoAttribution.Tests.ps1 (12/12 passing) — exercises pass, Co-authored-by, Generated-with, and all-zeros-sentinel cases. Not yet exercised by GitHub Actions itself since this branch has not been pushed; will run for real once the PR's checks fire."
+      "detail": "./tools/Test-NoAttribution.ps1 over 566001f..2005ab7 - RESULT=PASSED, 1 commit(s) checked, none carry AI attribution. Exit 0."
     },
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Every *.ps1 under the repo root and tools/, including the two new files (tools/Test-NoAttribution.ps1, tools/Test-NoAttribution.Tests.ps1), parsed cleanly with [System.Management.Automation.Language.Parser]::ParseFile — no parse errors."
+      "detail": "Parser::ParseFile over every *.ps1 in the tree - no parse errors, including the edited tools/Test-DesignState.ps1 and tools/Test-DesignState.Tests.ps1."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools -Output None -PassThru: Tests Passed: 510, Failed: 0, Skipped: 4 NotRun: 0. The 4 skipped are pre-existing platform-conditional cases. Includes the 12 new tests in tools/Test-NoAttribution.Tests.ps1, verified this session to fail (9/12) when the hook and gate script are replaced with no-op stubs, and pass again (12/12) once restored — the revert-and-confirm-it-fails check AGENTS.shared.md (Verification) requires of a regression test."
+      "detail": "Invoke-Pester -Path tools - 512 passed, 0 failed, 11 skipped, 523 total. S12.2 coverage reports 22 blocking classes, 52 fires tests, 47 near-miss tests; HeadingCollision fires 1, near-miss 1."
     },
     {
       "name": "Validate the core/companion split",
       "status": "Passed",
-      "detail": "./tools/Test-Companion.ps1: Companion split OK - 24 core(s) checked, 0 companion file(s) present, 24 core(s) with no companion. Exit 0."
+      "detail": "./tools/Test-Companion.ps1 - exit 0."
     },
     {
       "name": "Check the design state against the tree",
       "status": "Passed",
-      "detail": "./tools/Test-DesignState.ps1: Findings (0), Exit code: 0. Adding tools/Test-NoAttribution.ps1 without a unit record initially raised a blocking UnrecordedArtifact finding (tools/*.ps1 is a tracked glob, design/20-contract.md); fixed by adding design/state/units/script/test-noattribution.md and regenerating design/state-index.md via tools/Update-DesignProjection.ps1. Reported (47) non-blocking MirrorStale entries, pre-existing, unrelated to this change. Largest closure: unit/script/test-designstate, 13239 bytes (ceiling 16384)."
+      "detail": "./tools/Test-DesignState.ps1 - exit 0. Zero blocking findings, zero could-not-evaluate, 47 reported (all MirrorStale against the new HEAD). Largest closure unit/script/test-designstate at 13377 bytes of 16384."
     },
     {
       "name": "Typecheck videos/",
       "status": "Passed",
-      "detail": "cd videos && npx tsc --noEmit: exit 0, no output. Not touched by this change; run anyway per the full gate suite."
+      "detail": "npm ci then npx tsc --noEmit in videos/ - exit 0, no diagnostics."
     },
     {
       "name": "Lint videos/",
       "status": "Passed",
-      "detail": "cd videos && npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts: 'Checked 46 files in 21ms. No fixes applied.' Exit 0. Not touched by this change; run anyway per the full gate suite."
+      "detail": "npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts - checked 46 files, no findings, exit 0."
     }
   ]
 }

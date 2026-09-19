@@ -1,14 +1,18 @@
 {
-  "manifestHash": "68a55104d0a966dd2ccf2f7902cdcbf33acb31064f78ab9236873ecd5f8b8fc0",
-  "generated": "2026-09-15",
+  "manifestHash": "9840f2eb7da53ca037b6b5a6d1163f835733c5e241d715011f4b431d339b9022",
+  "generated": "2026-09-19",
   "gates": [
     {
+      "name": "Check commits carry no AI attribution",
+      "command": "./tools/Test-NoAttribution.ps1"
+    },
+    {
       "name": "Parse-check PowerShell scripts",
-      "command": "parse-check"
+      "command": "Parser::ParseFile over every *.ps1"
     },
     {
       "name": "Run Pester tests",
-      "command": "pester"
+      "command": "Invoke-Pester -Path tools -Output Detailed -PassThru"
     },
     {
       "name": "Validate the core/companion split",
