@@ -296,6 +296,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-18-stage-zero-gains-an-interview-command | `unit/command/interview`, `unit/document/agents-md`, `unit/document/template-00-brief` |
 | decision/2026-09-18-the-design-stage-gains-two-gates | `unit/command/design` |
 | decision/2026-09-19-a-challenge-to-a-given-direction-is-its-own-form | `unit/document/agents-md` |
+| decision/2026-09-19-check-renders-its-lists-from-the-file-read-back | `unit/command/verify` |
 | decision/2026-09-19-fix-names-the-cause-before-patching | `unit/command/fix` |
 | decision/2026-09-19-pr-phase-1-compares-intent-against-the-diff | `unit/command/pr` |
 | decision/2026-09-19-spec-asks-what-the-contract-got-wrong | `unit/command/contract` |
