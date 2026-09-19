@@ -91,8 +91,8 @@ else {
     $discover
 }
 
-Write-Host "Default branch: $($applied.DefaultBranch) ($(if ($applied.Pulled) { 'pulled' } else { 'not pulled' }))"
-Write-Host "Pruned remote-tracking refs: $($applied.PrunedCount)"
+Write-Host "Default branch: $($discover.DefaultBranch) ($(if ($discover.Pulled) { 'pulled' } else { 'not pulled' }))"
+Write-Host "Pruned remote-tracking refs: $($discover.PrunedCount)"
 if ($applied.Deleted.Count) {
     Write-Host "Deleted:"
     foreach ($branch in $applied.Deleted) { Write-Host "  - $branch" }
@@ -102,6 +102,11 @@ else {
 }
 
 $escalate = $false
+
+if ($applied.Stopped) {
+    $escalate = $true
+    Write-Warning "Stopped during apply: $($applied.Reason) - $($applied.Detail)"
+}
 
 if (@($discover.TipAheadOfMergedPr).Count) {
     $escalate = $true
