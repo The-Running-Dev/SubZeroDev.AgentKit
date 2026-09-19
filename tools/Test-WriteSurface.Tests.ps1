@@ -148,6 +148,31 @@ Describe 'Test-WriteSurface' {
         (Invoke-WriteSurfaceCheck -TargetRepo $repo).State | Should -Be 'InSurface'
     }
 
+    Context 'git hooks are outside this guard by construction (#354)' {
+
+        It 'a write to .git/hooks/commit-msg is invisible to git status, so the check reports InSurface' {
+            $repo = New-TestRepo -Name 'git-hook-write'
+            Set-Content -LiteralPath (Join-Path $repo '.git/hooks/commit-msg') -Value '#!/bin/sh'
+
+            $r = Invoke-WriteSurfaceCheck -TargetRepo $repo
+            $r.ChangedPaths.Count | Should -Be 0
+            $r.State | Should -Be 'InSurface'
+
+            # Positive control in the same repository: an empty result is evidence only once the
+            # search is known to have run (AGENTS.shared.md, Verification), and `git status` here
+            # does report an ordinary untracked file - so the silence above is this guard's
+            # structural blindness to .git/, not a check that failed to execute.
+            Set-Content -LiteralPath (Join-Path $repo 'control.txt') -Value 'x'
+            (Invoke-WriteSurfaceCheck -TargetRepo $repo).ChangedPaths.Path | Should -Contain 'control.txt'
+        }
+
+        It 'neither default prefix list names .git/, because such an entry could never match' {
+            @(Get-DefaultAllowedPrefixes) + @(Get-DefaultDeleteOnlyPrefixes) |
+                Where-Object { $_ -eq '.git' -or $_ -like '.git/*' } |
+                Should -BeNullOrEmpty
+        }
+    }
+
     Context 'exit code map' {
         It 'maps each state, and refuses an unknown one rather than defaulting to 0' {
             Get-WriteSurfaceExitCode -State 'InSurface'    | Should -Be 0

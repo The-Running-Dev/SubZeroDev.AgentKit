@@ -778,6 +778,13 @@ cannot state, and what a change to it must preserve:
   proposing its two hook keys and waiting on sign-off unconditionally, which the unattended pass
   always skips, so a write there must be caught, never allowed through
   (`decision/2026-08-12-install-all-write-surface-guard`).
+- **`.git/hooks/` is absent for a reason that is not a policy choice and must not be corrected.**
+  `git status` does not report writes inside `.git/`, so a prefix naming it would match nothing
+  however the hook got there. `INSTALL.md` phase 1 does install a `commit-msg` hook at
+  `.git/hooks/commit-msg`; it is guarded by that phase's Occupied rule and by `/install-all` not
+  writing it at all, never by this script. An entry here would be dead configuration that reads
+  as coverage — which is the one failure mode a canonical, checkable list cannot survive
+  (`decision/2026-09-19-commit-msg-hook-installs-attended-only`).
 - Exit codes: 0 `InSurface`, 1 `OutOfSurface`, 2 `NotEvaluated` — not a git repository, or `git
   status` itself failed. **`NotEvaluated` is never a clean pass**; "no changes" and "could not
   ask" are different results.

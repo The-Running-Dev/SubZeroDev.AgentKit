@@ -179,5 +179,10 @@ twice.
 - No write to a target's `settings.json`, `settings.local.json`, `launch.json`, or `.claude/kit.json`
   — this command does not run `INSTALL.md`'s reconciliation and touches none of the per-repo files
   that procedure owns, beyond the pointer section named above.
+- **No write to a target's `.git/hooks/`**, including the `commit-msg` hook `INSTALL.md` phase 1
+  installs. `tools/Test-WriteSurface.ps1` reads `git status`, which does not report writes inside
+  `.git/` at all, so this is the one artifact whose install this command's own guard cannot check —
+  and an unattended pass does not write what it cannot verify it wrote. Report it as skipped;
+  `/install` is where it is installed, attended.
 - **No commit, push, or pull request on a dry run** — `--apply`'s absence means exactly that nothing
   is written, not "written but not pushed."
