@@ -135,6 +135,7 @@ means no record exists yet, not that nothing is true.
 | contract/fix | — |
 | contract/get-nextorientation | — |
 | contract/invoke-donehousekeeping | `unit/script/invoke-housekeeping` |
+| contract/invoke-housekeeping | — |
 | contract/merge-pullrequest | `unit/command/pr` |
 | contract/read-designstate | `unit/script/test-designstate`, `unit/script/update-designprojection` |
 | contract/repoaliases | — |

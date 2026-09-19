@@ -746,6 +746,25 @@ action is the unchecked kind I15 forbids until a record resolves it (`design/90-
   one failure mode a delegation resting on this script's field names cannot tolerate. The named
   three stay named because a caller branches on them; this one is deliberately the residue.
 
+### `tools/Invoke-Housekeeping.ps1`
+
+**The parameter list and result shape are declared in the script itself and are not copied here.**
+What they cannot state:
+
+- **Runs `/clean`'s mechanical branch cleanup without a model, using one discovery result as the
+  authority for one apply pass.** Discovery invokes `Invoke-DoneHousekeeping.ps1` with
+  `-AutoStash`; unless it stops, `Candidates` are passed back as `-DeleteBranches` and
+  `SquashMergeCandidates` as `-ForceDeleteBranches`, with `-SkipPull`, so no branch outside
+  that discovery result becomes a deletion request.
+- **A stopped discovery performs no apply pass.** It returns `Escalate:true`, preserves the
+  discovery result, and leaves `Applied` null. Otherwise confirmed deletions may proceed while
+  `TipAheadOfMergedPr` and `Refused` entries remain named judgement cases.
+- **Reports the mechanical outcome in plain language and preserves both passes in its returned
+  object.** The stash reference, pull/prune result, deletions, and kept branches remain visible to
+  the person at the terminal.
+- **Never decides a judgement case and never opens a model session.** `Escalate` says a person
+  must read the preserved evidence; it is not an automatic routing decision.
+
 ### `tools/Get-NextOrientation.ps1`
 
 **The parameter list and result shape are declared in the script itself and are not copied here.**
