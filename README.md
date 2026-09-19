@@ -115,12 +115,12 @@ On a fresh machine, cloning is the one necessary write before `-DryRun` can insp
 
 `v2026.09.18` is the first published release carrying `setup.ps1`; `v2026.09.15`, `v2026.09.16` and `v2026.09.17` predate it and a default bootstrap — which selects the newest stable tag — refuses those with *"predates the global front door"*. Pass `-Version main` only to bootstrap unreleased work deliberately.
 
-Create a stable release only after the merged SHA has passed its required workflow gates. A repository maintainer then chooses an unused `vYYYY.MM.DD` or `vYYYY.MM.DD.N` tag and points it at that merged SHA, and runs (substitute the verified SHA and unused date tag):
+Create a stable release only after the merged SHA has passed its required workflow gates. A repository maintainer then chooses a `vYYYY.MM.DD` tag — or `vYYYY.MM.DD.N` when that date already carries one — and points it at that merged SHA. The tag must be unused **and rank above every tag already published for that date**; `Resolve-StableTag` in [`tools/Install-AgentKit.ps1`](tools/Install-AgentKit.ps1) orders by date and then by numeric revision, counting a bare tag as revision 0, so a revision below one already published is never selected as newest and the release silently reaches no installation. Then run (substitute the verified SHA and chosen tag):
 
 ```powershell
 git fetch origin main --tags
 $releaseCommit = '<verified-merged-sha>'
-$releaseTag = 'vYYYY.MM.DD' # Or vYYYY.MM.DD.N when that date is already used
+$releaseTag = 'vYYYY.MM.DD' # Or vYYYY.MM.DD.N, N above every revision already published for that date
 git tag -a $releaseTag $releaseCommit -m "AgentKit $releaseTag: global native and routed skills"
 git push origin "refs/tags/$releaseTag"
 ```
