@@ -78,10 +78,16 @@ Describe 'New-ReducedPrompt' {
         $script:Root = Join-Path $TestDrive ([guid]::NewGuid())
         New-Item -ItemType Directory -Path $script:Root -Force | Out-Null
         New-Fixture -Root $script:Root
+        # The default -CommandFile now resolves against -KitRoot (issue: an installed target
+        # carries no canonical skills/ tree of its own) rather than -RepoRoot. Passing -KitRoot
+        # $script:Root here keeps these fixture-driven tests pointed at the same
+        # skills/slice/SKILL.md New-Fixture writes, and also short-circuits the self-hosted
+        # fallback that would otherwise resolve to this real repository's own skill file.
+        $script:KitRoot = $script:Root
     }
 
     It 'includes only the AGENTS.md sections the command file cites, in citation order' {
-        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot
 
         $result | Should -Match '## Safe start'
         $result | Should -Match '## Hard rules'
@@ -96,7 +102,7 @@ Describe 'New-ReducedPrompt' {
     }
 
     It 'carries the contract verbatim' {
-        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot
 
         $result | Should -Match ([regex]::Escape('Verbatim carry-through content.'))
     }
@@ -105,13 +111,13 @@ Describe 'New-ReducedPrompt' {
         $agentMdPath = Join-Path $script:Root 'agent.md'
         Set-Content -LiteralPath $agentMdPath -Encoding utf8NoBOM -Value 'Lessons that must not leak into the reduced prompt.'
 
-        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot
 
         $result | Should -Not -Match 'Lessons that must not leak'
     }
 
     It 'extracts only the requested slice block, not a neighbour' {
-        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot
 
         $result | Should -Match '## S1 — First slice'
         $result | Should -Match 'S1\.1 does a thing'
@@ -120,14 +126,14 @@ Describe 'New-ReducedPrompt' {
     }
 
     It 'selects the other slice when asked for it' {
-        $result = & $script:ScriptPath -SliceId S2 -RepoRoot $script:Root
+        $result = & $script:ScriptPath -SliceId S2 -RepoRoot $script:Root -KitRoot $script:KitRoot
 
         $result | Should -Match '## S2 — Second slice'
         $result | Should -Not -Match '## S1 — First slice'
     }
 
     It 'throws naming the slice when no such heading exists' {
-        { & $script:ScriptPath -SliceId S9 -RepoRoot $script:Root -ErrorAction Stop } |
+        { & $script:ScriptPath -SliceId S9 -RepoRoot $script:Root -KitRoot $script:KitRoot -ErrorAction Stop } |
             Should -Throw '*S9*'
     }
 
@@ -138,12 +144,12 @@ Describe 'New-ReducedPrompt' {
 ## Unrelated section
 Nothing cited lives here.
 '@
-        { & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -ErrorAction Stop } |
+        { & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot -ErrorAction Stop } |
             Should -Throw '*Hard rules*'
     }
 
     It 'finds a section that is only in AGENTS.shared.md and one that is only in AGENTS.md' {
-        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot
 
         $result | Should -Match ([regex]::Escape('Read before touching anything.'))
         $result | Should -Match ([regex]::Escape('One slice at a time.'))
@@ -152,10 +158,12 @@ Nothing cited lives here.
     It 'reads AGENTS.shared.md from the kit install when the repository has no copy of its own' {
         Remove-Item -LiteralPath (Join-Path $script:Root 'AGENTS.shared.md')
 
-        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot
 
         # The kit checkout this script runs from is the self-hosted install, and its Safe start
-        # carries the git status command the fixture's does not.
+        # carries the git status command the fixture's does not. AGENTS.shared.md resolution is
+        # independent of -KitRoot (Resolve-SharedContractPath does its own self-hosted lookup),
+        # so this still exercises that fallback even with -KitRoot pinned to the fixture.
         $result | Should -Match ([regex]::Escape('git status --short --branch'))
         $result | Should -Not -Match ([regex]::Escape('Read before touching anything.'))
     }
@@ -163,7 +171,7 @@ Nothing cited lives here.
     It 'writes to -OutFile instead of the success stream when given one' {
         $outFile = Join-Path $script:Root 'reduced.md'
 
-        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -OutFile $outFile
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot -OutFile $outFile
 
         $result | Should -BeNullOrEmpty
         Test-Path -LiteralPath $outFile | Should -BeTrue
@@ -171,12 +179,39 @@ Nothing cited lives here.
     }
 
     It 'writes nothing to the repository - a pure read' {
-        & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root | Out-Null
+        & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot | Out-Null
 
         Get-Content -LiteralPath (Join-Path $script:Root 'AGENTS.md') -Raw |
             Should -Match 'Unrelated section'
         Get-Content -LiteralPath (Join-Path $script:Root 'design/20-contract.md') -Raw |
             Should -Match 'Verbatim carry-through content.'
+    }
+
+    It 'resolves the default -CommandFile against -KitRoot, not an installed target with no canonical skills/' {
+        # Reproduces the handoff defect: an installed target repository carries design/ and
+        # AGENTS.md but none of the kit's own skills/ tree, so the default -CommandFile must
+        # not be looked up under -RepoRoot.
+        $target = Join-Path $TestDrive ([guid]::NewGuid())
+        New-Item -ItemType Directory -Path (Join-Path $target 'design') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $target 'AGENTS.md') -Encoding utf8NoBOM -Value @'
+# Agent contract — this repository
+
+## Hard rules
+One slice at a time.
+'@
+        Set-Content -LiteralPath (Join-Path $target 'design/20-contract.md') -Encoding utf8NoBOM -Value 'Contract body.'
+        Set-Content -LiteralPath (Join-Path $target 'design/30-slices.md') -Encoding utf8NoBOM -Value @'
+## S1 — Target slice
+Delivers: the thing.
+'@
+
+        Test-Path -LiteralPath (Join-Path $target 'skills') | Should -BeFalse
+
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $target -KitRoot $script:KitRoot
+
+        $result | Should -Match '## Safe start'
+        $result | Should -Match '## Hard rules'
+        $result | Should -Match '## S1 — Target slice'
     }
 }
 

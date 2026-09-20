@@ -40,7 +40,15 @@
 
 .PARAMETER CommandFile
     The command file whose `AGENTS.md` citations decide which sections are
-    "binding". Defaults to `skills/slice/SKILL.md`, relative to -RepoRoot.
+    "binding". A relative path is resolved against -KitRoot, since the canonical
+    `skills/` tree lives in the AgentKit runtime, not in an installed target
+    repository. Defaults to `skills/slice/SKILL.md`.
+
+.PARAMETER KitRoot
+    The AgentKit checkout to resolve -CommandFile's default (and any other
+    relative -CommandFile) against. Defaults to the Home-install convention
+    (AGENTS.shared.md, *House conventions*): a self-hosted checkout containing
+    this script, then $env:AGENTKIT_HOME, then $HOME/.agent-kit.
 
 .PARAMETER OutFile
     Write the assembled prompt here instead of the success stream.
@@ -59,6 +67,8 @@ param(
     [string]$RepoRoot = (Get-Location).Path,
 
     [string]$CommandFile,
+
+    [string]$KitRoot,
 
     [string]$OutFile
 )
@@ -152,9 +162,46 @@ function Get-SliceBlock {
     return $block.ToArray()
 }
 
+function Resolve-AgentKitRoot {
+    <#
+        Home-install convention (AGENTS.shared.md, *House conventions*): self-hosted checkout
+        first (a live kit working tree, so kit development reads its own uncommitted edits),
+        then $env:AGENTKIT_HOME, then $HOME/.agent-kit. Same shape as Test-Companion.ps1's
+        function of the same name, New-DesignDocs.ps1's Resolve-KitRoot, and
+        Invoke-CodexCommand.ps1's Get-AgentKitInstallRoot.
+    #>
+    param([string] $Explicit)
+
+    if ($Explicit) {
+        return (Resolve-Path -LiteralPath $Explicit).Path
+    }
+
+    $selfHosted = Split-Path -Parent $PSScriptRoot
+    if (Test-Path -LiteralPath (Join-Path $selfHosted '.git')) {
+        return $selfHosted
+    }
+
+    if ($env:AGENTKIT_HOME -and (Test-Path -LiteralPath $env:AGENTKIT_HOME)) {
+        return $env:AGENTKIT_HOME
+    }
+
+    $synced = Join-Path $HOME '.agent-kit'
+    if (Test-Path -LiteralPath $synced) {
+        return $synced
+    }
+
+    throw "Could not find a kit checkout under '$selfHosted', `$env:AGENTKIT_HOME, or '$synced'. Pass -KitRoot explicitly."
+}
+
 $root = (Resolve-Path $RepoRoot).Path
-if (-not $CommandFile) { $CommandFile = Join-Path $root 'skills/slice/SKILL.md' }
-elseif (-not [System.IO.Path]::IsPathRooted($CommandFile)) { $CommandFile = Join-Path $root $CommandFile }
+if (-not $CommandFile) {
+    $kitRootResolved = Resolve-AgentKitRoot -Explicit $KitRoot
+    $CommandFile = Join-Path $kitRootResolved 'skills/slice/SKILL.md'
+}
+elseif (-not [System.IO.Path]::IsPathRooted($CommandFile)) {
+    $kitRootResolved = Resolve-AgentKitRoot -Explicit $KitRoot
+    $CommandFile = Join-Path $kitRootResolved $CommandFile
+}
 
 $slicesPath = Join-Path $root 'design/30-slices.md'
 $contractPath = Join-Path $root 'design/20-contract.md'
