@@ -19,12 +19,22 @@
 .PARAMETER RepoRoot
     Repository to read. Defaults to the current directory.
 
+.PARAMETER KitRoot
+    The AgentKit checkout to read the canonical gate scripts (tools/Test-DesignDrift.ps1,
+    tools/Test-DesignState.ps1) from. Defaults to the Home-install convention
+    (AGENTS.shared.md, *House conventions*): a self-hosted checkout containing this script,
+    then $env:AGENTKIT_HOME, then $HOME/.agent-kit. An installed target repository carries no
+    canonical tools/ directory of its own, so those scripts are resolved against the kit
+    rather than -RepoRoot; every other read (design/, the git status, the branch, gh) still
+    targets -RepoRoot.
+
 .EXAMPLE
     ./tools/Get-NextOrientation.ps1
 #>
 [CmdletBinding()]
 param(
-    [string] $RepoRoot = (Get-Location).Path
+    [string] $RepoRoot = (Get-Location).Path,
+    [string] $KitRoot
 )
 
 Set-StrictMode -Version Latest
@@ -34,6 +44,39 @@ if (-not (Test-Path -LiteralPath $RepoRoot)) {
     throw "RepoRoot '$RepoRoot' does not exist."
 }
 $repoRootResolved = (Resolve-Path -LiteralPath $RepoRoot).Path
+
+function Resolve-AgentKitRoot {
+    <#
+        Home-install convention (AGENTS.shared.md, *House conventions*): self-hosted checkout
+        first (a live kit working tree, so kit development reads its own uncommitted edits),
+        then $env:AGENTKIT_HOME, then $HOME/.agent-kit. Same shape as Test-Companion.ps1's
+        function of the same name, New-DesignDocs.ps1's Resolve-KitRoot, and
+        Invoke-CodexCommand.ps1's Get-AgentKitInstallRoot.
+    #>
+    param([string] $Explicit)
+
+    if ($Explicit) {
+        return (Resolve-Path -LiteralPath $Explicit).Path
+    }
+
+    $selfHosted = Split-Path -Parent $PSScriptRoot
+    if (Test-Path -LiteralPath (Join-Path $selfHosted '.git')) {
+        return $selfHosted
+    }
+
+    if ($env:AGENTKIT_HOME -and (Test-Path -LiteralPath $env:AGENTKIT_HOME)) {
+        return $env:AGENTKIT_HOME
+    }
+
+    $synced = Join-Path $HOME '.agent-kit'
+    if (Test-Path -LiteralPath $synced) {
+        return $synced
+    }
+
+    throw "Could not find a kit checkout under '$selfHosted', `$env:AGENTKIT_HOME, or '$synced'. Pass -KitRoot explicitly."
+}
+
+$kitRootResolved = Resolve-AgentKitRoot -Explicit $KitRoot
 
 function Invoke-Gh {
     param([string[]]$GhArgs, [string]$WorkingDir)
@@ -141,8 +184,8 @@ $frozenContent = if ($frozen) { Get-Content -LiteralPath $frozenPath -Raw } else
 $repoNameWithOwner = Get-RepoNameWithOwner -WorkingDir $repoRootResolved
 $driftExtraArgs = if ($repoNameWithOwner) { @{ Repository = $repoNameWithOwner } } else { @{} }
 
-$drift = Invoke-GateScript -Path (Join-Path $repoRootResolved 'tools/Test-DesignDrift.ps1') -WorkingDir $repoRootResolved -ExtraArgs $driftExtraArgs
-$state = Invoke-GateScript -Path (Join-Path $repoRootResolved 'tools/Test-DesignState.ps1') -WorkingDir $repoRootResolved -ExtraArgs @{ Path = $repoRootResolved }
+$drift = Invoke-GateScript -Path (Join-Path $kitRootResolved 'tools/Test-DesignDrift.ps1') -WorkingDir $repoRootResolved -ExtraArgs $driftExtraArgs
+$state = Invoke-GateScript -Path (Join-Path $kitRootResolved 'tools/Test-DesignState.ps1') -WorkingDir $repoRootResolved -ExtraArgs @{ Path = $repoRootResolved }
 $drift | Add-Member -NotePropertyName Summary -NotePropertyValue (Get-GateSummary -Label 'Design drift' -Gate $drift)
 $state | Add-Member -NotePropertyName Summary -NotePropertyValue (Get-GateSummary -Label 'Design state' -Gate $state)
 
