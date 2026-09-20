@@ -102,6 +102,15 @@ Common shapes, none of them assumed:
 
 ## Report
 
+**Lead the chat report with `Result:` and `Next:`** (`AGENTS.shared.md` § *Output discipline*). A
+clean run states that plainly in `Result:`, and — when `/check` was the requested unit of work
+rather than a phase of `/pr` — `Next: Nothing — this is complete.`. A run with a failure uses the
+decision-stop shape: `Result:` names what failed and why work stopped there, `Next:` names the
+fix-here/file-an-issue/accept decision from *Then ask* below, recommended option first. The three
+lists are the `Verified:` evidence behind that `Result:` — they still carry every failure's
+diagnostic text and every did-not-run reason in full, exactly as below, never summarized away by
+the lead-in.
+
 **Write the result as a structured artifact first, never the prose directly.** Same pattern as `Test-DesignDrift.ps1` (`AGENTS.shared.md`, "structured artifact plus deterministic validator"): this command writes `.claude/verify-report.json` — one entry per discovered gate, `{"name", "status", "detail"|"reason"}` with `status` one of `Passed` / `Failed` / `DidNotRun` — and never edits a PR body or any other visible surface directly. Then run `tools/Test-VerifyReport.ps1` against it. `Valid` (exit 0) means every gate has exactly one outcome, every `Failed` gate carries real detail, and every `DidNotRun` gate carries a reason — render the three lists below from the artifact and proceed. `Invalid` or `NotEvaluated` (exit 1 or 2) means the report itself is malformed — fix the artifact, not the prose, and do not render or hand off a report that failed validation.
 
 **Read the artifact back from disk before writing a word of prose.** Once `Test-VerifyReport.ps1` reports `Valid`, re-open `.claude/verify-report.json` and render the three lists from what that read returns — not from the content this session composed on its way to writing the file, which is the one copy that agrees with the prose by construction. The failure this closes is not a malformed report, which the validator already catches: it is a report that is well-formed and *not the one on disk* — a gate re-run after the last write, a `Failed` entry corrected, a rewrite the validator prompted — with the prose assembled from memory in each case. **Read it again after any later write to it**, for the same reason: the last write is the one the pull request carries, not the first. Then say in the report which file the lists were rendered from and that it was read back rather than recalled — that sentence is the only thing that distinguishes a read-back which happened from one which did not.

@@ -380,17 +380,32 @@ A command that refuses reports `Frozen because` and `Lifts when` **verbatim** ra
 
 **Reason deeply where needed, work completely, report minimally, and keep evidence in artifacts rather than the conversation.** Thinking budget and reporting budget are separate: the tier sets how hard a session reasons (*Model, effort, and review budget*), and nothing here lowers it. What a session writes into the conversation — its own prose and every tool result it pulls in — is re-read on every later call of that session, so it is paid for again on each turn rather than once. `design/cost.md` § *Output* has the measurements.
 
-**A routine completion report carries only what the reader needs to act:**
+**A routine completion report leads with the outcome and its consequence, never with mechanism.** Not implementation detail, not filenames, not this repository's own vocabulary, not issue or gate mechanics, not a list of what was inspected — those come after, as evidence, only where a rule below requires them. The default shape:
 
 ```
-Changed: <what, in a line or two>
-Tests: <what actually ran, and its result>
-Risk/Blocker: <only when material>
+Result: <one plain-English sentence stating the outcome and consequence>
+Next: <one exact action, decision, command, or "Nothing — this is complete.">
+Verified: <only the evidence needed to trust Result>
 ```
+
+`Result:` and `Next:` are mandatory on every completion or stop. `Verified:` is omitted only when nothing material needs verifying. **If nothing remains, `Next:` reads exactly `Next: Nothing — this is complete.`** — never omitted as obvious, never softened to a vaguer "all done".
+
+**Where the report is a decision stop rather than a finished action**, `Result:` states what is true and why work stopped, and `Next:` states the decision required, recommended option first — *Working with me* governs how that recommendation itself is framed and does not change here:
+
+```
+Result: <what is true, why work stopped, and the consequence>
+Next: <the decision required, with the recommended option first>
+Verified: <the evidence that created the decision>
+```
+
+**The acceptance test: if the likely next user message is "what does that mean?" or "what do I do now?", the report failed. Rewrite it before sending.**
+
+**Existing rules requiring full failure diagnostics, skipped-gate reasons, criterion ids, verbatim marker text, or a terminal session-boundary banner still win** — none of them is relaxed by this shape. Give the operator frame first, then the required evidence or protocol block after it. A terminal session-boundary banner may repeat the action already named in `Next:`; that small duplication is intentional (*Session boundaries*).
 
 **Say what happened before what it is called** — a reader should not have to translate field
 names, enums, booleans or exit codes; keep the exact identifier beside the meaning where it is
-needed to audit or act.
+needed to audit or act. **Do not make the reader infer the consequence from the evidence** — state
+it plainly in `Result:`, and let `Verified:` back it up rather than stand in for it.
 
 **Gloss this repository's own vocabulary the first time a session uses it**, in a clause, and then
 use the term freely. *Closure*, *slice*, *unit record*, *projection*, *divergence class*, *tier* and
@@ -399,7 +414,9 @@ clause is four words, while a term read wrongly is a whole reply built on the wr
 the user typed first is glossed too** — pasting a name back is not evidence they know it, and this
 is the case where it is most tempting to skip, because the word arrived looking established.
 
-A command adds the fields its own procedure requires, and nothing more by default: no narration of steps taken, no restating the task, no investigation chronology, no list of files read, no explanation of an obvious edit, no summary of a summary, no architecture commentary nobody asked for. **Anything already durable — a pull request, an issue, a design document, a decision record, `.claude/verify-report.json`, a log file — is named or linked in one line, never reproduced.**
+**No narration of process or chronology**, unless the user explicitly asked for investigation detail: no "I inspected", "I determined", "this surfaced", "the analysis found", no step-by-step account of what was read or tried. A command adds the fields its own procedure requires beyond `Result:`/`Next:`/`Verified:`, and nothing more by default: no restating the task, no investigation chronology, no list of files read, no explanation of an obvious edit, no summary of a summary, no architecture commentary nobody asked for. **Anything already durable — a pull request, an issue, a design document, a decision record, `.claude/verify-report.json`, a log file — is named or linked in one line, never reproduced.**
+
+**In a routine completion report, no paragraph runs longer than two sentences; three or more independent facts become bullets, not prose.**
 
 **Brevity never removes evidence.** Wherever another rule requires it, this is stated in full however long it runs: a failed or skipped gate and the did-not-run list (*Verification*); criterion results by id; text a rule requires verbatim; a stop condition; a fork or question only the user can decide (*Working with me*); a session-boundary banner (*Session boundaries*). A five-line report that omits a failed gate is wrong; a fifty-line one that states it is not.
 
