@@ -33,7 +33,7 @@
 
 .PARAMETER SliceId
     The slice to size a prompt for, e.g. `S4`. Matched against a `## S<n> —`
-    heading in `design/30-slices.md`.
+    or nested `### S<n> —` heading in `design/30-slices.md`.
 
 .PARAMETER RepoRoot
     Repository root to read from. Defaults to the current directory.
@@ -132,22 +132,32 @@ function Get-BoundSectionNames {
 }
 
 function Get-SliceBlock {
+    <#
+      A slice heading sits at `##` (S1-S18) or, nested under `## Outstanding`, at `###`
+      (S19 on) - the same two depths Test-DesignDrift.ps1 and Update-SlicesDocument.ps1's
+      Get-SliceDocumentModel both recognise (design/90-decisions.md, 2026-08-30). The block
+      ends at the next heading whose depth is equal to or shallower than the one matched, so
+      a `###` slice's own body still stops at the next `## Landed` or a sibling `###` slice,
+      while a `##` slice never stops early on `###` sub-structure.
+    #>
     param([string[]]$Lines, [string]$SliceId)
 
     $startIndex = -1
+    $level = 0
     for ($i = 0; $i -lt $Lines.Count; $i++) {
-        if ($Lines[$i] -match "^##\s+$([regex]::Escape($SliceId))\s+—") {
+        if ($Lines[$i] -match "^(#{2,3})\s+$([regex]::Escape($SliceId))\s+—") {
             $startIndex = $i
+            $level = $Matches[1].Length
             break
         }
     }
     if ($startIndex -lt 0) {
-        throw "No '## $SliceId —' heading in design/30-slices.md. If $SliceId has landed, its body was retired to the index and this script has nothing to reduce; read it from git history instead."
+        throw "No '## $SliceId —' or '### $SliceId —' heading in design/30-slices.md. If $SliceId has landed, its body was retired to the index and this script has nothing to reduce; read it from git history instead."
     }
 
     $endIndex = $Lines.Count
     for ($i = $startIndex + 1; $i -lt $Lines.Count; $i++) {
-        if ($Lines[$i] -match '^##\s') {
+        if ($Lines[$i] -match "^#{1,$level}\s") {
             $endIndex = $i
             break
         }

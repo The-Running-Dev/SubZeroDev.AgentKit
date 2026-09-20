@@ -71,6 +71,68 @@ Acceptance:
 retired bodies live elsewhere
 '@
     }
+
+    function New-NestedFixture {
+        <#
+          S19 on nest at `### S<n> —` under `## Outstanding` rather than sitting at `##`
+          themselves (design/90-decisions.md, 2026-08-30). Otherwise identical in shape to
+          New-Fixture: two slice blocks, then a `## Landed` section that must not be pulled
+          into the second slice's body.
+        #>
+        param([string]$Root)
+
+        New-Item -ItemType Directory -Path (Join-Path $Root 'skills/slice') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $Root 'design') -Force | Out-Null
+
+        Set-Content -LiteralPath (Join-Path $Root 'skills/slice/SKILL.md') -Encoding utf8NoBOM -Value @'
+---
+description: fixture
+---
+Cites (`AGENTS.shared.md`, *Safe start*) once.
+'@
+
+        Set-Content -LiteralPath (Join-Path $Root 'AGENTS.shared.md') -Encoding utf8NoBOM -Value @'
+# Agent contract
+
+## Safe start
+Read before touching anything.
+'@
+
+        Set-Content -LiteralPath (Join-Path $Root 'AGENTS.md') -Encoding utf8NoBOM -Value @'
+# Agent contract — this repository
+
+## Hard rules
+One slice at a time.
+'@
+
+        Set-Content -LiteralPath (Join-Path $Root 'design/20-contract.md') -Encoding utf8NoBOM -Value @'
+# Contract
+Verbatim carry-through content.
+'@
+
+        Set-Content -LiteralPath (Join-Path $Root 'design/30-slices.md') -Encoding utf8NoBOM -Value @'
+# Slices
+
+## Outstanding
+
+### S19 — Nested slice
+Delivers: the nineteenth thing.
+Acceptance:
+  - S19.1 does a nested thing
+
+---
+
+### S20 — Another nested slice
+Delivers: the twentieth thing.
+Acceptance:
+  - S20.1 does another nested thing
+
+---
+
+## Landed
+retired bodies live elsewhere
+'@
+    }
 }
 
 Describe 'New-ReducedPrompt' {
@@ -185,6 +247,43 @@ Nothing cited lives here.
             Should -Match 'Unrelated section'
         Get-Content -LiteralPath (Join-Path $script:Root 'design/20-contract.md') -Raw |
             Should -Match 'Verbatim carry-through content.'
+    }
+
+    It 'extracts a nested ### slice block, not a neighbour, bounded before ## Landed' {
+        # Reproduces the handoff defect: S19 on nest at `### S<n> —` under `## Outstanding`
+        # rather than sitting at `##` themselves, and Get-SliceBlock previously only matched
+        # depth-2 `## S<n> —` headings.
+        $nestedRoot = Join-Path $TestDrive ([guid]::NewGuid())
+        New-Item -ItemType Directory -Path $nestedRoot -Force | Out-Null
+        New-NestedFixture -Root $nestedRoot
+
+        $result = & $script:ScriptPath -SliceId S19 -RepoRoot $nestedRoot -KitRoot $script:KitRoot
+
+        $result | Should -Match '### S19 — Nested slice'
+        $result | Should -Match 'S19\.1 does a nested thing'
+        $result | Should -Not -Match '### S20 — Another nested slice'
+        $result | Should -Not -Match 'S20\.1 does another nested thing'
+        $result | Should -Not -Match 'retired bodies live elsewhere'
+    }
+
+    It 'selects the other nested slice when asked for it, and keeps adjacent nested slices separate' {
+        $nestedRoot = Join-Path $TestDrive ([guid]::NewGuid())
+        New-Item -ItemType Directory -Path $nestedRoot -Force | Out-Null
+        New-NestedFixture -Root $nestedRoot
+
+        $result = & $script:ScriptPath -SliceId S20 -RepoRoot $nestedRoot -KitRoot $script:KitRoot
+
+        $result | Should -Match '### S20 — Another nested slice'
+        $result | Should -Not -Match '### S19 — Nested slice'
+    }
+
+    It 'throws naming the slice when no such nested heading exists' {
+        $nestedRoot = Join-Path $TestDrive ([guid]::NewGuid())
+        New-Item -ItemType Directory -Path $nestedRoot -Force | Out-Null
+        New-NestedFixture -Root $nestedRoot
+
+        { & $script:ScriptPath -SliceId S99 -RepoRoot $nestedRoot -KitRoot $script:KitRoot -ErrorAction Stop } |
+            Should -Throw '*S99*'
     }
 
     It 'resolves the default -CommandFile against -KitRoot, not an installed target with no canonical skills/' {
