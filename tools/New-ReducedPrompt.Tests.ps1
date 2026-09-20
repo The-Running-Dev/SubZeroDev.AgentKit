@@ -338,4 +338,89 @@ Describe 'New-ReducedPrompt against this repository''s own slice.md and AGENTS.m
         $result | Should -Match '(?m)^## Output discipline$'
         $result | Should -Not -Match '(?m)^## Working with me$'
     }
+
+    It 'carries the operator-facing completion shape in full, not just the heading' {
+        <#
+          The heading assertion above passes on a section that has been gutted. What an
+          implementation session actually needs out of this section is the shape itself,
+          the rule making it mandatory, and the test for whether a report satisfies it -
+          so each is asserted against the assembled prompt, not against AGENTS.shared.md.
+        #>
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root
+
+        $result | Should -Match 'Result:\s*<one plain-English sentence stating the outcome and consequence>'
+        $result | Should -Match 'Next:\s*<one exact action, decision, command, or "Nothing'
+        $result | Should -Match 'Verified:\s*<only the evidence needed to trust Result>'
+        $result | Should -Match '`Result:` and `Next:` are mandatory'
+        $result | Should -Match ([regex]::Escape('Next: Nothing — this is complete.'))
+        $result | Should -Match ([regex]::Escape('if the likely next user message is "what does that mean?" or "what do I do now?", the report failed. Rewrite it before sending.'))
+    }
 }
+
+Describe 'Get-BoundSectionNames citation forms' {
+    <#
+      The command files cite an AGENTS section two ways - `` `AGENTS.shared.md`, *Name* `` and
+      `` `AGENTS.shared.md` § *Name* `` - and the second is now the more common. A binder that
+      reads only one of them fails silently: the prompt still assembles, just without the rule
+      the citation was there to carry. A citation wrapped across a line break is the same
+      citation and must resolve to the same heading.
+    #>
+
+    BeforeEach {
+        $script:Root = Join-Path $TestDrive ([guid]::NewGuid())
+        New-Item -ItemType Directory -Path $script:Root -Force | Out-Null
+        New-Fixture -Root $script:Root
+        # Same reason as the fixture Describe above: the default -CommandFile resolves against
+        # -KitRoot, so it must be pinned at the fixture or the real kit's slice/SKILL.md is read.
+        $script:KitRoot = $script:Root
+    }
+
+    It 'binds a section cited with the § separator' {
+        Set-Content -LiteralPath (Join-Path $script:Root 'skills/slice/SKILL.md') -Encoding utf8NoBOM -Value @'
+---
+description: fixture
+---
+Report as `AGENTS.shared.md` § *Safe start* requires.
+'@
+
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot
+
+        $result | Should -Match '(?m)^## Safe start$'
+    }
+
+    It 'binds a § citation wrapped across a line break' {
+        Set-Content -LiteralPath (Join-Path $script:Root 'skills/slice/SKILL.md') -Encoding utf8NoBOM -Value @'
+---
+description: fixture
+---
+Report as `AGENTS.shared.md` § *Safe
+start* requires, and the wrap must not change which section that names.
+'@
+
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot
+
+        $result | Should -Match '(?m)^## Safe start$'
+    }
+
+    It 'still binds the comma form' {
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot
+
+        $result | Should -Match '(?m)^## Safe start$'
+        $result | Should -Match '(?m)^## Hard rules$'
+    }
+
+    It 'does not treat prose following a bare file reference as a citation' {
+        Set-Content -LiteralPath (Join-Path $script:Root 'skills/slice/SKILL.md') -Encoding utf8NoBOM -Value @'
+---
+description: fixture
+---
+Set off as `AGENTS.shared.md` requires, which is *emphasis*, not a section name.
+Cites (`AGENTS.shared.md`, *Safe start*) for real.
+'@
+
+        $result = & $script:ScriptPath -SliceId S1 -RepoRoot $script:Root -KitRoot $script:KitRoot
+
+        $result | Should -Match 'Sections bound: Safe start\.'
+    }
+}
+

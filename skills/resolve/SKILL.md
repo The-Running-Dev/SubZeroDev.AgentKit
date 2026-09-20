@@ -105,6 +105,16 @@ In a repository this account does not own, or one whose `AGENTS.md` does not del
 
 ## Report
 
+**Lead with `Result:` and `Next:`** (`AGENTS.shared.md` § *Output discipline*). `Result:` says in
+plain sentences what the review conversation now looks like — how many threads were answered and
+pushed, and whether anything still needs a person. `Next:` names the decision where one is needed:
+a run that leaves a thread `Ambiguous` is a decision stop, so `Next:` states the first one to
+settle with the recommended option first, and a run that cleared every thread reads
+`Next: Nothing — this is complete.` unless it is a phase of `/pr`, where the merge follows.
+
+The list below is the `Verified:` evidence behind that `Result:` — it is carried in full, never
+summarized away by the lead-in:
+
 - Threads found, and how many were unresolved at the start
 - The classification table
 - What was fixed, and the pushed SHA

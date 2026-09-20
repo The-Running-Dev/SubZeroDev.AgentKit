@@ -112,6 +112,7 @@ Describe 'representative skill reports point at Output discipline rather than re
         @{ Skill = 'skills/clean/SKILL.md' }
         @{ Skill = 'skills/check/SKILL.md' }
         @{ Skill = 'skills/pr/SKILL.md' }
+        @{ Skill = 'skills/resolve/SKILL.md' }
     ) {
         $content = Get-Content -LiteralPath (Join-Path $script:RepoRoot $Skill) -Raw
         $content | Should -Match '`AGENTS\.shared\.md`.{0,4}\*Output discipline\*' -Because "$Skill's completion report is governed by the one canonical shape, not its own"
@@ -127,9 +128,67 @@ Describe 'representative skill reports point at Output discipline rather than re
         @{ Skill = 'skills/clean/SKILL.md' }
         @{ Skill = 'skills/check/SKILL.md' }
         @{ Skill = 'skills/pr/SKILL.md' }
+        @{ Skill = 'skills/resolve/SKILL.md' }
     ) {
         $content = Get-Content -LiteralPath (Join-Path $script:RepoRoot $Skill) -Raw
         $content | Should -Match '`Result:`'
         $content | Should -Match '`Next:`'
+    }
+
+    It 'skills/resolve/SKILL.md frames an unresolved thread as a decision stop' {
+        <#
+          The decision-stop path. /resolve's own list is evidence - threads found, the
+          classification table, what was pushed - and an Ambiguous thread is the one thing in
+          it a person has to answer. Leading with the list buries that.
+        #>
+        $content = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'skills/resolve/SKILL.md') -Raw
+        $content | Should -Match 'decision stop'
+        $content | Should -Match 'recommended option first'
+    }
+}
+
+Describe 'the operator frame does not displace the structured evidence it sits above' {
+
+    <#
+      Required fact 6 of the handoff: structured results and verification artifacts are
+      unchanged. The lead-in is framing, so each mechanism the representative skills depend on
+      must still be stated where it was - a Result:/Next: line that replaced one of these
+      rather than sitting above it is the failure this catches.
+    #>
+
+    BeforeAll {
+        $script:RepoRoot = Split-Path $PSScriptRoot -Parent
+    }
+
+    It '/check still writes and validates the structured artifact before any prose' {
+        $content = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'skills/check/SKILL.md') -Raw
+        $content | Should -Match '\.claude/verify-report\.json'
+        $content | Should -Match 'tools/Test-VerifyReport\.ps1'
+        $content | Should -Match 'Write the result as a structured artifact first'
+        $content | Should -Match 'Read the artifact back from disk before writing a word of prose'
+    }
+
+    It '/check still renders all three exhaustive lists' -ForEach @(
+        @{ Heading = 'Ran and passed' }
+        @{ Heading = 'Ran and failed' }
+        @{ Heading = 'Did not run' }
+    ) {
+        $content = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'skills/check/SKILL.md') -Raw
+        $content | Should -Match ([regex]::Escape($Heading))
+    }
+
+    It '/pr still copies only the evidence payload into the PR body, not the chat envelope' {
+        $content = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'skills/pr/SKILL.md') -Raw
+        $content | Should -Match 'Verified'
+        $content | Should -Match 'verbatim'
+    }
+
+    It '/clean still reports its structured fields by name' -ForEach @(
+        @{ Field = 'PrunedCount' }
+        @{ Field = 'Stashed' }
+        @{ Field = 'TipAheadOfMergedPr' }
+    ) {
+        $content = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'skills/clean/SKILL.md') -Raw
+        $content | Should -Match ([regex]::Escape($Field))
     }
 }
