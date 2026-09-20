@@ -81,6 +81,11 @@ exit 0
         param([Parameter(Mandatory)][string] $RepoPath)
         $hookPath = Join-Path $RepoPath '.git/hooks/post-checkout'
         Set-Content -LiteralPath $hookPath -Value "#!/bin/sh`ntouch dirty-marker.txt`n" -Encoding utf8NoBOM -NoNewline
+        # git on Linux refuses to run a hook that isn't executable; Windows has no such bit,
+        # so this was invisible until the hook ran on the powershell-linux job (#372).
+        if (-not $IsWindows) {
+            & chmod +x $hookPath
+        }
     }
 }
 

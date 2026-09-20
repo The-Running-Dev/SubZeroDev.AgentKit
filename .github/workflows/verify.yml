@@ -93,6 +93,59 @@ jobs:
           ./tools/Test-DesignState.ps1 | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+  # Runs the platform-neutral PowerShell suites on Linux, without gh or GH_TOKEN, to back the
+  # repository's cross-platform PowerShell claim. The powershell job above stays the only one
+  # carrying GH_TOKEN and the authenticated design-state CLI invocation - S12.5/S25.4 and S18.6
+  # in Test-DesignState.Tests.ps1 detect the missing credential themselves and report Skipped
+  # rather than failing or silently passing (AGENTS.shared.md, Verification).
+  powershell-linux:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history for the same ancestry reasons as the windows-latest job above.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # verification: true
+      - name: Check commits carry no AI attribution
+        shell: pwsh
+        env:
+          ATTRIBUTION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          ATTRIBUTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: ./tools/Test-NoAttribution.ps1
+
+      # verification: true
+      - name: Parse-check PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count) {
+              Write-Error "Parse errors in $($_.FullName): $($parseErrors -join '; ')"
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
+
+      # No GH_TOKEN here on purpose - this job proves the suite degrades cleanly (Skipped, not
+      # Failed) without gh, which the windows-latest job's authenticated run cannot prove. Named
+      # differently from the windows-latest job's "Run Pester tests" step so
+      # Test-CIWorkflow.Tests.ps1's name-based lookup for that step's GH_TOKEN stays unambiguous.
+      # verification: true
+      - name: Run offline Pester suite
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 5.0
+          $result = Invoke-Pester -Path tools -Output Detailed -PassThru
+          if ($result.FailedCount -gt 0) { exit 1 }
+
+      # verification: true
+      - name: Validate the core/companion split
+        shell: pwsh
+        run: ./tools/Test-Companion.ps1 | Out-Null
+
   videos:
     runs-on: windows-latest
     defaults:
