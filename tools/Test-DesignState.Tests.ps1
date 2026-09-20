@@ -11,13 +11,21 @@
   self-referential blocks below assert on adopted design-state content, which only this
   repository has: the 2026-08-19 compatibility promise (design/90-decisions.md) leaves the
   installed targets unmigrated, and this file is copied into every one of them. So they are
-  skipped wherever design/state/units/ is absent - false and unevaluated rather than a false pass or a
-  false failure, the same way Test-DesignState.ps1 itself reports StateSetAbsent and exits 2
-  rather than a silent 0.
+  skipped unless AgentKit's own marker records are present - false and unevaluated rather than a
+  false pass or a false failure, the same way Test-DesignState.ps1 itself reports StateSetAbsent
+  and exits 2 rather than a silent 0. An adopter's own design/state/units/ directory is not
+  evidence that AgentKit's hardcoded ids exist there.
 #>
 
 $script:DesignStateSelfTestRoot = Split-Path $PSScriptRoot -Parent
-$script:SkipDesignStateSelfTests = -not (Test-Path (Join-Path $script:DesignStateSelfTestRoot 'design/state/units'))
+$script:DesignStateSelfTestRecords = @(
+    'design/state/units/command/track.md'
+    'design/state/units/document/agents-md.md'
+    'design/state/decisions/2026-09-02-livealreadystated-is-the-reported-class.md'
+)
+$script:SkipDesignStateSelfTests = @($script:DesignStateSelfTestRecords | Where-Object {
+        -not (Test-Path -LiteralPath (Join-Path $script:DesignStateSelfTestRoot $_) -PathType Leaf)
+    }).Count -gt 0
 
 BeforeAll {
     $script:ScriptPath = Join-Path $PSScriptRoot 'Test-DesignState.ps1'
@@ -749,6 +757,31 @@ Status: retired
         (@($result.Findings | Where-Object { $_.Subject -eq 'unit/command/big-under' })).Count | Should -Be 0
     }
 
+    It '#374: committed LF record content has the same closure byte count in an LF or CRLF working tree' -Tag 'NearMiss','ClosureOverBudget' {
+        $repo = Join-Path $TestDrive 'autocrlf-record'
+        $relative = 'design/state/units/component/app.md'
+        $full = Join-Path $repo $relative
+        New-Item -ItemType Directory -Path (Split-Path $full -Parent) -Force | Out-Null
+        $lf = "# unit/component/app`nKind: component`nStatus: active`nAnchor: src/App.csproj`n"
+        [System.IO.File]::WriteAllText($full, $lf, [System.Text.UTF8Encoding]::new($false))
+
+        & git -C $repo init --quiet 2>$null
+        & git -C $repo config user.email 'test@example.com' 2>$null
+        & git -C $repo config user.name 'Test' 2>$null
+        & git -C $repo config core.autocrlf false 2>$null
+        & git -C $repo add -- $relative 2>$null
+        & git -C $repo commit --quiet -m 'seed LF record' 2>$null
+
+        $record = [pscustomobject]@{ Path = $relative }
+        $lfBytes = Get-RecordFileBytes -RepoPath $repo -Record $record
+        (Get-Item -LiteralPath $full).Length | Should -Be $lfBytes
+
+        & git -C $repo config core.autocrlf true 2>$null
+        [System.IO.File]::WriteAllText($full, ($lf -replace "`n", "`r`n"), [System.Text.UTF8Encoding]::new($false))
+        (Get-Item -LiteralPath $full).Length | Should -BeGreaterThan $lfBytes
+        Get-RecordFileBytes -RepoPath $repo -Record $record | Should -Be $lfBytes
+    }
+
     It 'S5.6: names the largest closure, its unit, and its largest contributor' {
         New-StateFile -RelativePath 'units/command/small.md' -Content @'
 # unit/command/small
@@ -1442,6 +1475,11 @@ Describe 'Test-DesignState: ClassListDisagreement (S5.1)' {
         $parsed = Get-ContractClassIds -ContractPath (Join-Path $TestDrive 'design/20-contract.md')
         $parsed.Ids.CouldNotEvaluate | Should -Not -Contain 'DesignStateFailure'
     }
+
+    It '#374: an application contract without AgentKit''s divergence-class heading does not opt into the comparison' -Tag 'NearMiss','ClassListDisagreement' {
+        $path = New-TreeFile -RelativePath 'design/application-contract.md' -Content "# Product contract`n`n## Invariants`n"
+        Test-ContractCarriesClassList -ContractPath $path | Should -BeFalse
+    }
 }
 
 Describe 'Test-DesignState: GlobDisagreement (#74)' {
@@ -1562,6 +1600,34 @@ trailing prose
         $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path
         $result.CouldNotEvaluate.Reason | Should -Be 'ContractListUnreadable'
         $result.CouldNotEvaluate.Detail | Should -Match 'GlobTableNotFound'
+    }
+
+    It '#374: the checker falls back to AgentKit-owned glob inputs when an application contract carries no table' -Tag 'NearMiss','GlobDisagreement' {
+        $path = New-GlobContract -Name 'application-contract' -Table "# Product contract`n`n## Invariants`n"
+        $parsed = Get-CheckerGlobPatterns -ContractPath $path
+
+        $parsed.Failure | Should -BeNullOrEmpty
+        $parsed.Source | Should -Be 'AgentKit-owned checker defaults'
+        $parsed.Kinds.Keys | Should -Contain 'command'
+        $parsed.Kinds.Keys | Should -Contain 'script'
+        $parsed.Kinds.Keys | Should -Contain 'document'
+
+        $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path -ParsedPatterns $parsed
+        $result.CouldNotEvaluate | Should -BeNullOrEmpty
+        $result.Findings | Should -BeNullOrEmpty
+    }
+
+    It '#374: a malformed explicitly provided glob table still fails closed' {
+        $path = New-GlobContract -Name 'malformed-explicit-table' -Table @'
+| Kind | Glob | Excluded |
+|---|---|---|
+| component | this row has no backticked pattern | — |
+'@
+        $parsed = Get-CheckerGlobPatterns -ContractPath $path
+        $parsed.Failure | Should -Be 'GlobTableHasNoPatterns'
+
+        $result = Test-GlobDisagreement -RepoPath $script:GlobRoot -ContractPath $path -ParsedPatterns $parsed
+        $result.CouldNotEvaluate.Reason | Should -Be 'ContractListUnreadable'
     }
 
     It 'this repository''s own table and its own enumeration agree' -Tag 'NearMiss','GlobDisagreement' -Skip:$script:SkipDesignStateSelfTests {
@@ -1771,6 +1837,33 @@ Describe 'Test-DesignState: end-to-end (S5.2, S5.3, S5.4, S5.9)' {
         $result.Findings.Count | Should -Be 0
         $result.Reported.Count | Should -Be 0
         (@($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'StateSetAbsent' })).Count | Should -Be 1
+    }
+
+    It '#374: an adopter contract without AgentKit-only headings produces no ContractListUnreadable while real component findings remain' {
+        New-TreeFile -RelativePath 'design/20-contract.md' -Content @'
+# Product contract
+
+## Invariants
+
+| | Statement | Held by | Enforcement | Evidence |
+|---|---|---|---|---|
+'@
+        New-StateFile -RelativePath 'units/component/app.md' -Content @'
+# unit/component/app
+Kind: component
+Status: active
+Anchor: src/App.csproj
+'@
+        New-TreeFile -RelativePath 'src/App.csproj' -Content '<Project />'
+        New-TreeFile -RelativePath 'tools/Update-DesignProjection.ps1' -Content 'param([string]$Path,[switch]$DryRun) exit 0'
+        Mock Test-TrackerAvailable { $true }
+
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive
+
+        @($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'ContractListUnreadable' }) | Should -BeNullOrEmpty
+        @($result.Findings | Where-Object { $_.Class -eq 'ClassListDisagreement' }) | Should -BeNullOrEmpty
+        @($result.Findings | Where-Object { $_.Class -eq 'UnrecordedArtifact' -and $_.Subject -eq 'unit/component/app' }).Count |
+            Should -Be 1 -Because 'no component glob was explicitly provided, so the real reverse-direction finding must remain'
     }
 
     It '#244: a ClassListDisagreement finding survives the StateSetAbsent short-circuit rather than being discarded' {
@@ -2674,6 +2767,17 @@ $r = Invoke-Pester -Configuration $c
         $script:S127CIBlock = 'CI workflow: the Run Pester tests step is authenticated (#79)'
 
         $script:S127Target = Get-DiscoveredSkip -Root $script:S127Checkout
+
+        $script:S127AdopterCheckout = Join-Path $TestDrive 'checkout-with-adopter-units'
+        Copy-Item -LiteralPath $script:S127Checkout -Destination $script:S127AdopterCheckout -Recurse -Force
+        New-Item -ItemType Directory -Path (Join-Path $script:S127AdopterCheckout 'design/state/units/component') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $script:S127AdopterCheckout 'design/state/units/component/app.md') -Encoding utf8NoBOM -Value @'
+# unit/component/app
+Kind: component
+Status: active
+Anchor: src/App.csproj
+'@
+        $script:S127Adopter = Get-DiscoveredSkip -Root $script:S127AdopterCheckout
         $script:S127Here = Get-DiscoveredSkip -Root $script:S127RepoRoot
     }
 
@@ -2695,6 +2799,22 @@ $r = Invoke-Pester -Configuration $c
         $tests.Count | Should -BeGreaterThan 0
         @($tests | Where-Object { -not $_.Skip }).Count |
             Should -Be 0 -Because 'there is no second step to compare the GH_TOKEN env against'
+    }
+
+    It '#374: AgentKit-specific reader and checker self-tests stay skipped when an adopter adds its own unit records' {
+        foreach ($block in @(
+                "Read-DesignState against this repository's own state set",
+                "Test-DesignState against this repository's own tree"
+            )) {
+            $tests = @($script:S127Adopter | Where-Object { $_.Block -eq $block })
+            $tests.Count | Should -BeGreaterThan 0
+            @($tests | Where-Object { -not $_.Skip }).Count |
+                Should -Be 0 -Because "an adopter's design/state/units directory does not contain AgentKit's hardcoded ids"
+        }
+
+        $glob = @($script:S127Adopter | Where-Object { $_.Name -eq $script:S127GlobTest })
+        $glob.Count | Should -Be 1
+        $glob[0].Skip | Should -BeTrue
     }
 
     It 'S12.7: and none of them are skipped in this repository, which has both' {

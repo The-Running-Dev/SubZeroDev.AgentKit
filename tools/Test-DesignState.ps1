@@ -88,6 +88,25 @@ $script:CouldNotEvaluateClasses = @(
 
 $script:ClosureBudgetBytes = 16384
 
+# The portable baseline for artifact discovery. AgentKit owns these three generic kinds in the
+# checker itself; a product contract may explicitly provide the table instead (most importantly
+# to declare its target-specific component glob). Keeping the fallback structured avoids making
+# every adopter reproduce AgentKit's own contract headings just to run the shared checker.
+$script:AgentKitGlobPatterns = @{
+    command = [pscustomobject]@{
+        Glob = @('skills/*/SKILL.md')
+        Excluded = @()
+    }
+    script = [pscustomobject]@{
+        Glob = @('tools/*.ps1')
+        Excluded = @('*.Tests.ps1')
+    }
+    document = [pscustomobject]@{
+        Glob = @('design/*.md', 'templates/design/*.md', '*.md', '.claude/COMPANIONS.md', '.github/ISSUE_TEMPLATE/*.md', 'codex/PROFILES.md')
+        Excluded = @('design/FROZEN.md', 'CLAUDE.md')
+    }
+}
+
 function New-DesignFinding {
     <# design/20-contract.md § "What the checker emits" - the scaffolded factory, unchanged. #>
     param(
@@ -200,6 +219,15 @@ function Get-ContractClassIds {
         }
         Failure = $null
     }
+}
+
+function Test-ContractCarriesClassList {
+    param([Parameter(Mandatory)][string] $ContractPath)
+
+    if (-not (Test-Path -LiteralPath $ContractPath -PathType Leaf)) { return $false }
+    $text = Get-Content -LiteralPath $ContractPath -Raw
+    if ($null -eq $text) { return $false }
+    $text.Contains('### The divergence classes')
 }
 
 <#
@@ -502,6 +530,29 @@ function Get-ContractGlobPatterns {
     [pscustomobject]@{ Kinds = $kinds; Failure = $null }
 }
 
+function Get-CheckerGlobPatterns {
+    <#
+        A product opts into owning this input by carrying the table header. Otherwise the
+        AgentKit-owned baseline above is the source. Once a product carries the header, parse
+        failures still fail closed as ContractListUnreadable; fallback is only for absence, not
+        for a malformed explicit declaration.
+    #>
+    param([Parameter(Mandatory)][string] $ContractPath)
+
+    if (Test-Path -LiteralPath $ContractPath -PathType Leaf) {
+        $text = Get-Content -LiteralPath $ContractPath -Raw
+        if ($null -ne $text -and $text.Contains('| Kind | Glob | Excluded |')) {
+            return Get-ContractGlobPatterns -ContractPath $ContractPath
+        }
+    }
+
+    [pscustomobject]@{
+        Kinds = $script:AgentKitGlobPatterns.Clone()
+        Failure = $null
+        Source = 'AgentKit-owned checker defaults'
+    }
+}
+
 <#
     Expands one parsed pattern against the checkout. A pattern is repository-relative and
     wildcards exactly one segment: either the final one, where the directory half is literal and
@@ -591,10 +642,11 @@ function Get-ContractGlobResolvedFiles {
 function Test-GlobDisagreement {
     param(
         [Parameter(Mandatory)][string] $RepoPath,
-        [Parameter(Mandatory)][string] $ContractPath
+        [Parameter(Mandatory)][string] $ContractPath,
+        [AllowNull()] $ParsedPatterns
     )
 
-    $parsed = Get-ContractGlobPatterns -ContractPath $ContractPath
+    $parsed = if ($null -ne $ParsedPatterns) { $ParsedPatterns } else { Get-ContractGlobPatterns -ContractPath $ContractPath }
     if ($parsed.Failure) {
         return [pscustomobject]@{
             CouldNotEvaluate = (New-CouldNotEvaluate -Reason 'ContractListUnreadable' -Detail "$($parsed.Failure): $ContractPath; GlobDisagreement is uncomputed, not clean")
@@ -1431,7 +1483,14 @@ function Get-RecordFileBytes {
     param([Parameter(Mandatory)][string] $RepoPath, [Parameter(Mandatory)]$Record)
     $full = Join-Path $RepoPath $Record.Path
     if (-not (Test-Path -LiteralPath $full)) { return 0 }
-    (Get-Item -LiteralPath $full).Length
+    # Records are UTF-8 text and committed LF by house convention. core.autocrlf may materialise
+    # those same committed bytes as CRLF, so counting the raw working-tree file makes a real
+    # closure cross the ceiling merely by changing checkout configuration. Measure the current
+    # record content (including uncommitted edits), but in its repository-canonical LF form.
+    $text = Get-Content -LiteralPath $full -Raw
+    if ($null -eq $text) { return 0 }
+    $normalised = ConvertTo-NormalisedNewlines -Text $text
+    [System.Text.Encoding]::UTF8.GetByteCount($normalised)
 }
 
 function Get-DesignClosure {
@@ -1795,9 +1854,16 @@ function Invoke-DesignStateCheck {
     param([Parameter(Mandatory)][string] $RepoPath, [string] $Repository)
 
     $contractPath = Join-Path $RepoPath 'design/20-contract.md'
-    $classListResult = Test-ClassListAgreement -ContractPath $contractPath
+    # The class declaration in this script is AgentKit-owned. A product contract may repeat it
+    # explicitly and then ClassListDisagreement compares the two; a normal application contract
+    # need not carry AgentKit's meta-contract section at all.
+    $classListResult = if (Test-ContractCarriesClassList -ContractPath $contractPath) {
+        Test-ClassListAgreement -ContractPath $contractPath
+    } else {
+        [pscustomobject]@{ CouldNotEvaluate = $null; Finding = $null }
+    }
     $invariantSet = Get-ContractInvariantIds -ContractPath $contractPath
-    $componentGlobResult = Get-ContractGlobPatterns -ContractPath $contractPath
+    $componentGlobResult = Get-CheckerGlobPatterns -ContractPath $contractPath
 
     $graph = Read-DesignStateGraph -Path $RepoPath
 
@@ -1850,7 +1916,7 @@ function Invoke-DesignStateCheck {
     $blockingFindings.AddRange((Test-DecisionUnplaced -Records $records))
     $blockingFindings.AddRange((Test-SupersessionCycle -Records $records -ById $byId))
 
-    $globResult = Test-GlobDisagreement -RepoPath $RepoPath -ContractPath $contractPath
+    $globResult = Test-GlobDisagreement -RepoPath $RepoPath -ContractPath $contractPath -ParsedPatterns $componentGlobResult
     if ($globResult.CouldNotEvaluate) { $couldNotEvaluate.Add($globResult.CouldNotEvaluate) }
     $blockingFindings.AddRange($globResult.Findings)
 
