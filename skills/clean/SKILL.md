@@ -94,8 +94,28 @@ Report after acting, not before — this is a summary of what happened, not a re
 `/next` follows every run of this command. **It is not run here.** `AGENTS.shared.md` § *Session
 boundaries* puts a fresh session between a merge and `/track`, and this command normally runs in
 the session that just merged the branch it is deleting — precisely the session that boundary
-exists to keep out. So end the session rather than chaining, with the banner that boundary
-requires:
+exists to keep out. So end the session rather than chaining, emitting the transfer block
+`AGENTS.shared.md` § *The session-transfer handoff block* requires, filled in from this run's own
+`Invoke-DoneHousekeeping.ps1` output, then the banner that boundary requires:
+
+```markdown
+# Session handoff
+
+## Objective
+Determine and run whatever this repository's `/next` orientation currently owes.
+
+## Start here
+/next
+
+## Current state
+- <branches deleted this run, each with the PR it merged through, or "none deleted">
+- <a stash made this run and how to restore it, or omit>
+- <any `Refused` or `TipAheadOfMergedPr` entry left for a human decision, or omit>
+
+## Verification
+- `git branch --merged <default>` confirmed each deleted branch; `gh pr list --head` cross-checked
+  any squash-merge candidate.
+```
 
 ```
 ===============================
@@ -104,9 +124,11 @@ Next: /next, Fresh Session, sonnet/medium
 ===============================
 ```
 
-Emit it on every run that got past the hard stop, **including a run that deleted nothing**.
-Whether a branch was deleted has no bearing on what the repository owes next, and making the
-handoff conditional on a non-empty candidate list is how it silently stops happening.
+Never state a deletion or a stash in the block that this run did not actually make. Emit both the
+block and the banner on every run that got past the hard stop, **including a run that deleted
+nothing** — write `Current state` as "none deleted" rather than omitting the block. Whether a
+branch was deleted has no bearing on what the repository owes next, and making either one
+conditional on a non-empty candidate list is how it silently stops happening.
 
 **Name `/next`, not `/track`.** `/next` reads the repository's actual state and runs whatever is
 genuinely owed — which is often `/track`, and is often nothing. Naming `/track` directly is what

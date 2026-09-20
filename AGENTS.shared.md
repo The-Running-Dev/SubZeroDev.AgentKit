@@ -225,7 +225,7 @@ The table above names each vendor's primary identity for a tier. A vendor's own 
 
 ### Session boundaries
 
-Routing says which model runs a command. This says **when a session must end.** A boundary exists wherever carrying context would corrupt the next step's judgement, or wherever the next step must read the tree rather than remember it. **The artifact is the handoff, not the conversation** — a stage that writes one has already handed over everything the next stage is entitled to.
+Routing says which model runs a command. This says **when a session must end.** A boundary exists wherever carrying context would corrupt the next step's judgement, or wherever the next step must read the tree rather than remember it. **The durable artifact remains the authoritative input to the next stage** — a stage that writes one has already handed over everything the next stage is entitled to reason from. That is a rule about *truth*, not about *transport*: the conversation still owes the operator a short Markdown block that says exactly what to run, what artifact or state to read, and what remains, because turning an artifact path into the next session's first message is not something a boundary banner does by itself. **A fresh-session boundary is incomplete until both that block and the terminal banner below are present.** The block points at the authoritative artifact — a path, a commit, a PR, a slice id — rather than reproducing its contents or this session's reasoning; *The session-transfer handoff block*, below the table, is where its shape lives.
 
 | Boundary | Rule | Why |
 |---|---|---|
@@ -239,7 +239,43 @@ Routing says which model runs a command. This says **when a session must end.** 
 
 **Compaction is a boundary you did not choose.** If a session compacts mid-slice, report it — the slice was mis-sized, and the work after the compaction was done against a summary of the contract rather than the contract.
 
-**End a response that lands on a fresh-session boundary with a banner, not a footnote.** A boundary buried in the last sentence of a report gets carried into the next reply of the same session out of habit, which is the exact failure the boundary exists to prevent. Set it off as a heading in the same form as the [work-start banner](#model-effort-and-review-budget) — `=` rules, Title Case, plain lines — naming: the boundary just crossed, the next command, and its tier from *Command routing*. For example:
+### The session-transfer handoff block
+
+Call this the **transfer block**, to keep it apart from `/handoff` and *Handoff mode* above, which name a different thing entirely: implementing a supplied specification directly, with the pipeline suspended. The transfer block runs the other direction — carrying an unfinished or newly-boundaried work unit to whichever session picks it up next, whether that next step is a pipeline command or nothing in particular. Neither name licenses the other, and this is the acceptance test: if the operator's likely next message is "write me the handoff" or "what do I paste into the next session?", the boundary response failed — the block below is what removes that question, and it must appear before it is asked.
+
+Emit a fenced ```markdown block immediately before the terminal banner, in this shape — every section but `Objective` and `Start here` is omitted when it would be empty, not padded to fit:
+
+```markdown
+# Session handoff
+
+## Objective
+<the outcome the next session must produce>
+
+## Start here
+<the exact next command, including tier when *Command routing* fixes one>
+
+## Authoritative inputs
+- <artifact, issue, PR, branch, commit, or file path the next session must read>
+
+## Current state
+- <what is already complete, stated only as far as this session verified it>
+- <what remains, or why the boundary was reached>
+
+## Constraints
+- <a constraint the next session could otherwise miss>
+
+## Verification
+- <checks already run, and their actual result>
+- <checks not run, and why>
+```
+
+**State only what this session verified.** Never write that a gate passed, a branch was pushed, or a PR merged unless this session confirmed it — *Verification*, above, binds the transfer block exactly as it binds any other report. **Point at artifacts, don't restate them**: name the path, the commit, the PR link, the slice id; do not paste the artifact's contents or the investigation that led here into the block, for the same reason *Single ownership* gives for not copying a rule into a second document.
+
+**`Start here` names the actual next command as plain text** — `/redteam`, `/slice S4`, `/track`, `/next` — never `Execution: direct` or `Execution: handoff`. Those two lines mean one specific thing, declaring handoff mode for the session that reads them, and a routine pipeline transfer is not that. The one exception is a direct-handoff work unit that is itself unfinished when an unavoidable boundary — compaction, most often — cuts across it: there, `Start here` restates `Execution: direct` along with the remaining objective, because the work stays in that mode and hiding the fact would silently drop it back into the pipeline. State plainly that the transfer was forced by compaction or context exhaustion rather than presenting it as a clean planned boundary.
+
+Work that is genuinely finished, with nothing left for another session, gets no transfer block at all — write `Next: Nothing — this is complete.` and stop there. A block manufactured to say that nothing remains is padding, not a handoff.
+
+**End a response that lands on a fresh-session boundary with a banner, not a footnote.** A boundary buried in the last sentence of a report gets carried into the next reply of the same session out of habit, which is the exact failure the boundary exists to prevent. The transfer block above comes first; this banner follows it and stays the last thing in the response. Set the banner off as a heading in the same form as the [work-start banner](#model-effort-and-review-budget) — `=` rules, Title Case, plain lines — naming: the boundary just crossed, the next command, and its tier from *Command routing*. For example:
 
 ```
 ===============================

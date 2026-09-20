@@ -1145,7 +1145,17 @@ function Get-MarkdownHeadingCount {
     param([Parameter(Mandatory)][AllowNull()][AllowEmptyString()][string] $FilePath, [Parameter(Mandatory)][string] $Heading)
     if (-not $FilePath -or -not (Test-Path -LiteralPath $FilePath -PathType Leaf)) { return 0 }
     $count = 0
-    foreach ($line in (Get-Content -LiteralPath $FilePath)) {
+    $fenceChar = $null
+    $fenceLen = 0
+    foreach ($rawLine in (Get-Content -LiteralPath $FilePath)) {
+        # Fence-tracked the same way Get-MarkedRegions is: a heading shown as a worked
+        # example inside a fenced code block is not a real structural heading.
+        $line = $rawLine.Trim()
+        if ($fenceChar) {
+            if ($line -match "^$([regex]::Escape($fenceChar)){$fenceLen,}$") { $fenceChar = $null; $fenceLen = 0 }
+            continue
+        }
+        if ($line -match '^(`{3,}|~{3,})') { $fenceChar = $Matches[1][0]; $fenceLen = $Matches[1].Length; continue }
         if ($line -match '^#{1,6}\s+(.+?)\s*$' -and $Matches[1] -eq $Heading) { $count++ }
     }
     $count
@@ -1212,8 +1222,18 @@ function Test-HeadingCollision {
     foreach ($resolved in @($targets.Keys)) {
         $seen = [ordered]@{}
         $lineNumber = 0
-        foreach ($line in (Get-Content -LiteralPath $resolved)) {
+        $fenceChar = $null
+        $fenceLen = 0
+        foreach ($rawLine in (Get-Content -LiteralPath $resolved)) {
             $lineNumber++
+            # Fence-tracked the same way Get-MarkedRegions is: a heading shown as a worked
+            # example inside a fenced code block is not a real structural heading.
+            $line = $rawLine.Trim()
+            if ($fenceChar) {
+                if ($line -match "^$([regex]::Escape($fenceChar)){$fenceLen,}$") { $fenceChar = $null; $fenceLen = 0 }
+                continue
+            }
+            if ($line -match '^(`{3,}|~{3,})') { $fenceChar = $Matches[1][0]; $fenceLen = $Matches[1].Length; continue }
             if ($line -match '^#{1,6}\s+(.+?)\s*$') {
                 $heading = $Matches[1]
                 if (-not $seen.Contains($heading)) { $seen[$heading] = [System.Collections.Generic.List[int]]::new() }
