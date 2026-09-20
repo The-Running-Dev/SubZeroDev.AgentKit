@@ -104,6 +104,16 @@ Describe 'AGENTS.shared.md § Session boundaries — the transfer block' {
     It 'still carries the terminal banner example unchanged' {
         $script:Section | Should -Match 'Next: /track, Fresh Session, sonnet/medium'
     }
+
+    It 'keeps a decision only the user can make in the conversation, not inside the block' {
+        $script:Section | Should -Match 'asked in this conversation, never inside the block'
+        $script:Section | Should -Match 'belongs in `Result:`/`Next:`'
+    }
+
+    It 'carries an answered decision forward as settled input rather than re-offering it' {
+        $script:Section | Should -Match 'settled input'
+        $script:Section | Should -Match 'never re-offers the options it'
+    }
 }
 
 Describe 'skills/clean/SKILL.md hands off to /next, with a transfer block, never straight to /track' {
@@ -138,5 +148,109 @@ Describe 'skills/clean/SKILL.md hands off to /next, with a transfer block, never
 
     It 'forbids stating a deletion or stash the run did not make' {
         $script:Content | Should -Match 'Never state a deletion or a stash in the block that this run did not actually make'
+    }
+}
+
+Describe 'skills/next/SKILL.md fills the transfer block from the boundary row it matched' {
+
+    BeforeAll {
+        $script:RepoRoot = Split-Path $PSScriptRoot -Parent
+        $script:SkillPath = Join-Path $script:RepoRoot 'skills/next/SKILL.md'
+        $script:Content = Get-Content -LiteralPath $script:SkillPath -Raw
+    }
+
+    It 'cites the shared transfer-block contract rather than restating its shape' {
+        $script:Content | Should -Match '(?s)transfer block `AGENTS\.shared\.md`\s+\u00a7 \*The session-transfer handoff block\*'
+    }
+
+    It 'requires the block at every boundary row, ahead of that row''s banner' {
+        $script:Content | Should -Match 'Every \*\*boundary\*\* row above ends the session here'
+        $script:Content | Should -Match '(?s)the block, then\s+the banner, and nothing after it'
+    }
+
+    It 'names the exact command and spells out a slice id' {
+        $script:Content | Should -Match '(?s)`/slice S<n>` with the id\s+spelled out'
+    }
+
+    It 'carries /redteam''s different-vendor constraint into the block' {
+        $script:Content | Should -Match 'different vendor from the design author'
+    }
+
+    It 'keeps the orientation reasoning out of the block' {
+        $script:Content | Should -Match 'Do not carry the orientation reasoning across'
+    }
+}
+
+Describe 'skills/design/SKILL.md hands off to /redteam with the vendor constraint in the block' {
+
+    BeforeAll {
+        $script:RepoRoot = Split-Path $PSScriptRoot -Parent
+        $script:SkillPath = Join-Path $script:RepoRoot 'skills/design/SKILL.md'
+        $script:Content = Get-Content -LiteralPath $script:SkillPath -Raw
+    }
+
+    It 'has a hand-off section citing the shared transfer-block contract' {
+        $script:Content | Should -Match '(?m)^## Hand off$'
+        $script:Content | Should -Match '(?s)`AGENTS\.shared\.md` \u00a7 \*The session-transfer handoff block\*'
+    }
+
+    It 'still requires a fresh session on a different vendor' {
+        $script:Content | Should -Match 'fresh session \*\*and a different vendor\*\*'
+        $script:Content | Should -Match 'different-vendor requirement goes in `Constraints`'
+    }
+
+    It 'points at the committed design rather than pasting or summarising it' {
+        $script:Content | Should -Match '(?s)Do not paste the design into the\s+block'
+        $script:Content | Should -Match 'do not summarise the arguments behind it'
+    }
+}
+
+Describe 'skills/plan/SKILL.md hands off with the exact slice id' {
+
+    BeforeAll {
+        $script:RepoRoot = Split-Path $PSScriptRoot -Parent
+        $script:SkillPath = Join-Path $script:RepoRoot 'skills/plan/SKILL.md'
+        $script:Content = Get-Content -LiteralPath $script:SkillPath -Raw
+    }
+
+    It 'has a hand-off section citing the shared transfer-block contract' {
+        $script:Content | Should -Match '(?m)^## Hand off$'
+        $script:Content | Should -Match '(?s)`AGENTS\.shared\.md` \u00a7 \*The\s+session-transfer handoff block\*'
+    }
+
+    It 'requires the exact slice id, never a description of which slice to pick' {
+        $script:Content | Should -Match '\*\*exact slice id\*\*'
+        $script:Content | Should -Match '`/slice S3`, never "the first outstanding slice"'
+    }
+
+    It 'keeps one slice per session' {
+        $script:Content | Should -Match '\*\*one slice per session\*\*'
+    }
+
+    It 'names the constraining documents instead of copying the criteria' {
+        $script:Content | Should -Match 'do not copy them into the block'
+    }
+}
+
+Describe 'skills/interview/SKILL.md hands off to /brief with the block' {
+
+    BeforeAll {
+        $script:RepoRoot = Split-Path $PSScriptRoot -Parent
+        $script:SkillPath = Join-Path $script:RepoRoot 'skills/interview/SKILL.md'
+        $script:Content = Get-Content -LiteralPath $script:SkillPath -Raw
+    }
+
+    It 'cites the shared transfer-block contract' {
+        $script:Content | Should -Match 'transfer block `AGENTS\.shared\.md` \u00a7 \*The session-transfer handoff block\*'
+    }
+
+    It 'names /brief as the starting action and the brief as the authoritative input' {
+        $script:Content | Should -Match '`Start here` is `/brief`'
+        $script:Content | Should -Match 'Authoritative inputs` is'
+    }
+
+    It 'requires empty fields to be reported as findings, and nothing else to cross' {
+        $script:Content | Should -Match 'names the fields left empty'
+        $script:Content | Should -Match 'Nothing else from the interview'
     }
 }

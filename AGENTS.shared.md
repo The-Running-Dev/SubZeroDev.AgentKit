@@ -275,6 +275,8 @@ Emit a fenced ```markdown block immediately before the terminal banner, in this 
 
 Work that is genuinely finished, with nothing left for another session, gets no transfer block at all — write `Next: Nothing — this is complete.` and stop there. A block manufactured to say that nothing remains is padding, not a handoff.
 
+**A decision only I can make is asked in this conversation, never inside the block.** Where work stops on a fork or a challenge (*Working with me*) and only resumes once I have answered, the question belongs in `Result:`/`Next:` where I will read it — a decision folded into a transfer block is a question put to a session that has no standing to answer it, and it comes back as the same fork one boundary later, having cost a session in between. Once I have answered, a transfer block crossing a boundary afterwards carries that answer as **settled input** — named in `Objective` or `Constraints` as the decision taken — and never re-offers the options it closed.
+
 **End a response that lands on a fresh-session boundary with a banner, not a footnote.** A boundary buried in the last sentence of a report gets carried into the next reply of the same session out of habit, which is the exact failure the boundary exists to prevent. The transfer block above comes first; this banner follows it and stays the last thing in the response. Set the banner off as a heading in the same form as the [work-start banner](#model-effort-and-review-budget) — `=` rules, Title Case, plain lines — naming: the boundary just crossed, the next command, and its tier from *Command routing*. For example:
 
 ```
