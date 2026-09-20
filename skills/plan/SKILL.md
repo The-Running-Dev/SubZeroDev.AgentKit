@@ -49,6 +49,23 @@ Rules:
 
 Write the document only. **Do not open issues** — that is `/track`'s job (`AGENTS.shared.md`, *Tracking work*). Say that it should be run next.
 
+## Hand off
+
+`design/30-slices.md` is committed and the session ends. `/track` opens the issues, and each
+slice is then implemented by `/slice` in a session of its own — `AGENTS.shared.md` § *Session
+boundaries*, **one slice per session**. Emit the transfer block `AGENTS.shared.md` § *The
+session-transfer handoff block* requires, then that boundary's banner.
+
+- **`Start here` names the exact next command**, and where it is `/slice`, the **exact slice id**
+  — `/slice S3`, never "the first outstanding slice". The id is what the tracker, the criteria
+  and the branch all key on, so a handoff that makes the next session pick one has already given
+  away the one-slice-per-session guarantee.
+- **`Authoritative inputs` names `design/30-slices.md` and `design/20-contract.md`**, the
+  documents the implementing session is constrained by. The slice's own acceptance criteria are
+  in the first of those, by id; do not copy them into the block.
+- **`Current state` says which slices exist, not which is easiest.** Ordering was decided here,
+  by risk; re-arguing it in a handoff invites the next session to re-decide it.
+
 ## Re-run
 
 A re-run only appends new slices under `## Outstanding` (`design/30-slices.md`, *How this

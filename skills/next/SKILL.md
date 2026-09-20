@@ -89,6 +89,30 @@ command when the table stopped short of running it. State meaning before identif
 the response, set off as `AGENTS.shared.md` requires — it may repeat the action already named in
 `Next:`; that duplication is intentional.
 
+## Hand off
+
+Every **boundary** row above ends the session here. Emit the transfer block `AGENTS.shared.md`
+§ *The session-transfer handoff block* requires, then that boundary's banner — the block, then
+the banner, and nothing after it.
+
+Fill it from the row that matched, not from the reasoning that matched it:
+
+- **`Start here`** is the exact command the row chose — `/track`, `/slice S<n>` with the id
+  spelled out, `/align`, `/redteam` — with the tier `AGENTS.shared.md` § *Command routing* fixes
+  for it. `/redteam` carries its **different vendor from the design author** constraint into
+  `Constraints`, since that is the one thing a fresh session of the same model cannot satisfy by
+  reading the tree.
+- **`Authoritative inputs`** names what the row actually read — the `Test-DesignDrift.ps1`
+  finding, the issue number and its unticked `Done when` ids, `design/30-slices.md` §
+  *Outstanding*, `design/90-decisions.md` § `## Open`. Name them; the next session reads them.
+- **`Current state`** says what this run did or found, as far as it verified it, and nothing about
+  what it expects the next command to conclude.
+
+**Do not carry the orientation reasoning across.** This command is stateless and re-derives every
+decision from the tree (*Re-run*, below), so the next session running `/next` again would reach
+the same row from the same evidence — pasting the argument for it in is the one thing that could
+make it reach a different one.
+
 ## Never
 
 - **Cross a session boundary because the next step is small.** Size is not what the boundary

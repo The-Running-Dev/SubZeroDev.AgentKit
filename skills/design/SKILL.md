@@ -90,6 +90,25 @@ Rules:
 - Every decision that survives goes into `design/90-decisions.md` in the logged format. Where this repository's own `design/state/` exists, writing it also follows the record-writing sequence in `AGENTS.shared.md` § *Writing a design-state record* — not restated here.
 - If the brief is too thin to design against, stop and say what is missing rather than inventing requirements.
 
+## Hand off
+
+`design/10-design.md` is committed and the session ends. `/redteam` runs next, and
+`AGENTS.shared.md` § *Session boundaries* makes this the strictest boundary the pipeline has:
+fresh session **and a different vendor**, because a model recognises its own output distribution
+and defends it. Emit the transfer block `AGENTS.shared.md` § *The session-transfer handoff block*
+requires, then that boundary's banner.
+
+Two things this one block must carry that a banner cannot:
+
+- **The different-vendor requirement goes in `Constraints`, in words.** It is the only constraint
+  in the pipeline that the receiving session cannot check for itself — a fresh session of this
+  same model reads as a clean start from the inside, which is exactly the failure.
+- **`Authoritative inputs` names the committed path and its commit** — `design/10-design.md`,
+  plus `design/00-brief.md` for what it was designed against. **Do not paste the design into the
+  block, and do not summarise the arguments behind it.** Those arguments are precisely what the
+  boundary exists to keep out of the reviewing session; a `Current state` that rehearses why an
+  approach was chosen hands the red team the defence before it has read the design.
+
 ## Re-run
 
 Rewrites `design/10-design.md` in full from the current brief — there is no partial

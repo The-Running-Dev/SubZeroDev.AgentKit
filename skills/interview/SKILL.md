@@ -138,6 +138,8 @@ Only then write `design/00-brief.md`, from `templates/design/00-brief.md`, and s
 
 The brief is committed and the session ends. `/brief` runs next, in a fresh session, and it deliberately writes nothing — the user edits the brief from its four lists (`AGENTS.shared.md`, *Session boundaries*).
 
+Emit the transfer block `AGENTS.shared.md` § *The session-transfer handoff block* requires, then that boundary's banner. `Start here` is `/brief`; `Authoritative inputs` is `design/00-brief.md` at the commit just written. **`Current state` names the fields left empty and says they are empty** — an unanswered field is this command's finding, and it is the one thing the next session must not mistake for an oversight. Nothing else from the interview crosses: not the answers behind a field, not what the user nearly said, not this session's reading of what they meant.
+
 ## Re-run
 
 **Stateful, and destructive if run carelessly** — it is the only command that writes `design/00-brief.md`.
