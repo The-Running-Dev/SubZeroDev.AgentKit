@@ -79,11 +79,19 @@ function Resolve-AgentKitRoot {
 $kitRootResolved = Resolve-AgentKitRoot -Explicit $KitRoot
 
 function Invoke-Gh {
+    # gh entirely missing from PATH is a terminating native-command-not-found error under
+    # this script's own $ErrorActionPreference = 'Stop', not a non-zero exit code - so it has
+    # to be caught here rather than read off $LASTEXITCODE, and folded into the same
+    # ExitCode-nonzero shape the "gh present but failing" case already produces, which is what
+    # every caller below already treats as "unavailable".
     param([string[]]$GhArgs, [string]$WorkingDir)
     Push-Location $WorkingDir
     try {
         $out = & gh @GhArgs 2>$null
         return [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $out }
+    }
+    catch [System.Management.Automation.CommandNotFoundException] {
+        return [pscustomobject]@{ ExitCode = 127; Output = $null }
     }
     finally { Pop-Location }
 }
@@ -172,7 +180,17 @@ function Get-GateSummary {
 }
 
 $status = & git -C $repoRootResolved status --short --branch
-$currentBranch = (& git -C $repoRootResolved branch --show-current).Trim()
+# `git branch --show-current` prints nothing at all in detached HEAD - not an empty line - so
+# the pipeline result is $null rather than "", and $null.Trim() throws. Report the short SHA
+# instead: still a stable name for the branch-vs-nothing distinction Summary makes below.
+$currentBranchRaw = (& git -C $repoRootResolved branch --show-current)
+$currentBranch = if ($currentBranchRaw) {
+    $currentBranchRaw.Trim()
+}
+else {
+    $shortSha = (& git -C $repoRootResolved rev-parse --short HEAD).Trim()
+    "detached HEAD at $shortSha"
+}
 
 $openPr = Invoke-Gh -GhArgs @('pr', 'list', '--state', 'open', '--json', 'number,title,headRefName') -WorkingDir $repoRootResolved
 $mergedPr = Invoke-Gh -GhArgs @('pr', 'list', '--state', 'merged', '--limit', '5', '--json', 'number,title,mergedAt') -WorkingDir $repoRootResolved

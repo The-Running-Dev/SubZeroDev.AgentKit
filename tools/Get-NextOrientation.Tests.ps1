@@ -242,10 +242,8 @@ Describe 'Get-NextOrientation' {
             $kitRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('n'))
             New-WordingGateScripts -KitPath $kitRoot -DriftState 'Clean' -StateResult 'Clean'
             # A `gh` that resolves but exits non-zero (not authenticated, rate-limited, etc.) -
-            # Invoke-Gh reads $LASTEXITCODE, and Get-NextOrientation.ps1 has no handling for
-            # `gh` being entirely absent from PATH (a native-command-not-found is terminating
-            # under this script's own Set-StrictMode/$ErrorActionPreference), so this is the
-            # "unavailable" case the script actually distinguishes.
+            # Invoke-Gh reads $LASTEXITCODE for this case. `gh` entirely absent from PATH is
+            # the other route to the same "unavailable" shape, covered separately below.
             $bin = Join-Path $TestDrive ([guid]::NewGuid().ToString('n'))
             New-Item -ItemType Directory -Path $bin -Force | Out-Null
             Set-Content -LiteralPath (Join-Path $bin 'gh.ps1') -Value "exit 1" -Encoding utf8NoBOM
@@ -258,6 +256,66 @@ Describe 'Get-NextOrientation' {
             $result.MergedPrs.Available | Should -Be $false
             $result.MergedPrs.Summary | Should -Be 'GitHub CLI unavailable: merged pull requests not checked'
             Assert-NoBareIdentifiers -Result $result
+        }
+    }
+
+    Context 'gh entirely missing from PATH' {
+
+        BeforeEach {
+            $script:SavedPath = $env:PATH
+        }
+
+        AfterEach {
+            $env:PATH = $script:SavedPath
+        }
+
+        It 'reports GitHub unavailable instead of throwing, when gh is not on PATH at all' {
+            # Reproduces the handoff defect: a bare `& gh @GhArgs` command-not-found is a
+            # terminating error under this script's own Set-StrictMode/$ErrorActionPreference,
+            # so unlike "gh present but exiting non-zero" (already covered above), this used to
+            # abort the whole script rather than degrade to the unavailable shape.
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-nogh-at-all') -OriginUrl 'https://github.com/ownerJ/repoJ.git'
+            $kitRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('n'))
+            New-WordingGateScripts -KitPath $kitRoot -DriftState 'Clean' -StateResult 'Clean'
+            $env:PATH = ($env:PATH -split [IO.Path]::PathSeparator |
+                Where-Object { -not (Test-Path -LiteralPath (Join-Path $_ 'gh.exe')) -and -not (Test-Path -LiteralPath (Join-Path $_ 'gh')) }) -join [IO.Path]::PathSeparator
+
+            $result = & $script:ScriptPath -RepoRoot $repo -KitRoot $kitRoot
+
+            $result.OpenPrs.Available | Should -Be $false
+            $result.OpenPrs.Summary | Should -Be 'GitHub CLI unavailable: pull requests not checked'
+            $result.MergedPrs.Available | Should -Be $false
+            $result.MergedPrs.Summary | Should -Be 'GitHub CLI unavailable: merged pull requests not checked'
+        }
+    }
+
+    Context 'detached HEAD' {
+
+        BeforeEach {
+            $script:SavedPath = $env:PATH
+        }
+
+        AfterEach {
+            $env:PATH = $script:SavedPath
+        }
+
+        It 'names the checked-out commit instead of throwing, when HEAD is detached' {
+            # Reproduces the handoff defect: `git branch --show-current` prints nothing at all
+            # in detached HEAD (not an empty line), so the captured result is $null and
+            # $null.Trim() threw before this fix.
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-detached') -OriginUrl 'https://github.com/ownerK/repoK.git'
+            $sha = (& git -C $repo rev-parse HEAD).Trim()
+            & git -C $repo checkout --quiet $sha
+            $kitRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('n'))
+            New-WordingGateScripts -KitPath $kitRoot -DriftState 'Clean' -StateResult 'Clean'
+            $bin = New-FakeGh -BinDir (Join-Path $TestDrive ([guid]::NewGuid().ToString('n')))
+            $env:PATH = "$bin$([IO.Path]::PathSeparator)$env:PATH"
+
+            $result = & $script:ScriptPath -RepoRoot $repo -KitRoot $kitRoot
+
+            $shortSha = (& git -C $repo rev-parse --short HEAD).Trim()
+            $result.CurrentBranch | Should -Be "detached HEAD at $shortSha"
+            $result.Summary | Should -Match ([regex]::Escape("detached HEAD at $shortSha"))
         }
     }
 
