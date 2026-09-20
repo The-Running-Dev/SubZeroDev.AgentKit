@@ -277,8 +277,27 @@ Describe 'Get-NextOrientation' {
             $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-nogh-at-all') -OriginUrl 'https://github.com/ownerJ/repoJ.git'
             $kitRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('n'))
             New-WordingGateScripts -KitPath $kitRoot -DriftState 'Clean' -StateResult 'Clean'
+            $gitCommand = Get-Command git -ErrorAction Stop
             $env:PATH = ($env:PATH -split [IO.Path]::PathSeparator |
                 Where-Object { -not (Test-Path -LiteralPath (Join-Path $_ 'gh.exe')) -and -not (Test-Path -LiteralPath (Join-Path $_ 'gh')) }) -join [IO.Path]::PathSeparator
+
+            # Where gh and git are installed in the same directory (Linux runner images put
+            # both in /usr/bin), filtering out gh's directory above also removes git - which
+            # this test needs to stay resolvable so the failure under test is "gh missing",
+            # not "git missing" (#372).
+            if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+                $gitShimDir = Join-Path $TestDrive 'git-shim'
+                New-Item -ItemType Directory -Path $gitShimDir -Force | Out-Null
+                if ($IsWindows) {
+                    $shimPath = Join-Path $gitShimDir 'git.cmd'
+                    Set-Content -LiteralPath $shimPath -Value "@echo off`r`n`"$($gitCommand.Source)`" %*"
+                } else {
+                    $shimPath = Join-Path $gitShimDir 'git'
+                    Set-Content -LiteralPath $shimPath -Value "#!/bin/sh`nexec `"$($gitCommand.Source)`" `"`$@`""
+                    & chmod +x $shimPath
+                }
+                $env:PATH = "$gitShimDir$([IO.Path]::PathSeparator)$env:PATH"
+            }
 
             $result = & $script:ScriptPath -RepoRoot $repo -KitRoot $kitRoot
 
