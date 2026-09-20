@@ -2232,6 +2232,16 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
     }
 
     It 'S12.5/S25.4: the check reports zero findings against this repository and exits 0' {
+        # This is an authenticated integration check: it asserts CouldNotEvaluate is empty,
+        # which is only true when gh can actually compare WorkStateDivergence. Where gh is
+        # missing or unauthenticated, that is the expected TrackerUnavailable outcome, not a
+        # defect this test exists to catch - so it reports Skipped (visible in the run
+        # summary), never a silent pass or a hard failure (AGENTS.shared.md, Verification).
+        if (-not (Test-TrackerAvailable)) {
+            Set-ItResult -Skipped -Because 'gh missing or unauthenticated - this authenticated integration check needs it provisioned'
+            return
+        }
+
         # Replaces S5's 'never clean against this repository', whose stated reason - that most
         # commands, scripts and documents had no unit record - stopped being true at S8 and S9.
         # It kept passing on a divergence it was never written to describe, which is the shape
@@ -2347,6 +2357,15 @@ Describe 'Test-DesignState against this repository''s own tree' -Skip:$script:Sk
     }
 
     It 'S18.6: EnforcementUnevidenced rejects this repository''s own superseded decision once its SupersededBy line is removed, and clears once it is restored' {
+        # Asserts an exact exit code of 1 (findings, no CouldNotEvaluate). Where gh is missing
+        # or unauthenticated, WorkStateDivergence adds its own CouldNotEvaluate entry and the
+        # exit code becomes 2 regardless of this test's own mutation - an authenticated
+        # integration check, same reasoning as S12.5/S25.4 above.
+        if (-not (Test-TrackerAvailable)) {
+            Set-ItResult -Skipped -Because 'gh missing or unauthenticated - this authenticated integration check needs it provisioned'
+            return
+        }
+
         # #339: this used to strip/restore the field directly on the tracked file in the
         # live checkout, which was genuinely dirty on disk for the duration of the test -
         # visible to any concurrent `git status`, `git add`, or `gh pr create` in that
@@ -2610,9 +2629,17 @@ Criteria:
         # Discovery alone answers this: -Skip: is evaluated during Pester's discovery pass, so
         # nothing here runs 139 tests inside one test. It runs in a child process rather than a
         # nested Invoke-Pester because Pester keeps run state in the session.
+        # Passed to the child explicitly rather than relying on $env:PSModulePath inheritance:
+        # a CI step that imports Pester from an explicit .psd1 path (not one already on
+        # PSModulePath) leaves it resolvable in this process but not auto-loadable by a
+        # fresh `pwsh -File` child, which would otherwise see New-PesterConfiguration as an
+        # unresolvable command before ever reaching S12.7's own assertions.
+        $script:S127PesterModulePath = (Get-Module -Name Pester | Select-Object -First 1).Path
+
         $script:S127Runner = Join-Path $TestDrive 'discover-skips.ps1'
         Set-Content -LiteralPath $script:S127Runner -Encoding utf8NoBOM -Value @'
-param([Parameter(Mandatory)][string] $Root)
+param([Parameter(Mandatory)][string] $Root, [Parameter(Mandatory)][string] $PesterModulePath)
+Import-Module -Name $PesterModulePath -Force
 $c = New-PesterConfiguration
 $c.Run.Path = @(
     (Join-Path $Root 'tools/Read-DesignState.Tests.ps1'),
@@ -2631,7 +2658,7 @@ $r = Invoke-Pester -Configuration $c
         function Get-DiscoveredSkip {
             param([Parameter(Mandatory)][string] $Root)
             # The suites emit a coverage summary during discovery, so take the JSON line only.
-            $output = & pwsh -NoProfile -File $script:S127Runner -Root $Root
+            $output = & pwsh -NoProfile -File $script:S127Runner -Root $Root -PesterModulePath $script:S127PesterModulePath
             $json = @($output | Where-Object { $_ -is [string] -and $_.TrimStart().StartsWith('[') }) |
                 Select-Object -Last 1
             $json | Should -Not -BeNullOrEmpty -Because 'discovery must produce a result to assert on'

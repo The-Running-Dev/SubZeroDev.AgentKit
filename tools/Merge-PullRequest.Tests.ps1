@@ -16,6 +16,13 @@
 #>
 
 BeforeAll {
+    # Pester's `Mock gh` needs a command named `gh` already resolvable in this scope - without
+    # a real `gh` on PATH (any non-Windows CI image, or a dev machine that never installed the
+    # CLI) that lookup itself throws `CommandNotFoundException`, before Mock ever runs. This
+    # stub is what Mock replaces instead of the real executable, so these tests exercise only
+    # the mocked behavior on every platform regardless of whether `gh` is installed.
+    function gh {}
+
     $script:ScriptPath = Join-Path $PSScriptRoot 'Merge-PullRequest.ps1'
     $script:PreDotSourceErrorActionPreference = $ErrorActionPreference
     # Dummy values only to satisfy the Mandatory top-level params; the guard this dot-source
