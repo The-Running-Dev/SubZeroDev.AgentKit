@@ -204,6 +204,21 @@ Describe 'Merge-PullRequest' {
             $r.State | Should -Be 'Merged'
         }
 
+        It 'requests --slurp on the paginated graphql call, not just a bare --paginate' {
+            # Without --slurp, `gh api --paginate` concatenates each page's raw JSON object
+            # with no separator ("{...}{...}"), which ConvertFrom-Json cannot parse as one
+            # document on any PR with more than one page of threads - it throws, and that
+            # throw is caught below and silently misreported as GhUnavailable instead of
+            # the real unresolved-thread data. --slurp wraps every page in one outer array,
+            # which is what the parsing in Get-UnresolvedReviewThread assumes.
+            Set-GreenGh
+            Invoke-Merge -PullRequest 9 -HeadSha 'abc123' -WaitForChecks (New-StubWait) | Out-Null
+
+            Should -Invoke gh -ParameterFilter {
+                $args[0] -eq 'api' -and ($args -contains '--paginate') -and ($args -contains '--slurp')
+            }
+        }
+
         It 'counts unresolved threads across every --paginate page, not just the first' {
             Mock gh {
                 if ($args[0] -eq 'pr' -and $args[1] -eq 'view') {
@@ -211,7 +226,8 @@ Describe 'Merge-PullRequest' {
                 }
                 elseif ($args[0] -eq 'repo') { '{"owner":{"login":"o"},"name":"r"}' }
                 elseif ($args[0] -eq 'api') {
-                    # Two concatenated pages, as --paginate emits them: the blocker is on page 2.
+                    # --slurp's actual shape: one outer JSON array, one element per page. The
+                    # blocker is on page 2.
                     '[{"data":{"repository":{"pullRequest":{"reviewThreads":{"pageInfo":{"hasNextPage":true},"nodes":[{"id":"t1","isResolved":true,"isOutdated":false,"path":"a.ps1","line":1}]}}}}},{"data":{"repository":{"pullRequest":{"reviewThreads":{"pageInfo":{"hasNextPage":false},"nodes":[{"id":"t2","isResolved":false,"isOutdated":false,"path":"b.ps1","line":2}]}}}}}]'
                 }
             }
@@ -220,6 +236,26 @@ Describe 'Merge-PullRequest' {
             $r.State                     | Should -Be 'Refused'
             $r.Refusal                   | Should -Be 'UnresolvedThreads'
             $r.UnresolvedThreads[0].Path | Should -Be 'b.ps1'
+        }
+
+        It 'reports GhUnavailable rather than a wrong thread count, if a multi-page response ever arrives unslurped' {
+            # Reproduces the handoff defect directly: real --paginate output without --slurp is
+            # two JSON objects concatenated with no separator, which ConvertFrom-Json rejects.
+            # This must fail closed (GhUnavailable / NotEvaluated), never silently read as zero
+            # unresolved threads.
+            Mock gh {
+                if ($args[0] -eq 'pr' -and $args[1] -eq 'view') {
+                    '{"state":"OPEN","isDraft":false,"headRefOid":"abc123"}'
+                }
+                elseif ($args[0] -eq 'repo') { '{"owner":{"login":"o"},"name":"r"}' }
+                elseif ($args[0] -eq 'api') {
+                    '{"data":{"repository":{"pullRequest":{"reviewThreads":{"pageInfo":{"hasNextPage":true},"nodes":[]}}}}}{"data":{"repository":{"pullRequest":{"reviewThreads":{"pageInfo":{"hasNextPage":false},"nodes":[{"id":"t2","isResolved":false,"isOutdated":false,"path":"b.ps1","line":2}]}}}}}'
+                }
+            }
+            $r = Invoke-Merge -PullRequest 9 -HeadSha 'abc123' -WaitForChecks (New-StubWait)
+
+            $r.State   | Should -Be 'NotEvaluated'
+            $r.Refusal | Should -Be 'GhUnavailable'
         }
     }
 
