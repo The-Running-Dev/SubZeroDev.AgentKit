@@ -80,7 +80,17 @@ Proceed straight to the delete call; do not stop and wait for a chat confirmatio
 
 ## Report
 
-Report after acting, not before — this is a summary of what happened, not a request for permission, and it carries only these lines (`AGENTS.shared.md`, *Output discipline*):
+Report after acting, not before — this is a summary of what happened, not a request for
+permission. Lead with `Result:` and `Next:` (`AGENTS.shared.md` § *Output discipline*). `Result:`
+states what happened in plain sentences — branches deleted and the PR each merged through, a
+stash made and how to restore it. `Next:` ordinarily names `/next`, in the fresh session *Hand off
+to `/next`* below opens; it reads `Next: Nothing — this is complete.` only on the `Stopped: true`
+or freeze-blocked paths, where no hand-off follows. Where a `Refused`, `TipAheadOfMergedPr`, or
+unmerged-work entry needs a human decision, use the decision-stop shape instead — `Result:` says
+what is true and why the branch was kept, `Next:` states the decision required, recommended
+option first.
+
+Carry, in `Result:` or `Verified:` as fits:
 
 - Remote-tracking refs pruned, as a count (`PrunedCount`)
 - A stash made and how to restore it, when one was made (`Stashed`)

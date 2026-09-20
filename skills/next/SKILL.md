@@ -81,10 +81,13 @@ stop, so the next invocation decides against a tree that has actually moved.
 
 ## Report
 
-One short block, in this order: **what you read**, **what you concluded**, **what you did or why
-you stopped**. State meaning before identifier — a gate's `Summary`, not its raw `ExitCode`
-(`AGENTS.shared.md` § *Output discipline*). Where you stopped at a boundary, the banner is the last thing
-in the response, set off as `AGENTS.shared.md` requires — not folded into a closing sentence.
+Lead with `Result:` and `Next:` (`AGENTS.shared.md` § *Output discipline*). `Result:` states what
+this run found and what it did or why it stopped. `Next:` names the very next step — the command
+just run needing nothing further (`Next: Nothing — this is complete.`), or the boundary's own
+command when the table stopped short of running it. State meaning before identifier — a gate's
+`Summary`, not its raw `ExitCode`. Where you stopped at a boundary, the banner is the last thing in
+the response, set off as `AGENTS.shared.md` requires — it may repeat the action already named in
+`Next:`; that duplication is intentional.
 
 ## Never
 

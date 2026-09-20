@@ -134,3 +134,13 @@ pwsh -File tools/Merge-PullRequest.ps1 -PullRequest <n> -HeadSha <the SHA phase 
 **Where this repository's instruction file withholds the merge delegation, skip this phase entirely** — report the check outcomes and the thread state, and stop. The rule at the top of this file holds: the repository's own convention outranks any default here, in this direction as much as the other.
 
 **Never state a deployed URL** until the deploy for that exact merge commit reports success. A merged PR is not a deployed site.
+
+## Report
+
+**End with `Result:` and `Next:`** (`AGENTS.shared.md` § *Output discipline*), naming which of three outcomes phase 4 reached:
+
+- **Merged.** `Result:` names the PR and that it merged. `Next: Nothing — this is complete.`, unless a merge leaves a local branch behind — then name `/clean` per `AGENTS.shared.md` § *Session boundaries* rather than running it here.
+- **Open, unmerged** — a `Refused` merge, or phase 3 left threads unresolved. `Result:` states plainly why it did not merge. `Next:` names the decision required, recommended option first, or says review is still pending when that is the only thing outstanding.
+- **`NotEvaluated`.** `Result:` names which precondition could not be checked (unavailable `gh`, a timeout, no checks configured). `Next:` names the retry or the manual check that would resolve it.
+
+`Verified:` carries the check outcomes from phase 2 and the thread count from phase 3 — link the PR rather than reproducing its body.
