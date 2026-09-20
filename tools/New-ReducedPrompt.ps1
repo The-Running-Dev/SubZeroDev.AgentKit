@@ -118,14 +118,26 @@ function Get-BoundSectionNames {
       appearance order, de-duplicated. This is the mechanical stand-in for
       "only the rules binding that slice" - the set a slice's own command
       file already says it depends on, not a fresh judgement made here.
+
+      Both separators the command files actually use are matched: the comma
+      form above, and `` `AGENTS.shared.md` § *Section Name* ``, which is now
+      the more common of the two. Matching only one of them makes a citation
+      restyled from one to the other silently drop its section out of the
+      reduced prompt - which is not a visible failure, because the prompt
+      still assembles, just without the rule it was supposed to carry.
+
+      A citation wrapped across a line break is the same citation. Runs of
+      whitespace inside the captured name collapse to one space before it is
+      matched against a heading, so `` § *Session\nboundaries* `` resolves to
+      *Session boundaries* rather than throwing as an unknown section.
     #>
     param([string]$CommandText)
 
     $names = [System.Collections.Generic.List[string]]::new()
     $seen = [System.Collections.Generic.HashSet[string]]::new()
-    $pattern = '`?AGENTS(?:\.shared)?\.md`?,?\s*\*([^*]+)\*'
+    $pattern = '`?AGENTS(?:\.shared)?\.md`?\s*(?:,|§)?\s*\*([^*]+)\*'
     foreach ($m in [regex]::Matches($CommandText, $pattern)) {
-        $name = $m.Groups[1].Value.Trim()
+        $name = ($m.Groups[1].Value -replace '\s+', ' ').Trim()
         if ($seen.Add($name)) { [void]$names.Add($name) }
     }
     return $names
@@ -256,7 +268,10 @@ $slicesLines = Get-Content -LiteralPath $slicesPath
 $contractText = Get-Content -LiteralPath $contractPath -Raw
 
 $sliceBlock = Get-SliceBlock -Lines $slicesLines -SliceId $SliceId
-$boundSectionNames = Get-BoundSectionNames -CommandText $commandText
+# @() because the pipeline unwraps a single-element list to a bare string, and under
+# Set-StrictMode -Version Latest a string has no .Count - so a command file citing exactly one
+# section threw a PropertyNotFoundException instead of assembling.
+$boundSectionNames = @(Get-BoundSectionNames -CommandText $commandText)
 if (-not $boundSectionNames.Count) {
     throw "No 'AGENTS.md, *Section Name*' citation found in $CommandFile. Nothing to bind the reduced prompt to - check the command file still cites its own rules by name."
 }
