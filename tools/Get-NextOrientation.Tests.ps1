@@ -278,13 +278,16 @@ Describe 'Get-NextOrientation' {
             $kitRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString('n'))
             New-WordingGateScripts -KitPath $kitRoot -DriftState 'Clean' -StateResult 'Clean'
             $gitCommand = Get-Command git -ErrorAction Stop
+            $chmodCommand = if ($IsWindows) { $null } else { Get-Command chmod -ErrorAction Stop }
             $env:PATH = ($env:PATH -split [IO.Path]::PathSeparator |
                 Where-Object { -not (Test-Path -LiteralPath (Join-Path $_ 'gh.exe')) -and -not (Test-Path -LiteralPath (Join-Path $_ 'gh')) }) -join [IO.Path]::PathSeparator
 
             # Where gh and git are installed in the same directory (Linux runner images put
             # both in /usr/bin), filtering out gh's directory above also removes git - which
             # this test needs to stay resolvable so the failure under test is "gh missing",
-            # not "git missing" (#372).
+            # not "git missing" (#372). chmod is resolved before the filter for the same
+            # reason: it lives in that same directory and is needed below to make the shim
+            # executable.
             if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
                 $gitShimDir = Join-Path $TestDrive 'git-shim'
                 New-Item -ItemType Directory -Path $gitShimDir -Force | Out-Null
@@ -294,7 +297,7 @@ Describe 'Get-NextOrientation' {
                 } else {
                     $shimPath = Join-Path $gitShimDir 'git'
                     Set-Content -LiteralPath $shimPath -Value "#!/bin/sh`nexec `"$($gitCommand.Source)`" `"`$@`""
-                    & chmod +x $shimPath
+                    & $chmodCommand.Source +x $shimPath
                 }
                 $env:PATH = "$gitShimDir$([IO.Path]::PathSeparator)$env:PATH"
             }
