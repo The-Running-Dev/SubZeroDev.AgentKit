@@ -200,8 +200,13 @@ query($endCursor: String, $owner: String!, $repo: String!, $number: Int!) {
         catch { return [pscustomobject]@{ Failure = 'GhUnavailable' } }
     }
 
+    # --slurp is required, not optional: without it, --paginate concatenates each page's raw
+    # JSON object with no separator (`{...}{...}`), which ConvertFrom-Json cannot parse as one
+    # document and throws "Additional text encountered..." on any PR with more than one page of
+    # threads - silently misreported below as GhUnavailable. --slurp wraps every page (even a
+    # single one) in one outer JSON array, which is what the parsing below assumes.
     $result = Invoke-Gh -Arguments @(
-        'api', 'graphql', '--paginate',
+        'api', 'graphql', '--paginate', '--slurp',
         '-f', "query=$query",
         '-f', "owner=$owner",
         '-f', "repo=$repo",
@@ -213,9 +218,8 @@ query($endCursor: String, $owner: String!, $repo: String!, $number: Int!) {
     if ($result.ExitCode -ne 0)    { return [pscustomobject]@{ Failure = 'PullRequestMissing' } }
 
     try {
-        # --paginate concatenates one JSON document per page; ConvertFrom-Json on the whole
-        # text yields an array of them when there was more than one, a single object when
-        # there was one. Both are walked the same way here.
+        # --slurp guarantees the whole text is one JSON array, one element per page, even
+        # when there was only one page - so this always parses as a single document.
         $pages = @($result.Text | ConvertFrom-Json)
         $unresolved = [System.Collections.Generic.List[object]]::new()
         foreach ($page in $pages) {
