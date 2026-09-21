@@ -53,7 +53,7 @@ BeforeAll {
     }
     function Read-State($F) { Get-Content -LiteralPath (Join-Path $F.Home '.agent-kit-state/installed.json') -Raw | ConvertFrom-Json -AsHashtable }
     function Assert-Success($Result) { $Result.ExitCode | Should -Be 0 -Because $Result.Output }
-    function Snapshot($F) {
+    function Get-FixtureSnapshot($F) {
         $snap = [ordered]@{}
         foreach ($dir in @((Join-Path $F.Home '.claude'),(Join-Path $F.Home '.copilot'),$F.Codex)) {
             if (Test-Path -LiteralPath $dir) {
@@ -79,11 +79,11 @@ Describe 'Global front door with isolated homes and local Git origin' {
     }
     It 'reruns with identical registration bytes and no backup churn' {
         Assert-Success (Run-Setup $f)
-        $before = Snapshot $f
+        $before = Get-FixtureSnapshot $f
         $manifestBefore = Get-Content (Join-Path $f.Home '.agent-kit-state/installed.json') -Raw
         Assert-Success (Run-Setup $f)
         (Get-Content (Join-Path $f.Home '.agent-kit-state/installed.json') -Raw) | Should -BeExactly $manifestBefore
-        (Snapshot $f) | Should -BeExactly $before
+        (Get-FixtureSnapshot $f) | Should -BeExactly $before
     }
     It 'adopts the existing correct canonical clone' {
         Git-Fixture $f.Origin @('clone','-q',$f.Origin,$f.Root) | Out-Null
@@ -188,9 +188,9 @@ Describe 'Global front door with isolated homes and local Git origin' {
         $result=Run-Setup $f @{DryRun=$true}; Assert-Success $result
         $f.Root | Should -Not -Exist
         Assert-Success (Run-Setup $f)
-        $before=Snapshot $f
+        $before=Get-FixtureSnapshot $f
         Assert-Success (Run-Setup $f @{DryRun=$true;Prefix='ak-'})
-        (Snapshot $f) | Should -BeExactly $before
+        (Get-FixtureSnapshot $f) | Should -BeExactly $before
     }
     It 'every adapter has valid frontmatter and absolute runtime paths despite spaces' {
         Assert-Success (Run-Setup $f)
