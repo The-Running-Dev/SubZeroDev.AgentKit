@@ -115,7 +115,11 @@ exists to keep out. So end the session rather than chaining, emitting the transf
 Determine and run whatever this repository's `/next` orientation currently owes.
 
 ## Start here
-/next
+/next, sonnet/medium (`AGENTS.shared.md` § *Command routing*)
+
+## Authoritative inputs
+- This run's `Invoke-DoneHousekeeping.ps1` output — `Deleted`, `Refused`,
+  `SquashMergeCandidates`, `TipAheadOfMergedPr`, and `Stashed`/`StashRef`, whichever are non-empty.
 
 ## Current state
 - <branches deleted this run, each with the PR it merged through, or "none deleted">

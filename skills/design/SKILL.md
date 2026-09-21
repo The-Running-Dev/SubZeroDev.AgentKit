@@ -100,6 +100,8 @@ requires, then that boundary's banner.
 
 Two things this one block must carry that a banner cannot:
 
+- **`Start here` is `/redteam`, strongest model, different vendor from the design author** — the
+  tier `AGENTS.shared.md` § *Command routing* fixes for it.
 - **The different-vendor requirement goes in `Constraints`, in words.** It is the only constraint
   in the pipeline that the receiving session cannot check for itself — a fresh session of this
   same model reads as a clean start from the inside, which is exactly the failure.
