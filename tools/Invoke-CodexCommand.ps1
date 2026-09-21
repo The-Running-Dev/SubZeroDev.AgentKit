@@ -158,6 +158,8 @@ $commandProfiles = [ordered]@{
     'clean'            = 'quick'
     'install-review'   = 'builder'
     'hold'             = 'builder'
+    'autoupdate'       = 'quick'
+    'autoupdate-env'   = 'quick'
     # 'resume' is deliberately absent here - it needs two profiles in one run (see the
     # special case below, issue #253), which a single entry in this table cannot express.
 }

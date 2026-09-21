@@ -220,6 +220,8 @@ The table above names each vendor's primary identity for a tier. A vendor's own 
 | `/clean` | `sonnet`, `medium` | Mechanical git housekeeping — branch switch, `--merged` check, prune. Escalate only to judge whether an unmerged-looking branch is actually safe to delete. The ordinary case — nothing but confirmed merges and squash-merges to delete — runs with no model call via `tools/RepoAliases.ps1`'s `Invoke-AgentKitClean`; this row still governs the judgement cases it hands back (issue #183) |
 | `/hold` | `sonnet`, `medium` | `Frozen because`/`Lifts when` come from the user, never invented — ask rather than draft them |
 | `/resume` | `sonnet`, `medium` for the sequencing; runs `/align` (`opus`, `high`) and `/track` (`sonnet`, `medium`) as its own phases | Runs unattended, no confirmation prompt — that is this repository's policy, not a gap |
+| `/autoupdate` | `sonnet`, `medium` | Shells out to `Get-AgentKitSkill.ps1 -SetAutoUpdate`, which persists the setting to `~/.agent-kit-state/config.json` for every session on this machine. Never escalates |
+| `/autoupdate-env` | `sonnet`, `medium` | Emits the `AGENTKIT_AUTO_UPDATE` shell command rather than setting it — a tool call cannot make an environment variable outlive itself (*Emit; do not execute*, `/tune`'s own reason for the same pattern). Never escalates |
 
 **Never recommend re-running a phase gate.** I decide when a phase repeats. This holds outside `/redteam` too — see that command for its own stopping rule.
 

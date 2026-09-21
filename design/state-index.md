@@ -18,6 +18,8 @@ means no record exists yet, not that nothing is true.
 <!-- units:start -->
 | Id | Kind | Anchor |
 |---|---|---|
+| `unit/command/autoupdate` | command | `skills/autoupdate/SKILL.md` |
+| `unit/command/autoupdate-env` | command | `skills/autoupdate-env/SKILL.md` |
 | `unit/command/brief-check` | command | `skills/brief/SKILL.md` |
 | `unit/command/clean` | command | `skills/clean/SKILL.md` |
 | `unit/command/contract` | command | `skills/spec/SKILL.md` |
