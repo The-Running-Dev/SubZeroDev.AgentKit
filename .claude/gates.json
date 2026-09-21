@@ -1,6 +1,6 @@
 {
-  "manifestHash": "9840f2eb7da53ca037b6b5a6d1163f835733c5e241d715011f4b431d339b9022",
-  "generated": "2026-09-19",
+  "manifestHash": "24d04923b334fd22504d2fdf59059c26ee1de94f110042f21a64d9dd1fb77b33",
+  "generated": "2026-09-21",
   "gates": [
     {
       "name": "Check commits carry no AI attribution",
