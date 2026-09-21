@@ -114,6 +114,24 @@ Describe 'AGENTS.shared.md § Session boundaries — the transfer block' {
         $script:Section | Should -Match 'settled input'
         $script:Section | Should -Match 'never re-offers the options it'
     }
+
+    It 'gives the context-exhaustion path a worked example with the marker outside the fence' {
+        $script:Section | Should -Match 'a `/handoff` session that compacts mid-build'
+
+        $lines = $script:Section -split "`n"
+        $anchorIndex = ($lines | Select-String -Pattern 'a `/handoff` session that compacts mid-build').LineNumber | Select-Object -First 1
+        $fenceOpenIndex = ($lines | Select-String -Pattern '^```markdown$').LineNumber |
+            Where-Object { $_ -gt $anchorIndex } | Select-Object -First 1
+        $fenceCloseIndex = ($lines | Select-String -Pattern '^```$').LineNumber |
+            Where-Object { $_ -gt $fenceOpenIndex } | Select-Object -First 1
+        $markerIndex = ($lines | Select-String -Pattern 'Context Exhaustion, Stay in Direct-Handoff Mode').LineNumber |
+            Select-Object -First 1
+
+        $fenceOpenIndex | Should -Not -BeNullOrEmpty
+        $fenceCloseIndex | Should -Not -BeNullOrEmpty
+        $markerIndex | Should -Not -BeNullOrEmpty
+        $markerIndex | Should -BeGreaterThan $fenceCloseIndex -Because 'the end-of-session marker sits after the block closes, not inside it'
+    }
 }
 
 Describe 'skills/clean/SKILL.md hands off to /next, with a transfer block, never straight to /track' {
@@ -139,6 +157,15 @@ Describe 'skills/clean/SKILL.md hands off to /next, with a transfer block, never
     It 'still names /next, not /track, as the destination' {
         $script:Content | Should -Match 'Name `/next`, not `/track`\.'
         $script:Content | Should -Match 'Next: /next, Fresh Session, sonnet/medium'
+    }
+
+    It 'carries the tier /next is fixed at, in Start here' {
+        $script:Content | Should -Match '(?ms)## Start here\r?\n/next.*sonnet.*medium'
+    }
+
+    It 'names an Authoritative inputs section for the housekeeping script''s own output' {
+        $script:Content | Should -Match '(?m)^## Authoritative inputs$'
+        $script:Content | Should -Match 'Invoke-DoneHousekeeping\.ps1` output'
     }
 
     It 'requires the block even on a run that deleted nothing' {
@@ -203,6 +230,10 @@ Describe 'skills/design/SKILL.md hands off to /redteam with the vendor constrain
         $script:Content | Should -Match '(?s)Do not paste the design into the\s+block'
         $script:Content | Should -Match 'do not summarise the arguments behind it'
     }
+
+    It 'names /redteam and its tier in Start here' {
+        $script:Content | Should -Match 'Start here.*is `/redteam`, strongest model, different vendor'
+    }
 }
 
 Describe 'skills/plan/SKILL.md hands off with the exact slice id' {
@@ -230,6 +261,10 @@ Describe 'skills/plan/SKILL.md hands off with the exact slice id' {
     It 'names the constraining documents instead of copying the criteria' {
         $script:Content | Should -Match 'do not copy them into the block'
     }
+
+    It 'carries the tier the next command is fixed at' {
+        $script:Content | Should -Match 'also carries the tier `AGENTS\.shared\.md` §\s*\*Command routing\* fixes for that command'
+    }
 }
 
 Describe 'skills/interview/SKILL.md hands off to /brief with the block' {
@@ -252,5 +287,9 @@ Describe 'skills/interview/SKILL.md hands off to /brief with the block' {
     It 'requires empty fields to be reported as findings, and nothing else to cross' {
         $script:Content | Should -Match 'names the fields left empty'
         $script:Content | Should -Match 'Nothing else from the interview'
+    }
+
+    It 'carries the tier /brief is fixed at' {
+        $script:Content | Should -Match '`Start here` is `/brief`, `opus`/`high`'
     }
 }

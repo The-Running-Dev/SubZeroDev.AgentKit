@@ -59,7 +59,9 @@ session-transfer handoff block* requires, then that boundary's banner.
 - **`Start here` names the exact next command**, and where it is `/slice`, the **exact slice id**
   — `/slice S3`, never "the first outstanding slice". The id is what the tracker, the criteria
   and the branch all key on, so a handoff that makes the next session pick one has already given
-  away the one-slice-per-session guarantee.
+  away the one-slice-per-session guarantee. It also carries the tier `AGENTS.shared.md` §
+  *Command routing* fixes for that command — `/track` is `sonnet`/`medium`, `/slice` is
+  `sonnet`/`medium` (`high` for a large or difficult slice).
 - **`Authoritative inputs` names `design/30-slices.md` and `design/20-contract.md`**, the
   documents the implementing session is constrained by. The slice's own acceptance criteria are
   in the first of those, by id; do not copy them into the block.

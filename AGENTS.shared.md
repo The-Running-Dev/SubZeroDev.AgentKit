@@ -273,6 +273,39 @@ Emit a fenced ```markdown block immediately before the terminal banner, in this 
 
 **`Start here` names the actual next command as plain text** — `/redteam`, `/slice S4`, `/track`, `/next` — never `Execution: direct` or `Execution: handoff`. Those two lines mean one specific thing, declaring handoff mode for the session that reads them, and a routine pipeline transfer is not that. The one exception is a direct-handoff work unit that is itself unfinished when an unavoidable boundary — compaction, most often — cuts across it: there, `Start here` restates `Execution: direct` along with the remaining objective, because the work stays in that mode and hiding the fact would silently drop it back into the pipeline. State plainly that the transfer was forced by compaction or context exhaustion rather than presenting it as a clean planned boundary.
 
+The marker still comes **after** the fenced block closes, exactly as it does for a routine pipeline transfer — a compaction boundary changes what `Start here` says, not where the block ends. For example, a `/handoff` session that compacts mid-build:
+
+```markdown
+# Session handoff
+
+## Objective
+Finish the handoff for issue #412 — the export endpoint and its test are done; the
+CSV-escaping edge case and the PR are not.
+
+## Start here
+Execution: direct — continue implementing the handoff for issue #412, sonnet/medium
+(this session's own tier; *Handoff mode* runs at whatever tier is already set).
+
+## Authoritative inputs
+- The handoff text in issue #412
+- `src/export/csv.ts` (endpoint, done) and `src/export/csv.test.ts` (test, done)
+
+## Current state
+- Endpoint and its test are committed on branch `handoff/csv-export`, not yet pushed
+- CSV-escaping for embedded commas and quotes is not yet implemented
+
+## Constraints
+- Forced by context exhaustion mid-build, not a planned boundary — the remaining work was
+  never reached, not deliberately deferred
+```
+
+```
+===============================
+Session Boundary — Context Exhaustion, Stay in Direct-Handoff Mode
+Next: Continue issue #412 under Execution: direct, sonnet/medium
+===============================
+```
+
 Work that is genuinely finished, with nothing left for another session, gets no transfer block at all — write `Next: Nothing — this is complete.` and stop there. A block manufactured to say that nothing remains is padding, not a handoff.
 
 **A decision only I can make is asked in this conversation, never inside the block.** Where work stops on a fork or a challenge (*Working with me*) and only resumes once I have answered, the question belongs in `Result:`/`Next:` where I will read it — a decision folded into a transfer block is a question put to a session that has no standing to answer it, and it comes back as the same fork one boundary later, having cost a session in between. Once I have answered, a transfer block crossing a boundary afterwards carries that answer as **settled input** — named in `Objective` or `Constraints` as the decision taken — and never re-offers the options it closed.
