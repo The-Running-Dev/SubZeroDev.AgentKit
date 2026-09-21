@@ -63,6 +63,19 @@ function Format-IdList {
     ($Ids | Sort-Object -Unique | ForEach-Object { "``$_``" }) -join ', '
 }
 
+function Get-InvariantIdSortKey {
+    <#
+        Invariant ids are either AgentKit's own I<N> (I1, I27) or a project's module-prefixed
+        I-<Module><N> (I-I1, I-A9, I-OB1). Sorting numerically requires splitting the trailing
+        digits from whatever prefix precedes them, for either shape, without throwing.
+    #>
+    param([Parameter(Mandatory)][string] $Id)
+    if ($Id -match '^(?<prefix>.*?)(?<num>\d+)$') {
+        return ('{0}{1:D6}' -f $Matches['prefix'], [int]$Matches['num'])
+    }
+    $Id
+}
+
 function Get-UnitsProjectionContent {
     param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records)
     $units = @($Records | Where-Object { $_.Kind -eq 'Unit' -and $_.Scalars['Status'] -eq 'active' } | Sort-Object Id)
@@ -80,7 +93,7 @@ function Get-UnitsProjectionContent {
 
 function Get-BoundByProjectionContent {
     param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records)
-    $invariants = @($Records | Where-Object { $_.Kind -eq 'Invariant' -and $_.Scalars['Status'] -eq 'active' } | Sort-Object { [int]($_.Id -replace '^I', '') })
+    $invariants = @($Records | Where-Object { $_.Kind -eq 'Invariant' -and $_.Scalars['Status'] -eq 'active' } | Sort-Object { Get-InvariantIdSortKey -Id $_.Id })
     $units = @($Records | Where-Object { $_.Kind -eq 'Unit' })
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add('| Invariant | Bound by |')
@@ -215,7 +228,7 @@ function Get-InvariantsProjectionContent {
         unit's Binds names renders `—`, the *enforced by nothing* case, rather than hiding it.
     #>
     param([Parameter(Mandatory)][AllowEmptyCollection()][object[]] $Records)
-    $invariants = @($Records | Where-Object { $_.Kind -eq 'Invariant' -and $_.Scalars['Status'] -eq 'active' } | Sort-Object { [int]($_.Id -replace '^I', '') })
+    $invariants = @($Records | Where-Object { $_.Kind -eq 'Invariant' -and $_.Scalars['Status'] -eq 'active' } | Sort-Object { Get-InvariantIdSortKey -Id $_.Id })
     $units = @($Records | Where-Object { $_.Kind -eq 'Unit' })
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add('| | Statement | Held by | Enforcement | Evidence |')
