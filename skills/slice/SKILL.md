@@ -23,7 +23,7 @@ Implement one slice from `design/30-slices.md`. The slice is **$1**, where that 
 A slice is **done** when its issue is closed, or when every box under `Done when` is ticked. `/slice` ticks a box itself, in the same run it reports the matching criterion met by id (`AGENTS.shared.md`, *Tracking work*), which makes the tracker the only evidence of doneness this kit recognises. **Do not infer it from the working tree, the commit log, or code that appears to already exist** — that is equally what an abandoned attempt looks like.
 
 ```powershell
-gh issue list --state all --limit 200 --json number,title,state,body
+gh issue list --state all --limit 200 --json number,title,state,labels,body
 ```
 
 Match a slice to its issue on a title beginning `S<n> —`, the same way `/track` does.
@@ -35,7 +35,11 @@ Match a slice to its issue on a title beginning `S<n> —`, the same way `/track
 Stop and ask rather than choosing when:
 
 - `design/30-slices.md` is missing or holds no slices. `/plan` writes it.
-- Every slice is done. Say so; do not go looking for adjacent work.
+- Every slice is done. Say so, then apply `skills/next/SKILL.md` § *Open non-slice work* to
+  the issue inventory already read: name every pickable open `ready` issue and its owning
+  command, list any `ready` issue with no single route marker as needing routing, and separately
+  list every `needs-decision` or `blocked-external` issue as awaiting owner. Do not select or
+  begin adjacent work under `/slice`; this report makes the available route explicit.
 - The tracker cannot be read — `gh` absent, not authenticated, issues disabled. **Do not fall back to the lowest number.** Doneness is unobservable without it, so name the slice you would have picked and wait, rather than starting one that may already be finished.
 - Two slices carry the same number. That is a defect in `design/30-slices.md` — report it, do not pick one.
 
