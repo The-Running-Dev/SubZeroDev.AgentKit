@@ -718,29 +718,39 @@ function Test-UnrecordedArtifact {
         if ($byUnitKind.ContainsKey($k)) { $byUnitKind[$k] += $u }
     }
 
+    # #386: command/script/document are now driven by the calling project's own contract, the
+    # same as component already was, via Get-CheckerGlobPatterns/Get-ContractGlobResolvedFiles -
+    # not the checker's own kit-shaped Get-*GlobFiles enumerators, which stay in place only as
+    # the fallback for a contract that failed to parse and as GlobDisagreement's independent
+    # "checker side" (unaffected by this - see Test-GlobDisagreement above).
     $kindGlobs = @{
         command  = (Get-CommandGlobFiles -RepoPath $RepoPath)
         script   = (Get-ScriptGlobFiles -RepoPath $RepoPath)
         document = (Get-DocumentGlobFiles -RepoPath $RepoPath)
     }
 
-    # 'component' has no Get-*GlobFiles enumerator - the contract's own table *is* the
-    # enumeration for this kind (design/20-contract.md § "Artifacts of a unit kind"). Its glob is
-    # fed in whenever $ComponentGlobResult parsed cleanly: a failed parse leaves this half
-    # uncomputed (the caller records ContractListUnreadable, S32.5), but an absent or empty row is
-    # a parsed, empty artifact set - the record half still runs against it, so an active
-    # component record with no glob declared is UnrecordedArtifact rather than a clean run
-    # (S32.6; design/20-contract.md § "Artifacts of a unit kind").
+    # A failed parse leaves every contract-driven half uncomputed (the caller records
+    # ContractListUnreadable, S32.5) rather than silently falling back to the kit's own shape for
+    # a project that just told the checker its glob table is malformed. An absent or empty row is
+    # a parsed, empty artifact set - the record half still runs against it, so an active record
+    # with no glob declared for its kind is UnrecordedArtifact rather than a clean run (S32.6;
+    # design/20-contract.md § "Artifacts of a unit kind").
     $kindsToCheck = [System.Collections.Generic.List[string]]::new()
-    $kindsToCheck.AddRange([string[]]@('command', 'script', 'document'))
     if ($null -ne $ComponentGlobResult -and -not $ComponentGlobResult.Failure) {
-        $componentSpec = $ComponentGlobResult.Kinds['component']
-        $kindGlobs['component'] = if ($null -ne $componentSpec -and @($componentSpec.Glob).Count -gt 0) {
-            Get-ContractGlobResolvedFiles -RepoPath $RepoPath -Spec $componentSpec
-        } else {
-            @()
+        foreach ($kind in @('command', 'script', 'document', 'component')) {
+            $spec = $ComponentGlobResult.Kinds[$kind]
+            $kindGlobs[$kind] = if ($null -ne $spec -and @($spec.Glob).Count -gt 0) {
+                Get-ContractGlobResolvedFiles -RepoPath $RepoPath -Spec $spec
+            } else {
+                @()
+            }
+            $kindsToCheck.Add($kind)
         }
-        $kindsToCheck.Add('component')
+    } else {
+        # Contract unreadable: component has never had a fallback (S32.5) and stays uncomputed;
+        # command/script/document fall back to the checker's own kit-shaped enumeration rather
+        # than regressing a project with a merely-momentarily-broken contract to no check at all.
+        $kindsToCheck.AddRange([string[]]@('command', 'script', 'document'))
     }
 
     foreach ($kind in $kindsToCheck) {
@@ -1593,11 +1603,68 @@ function Test-ClosureBudget {
 # tools/Update-DesignProjection.ps1); a caller comparing region content, not just the exit code,
 # is what makes ProjectionStale (S7.9) computable rather than permanently uncomputed.
 # ---------------------------------------------------------------------------------------------
-function Invoke-Projector {
-    param([Parameter(Mandatory)][string] $RepoPath)
+function Resolve-ProjectorPath {
+    <#
+        #386: a target adopting the kit via the home-install convention (AGENTS.shared.md §
+        "House conventions") vendors no tools/ copy of its own, so a $RepoPath-relative lookup
+        alone reports ProjectorFailed on every run. Checked in order: the target's own vendored
+        copy (unchanged, and what every existing fixture that drops one under $TestDrive still
+        exercises); an explicit $KitRoot (test isolation, and any caller that already knows its
+        kit root); then the convention's own order - self-hosted (this running script's own
+        containing checkout), $env:AGENTKIT_HOME, $HOME/.agent-kit. Same shape as
+        Test-Companion.ps1's Resolve-AgentKitRoot and New-DesignDocs.ps1's Resolve-KitRoot.
 
-    $projectorPath = Join-Path $RepoPath 'tools/Update-DesignProjection.ps1'
-    if (-not (Test-Path -LiteralPath $projectorPath)) {
+        $KitRoot short-circuits the self-hosted/env/synced chain rather than joining it, because
+        this script's own containing checkout is this repository - the kit's own - so leaving that
+        check live would make every isolated test that expects "no projector found" instead find
+        this repository's real one, on every machine and in CI alike, not only a developer's own
+        synced $HOME/.agent-kit.
+    #>
+    param(
+        [Parameter(Mandatory)][string] $RepoPath,
+        [string] $KitRoot
+    )
+
+    $vendored = Join-Path $RepoPath 'tools/Update-DesignProjection.ps1'
+    if (Test-Path -LiteralPath $vendored) { return $vendored }
+
+    if ($PSBoundParameters.ContainsKey('KitRoot')) {
+        if ($KitRoot) {
+            $explicit = Join-Path $KitRoot 'tools/Update-DesignProjection.ps1'
+            if (Test-Path -LiteralPath $explicit) { return $explicit }
+        }
+        return $null
+    }
+
+    $selfHosted = Split-Path -Parent $PSScriptRoot
+    $selfHostedCandidate = Join-Path $selfHosted 'tools/Update-DesignProjection.ps1'
+    if ((Test-Path -LiteralPath (Join-Path $selfHosted '.git')) -and (Test-Path -LiteralPath $selfHostedCandidate)) {
+        return $selfHostedCandidate
+    }
+
+    if ($env:AGENTKIT_HOME) {
+        $fromEnv = Join-Path $env:AGENTKIT_HOME 'tools/Update-DesignProjection.ps1'
+        if (Test-Path -LiteralPath $fromEnv) { return $fromEnv }
+    }
+
+    $synced = Join-Path $HOME '.agent-kit/tools/Update-DesignProjection.ps1'
+    if (Test-Path -LiteralPath $synced) { return $synced }
+
+    return $null
+}
+
+function Invoke-Projector {
+    param(
+        [Parameter(Mandatory)][string] $RepoPath,
+        [string] $KitRoot
+    )
+
+    $projectorPath = if ($PSBoundParameters.ContainsKey('KitRoot')) {
+        Resolve-ProjectorPath -RepoPath $RepoPath -KitRoot $KitRoot
+    } else {
+        Resolve-ProjectorPath -RepoPath $RepoPath
+    }
+    if (-not $projectorPath) {
         return [pscustomobject]@{ Ran = $false; Detail = 'tools/Update-DesignProjection.ps1 does not exist'; Regions = @() }
     }
     <#
@@ -1851,7 +1918,7 @@ function Get-FreezeMarker {
 # The main entry point.
 # ---------------------------------------------------------------------------------------------
 function Invoke-DesignStateCheck {
-    param([Parameter(Mandatory)][string] $RepoPath, [string] $Repository)
+    param([Parameter(Mandatory)][string] $RepoPath, [string] $Repository, [string] $KitRoot)
 
     $contractPath = Join-Path $RepoPath 'design/20-contract.md'
     # The class declaration in this script is AgentKit-owned. A product contract may repeat it
@@ -1925,7 +1992,11 @@ function Invoke-DesignStateCheck {
     $blockingFindings.AddRange($regionResult.Findings)
     $blockingFindings.AddRange((Test-RegionFormCollision -Inventory $regionResult.Inventory))
 
-    $projector = Invoke-Projector -RepoPath $RepoPath
+    $projector = if ($PSBoundParameters.ContainsKey('KitRoot')) {
+        Invoke-Projector -RepoPath $RepoPath -KitRoot $KitRoot
+    } else {
+        Invoke-Projector -RepoPath $RepoPath
+    }
     if (-not $projector.Ran) {
         $couldNotEvaluate.Add((New-CouldNotEvaluate -Reason 'ProjectorFailed' -Detail "$($projector.Detail); ProjectionStale is uncomputed, not clean"))
     } else {

@@ -672,6 +672,71 @@ Describe 'Test-DesignState: the component kind (S32)' {
     }
 }
 
+Describe 'Test-DesignState: command/script/document glob enumeration is contract-driven (#386)' {
+
+    BeforeAll {
+        # A project that adopted the kit via the home-install convention and vendors nothing
+        # under skills/*/SKILL.md or tools/*.ps1 - its own contract puts commands and scripts
+        # somewhere else entirely. Get-CommandGlobFiles/Get-ScriptGlobFiles/Get-DocumentGlobFiles
+        # (the checker's own kit-shaped enumerators) would never find these; only the contract's
+        # own table does.
+        $script:NonKitRoot = Join-Path $TestDrive 'nonkitfixture'
+        New-Item -ItemType Directory -Path (Join-Path $script:NonKitRoot 'bin/commands') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $script:NonKitRoot 'bin/scripts') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $script:NonKitRoot 'docs') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $script:NonKitRoot 'bin/commands/deploy.md') -Value 'x' -Encoding utf8NoBOM
+        Set-Content -LiteralPath (Join-Path $script:NonKitRoot 'bin/scripts/build.sh') -Value 'x' -Encoding utf8NoBOM
+        Set-Content -LiteralPath (Join-Path $script:NonKitRoot 'docs/readme.md') -Value 'x' -Encoding utf8NoBOM
+
+        $script:NonKitTable = @'
+| Kind | Glob | Excluded |
+|---|---|---|
+| command | `bin/commands/*.md` | — |
+| script | `bin/scripts/*.sh` | — |
+| document | `docs/*.md` | — |
+'@
+        $script:NonKitContractPath = Join-Path $TestDrive 'nonkitcontract/20-contract.md'
+        New-Item -ItemType Directory -Path (Split-Path $script:NonKitContractPath -Parent) -Force | Out-Null
+        Set-Content -LiteralPath $script:NonKitContractPath -Value $script:NonKitTable -Encoding utf8NoBOM
+        $script:NonKitParsed = Get-ContractGlobPatterns -ContractPath $script:NonKitContractPath
+    }
+
+    It 'a command/script/document record anchored at the contract''s own non-kit path is not UnrecordedArtifact' {
+        $command = New-Record -Id 'unit/command/deploy' -Scalars @{ Status = 'active'; Kind = 'command'; Anchor = 'bin/commands/deploy.md' }
+        $script = New-Record -Id 'unit/script/build' -Scalars @{ Status = 'active'; Kind = 'script'; Anchor = 'bin/scripts/build.sh' }
+        $document = New-Record -Id 'unit/document/readme' -Scalars @{ Status = 'active'; Kind = 'document'; Anchor = 'docs/readme.md' }
+
+        $findings = Test-UnrecordedArtifact -Records @($command, $script, $document) -RepoPath $script:NonKitRoot -ComponentGlobResult $script:NonKitParsed
+
+        $subjects = @($findings | ForEach-Object { $_.Subject })
+        $subjects | Should -Not -Contain 'unit/command/deploy'
+        $subjects | Should -Not -Contain 'unit/script/build'
+        $subjects | Should -Not -Contain 'unit/document/readme'
+    }
+
+    It 'the same non-kit artifacts are UnrecordedArtifact when no record names them' {
+        $findings = Test-UnrecordedArtifact -Records @() -RepoPath $script:NonKitRoot -ComponentGlobResult $script:NonKitParsed
+
+        $subjects = @($findings | ForEach-Object { $_.Subject })
+        $subjects | Should -Contain 'bin/commands/deploy.md'
+        $subjects | Should -Contain 'bin/scripts/build.sh'
+        $subjects | Should -Contain 'docs/readme.md'
+    }
+
+    It 'an unreadable contract falls back to the checker''s own kit-shaped enumeration rather than leaving command/script/document uncomputed' {
+        $failedParse = Get-ContractGlobPatterns -ContractPath (Join-Path $TestDrive 'nonkitcontract/absent.md')
+        $failedParse.Failure | Should -Not -BeNullOrEmpty
+
+        $command = New-Record -Id 'unit/command/deploy' -Scalars @{ Status = 'active'; Kind = 'command'; Anchor = 'bin/commands/deploy.md' }
+        $findings = Test-UnrecordedArtifact -Records @($command) -RepoPath $script:NonKitRoot -ComponentGlobResult $failedParse
+
+        # The contract couldn't be read, so this falls back to Get-CommandGlobFiles (skills/*/SKILL.md) -
+        # which does not reach bin/commands/deploy.md, so the record fires rather than the half
+        # silently going uncomputed.
+        (@($findings | Where-Object { $_.Subject -eq 'unit/command/deploy' })).Count | Should -Be 1
+    }
+}
+
 Describe 'Test-DesignState: Get-ContractInvariantIds' {
 
     It 'reads every invariant row of the Invariants section and stops at the next section' {
@@ -1669,7 +1734,10 @@ To lift: run `/unfreeze`.
 Describe 'Test-DesignState: the projector seam (S5.10)' {
 
     It 'reports Ran = $false when tools/Update-DesignProjection.ps1 does not exist' {
-        $result = Invoke-Projector -RepoPath $TestDrive
+        # #386: -KitRoot pinned to a nonexistent path so this stays deterministic regardless of
+        # the running machine's or CI's own self-hosted checkout, $env:AGENTKIT_HOME, or synced
+        # $HOME/.agent-kit - any of which would otherwise supply a real projector here.
+        $result = Invoke-Projector -RepoPath $TestDrive -KitRoot (Join-Path $TestDrive 'no-such-kit-root')
         $result.Ran | Should -BeFalse
         $result.Detail | Should -Match 'does not exist'
     }
@@ -1972,8 +2040,10 @@ Status: active
 Binds: I999
 '@
         # ProjectorFailed always fires today (no projector exists), guaranteeing a could-not-evaluate
-        # alongside the UnresolvedId blocking finding this record also produces.
-        $result = Invoke-DesignStateCheck -RepoPath $TestDrive
+        # alongside the UnresolvedId blocking finding this record also produces. #386: -KitRoot
+        # pinned to a nonexistent path so a real self-hosted/env/synced projector on the running
+        # machine can't make this non-deterministic.
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive -KitRoot (Join-Path $TestDrive 'no-such-kit-root')
 
         (@($result.Findings | Where-Object { $_.Class -eq 'UnresolvedId' })).Count | Should -Be 1
         $result.CouldNotEvaluate.Count | Should -BeGreaterThan 0
