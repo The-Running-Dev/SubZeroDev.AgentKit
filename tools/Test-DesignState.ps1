@@ -230,6 +230,49 @@ function Test-ContractCarriesClassList {
     $text.Contains('### The divergence classes')
 }
 
+function Resolve-KitContractPath {
+    <#
+        #391: an adopter's own design/20-contract.md is about its own product and carries no
+        `### The divergence classes` section - the kit's own design/20-contract.md is that
+        section's one canonical home (AGENTS.shared.md § "House conventions"). Resolved through
+        the home-install order, same shape as Resolve-ProjectorPath below and Test-Companion.ps1's
+        Resolve-AgentKitRoot: an explicit $KitRoot (test isolation, and any caller that already
+        knows its kit root) short-circuits the chain entirely; otherwise self-hosted (this running
+        script's own containing checkout), then $env:AGENTKIT_HOME, then $HOME/.agent-kit.
+
+        Returns $null rather than throwing when no kit checkout can be found. The caller then
+        treats that exactly as it already treats a project contract with no class-list heading:
+        no ClassListDisagreement can be computed, and that absence is not ContractListUnreadable -
+        the class list's absence from a project contract was never the failure; only raising
+        ContractListUnreadable for it was (Done-when #2).
+    #>
+    param([string] $KitRoot)
+
+    if ($PSBoundParameters.ContainsKey('KitRoot')) {
+        if ($KitRoot) {
+            $explicit = Join-Path $KitRoot 'design/20-contract.md'
+            if (Test-Path -LiteralPath $explicit) { return $explicit }
+        }
+        return $null
+    }
+
+    $selfHosted = Split-Path -Parent $PSScriptRoot
+    $selfHostedCandidate = Join-Path $selfHosted 'design/20-contract.md'
+    if ((Test-Path -LiteralPath (Join-Path $selfHosted '.git')) -and (Test-Path -LiteralPath $selfHostedCandidate)) {
+        return $selfHostedCandidate
+    }
+
+    if ($env:AGENTKIT_HOME) {
+        $fromEnv = Join-Path $env:AGENTKIT_HOME 'design/20-contract.md'
+        if (Test-Path -LiteralPath $fromEnv) { return $fromEnv }
+    }
+
+    $synced = Join-Path $HOME '.agent-kit/design/20-contract.md'
+    if (Test-Path -LiteralPath $synced) { return $synced }
+
+    return $null
+}
+
 <#
     design/20-contract.md's own Invariants table, parsed so UnrecordedArtifact's invariant half
     has a set to take a difference against. The section is the invariant unit set per
@@ -1921,13 +1964,25 @@ function Invoke-DesignStateCheck {
     param([Parameter(Mandatory)][string] $RepoPath, [string] $Repository, [string] $KitRoot)
 
     $contractPath = Join-Path $RepoPath 'design/20-contract.md'
-    # The class declaration in this script is AgentKit-owned. A product contract may repeat it
-    # explicitly and then ClassListDisagreement compares the two; a normal application contract
-    # need not carry AgentKit's meta-contract section at all.
+    # The class declaration in this script is AgentKit-owned, and its one canonical home is the
+    # kit's own design/20-contract.md (#391). A product contract may repeat the section
+    # explicitly, in which case ClassListDisagreement compares the two right here; a normal
+    # application contract need not carry AgentKit's meta-contract section at all, and falls
+    # through to the kit's own copy, resolved through the home-install order, so drift against
+    # the checker's declared list is still caught rather than silently uncompared.
     $classListResult = if (Test-ContractCarriesClassList -ContractPath $contractPath) {
         Test-ClassListAgreement -ContractPath $contractPath
     } else {
-        [pscustomobject]@{ CouldNotEvaluate = $null; Finding = $null }
+        $kitContractPath = if ($PSBoundParameters.ContainsKey('KitRoot')) {
+            Resolve-KitContractPath -KitRoot $KitRoot
+        } else {
+            Resolve-KitContractPath
+        }
+        if ($kitContractPath -and (Test-ContractCarriesClassList -ContractPath $kitContractPath)) {
+            Test-ClassListAgreement -ContractPath $kitContractPath
+        } else {
+            [pscustomobject]@{ CouldNotEvaluate = $null; Finding = $null }
+        }
     }
     $invariantSet = Get-ContractInvariantIds -ContractPath $contractPath
     $componentGlobResult = Get-CheckerGlobPatterns -ContractPath $contractPath

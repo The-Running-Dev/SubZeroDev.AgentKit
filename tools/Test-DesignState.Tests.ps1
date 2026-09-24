@@ -1926,12 +1926,62 @@ Anchor: src/App.csproj
         New-TreeFile -RelativePath 'tools/Update-DesignProjection.ps1' -Content 'param([string]$Path,[switch]$DryRun) exit 0'
         Mock Test-TrackerAvailable { $true }
 
-        $result = Invoke-DesignStateCheck -RepoPath $TestDrive
+        # #391: -KitRoot pinned to a nonexistent path so a real self-hosted/env/synced kit
+        # checkout on the running machine can't make Resolve-KitContractPath non-deterministic.
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive -KitRoot (Join-Path $TestDrive 'no-such-kit-root')
 
         @($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'ContractListUnreadable' }) | Should -BeNullOrEmpty
         @($result.Findings | Where-Object { $_.Class -eq 'ClassListDisagreement' }) | Should -BeNullOrEmpty
         @($result.Findings | Where-Object { $_.Class -eq 'UnrecordedArtifact' -and $_.Subject -eq 'unit/component/app' }).Count |
             Should -Be 1 -Because 'no component glob was explicitly provided, so the real reverse-direction finding must remain'
+    }
+
+    It '#391: an adopter contract with no class-list heading falls back to the kit''s own contract, and still catches disagreement' {
+        New-TreeFile -RelativePath 'design/20-contract.md' -Content @'
+# Product contract
+
+## Invariants
+
+| | Statement | Held by | Enforcement | Evidence |
+|---|---|---|---|---|
+'@
+        New-TreeFile -RelativePath 'tools/Update-DesignProjection.ps1' -Content 'param([string]$Path,[switch]$DryRun) exit 0'
+        Mock Test-TrackerAvailable { $true }
+
+        # A separate fixture kit checkout whose contract disagrees with the script's own declared
+        # lists (missing the ClassListDisagreement row itself) - the same shape S5.1's
+        # "missingOne" fixture uses, just resolved from a different path than $RepoPath's.
+        $kitRoot = Join-Path $TestDrive 'fixture-kit'
+        $missingOne = $script:MinimalContract -replace "\| ``ClassListDisagreement`` \| x \| x \|\r?\n", ''
+        New-Item -ItemType Directory -Path (Join-Path $kitRoot 'design') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $kitRoot 'design/20-contract.md') -Value $missingOne -NoNewline
+
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive -KitRoot $kitRoot
+
+        @($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'ContractListUnreadable' }) | Should -BeNullOrEmpty
+        @($result.Findings | Where-Object { $_.Class -eq 'ClassListDisagreement' }).Count | Should -Be 1
+    }
+
+    It '#391: an adopter contract with no class-list heading raises no ClassListDisagreement when the kit''s own contract agrees' {
+        New-TreeFile -RelativePath 'design/20-contract.md' -Content @'
+# Product contract
+
+## Invariants
+
+| | Statement | Held by | Enforcement | Evidence |
+|---|---|---|---|---|
+'@
+        New-TreeFile -RelativePath 'tools/Update-DesignProjection.ps1' -Content 'param([string]$Path,[switch]$DryRun) exit 0'
+        Mock Test-TrackerAvailable { $true }
+
+        $kitRoot = Join-Path $TestDrive 'fixture-kit-agrees'
+        New-Item -ItemType Directory -Path (Join-Path $kitRoot 'design') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $kitRoot 'design/20-contract.md') -Value $script:MinimalContract -NoNewline
+
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive -KitRoot $kitRoot
+
+        @($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'ContractListUnreadable' }) | Should -BeNullOrEmpty
+        @($result.Findings | Where-Object { $_.Class -eq 'ClassListDisagreement' }) | Should -BeNullOrEmpty
     }
 
     It '#244: a ClassListDisagreement finding survives the StateSetAbsent short-circuit rather than being discarded' {
