@@ -64,6 +64,14 @@ Describe 'AGENTS.shared.md § Handoff mode' {
         $script:Section | Should -Match 'structured directive always wins over inference'
     }
 
+    It 'treats one explicit answer to a gate as enough to proceed' {
+        $script:Section | Should -Match "A user's answer to a gate can declare the mode too"
+        $script:Section | Should -Match 'One answer is enough'
+        $script:Section | Should -Match 'do not ask for confirmation again'
+        $script:Section | Should -Match 'require the user to invoke another command'
+        $script:Section | Should -Match 'tone, profanity, or apparent frustration changes none of this'
+    }
+
     It 'carries the precedence ladder, with the handoff above the default pipeline' {
         $handoffRow = $script:Section -split "`n" | Select-String -Pattern '^\d+\.\s+\*\*The explicit handoff\*\*'
         $pipelineRow = $script:Section -split "`n" | Select-String -Pattern "^\d+\.\s+AgentKit's default pipeline"
@@ -201,5 +209,26 @@ Describe 'skills/handoff/SKILL.md defers to the contract section' {
     It 'requires the Decisions line in its report' {
         $content = Get-Content -LiteralPath $script:SkillPath -Raw
         $content | Should -Match 'Decisions:' -Because 'a handoff makes material-ambiguity calls silently, so the report is where they surface'
+    }
+}
+
+Describe '/fix cannot turn its standard-mode stop into an unoverrideable gate' {
+
+    BeforeAll {
+        $script:RepoRoot = Split-Path $PSScriptRoot -Parent
+        $script:FixSkill = Get-Content -LiteralPath (Join-Path $script:RepoRoot 'skills/fix/SKILL.md') -Raw
+        $script:BugTemplate = Get-Content -LiteralPath (Join-Path $script:RepoRoot '.github/ISSUE_TEMPLATE/bug.md') -Raw
+    }
+
+    It 'orients on current authority before classifying an amendment' {
+        $script:FixSkill | Should -Match 'before concluding that the issue needs a contract'
+        $script:FixSkill | Should -Match 'current default branch and its authoritative'
+    }
+
+    It 'hands an explicit proceed answer to Handoff mode immediately' {
+        $script:FixSkill | Should -Match 'Handoff mode\* takes over immediately'
+        $script:FixSkill | Should -Match 'without a second confirmation or another command'
+        $script:BugTemplate | Should -Match 'Stop if, in standard mode'
+        $script:BugTemplate | Should -Match 'continue without arguing, asking again, or requiring another command'
     }
 }
