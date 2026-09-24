@@ -3,32 +3,32 @@
     {
       "name": "Check commits carry no AI attribution",
       "status": "Passed",
-      "detail": "./tools/Test-NoAttribution.ps1 over 566001f..2005ab7 - RESULT=PASSED, 1 commit(s) checked, none carry AI attribution. Exit 0."
+      "detail": "./tools/Test-NoAttribution.ps1 - RESULT=PASSED, 2 commits checked, none carry AI attribution. Exit 0."
     },
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parser::ParseFile over every *.ps1 in the tree - no parse errors, including the edited tools/Test-DesignState.ps1 and tools/Test-DesignState.Tests.ps1."
+      "detail": "Parser::ParseFile over every *.ps1 in the tree - no parse errors. Exit 0."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools - 512 passed, 0 failed, 11 skipped, 523 total. S12.2 coverage reports 22 blocking classes, 52 fires tests, 47 near-miss tests; HeadingCollision fires 1, near-miss 1."
+      "detail": "Invoke-Pester -Path tools - 660 passed, 0 failed, 11 skipped, 671 total. Exit 0."
     },
     {
       "name": "Validate the core/companion split",
       "status": "Passed",
-      "detail": "./tools/Test-Companion.ps1 - exit 0."
+      "detail": "./tools/Test-Companion.ps1 - 27 cores, 0 companions, 27 absent companions; valid. Exit 0."
     },
     {
       "name": "Check the design state against the tree",
       "status": "Passed",
-      "detail": "./tools/Test-DesignState.ps1 - exit 0. Zero blocking findings, zero could-not-evaluate, 47 reported (all MirrorStale against the new HEAD). Largest closure unit/script/test-designstate at 13377 bytes of 16384."
+      "detail": "./tools/Test-DesignState.ps1 - 0 blocking findings, 0 could-not-evaluate, 52 non-blocking reports. Largest closure unit/script/test-designstate at 13377 bytes of 16384. Exit 0."
     },
     {
       "name": "Typecheck videos/",
-      "status": "Passed",
-      "detail": "npm ci then npx tsc --noEmit in videos/ - exit 0, no diagnostics."
+      "status": "DidNotRun",
+      "reason": "The local checkout lacks videos/node_modules/videowright. Running npx tsc --noEmit reached the compiler but only produced missing-module and cascading type diagnostics, so it did not evaluate the source tree. The CI workflow installs video dependencies with npm ci before this gate and is the authoritative result."
     },
     {
       "name": "Lint videos/",

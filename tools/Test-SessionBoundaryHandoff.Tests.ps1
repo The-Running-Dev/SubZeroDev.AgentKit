@@ -208,6 +208,52 @@ Describe 'skills/next/SKILL.md fills the transfer block from the boundary row it
     }
 }
 
+Describe 'exhausted slices still route ready non-slice issues' {
+
+    BeforeAll {
+        $script:RepoRoot = Split-Path $PSScriptRoot -Parent
+        $script:NextPath = Join-Path $script:RepoRoot 'skills/next/SKILL.md'
+        $script:SlicePath = Join-Path $script:RepoRoot 'skills/slice/SKILL.md'
+        $script:NextContent = Get-Content -LiteralPath $script:NextPath -Raw
+        $script:SliceContent = Get-Content -LiteralPath $script:SlicePath -Raw
+    }
+
+    It 'defines ready as the marker for non-slice work that needs no owner decision' {
+        $script:NextContent | Should -Match '(?s)`ready`.*pickable now, with no owner decision needed'
+    }
+
+    It 'maps every supported non-slice route marker to its owning command' {
+        $script:NextContent | Should -Match '(?s)`bug`.*`/fix <issue>`'
+        $script:NextContent | Should -Match '(?s)`documentation`.*`/docs`'
+        $script:NextContent | Should -Match '(?s)`spec`.*`/spec`'
+        $script:NextContent | Should -Match '(?s)`align`.*`/align`'
+        $script:NextContent | Should -Match '(?s)`check`.*`/check`'
+    }
+
+    It 'only sends issues that map to an outstanding slice to /slice' {
+        $script:NextContent | Should -Match 'open slice issue.*`design/30-slices\.md`.*`S<n> —`'
+        $script:NextContent | Should -Not -Match 'An issue exists with unticked `Done when` boxes and no branch in flight'
+    }
+
+    It 'selects deterministic ready non-slice work when Outstanding is empty' {
+        $script:NextContent | Should -Match '(?s)Outstanding.*empty.*`ready`.*route marker.*lowest issue number'
+    }
+
+    It 'lists owner-only blockers without automatically selecting them' {
+        $script:NextContent | Should -Match '`needs-decision`'
+        $script:NextContent | Should -Match '`blocked-external`'
+        $script:NextContent | Should -Match 'awaiting owner'
+        $script:NextContent | Should -Match 'never auto-pick'
+    }
+
+    It 'makes /slice report the same ready routes and owner-only blockers when every slice is done' {
+        $script:SliceContent | Should -Match 'skills/next/SKILL\.md` § \*Open non-slice work\*'
+        $script:SliceContent | Should -Match 'name every pickable open `ready` issue and its owning'
+        $script:SliceContent | Should -Match '`needs-decision`.*`blocked-external`.*awaiting owner'
+        $script:SliceContent | Should -Not -Match 'Every slice is done\. Say so; do not go looking for adjacent work\.'
+    }
+}
+
 Describe 'skills/design/SKILL.md hands off to /redteam with the vendor constraint in the block' {
 
     BeforeAll {

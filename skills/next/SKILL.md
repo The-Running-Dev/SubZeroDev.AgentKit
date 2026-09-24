@@ -58,8 +58,44 @@ into a PowerShell profile) runs them and returns one object. It does not pick a 
 this order* below still does, whether picked by a person reading that object or by a session
 (`design/90-decisions.md`, 2026-09-06, issue #183).
 
+Read the open issue inventory separately; it is tracker state, not a seventh field in
+`Get-NextOrientation.ps1`'s stable six-read result:
+
+```powershell
+gh issue list --state open --limit 200 --json number,title,labels,body 2>$null
+```
+
 **Say which signal you used.** A step taken on evidence nobody can see reads the same as a step
 taken from habit.
+
+## Open non-slice work
+
+An open issue is **pickable non-slice work** only when it carries the `ready` label — meaning
+**pickable now, with no owner decision needed** — and exactly one of these route markers. The
+route markers are labels too; their names describe ownership rather than issue type.
+
+| Route marker | Work it owns | Command |
+|---|---|---|
+| `bug` | A reproduced defect | `/fix <issue>` |
+| `documentation` | Documentation or an ADR that records an already-settled decision | `/docs` |
+| `spec` | A story whose required behaviour must be specified | `/spec` |
+| `align` | A decision or reconciliation between the tree and its design | `/align` |
+| `check` | A verification or audit request | `/check` |
+
+An `enhancement` or story label describes the work but does not route it: its owner applies one
+of the five route markers above. An unresolved ADR or decision is `align`, not `documentation`.
+If more than one route marker is present, or none is, list the issue as needing routing and do
+not choose it.
+
+`needs-decision` and `blocked-external` override `ready`. List every open issue carrying either
+label as **awaiting owner**, including its blocker label, but **never auto-pick** it. Those labels
+are waiting states, not route markers; removing the blocker and applying `ready` is an owner or
+tracker action outside `/next`.
+
+When more than one issue is pickable, select the **lowest issue number**. That makes selection
+deterministic without inventing priority from prose. Report the chosen issue number and the
+label that routed it; for `/docs`, `/spec`, `/align`, or `/check`, name the issue as the
+authoritative input when invoking or handing off to the command.
 
 ## Decide, in this order
 
@@ -75,7 +111,9 @@ stop, so the next invocation decides against a tree that has actually moved.
 | A pull request merged and its local branch still exists | `/clean` — same session, run it |
 | `/clean` just ran, or a merge landed with nothing local left to clean, **and the tracker is owed something** — `Test-DesignDrift.ps1` reports findings, `design/90-decisions.md` § `## Open` holds an item with no issue, or an open issue has every `Done when` box ticked. `MirrorStale` is **not** one of them: it is stale by construction, never blocks, and never reaches zero (`design/20-contract.md` § *The divergence classes*) | **Boundary.** Banner for `/track`, fresh session, `sonnet`/`medium`. Stop |
 | `Test-DesignDrift.ps1` or `Test-DesignState.ps1` reports a blocking finding | Report the finding and name the command that owns it. Do not fix it here |
-| An issue exists with unticked `Done when` boxes and no branch in flight | `/slice S<n>` — **boundary**, one slice per session. Banner and stop |
+| An open slice issue maps to an entry in `design/30-slices.md` § *Outstanding* by its `S<n> —` title prefix, and no branch is in flight | `/slice S<n>` — **boundary**, one slice per session. Banner and stop |
+| `design/30-slices.md` § *Outstanding* is empty and an open `ready` non-slice issue has exactly one route marker and neither blocker label | Apply *Open non-slice work*: also list any `needs-decision` or `blocked-external` issues as awaiting owner, select the lowest issue number, and route it to its owning command under *The rule* |
+| `design/30-slices.md` § *Outstanding* is empty, open non-slice issues exist, and none is pickable | List the issues that need routing and those awaiting owner under `needs-decision` or `blocked-external`; never auto-pick either class. Stop without saying nothing is owed |
 | `design/30-slices.md` § *Outstanding* is empty and every issue is closed | Say the slice set is exhausted, and name `/align` (**boundary**, `opus`/`high`) as what follows |
 | Nothing above matches | Say so plainly. "Nothing is owed" is a valid answer and is the one this command exists to be able to give |
 
@@ -98,7 +136,7 @@ the banner, and nothing after it.
 Fill it from the row that matched, not from the reasoning that matched it:
 
 - **`Start here`** is the exact command the row chose — `/track`, `/slice S<n>` with the id
-  spelled out, `/align`, `/redteam` — with the tier `AGENTS.shared.md` § *Command routing* fixes
+  spelled out, the routed non-slice command and issue number, `/align`, `/redteam` — with the tier `AGENTS.shared.md` § *Command routing* fixes
   for it. `/redteam` carries its **different vendor from the design author** constraint into
   `Constraints`, since that is the one thing a fresh session of the same model cannot satisfy by
   reading the tree.
