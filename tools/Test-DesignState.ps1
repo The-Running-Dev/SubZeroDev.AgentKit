@@ -221,15 +221,6 @@ function Get-ContractClassIds {
     }
 }
 
-function Test-ContractCarriesClassList {
-    param([Parameter(Mandatory)][string] $ContractPath)
-
-    if (-not (Test-Path -LiteralPath $ContractPath -PathType Leaf)) { return $false }
-    $text = Get-Content -LiteralPath $ContractPath -Raw
-    if ($null -eq $text) { return $false }
-    $text.Contains('### The divergence classes')
-}
-
 <#
     design/20-contract.md's own Invariants table, parsed so UnrecordedArtifact's invariant half
     has a set to take a difference against. The section is the invariant unit set per
@@ -1653,6 +1644,33 @@ function Resolve-ProjectorPath {
     return $null
 }
 
+function Resolve-AgentKitContractPath {
+    <#
+        The divergence-class list is AgentKit policy, so it is always read from the kit's own
+        contract rather than from the calling project's product contract. Resolve the owning
+        checkout in the home-install order: explicit test seam, self-hosted checkout,
+        $env:AGENTKIT_HOME, then $HOME/.agent-kit. Return the final expected path even when no
+        candidate exists so Test-ClassListAgreement fails closed as ContractListUnreadable.
+    #>
+    param([string] $KitRoot)
+
+    if ($PSBoundParameters.ContainsKey('KitRoot')) {
+        return (Join-Path $KitRoot 'design/20-contract.md')
+    }
+
+    $selfHosted = Split-Path -Parent $PSScriptRoot
+    if (Test-Path -LiteralPath (Join-Path $selfHosted '.git')) {
+        return (Join-Path $selfHosted 'design/20-contract.md')
+    }
+
+    if ($env:AGENTKIT_HOME) {
+        $fromEnv = Join-Path $env:AGENTKIT_HOME 'design/20-contract.md'
+        if (Test-Path -LiteralPath $fromEnv) { return $fromEnv }
+    }
+
+    return (Join-Path $HOME '.agent-kit/design/20-contract.md')
+}
+
 function Invoke-Projector {
     param(
         [Parameter(Mandatory)][string] $RepoPath,
@@ -1921,14 +1939,12 @@ function Invoke-DesignStateCheck {
     param([Parameter(Mandatory)][string] $RepoPath, [string] $Repository, [string] $KitRoot)
 
     $contractPath = Join-Path $RepoPath 'design/20-contract.md'
-    # The class declaration in this script is AgentKit-owned. A product contract may repeat it
-    # explicitly and then ClassListDisagreement compares the two; a normal application contract
-    # need not carry AgentKit's meta-contract section at all.
-    $classListResult = if (Test-ContractCarriesClassList -ContractPath $contractPath) {
-        Test-ClassListAgreement -ContractPath $contractPath
+    $kitContractPath = if ($PSBoundParameters.ContainsKey('KitRoot')) {
+        Resolve-AgentKitContractPath -KitRoot $KitRoot
     } else {
-        [pscustomobject]@{ CouldNotEvaluate = $null; Finding = $null }
+        Resolve-AgentKitContractPath
     }
+    $classListResult = Test-ClassListAgreement -ContractPath $kitContractPath
     $invariantSet = Get-ContractInvariantIds -ContractPath $contractPath
     $componentGlobResult = Get-CheckerGlobPatterns -ContractPath $contractPath
 
