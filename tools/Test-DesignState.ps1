@@ -257,7 +257,7 @@ function Get-ContractInvariantIds {
 
     $ids = [System.Collections.Generic.List[string]]::new()
     foreach ($line in ($section -split "`n")) {
-        if ($line -match '^\|\s*\*\*(I\d+)\*\*\s*\|') { $ids.Add($Matches[1]) }
+        if ($line -match '^\|\s*\*\*(I[\w-]*\d)\*\*\s*\|') { $ids.Add($Matches[1]) }
     }
 
 
