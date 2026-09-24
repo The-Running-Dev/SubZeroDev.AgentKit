@@ -1541,9 +1541,15 @@ Describe 'Test-DesignState: ClassListDisagreement (S5.1)' {
         $parsed.Ids.CouldNotEvaluate | Should -Not -Contain 'DesignStateFailure'
     }
 
-    It '#374: an application contract without AgentKit''s divergence-class heading does not opt into the comparison' -Tag 'NearMiss','ClassListDisagreement' {
-        $path = New-TreeFile -RelativePath 'design/application-contract.md' -Content "# Product contract`n`n## Invariants`n"
-        Test-ContractCarriesClassList -ContractPath $path | Should -BeFalse
+    It '#391: resolves the class list from an explicit kit root, not the application contract' -Tag 'NearMiss','ClassListDisagreement' {
+        $kitRoot = Join-Path $TestDrive 'kit'
+        New-TreeFile -RelativePath 'kit/design/20-contract.md' -Content $script:MinimalContract | Out-Null
+        New-TreeFile -RelativePath 'design/application-contract.md' -Content "# Product contract`n`n## Invariants`n" | Out-Null
+
+        $resolved = Resolve-AgentKitContractPath -KitRoot $kitRoot
+
+        $resolved | Should -Be (Join-Path $kitRoot 'design/20-contract.md')
+        (Test-ClassListAgreement -ContractPath $resolved).Finding | Should -BeNullOrEmpty
     }
 }
 
@@ -1907,7 +1913,7 @@ Describe 'Test-DesignState: end-to-end (S5.2, S5.3, S5.4, S5.9)' {
         (@($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'StateSetAbsent' })).Count | Should -Be 1
     }
 
-    It '#374: an adopter contract without AgentKit-only headings produces no ContractListUnreadable while real component findings remain' {
+    It '#391: an adopter contract without AgentKit-only headings reads the class list from the kit contract' {
         New-TreeFile -RelativePath 'design/20-contract.md' -Content @'
 # Product contract
 
@@ -1916,6 +1922,8 @@ Describe 'Test-DesignState: end-to-end (S5.2, S5.3, S5.4, S5.9)' {
 | | Statement | Held by | Enforcement | Evidence |
 |---|---|---|---|---|
 '@
+        $kitRoot = Join-Path $TestDrive 'kit'
+        New-TreeFile -RelativePath 'kit/design/20-contract.md' -Content $script:MinimalContract | Out-Null
         New-StateFile -RelativePath 'units/component/app.md' -Content @'
 # unit/component/app
 Kind: component
@@ -1926,7 +1934,7 @@ Anchor: src/App.csproj
         New-TreeFile -RelativePath 'tools/Update-DesignProjection.ps1' -Content 'param([string]$Path,[switch]$DryRun) exit 0'
         Mock Test-TrackerAvailable { $true }
 
-        $result = Invoke-DesignStateCheck -RepoPath $TestDrive
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive -KitRoot $kitRoot
 
         @($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'ContractListUnreadable' }) | Should -BeNullOrEmpty
         @($result.Findings | Where-Object { $_.Class -eq 'ClassListDisagreement' }) | Should -BeNullOrEmpty
@@ -1934,15 +1942,44 @@ Anchor: src/App.csproj
             Should -Be 1 -Because 'no component glob was explicitly provided, so the real reverse-direction finding must remain'
     }
 
-    It '#244: a ClassListDisagreement finding survives the StateSetAbsent short-circuit rather than being discarded' {
-        # A contract whose Blocking table omits the ClassListDisagreement row itself - it is a
-        # tree fact the script's own $script:BlockingClasses declares that the contract's copy
-        # then disagrees with, computed before the StateSetAbsent early return regardless of
-        # whether design/state/ holds any records.
-        $missingClassListId = $script:MinimalContract -replace '(?m)^\| `ClassListDisagreement` \| x \| x \|\r?\n', ''
-        New-TreeFile -RelativePath 'design/20-contract.md' -Content $missingClassListId
+    It '#391: ClassListDisagreement still compares the script declaration with the kit contract when the application contract has no class list' {
+        New-TreeFile -RelativePath 'design/20-contract.md' -Content @'
+# Product contract
 
-        $result = Invoke-DesignStateCheck -RepoPath $TestDrive
+## Invariants
+
+| | Statement | Held by | Enforcement | Evidence |
+|---|---|---|---|---|
+'@
+        $kitRoot = Join-Path $TestDrive 'kit'
+        $kitContract = $script:MinimalContract -replace '(?m)^\| `ClosureOverBudget` \| x \| x \|\r?\n', ''
+        New-TreeFile -RelativePath 'kit/design/20-contract.md' -Content $kitContract | Out-Null
+        New-StateFile -RelativePath 'units/component/app.md' -Content @'
+# unit/component/app
+Kind: component
+Status: active
+Anchor: src/App.csproj
+'@
+        New-TreeFile -RelativePath 'src/App.csproj' -Content '<Project />'
+        New-TreeFile -RelativePath 'tools/Update-DesignProjection.ps1' -Content 'param([string]$Path,[switch]$DryRun) exit 0'
+        Mock Test-TrackerAvailable { $true }
+
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive -KitRoot $kitRoot
+
+        @($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'ContractListUnreadable' }) | Should -BeNullOrEmpty
+        @($result.Findings | Where-Object { $_.Class -eq 'ClassListDisagreement' }).Count | Should -Be 1
+    }
+
+    It '#244: a ClassListDisagreement finding survives the StateSetAbsent short-circuit rather than being discarded' {
+        # The kit contract's Blocking table omits the ClassListDisagreement row itself - it is a
+        # tree fact the script's own $script:BlockingClasses declares that the kit contract's
+        # copy then disagrees with, computed before the StateSetAbsent early return regardless
+        # of whether the calling project holds any design/state/ records.
+        $missingClassListId = $script:MinimalContract -replace '(?m)^\| `ClassListDisagreement` \| x \| x \|\r?\n', ''
+        $kitRoot = Join-Path $TestDrive 'kit'
+        New-TreeFile -RelativePath 'kit/design/20-contract.md' -Content $missingClassListId | Out-Null
+
+        $result = Invoke-DesignStateCheck -RepoPath $TestDrive -KitRoot $kitRoot
 
         $result.ExitCode | Should -Be 2
         (@($result.CouldNotEvaluate | Where-Object { $_.Reason -eq 'StateSetAbsent' })).Count | Should -Be 1
