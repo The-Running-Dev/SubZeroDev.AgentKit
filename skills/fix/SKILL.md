@@ -34,6 +34,12 @@ Filing happens **after** reproducing, never before — filing first would put an
 
 **Where this repository's own `design/state/` exists**, establishing what is currently true about the command or script the defect lives in reads that unit's closure (`design/10-design.md` § *Orient*) rather than the corpus, and `design/90-decisions.md` is not opened to establish it. Reading a closure is not writing to `design/`, so this does not relax the *Never* list below (I6). **Where `design/state/` is absent**, behaviour is today's: read the source directly (I27).
 
+Do that orientation before concluding that the issue needs a contract, schema, or
+public-interface amendment. A keyword search over selected design documents, an issue's
+description of the requested work, or an earlier session's state is not evidence that the
+current authority lacks the change. Resolve the current default branch and its authoritative
+contract first; only then apply the stop condition.
+
 ## Branch
 
 Derive `fix/<issue>-<slug>` from the issue number and title, **after the issue exists** — never before, since the branch name needs a real number.
@@ -59,7 +65,7 @@ This command does not carry a second copy of `/pr`'s rules, or of the gate and t
 
 ## Never
 
-- Edit `design/`. A bug fix is not a design change; where fixing this one turns out to need a contract or schema change, that is `/spec`'s or `/design`'s, and this command stops rather than making it.
+- Edit `design/` in standard mode. A bug fix is not a design change; where fixing this one turns out to need a contract or schema change, that is `/spec`'s or `/design`'s, and this command stops rather than making it. **If the user answers that stop with an explicit instruction to proceed or override, `AGENTS.shared.md` § *Handoff mode* takes over immediately: continue the work under that mode, without a second confirmation or another command.**
 - Open a pull request as a draft.
 - Resolve a review thread. That is `/pr`'s final phase, under the delegation `AGENTS.shared.md` § *Git and delivery* states.
 - Merge.

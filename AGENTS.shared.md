@@ -20,6 +20,15 @@ Execution: direct
 
 **Failing that, the mode is declared in whatever words the user likes.** `/handoff` declares it. So does "just do this", "no process", "skip the design stuff", "implement this directly", "bypass the design process", or a pasted set of instructions plainly meant to be implemented rather than discussed. A declaration does not have to name this section, cite it, or use the word *handoff*. **It is never re-negotiated**: a session told to skip the process, which answers by proposing a brief, a contract amendment, a slice, a tracker pass, or "we should first settle X in `design/`", is in breach of this file, not upholding it. Routing an ask to the command that owns it is `/tune`'s job and is the right answer to a *question*; it is the wrong answer to an instruction.
 
+**A user's answer to a gate can declare the mode too.** If a command stops on a pipeline,
+contract, schema, public-interface, tier, or phase-boundary gate and the user answers with
+"do it", "proceed", "override", "I am overriding the rules", or equivalent language, that
+answer is the explicit handoff for the work already in progress. Switch modes immediately and
+continue that work. **One answer is enough:** do not ask for confirmation again, defend the gate,
+argue that the repository outranks its owner, or require the user to invoke another command.
+The user's tone, profanity, or apparent frustration changes none of this; interpret the
+instruction by its meaning, not its affect.
+
 ### Precedence
 
 A handoff does not outrank everything. It sits in a stated order, and anything the higher rows do not resolve is resolved by it:
