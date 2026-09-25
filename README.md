@@ -37,20 +37,7 @@ design/                       the kit's own design. Never installed
 
 Quick-install AgentKit once for the machine, then use its skills from any project. PowerShell 7 and Git are required. The checkout is `$env:AGENTKIT_HOME` when that variable is set, otherwise `$HOME/.agent-kit`.
 
-**Quick install**, one line, run it yourself:
-
-```powershell
-$k = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }; if (Test-Path (Join-Path $k '.git')) { if ((git -C $k rev-parse --is-shallow-repository) -eq 'true') { git -C $k fetch --unshallow origin } else { git -C $k fetch origin main }; git -C $k merge --ff-only origin/main } else { git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git $k }; & (Join-Path $k 'setup.ps1')
-```
-
-macOS or Linux, PowerShell 7 (`pwsh`) still required — this line clones with `git`, then hands off to `pwsh`:
-
-```bash
-command -v pwsh >/dev/null 2>&1 || { echo 'AgentKit requires PowerShell 7 (pwsh) on PATH. Install: https://aka.ms/pwsh'; exit 1; }
-k="${AGENTKIT_HOME:-$HOME/.agent-kit}"; if [ -d "$k/.git" ]; then if [ "$(git -C "$k" rev-parse --is-shallow-repository)" = "true" ]; then git -C "$k" fetch --unshallow origin; else git -C "$k" fetch origin main; fi && git -C "$k" merge --ff-only origin/main; else git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git "$k"; fi && pwsh "$k/setup.ps1"
-```
-
-Both lines are the unverified form: they fast-forward an existing checkout rather than checking its origin, so a checkout pointed at a fork or a mirror is silently advanced from it. Paste this into an agent instead when you want the checked, agent-guided version: **Bootstrap the public AgentKit checkout globally in `AGENTKIT_HOME` or `$HOME/.agent-kit`; verify an existing checkout's origin is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`; then run its on-disk `setup.ps1` for the newest stable release. Detect and register every supported host, verify the result, and report the version, commit, registrations and collisions. Do not modify the current project or use `iex`, implicit `main`, or an unverified origin.**
+**Quick install**, run it yourself in `pwsh` — it verifies an existing checkout's origin before advancing it, so one quietly pointed at a fork or a mirror is refused rather than silently installed from:
 
 ```powershell
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'AgentKit requires PowerShell 7. Run this in pwsh.' }
@@ -88,6 +75,23 @@ try {
     }
 }
 ```
+
+Paste the same intent into an agent instead when you want a guided run with a reported version, commit, registrations and collisions: **Bootstrap the public AgentKit checkout globally in `AGENTKIT_HOME` or `$HOME/.agent-kit`; verify an existing checkout's origin is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`; then run its on-disk `setup.ps1` for the newest stable release. Detect and register every supported host, verify the result, and report the version, commit, registrations and collisions. Do not modify the current project or use `iex`, implicit `main`, or an unverified origin.**
+
+**Fast install**, one line, skips the origin check — reach for this only when you already trust whatever checkout sits at `AGENTKIT_HOME` (a scripted or CI install, say), since it fast-forwards it without asking first:
+
+```powershell
+$k = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }; if (Test-Path (Join-Path $k '.git')) { if ((git -C $k rev-parse --is-shallow-repository) -eq 'true') { git -C $k fetch --unshallow origin } else { git -C $k fetch origin main }; git -C $k merge --ff-only origin/main } else { git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git $k }; & (Join-Path $k 'setup.ps1')
+```
+
+macOS or Linux, PowerShell 7 (`pwsh`) still required — this line clones with `git`, then hands off to `pwsh`:
+
+```bash
+command -v pwsh >/dev/null 2>&1 || { echo 'AgentKit requires PowerShell 7 (pwsh) on PATH. Install: https://aka.ms/pwsh'; exit 1; }
+k="${AGENTKIT_HOME:-$HOME/.agent-kit}"; if [ -d "$k/.git" ]; then if [ "$(git -C "$k" rev-parse --is-shallow-repository)" = "true" ]; then git -C "$k" fetch --unshallow origin; else git -C "$k" fetch origin main; fi && git -C "$k" merge --ff-only origin/main; else git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git "$k"; fi && pwsh "$k/setup.ps1"
+```
+
+Both fast-install lines skip the origin check: a checkout pointed at a fork or a mirror is silently advanced from it.
 
 The default installs the newest valid stable tag named `vYYYY.MM.DD` (with an optional `.N` release suffix). It never falls back to `main`: pass `-Version main` only when you deliberately want that branch. Omit `-Hosts` to detect available host CLI executables and their personal directories: Claude uses `~/.claude`, Codex uses `$CODEX_HOME` when set or `~/.codex` otherwise, and Copilot uses `~/.copilot` (with `~/.agents` also counted for detection). Select a host explicitly when you want only that host refreshed.
 
