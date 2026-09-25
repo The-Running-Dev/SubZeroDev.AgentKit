@@ -8,7 +8,7 @@ Binds:
 Live:
 Questions:
 Work:
-Evidence:
+Evidence: tools/Test-GatesCache.Tests.ps1
 
 ## Owns
 Reads or writes `.claude/gates.json`, a cache of a repository's discovered gates keyed to a
