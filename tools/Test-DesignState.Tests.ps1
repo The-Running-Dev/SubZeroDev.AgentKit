@@ -1707,6 +1707,67 @@ trailing prose
         $result.CouldNotEvaluate | Should -BeNullOrEmpty
         $result.Findings | Should -BeNullOrEmpty
     }
+
+    # #397: a project that has moved the command kind's pattern away from the kit-shaped default
+    # (skills/*/SKILL.md) has no independently derivable second reading for that kind, the same
+    # structural situation the 'component' kind is already carved out for above.
+    Context 'a project whose command kind has moved away from kit shape (#397)' {
+
+        BeforeAll {
+            $script:CustomLayoutRoot = Join-Path $TestDrive 'globfixture-customcommand'
+            foreach ($rel in @(
+                '.claude/commands/alpha.md',
+                'tools/Thing.ps1', 'tools/Thing.Tests.ps1',
+                'design/10-design.md', 'design/FROZEN.md',
+                'templates/design/00-brief.md', 'templates/design/CLAUDE.md',
+                'README.md', 'CLAUDE.md',
+                '.claude/COMPANIONS.md', '.github/ISSUE_TEMPLATE/bug.md', 'codex/PROFILES.md'
+            )) {
+                $full = Join-Path $script:CustomLayoutRoot $rel
+                New-Item -ItemType Directory -Path (Split-Path $full -Parent) -Force | Out-Null
+                Set-Content -LiteralPath $full -Value 'x' -Encoding utf8NoBOM
+            }
+
+            $script:CustomCommandTable = @'
+| Kind | Glob | Excluded |
+|---|---|---|
+| command | `.claude/commands/*.md` | — |
+| script | `tools/*.ps1` | `*.Tests.ps1` |
+| document | `design/*.md`, `templates/design/*.md`, `*.md`, `.claude/COMPANIONS.md`, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md` | `design/FROZEN.md`, `CLAUDE.md` |
+'@
+        }
+
+        It 'raises nothing for the command kind, which the kit-shaped enumerator cannot independently read' -Tag 'NearMiss','GlobDisagreement' {
+            $path = New-GlobContract -Name 'custom-command-layout' -Table $script:CustomCommandTable
+            $result = Test-GlobDisagreement -RepoPath $script:CustomLayoutRoot -ContractPath $path
+            $result.CouldNotEvaluate | Should -BeNullOrEmpty
+            @($result.Findings | Where-Object { $_.Subject -eq 'command' }) | Should -BeNullOrEmpty
+        }
+
+        It 'still fires for a kind left at kit-default pattern text, in the same customized project' -Tag 'Fires','GlobDisagreement' {
+            $table = $script:CustomCommandTable -replace '\| `\*\.Tests\.ps1` \|', '| — |'
+            $path = New-GlobContract -Name 'custom-command-layout-script-drift' -Table $table
+            $result = Test-GlobDisagreement -RepoPath $script:CustomLayoutRoot -ContractPath $path
+            @($result.Findings | Where-Object { $_.Subject -eq 'command' }) | Should -BeNullOrEmpty
+            $finding = @($result.Findings | Where-Object { $_.Subject -eq 'script' })[0]
+            $finding | Should -Not -BeNullOrEmpty
+            $finding.Detail | Should -Match 'Thing\.Tests\.ps1'
+        }
+
+        It 'reaches a project''s declared custom command files for marked-region scanning' -Tag 'GlobDisagreement' {
+            $path = New-GlobContract -Name 'custom-command-region-files' -Table $script:CustomCommandTable
+            $parsed = Get-CheckerGlobPatterns -ContractPath $path
+            $files = Resolve-EffectiveKindGlobFiles -RepoPath $script:CustomLayoutRoot -Kind 'command' `
+                -ComponentGlobResult $parsed -KitEnumerator { Get-CommandGlobFiles -RepoPath $script:CustomLayoutRoot }
+            $files | Should -Contain '.claude/commands/alpha.md'
+        }
+
+        It 'falls back to the kit-shaped enumerator when the declared table carries no command patterns' -Tag 'GlobDisagreement' {
+            $files = Resolve-EffectiveKindGlobFiles -RepoPath $script:GlobRoot -Kind 'command' `
+                -ComponentGlobResult $null -KitEnumerator { Get-CommandGlobFiles -RepoPath $script:GlobRoot }
+            $files | Should -Contain 'skills/alpha/SKILL.md'
+        }
+    }
 }
 
 Describe 'Test-DesignState: the freeze gate (S5.8)' {
