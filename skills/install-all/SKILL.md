@@ -89,12 +89,13 @@ the next target — this is the expected end state, not an error.
 ## Phase 2 — Ensure the pointer section
 
 Run `INSTALL.md`'s own *The pointer section* procedure (phase 2) against the target, unmodified —
-same direction rules for `AGENTS.md`/`CLAUDE.md`, same resolved-path requirement, same stop
-condition. Do not restate that procedure here; a second copy is the one that goes stale.
+same direction rules for `AGENTS.md`/`CLAUDE.md`, same resolution-instruction requirement, same
+stop condition. Do not restate that procedure here; a second copy is the one that goes stale.
 
 - **Already correct** — report Already-satisfied.
-- **Missing or stale** (resolves to a path where the kit is not actually installed) — write or
-  update it, the same as an ordinary `/install` would.
+- **Missing or stale** (absent, or still carrying an earlier install's literal resolved path
+  instead of the resolution instruction) — write or update it, the same as an ordinary `/install`
+  would.
 - **Ambiguous direction** — both `AGENTS.md` and `CLAUDE.md` hold content, or neither does and
   there is no existing project-identity section to anchor one — report it under *Needs a decision*
   for that repository and move on **without** writing a pointer section there. This does not block
