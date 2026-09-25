@@ -15,10 +15,14 @@ param(
     [string] $Prefix,
     [switch] $DryRun,
     [switch] $Uninstall,
-    [switch] $Force
+    [switch] $Force,
+    [switch] $Verify
 )
 $ErrorActionPreference = 'Stop'
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'AgentKit requires Git on PATH.' }
 $installer = Join-Path $PSScriptRoot 'tools/Install-AgentKit.ps1'
 if (-not (Test-Path -LiteralPath $installer)) { throw "Incomplete AgentKit checkout: '$installer' is missing. Clone the public repository; individual skill downloads are not an install." }
 & $installer @PSBoundParameters
+# exit inside the installer only sets $LASTEXITCODE here; propagate it or -Verify's
+# non-zero doctor result silently becomes a 0 process exit code.
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
