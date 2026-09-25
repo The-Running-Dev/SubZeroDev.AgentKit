@@ -491,6 +491,13 @@ cannot state:
   is the fabricated gate result *Verification* exists to prevent.
 - A criterion id it cannot parse is reported as unparseable, never silently dropped. A
   dropped id is an id that appears to match.
+- **A slice's issue is the one whose title begins `S<n>` followed by whitespace or the end of
+  the title — or `<Effort>-S<n>` when the slices document's title carries an effort tag**
+  (`# Slices — commercial (D5)`), or when `-EffortTag` names one. A tracker outlives the effort
+  that filled it and slice numbering restarts at S1 with each, so an unqualified match in a
+  multi-effort tracker pairs a live slice with a retired effort's closed issue. A document with
+  no tag matches the unqualified form, as it always has. A criterion bug titled `S3.3 …` is
+  never slice S3's issue.
 
 ### `tools/Test-Companion.ps1`
 
@@ -666,7 +673,8 @@ transfer draws.
 
 `invariants` renders into this document's own § *Invariants*, below. `agent` has no document
 region: GitHub is where an issue's agent block lives, and no module of this mechanism writes
-there (S7.10).
+there (S7.10). It reads the slice id from a WorkRef's title through an optional effort prefix —
+`D5-S7 — …` renders `/slice S7`, since `/slice` reads that effort's own slices document.
 
 ### `tools/Update-WorkMirror.ps1`
 
@@ -877,7 +885,10 @@ slice's full body out of `design/30-slices.md` § *Outstanding*, into a row unde
 (issue #120). What the block cannot state:
 
 - **For every `### S<n> — <name>` section under § *Outstanding*, looks up a tracker issue whose
-  title begins `S<n> `** — the same match `Test-DesignDrift.ps1` uses — open or closed. A slice
+  title begins `S<n> `, or `<Effort>-S<n> ` under an effort-tagged document** — the same match
+  `Test-DesignDrift.ps1` uses, effort tag included — open or closed. The tag matters more here
+  than there: a wrong match in that script is a false report, in this one it retires a live
+  slice's body. A slice
   with no issue, or an open one, is left exactly as found: **not a finding**, since `/track` is
   what opens a missing issue and closing early is not this script's call.
 - **A slice with a closed issue is retired**: its full section is removed from § *Outstanding*,

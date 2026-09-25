@@ -55,6 +55,34 @@ Acceptance:
   - S1.1 The first criterion holds.
   - S1.2 The second criterion holds.
 '@
+
+    # The same slice with bold ids, the form /track writes into an issue body and a slices
+    # document commonly copies.
+    $script:TwoCriterionDocBoldIds = @'
+# Slices
+
+## Outstanding
+
+## S1 — A slice
+
+Acceptance:
+  - **S1.1** The first criterion holds.
+  - **S1.2** The second criterion holds.
+'@
+
+    # A slices document whose title names its effort. Declared here rather than in its Context:
+    # Pester runs a Context body at discovery, before any BeforeAll has run.
+    $script:TaggedDoc = @'
+# Slices — commercial (D5)
+
+## Outstanding
+
+## S1 — A slice
+
+Acceptance:
+  - **S1.1** The first criterion holds.
+  - **S1.2** The second criterion holds.
+'@
 }
 
 AfterAll {
@@ -106,6 +134,19 @@ Acceptance:
             $r = Invoke-DriftCheck -SlicesPath $path
 
             $r.State | Should -Be 'Clean'
+            $r.SlicesCompared | Should -Be 1
+        }
+
+        It 'bold criterion ids in the document are read like plain ones' {
+            $path = New-SlicesDoc -Content $script:TwoCriterionDocBoldIds
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                New-Issue -Number 9 -Title 'S1 — A slice' -Body "### Done when`n- [ ] **S1.1** first`n- [x] **S1.2** second"
+            ) }
+
+            $r = Invoke-DriftCheck -SlicesPath $path
+
+            $r.State | Should -Be 'Clean'
+            $r.Findings.Count | Should -Be 0
             $r.SlicesCompared | Should -Be 1
         }
 
@@ -258,6 +299,70 @@ Acceptance:
             $r.Findings[0].Kind | Should -Be 'NoIssue'
             $r.Findings[0].Issue | Should -Be 0
             Get-DriftExitCode -State $r.State | Should -Be 1
+        }
+    }
+
+    Context 'effort-qualified titles' {
+
+        BeforeEach {
+            # A retired effort's closed S1, numbered from 1 like every effort, and listed first.
+            $script:RetiredS1 = New-Issue -Number 8 -Title 'S1 — A retired effort''s first slice' -Body '- [x] **S1.7** something else entirely'
+            $script:RetiredS1.state = 'CLOSED'
+        }
+
+        It 'a tagged document matches its own effort''s issue, not a retired effort''s of the same number' {
+            $path = New-SlicesDoc -Content $script:TaggedDoc
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                $script:RetiredS1,
+                (New-Issue -Number 9 -Title 'D5-S1 — A slice' -Body "- [ ] **S1.1** first`n- [ ] **S1.2** second")
+            ) }
+
+            $r = Invoke-DriftCheck -SlicesPath $path
+
+            $r.State | Should -Be 'Clean'
+            $r.SlicesCompared | Should -Be 1
+        }
+
+        It 'a tagged document with only an unqualified issue reports NoIssue rather than borrowing it' {
+            $path = New-SlicesDoc -Content $script:TaggedDoc
+            Mock Get-TrackerIssue { New-Tracker -Issues @($script:RetiredS1) }
+
+            $r = Invoke-DriftCheck -SlicesPath $path
+
+            $r.Findings.Count | Should -Be 1
+            $r.Findings[0].Kind | Should -Be 'NoIssue'
+            $r.SlicesCompared | Should -Be 0
+        }
+
+        It 'an untagged document still matches the unqualified title' {
+            $path = New-SlicesDoc -Content $script:TwoCriterionDoc
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                New-Issue -Number 9 -Title 'S1 — A slice' -Body "- [ ] **S1.1** first`n- [ ] **S1.2** second"
+            ) }
+
+            (Invoke-DriftCheck -SlicesPath $path).State | Should -Be 'Clean'
+        }
+
+        It 'an explicit -EffortTag qualifies the match over the document''s own' {
+            $path = New-SlicesDoc -Content $script:TaggedDoc
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                (New-Issue -Number 9 -Title 'D5-S1 — A slice' -Body '- [ ] **S1.9** not this one'),
+                (New-Issue -Number 10 -Title 'G1-S1 — A slice' -Body "- [ ] **S1.1** first`n- [ ] **S1.2** second")
+            ) }
+
+            $r = Invoke-DriftCheck -SlicesPath $path -EffortTag 'G1'
+
+            $r.State | Should -Be 'Clean'
+            $r.SlicesCompared | Should -Be 1
+        }
+
+        It 'a parenthesised tag below the title is prose, not the effort' {
+            $path = New-SlicesDoc -Content @'
+# Slices
+
+## S1 — A slice (D5)
+'@
+            Get-EffortTag -Path $path | Should -BeNullOrEmpty
         }
     }
 

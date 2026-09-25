@@ -222,6 +222,22 @@ Bound by a component.
         $content | Should -Match 'S7\.1, S7\.2'
     }
 
+    It 'the agent projection reads the slice id through an effort-qualified title' {
+        $record = New-DesignRecord -Id 'work/9' -Kind 'WorkRef' -Path 'design/state/work/9.md' `
+            -Scalars @{ Issue = '9'; Title = 'D5-S7 — test slice'; MirroredAt = 'deadbeef' } `
+            -Lists @{ Criteria = @('S7.1') } -Prose @{}
+        $content = (Get-AgentProjectionContent -Record $record) -join "`n"
+        $content | Should -Match 'Run `/slice S7`\.'
+    }
+
+    It 'the agent projection does not take a criterion bug''s title for a slice' {
+        $record = New-DesignRecord -Id 'work/10' -Kind 'WorkRef' -Path 'design/state/work/10.md' `
+            -Scalars @{ Issue = '10'; Title = 'S7.3 spills on retry'; MirroredAt = 'deadbeef' } `
+            -Lists @{ Criteria = @() } -Prose @{}
+        $content = (Get-AgentProjectionContent -Record $record) -join "`n"
+        $content | Should -Match 'Run the work item for issue #10\.'
+    }
+
     It 'S14.8: outstanding renders an honest empty table with no WorkRef records' {
         New-UnitFixture
         $graph = Read-DesignStateGraph -Path $TestDrive
