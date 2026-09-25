@@ -146,6 +146,54 @@ jobs:
         shell: pwsh
         run: ./tools/Test-Companion.ps1 | Out-Null
 
+  # Proves the shared PowerShell suite actually runs on macOS rather than merely being
+  # documented as a supported install target (#405). Same offline/unauthenticated shape as
+  # powershell-linux: no GH_TOKEN, and the Pester step keeps a name distinct from
+  # "Run Pester tests" so it does not create a second match for
+  # Test-CIWorkflow.Tests.ps1's name-based GH_TOKEN lookup (#79).
+  powershell-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # verification: true
+      - name: Check commits carry no AI attribution
+        shell: pwsh
+        env:
+          ATTRIBUTION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          ATTRIBUTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: ./tools/Test-NoAttribution.ps1
+
+      # verification: true
+      - name: Parse-check PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count) {
+              Write-Error "Parse errors in $($_.FullName): $($parseErrors -join '; ')"
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
+
+      # verification: true
+      - name: Run offline Pester suite
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 5.0
+          $result = Invoke-Pester -Path tools -Output Detailed -PassThru
+          if ($result.FailedCount -gt 0) { exit 1 }
+
+      # verification: true
+      - name: Validate the core/companion split
+        shell: pwsh
+        run: ./tools/Test-Companion.ps1 | Out-Null
+
   videos:
     runs-on: windows-latest
     defaults:
