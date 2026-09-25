@@ -806,9 +806,12 @@ cannot state:
 presence or content determines what the gate list is. What the block cannot state:
 
 - **Never discovers a gate.** That stays `/check`'s judgement call and stays owned by
-  `verify.md`. This script only remembers an answer `/check` already worked out and says
-  whether it is still trustworthy.
-- **The manifest hash covers exactly the fixed input set `verify.md`'s own discovery table
+  `skills/check/SKILL.md`. This script only remembers an answer `/check` already worked out and
+  says whether it is still trustworthy.
+- **`Fresh` needs a matching hash *and* at least one cached gate.** A cache whose gate list is
+  empty or null — corrupted or hand-edited — carries no answer to reuse and reports `Stale`, so
+  it forces rediscovery exactly as no cache would.
+- **The manifest hash covers exactly the fixed input set `/check`'s own discovery table
   reads** — the *content* of every `.github/workflows/*.yml` and of `package.json`, and the mere
   *existence* of the known build-script paths, never their content. Anything outside that list
   never invalidates the cache; widening it is a contract amendment, not a judgement call this
