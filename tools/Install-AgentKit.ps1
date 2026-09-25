@@ -225,8 +225,13 @@ function Get-Pointer {
     # session on the machine, AgentKit or not. Each generated command adapter already
     # names the same path as an explicit read, so the contract still loads, only when
     # an AgentKit command actually runs.
-    $shared = (Join-Path $installRoot 'AGENTS.shared.md').Replace('\','/')
-    return "$pointerStart`nAgentKit shared rules: read [$shared]($shared) only when running an AgentKit command; each command's own skill file names the exact reads it needs.`n$pointerEnd"
+    #
+    # No baked $installRoot either: a resolved absolute path is correct only for the
+    # machine and account that ran this install, and goes stale the moment this file is
+    # read elsewhere or AGENTKIT_HOME moves (#406). The text below is fixed across every
+    # install; a reading session resolves the location itself, the same order this file's
+    # own $installRoot resolution above uses.
+    return "$pointerStart`nAgentKit shared rules: read AGENTS.shared.md, resolved from `$env:AGENTKIT_HOME if set else `$HOME/.agent-kit, only when running an AgentKit command; each command's own skill file names the exact reads it needs.`n$pointerEnd"
 }
 function Update-Pointer([string] $Path, [switch] $Remove) {
     $text = if (Test-Path -LiteralPath $Path) { [IO.File]::ReadAllText($Path) } else { '' }

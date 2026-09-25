@@ -144,12 +144,12 @@ Never delete a rule you do not understand. An instruction with no obvious reason
 `AGENTS.shared.md` is kit-owned and is never copied into the target (see phase 1). The file that holds content (`AGENTS.md` or `CLAUDE.md`, per the direction just established) instead carries a short, hand-written section naming where to read it from:
 
 ```markdown
-**Read [`AGENTS.shared.md`](<resolved-path>) completely before this file.** It holds the rules every repository using the kit shares.
+**Read `AGENTS.shared.md` completely before this file.** It holds the rules every repository using the kit shares, resolved from `$env:AGENTKIT_HOME` if set, else `$HOME/.agent-kit`.
 ```
 
-**Resolve `<resolved-path>` at install time and write it concretely** — an absolute path (or, for a tool that supports it, an `@`-import of one) to the installed kit's `AGENTS.shared.md`, following the same order `AGENTS.shared.md` § *House conventions* → Home-install convention defines for a script: `$env:AGENTKIT_HOME` if set, else `$HOME/.agent-kit`. Do not write the resolution algorithm itself into the target — the target has no local copy of `AGENTS.shared.md` yet to read that convention from, so this section is what bootstraps a session to it, the same way `Install-AgentKit.ps1` writes a concrete resolved path into each tool's own global configuration.
+**Write that resolution instruction, not a resolved path.** A concrete absolute path (or an `@`-import of one) bakes in the installing machine's home directory or account name — correct for the machine that ran the install, and wrong the moment the target is cloned onto another machine or account, or `AGENTKIT_HOME` moves (#406). The instruction above is the same order `AGENTS.shared.md` § *House conventions* → Home-install convention defines for a script, kept short enough to stand on its own before the target has a local copy of `AGENTS.shared.md` to read that convention from — every session that reads it resolves the location itself, at read time, rather than trusting a value baked in at install time.
 
-A first install writes this section fresh, next to (or inside) the project-identity content described above. A re-install checks the path still resolves to where the kit is actually installed and updates it if not — the target may have been rehomed to a different machine or a different `AGENTKIT_HOME` since the last install.
+A first install writes this section fresh, next to (or inside) the project-identity content described above. A re-install leaves it alone once it already carries this resolution instruction — there is no machine-specific value left in it to go stale. Where a target still carries an earlier install's literal resolved path, rewrite it to the instruction above.
 
 ### `agent.md`
 

@@ -202,14 +202,34 @@ Describe 'Global front door with isolated homes and local Git origin' {
             $content | Should -Not -Match '(?<![\w/\\])(?:AGENTS[.]shared[.]md|tools/|templates/)'
         }
     }
-    It 'all pointers name AGENTS.shared.md and never the kit project AGENTS.md' {
+    It 'all pointers name AGENTS.shared.md, resolve it at read time, and bake in no machine-specific path (#406)' {
         Assert-Success (Run-Setup $f)
         foreach ($path in (Read-State $f).pointerBlocks.Keys) {
             $body=Get-Content -LiteralPath $path -Raw
-            $body | Should -Match ([regex]::Escape(($f.Root.Replace('\','/') + '/AGENTS.shared.md')))
-            $body | Should -Not -Match ([regex]::Escape(($f.Root.Replace('\','/') + '/AGENTS.md')))
+            $body | Should -Match 'AGENTS[.]shared[.]md'
+            $body | Should -Match 'AGENTKIT_HOME'
+            $body | Should -Not -Match ([regex]::Escape($f.Root.Replace('\','/')))
             $body | Should -Not -Match 'PROJECT-ONLY'
         }
+    }
+    It 'upgrades a previously-installed resolved-path pointer to the read-time form without flagging a collision' {
+        Assert-Success (Run-Setup $f)
+        $path = Join-Path $f.Codex 'AGENTS.md'
+        $staleShared = (Join-Path $f.Root 'AGENTS.shared.md').Replace('\','/')
+        $stalePointer = "<!-- agentkit-pointer:start -->`nAgentKit shared rules: read [$staleShared]($staleShared) only when running an AgentKit command; each command's own skill file names the exact reads it needs.`n<!-- agentkit-pointer:end -->"
+        $text = [IO.File]::ReadAllText($path)
+        $pattern = [regex]::Escape('<!-- agentkit-pointer:start -->') + '.*?' + [regex]::Escape('<!-- agentkit-pointer:end -->')
+        $match = [regex]::Match($text, $pattern, 'Singleline')
+        [IO.File]::WriteAllText($path, $text.Remove($match.Index, $match.Length).Insert($match.Index, $stalePointer))
+        $manifestPath = Join-Path $f.Home '.agent-kit-state/installed.json'
+        $state = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json -AsHashtable
+        $state.pointerBlocks[$path] = $stalePointer
+        $state | ConvertTo-Json -Depth 20 -Compress | Set-Content -LiteralPath $manifestPath
+        $result = Run-Setup $f; Assert-Success $result
+        $upgraded = [IO.File]::ReadAllText($path)
+        $upgraded | Should -Not -Match ([regex]::Escape($f.Root.Replace('\','/')))
+        $upgraded | Should -Match 'AGENTKIT_HOME'
+        $result.Output | Should -Not -Match ('Skipped collisions:.*' + [regex]::Escape($path))
     }
     It 'foreign same-named skill survives byte-for-byte and is reported' {
         $path=Join-Path $f.Codex 'skills/help/SKILL.md'
