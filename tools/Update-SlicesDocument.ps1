@@ -14,8 +14,9 @@
     stopped short of it. This script is that missing mechanism.
 
     For every `### S<n> - <name>` section under `## Outstanding`:
-      1. Look up a tracker issue whose title begins `S<n> ` (Test-DesignDrift.ps1's own match),
-         open or closed.
+      1. Look up a tracker issue whose title begins `S<n> ` - or `<Effort>-S<n> ` when the
+         document's title carries an effort tag - open or closed (Test-DesignDrift.ps1's own
+         match).
       2. A slice with no issue, or an open one, is left exactly as found - not a finding, since
          `/track` is what opens a missing issue and closing early is not this script's call.
       3. A slice with a closed issue is retired: its full section is removed from
@@ -42,6 +43,13 @@
 .PARAMETER Repository
     owner/repo. Defaults to the current git remote, via gh's own resolution.
 
+.PARAMETER EffortTag
+    Effort id - `D5`, `G1` - qualifying the issue titles this run matches. Defaults to the
+    parenthesised tag in the slices document's own title, and falls back to the unqualified
+    `S<n>` form when the document carries none - the same rule as Test-DesignDrift.ps1. It
+    matters more here than there: that script only reports a wrong match, this one would
+    retire a live slice's body against a retired effort's closed issue of the same number.
+
 .PARAMETER DryRun
     Reports what would be retired without writing the file.
 
@@ -52,6 +60,7 @@
 param(
     [string] $SlicesPath,
     [string] $Repository,
+    [string] $EffortTag,
     [switch] $DryRun,
     [switch] $Quiet
 )
@@ -149,6 +158,25 @@ function Get-TrackerIssue {
 }
 
 <#
+    The document title's parenthesised effort tag (`# Slices - commercial (D5)`), or $null when
+    it carries none. Duplicated from Test-DesignDrift.ps1 rather than shared, as Invoke-GhRaw
+    is: each tool stays a standalone script.
+#>
+function Get-EffortTag {
+    param([Parameter(Mandatory)][string] $Path)
+
+    foreach ($line in (Get-Content -LiteralPath $Path)) {
+        # The first level-one heading is the document title. Anything after it is body, so a
+        # parenthesised tag further down is prose and must not be mistaken for the effort.
+        if ($line -match '^#\s') {
+            if ($line -match '\((?<tag>[A-Za-z]+\d+)\)\s*$') { return $Matches['tag'] }
+            return $null
+        }
+    }
+    $null
+}
+
+<#
     Splits the document into: everything before `## Outstanding`, the Outstanding section's own
     slice blocks (each starting at a `### S<n> - <name>` heading and running to the line before
     the next `##`/`###` heading), and everything from `## Landed` on. A slice block that is not
@@ -212,7 +240,8 @@ function Get-SliceDocumentModel {
 
         $ids = [System.Collections.Generic.List[int]]::new()
         for ($k = $start; $k -le $end; $k++) {
-            if ($lines[$k] -match "^\s*-\s+S$number\.(?<m>\d+)\b") {
+            # Bold ids (`- **S1.1** ...`) count too, as they do in Test-DesignDrift.ps1.
+            if ($lines[$k] -match "^\s*-\s+\*{0,2}S$number\.(?<m>\d+)\*{0,2}\b") {
                 $ids.Add([int]$Matches['m'])
             }
         }
@@ -279,6 +308,7 @@ function Invoke-SlicesRetirement {
     param(
         [Parameter(Mandatory)][string] $SlicesPath,
         [string] $Repository,
+        [string] $EffortTag,
         [switch] $DryRun
     )
 
@@ -286,6 +316,9 @@ function Invoke-SlicesRetirement {
     if ($doc.Failure) {
         return New-RetireResult -State 'NotEvaluated' -CouldNotEvaluate @($doc.Failure)
     }
+
+    $tag = if ($EffortTag) { $EffortTag } else { Get-EffortTag -Path $SlicesPath }
+    $titlePrefix = if ($tag) { "$tag-S" } else { 'S' }
 
     $tracker = Get-TrackerIssue -Repository $Repository
     if ($tracker.Failure) {
@@ -303,7 +336,9 @@ function Invoke-SlicesRetirement {
 
     # Descending, so removing a later block never invalidates an earlier one's line numbers.
     foreach ($slice in ($doc.Slices | Sort-Object -Property StartLine -Descending)) {
-        $issue = $tracker.Issues | Where-Object { $_.title -match "^S$($slice.Number)\b" } | Select-Object -First 1
+        # `(\s|$)`, not `\b`: a criterion bug titled `S3.3 ...` must not pass for slice S3's
+        # issue - `\b` matches between `3` and `.` - and here a wrong match retires a body.
+        $issue = $tracker.Issues | Where-Object { $_.title -match "^$titlePrefix$($slice.Number)(\s|$)" } | Select-Object -First 1
 
         if (-not $issue) {
             $left.Add([pscustomobject]@{ Number = $slice.Number; Reason = 'NoIssue' })
@@ -370,7 +405,7 @@ if ($MyInvocation.InvocationName -ne '.') {
         $SlicesPath = Join-Path (Get-Location).Path 'design/30-slices.md'
     }
 
-    $result = Invoke-SlicesRetirement -SlicesPath $SlicesPath -Repository $Repository -DryRun:$DryRun
+    $result = Invoke-SlicesRetirement -SlicesPath $SlicesPath -Repository $Repository -EffortTag $EffortTag -DryRun:$DryRun
 
     if (-not $Quiet) {
         switch ($result.State) {

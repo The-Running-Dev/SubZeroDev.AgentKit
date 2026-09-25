@@ -267,6 +267,68 @@ This note must survive.
         }
     }
 
+    Context 'slice issue lookup' {
+        BeforeEach {
+            $script:TaggedDoc = @'
+# Slices — commercial (D5)
+
+## Outstanding
+
+### S23 — Live slice
+Delivers: something.
+Acceptance:
+  - **S23.1** first criterion.
+  - **S23.2** second criterion.
+
+## Landed
+
+| Slice | Name | Issue | Criteria | Body complete at |
+|---|---|---|---|---|
+'@
+        }
+
+        It 'never retires a tagged document''s live slice against a retired effort''s closed issue of the same number' {
+            $path = New-GitSlicesDoc -Content $script:TaggedDoc
+            $before = Get-Content -LiteralPath $path -Raw
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                (New-Issue -Number 40 -Title 'S23 — A retired effort''s slice' -State 'CLOSED'),
+                (New-Issue -Number 300 -Title 'D5-S23 — Live slice' -State 'OPEN')
+            ) }
+
+            $r = Invoke-SlicesRetirement -SlicesPath $path
+
+            $r.State | Should -Be 'Clean'
+            $r.Left[0].Reason | Should -Be 'IssueOpen'
+            $r.Left[0].Issue | Should -Be 300
+            (Get-Content -LiteralPath $path -Raw) | Should -Be $before
+        }
+
+        It 'retires a tagged document''s slice once its own effort''s issue closes, reading bold ids into the range' {
+            $path = New-GitSlicesDoc -Content $script:TaggedDoc
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                (New-Issue -Number 300 -Title 'D5-S23 — Live slice' -State 'CLOSED')
+            ) }
+
+            $r = Invoke-SlicesRetirement -SlicesPath $path
+
+            $r.State | Should -Be 'Retired'
+            $r.Retired[0].Issue | Should -Be 300
+            $r.Retired[0].Criteria | Should -Be 'S23.1–S23.2'
+        }
+
+        It 'does not take a criterion bug''s title for the slice''s issue' {
+            $path = New-GitSlicesDoc -Content $script:TwoOutstandingDoc
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                (New-Issue -Number 400 -Title 'S23.2 flakes under load' -State 'CLOSED')
+            ) }
+
+            $r = Invoke-SlicesRetirement -SlicesPath $path
+
+            $r.State | Should -Be 'Clean'
+            ($r.Left | Where-Object Number -eq 23).Reason | Should -Be 'NoIssue'
+        }
+    }
+
     Context 'Format-CriteriaRange' {
         It 'formats a multi-criterion slice as min–max' {
             Format-CriteriaRange -Number 23 -Criteria @(1, 2, 3, 9) | Should -Be 'S23.1–S23.9'
