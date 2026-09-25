@@ -355,6 +355,28 @@ Describe 'Global front door with isolated homes and local Git origin' {
         Assert-Success (Run-Setup $f @{Uninstall=$true})
         (Join-Path $f.Home '.claude/skills/help') | Should -Not -Exist
     }
+    It '-Verify reports OK and changes nothing after a healthy install' {
+        Assert-Success (Run-Setup $f)
+        $before = Get-FixtureSnapshot $f
+        $result = Run-Setup $f @{Verify=$true}
+        Assert-Success $result
+        $result.Output | Should -Match 'Overall: OK'
+        (Get-FixtureSnapshot $f) | Should -BeExactly $before
+    }
+    It '-Verify reports a foreign-modified registration without repairing it' {
+        Assert-Success (Run-Setup $f)
+        $skill = Join-Path $f.Home '.claude/skills/help/SKILL.md'
+        Set-Content -LiteralPath $skill -Value 'tampered outside AgentKit'
+        $result = Run-Setup $f @{Verify=$true}
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match 'were modified outside AgentKit'
+        [IO.File]::ReadAllText($skill).TrimEnd() | Should -BeExactly 'tampered outside AgentKit'
+    }
+    It '-Verify reports nothing installed when no manifest exists' {
+        $result = Run-Setup $f @{Verify=$true}
+        $result.ExitCode | Should -Not -Be 0
+        $result.Output | Should -Match 'Nothing installed for this profile'
+    }
 }
 Describe 'Canonical skill dependencies' {
     It 'resolves kit-owned dependencies of every shipped skill and preserves project companions' {

@@ -27,6 +27,10 @@
 .PARAMETER Force
     Explicitly permits discarding dirty checkout files or repointing origin, and
     deleting the validated canonical checkout on uninstall. Never overwrites skills.
+.PARAMETER Verify
+    Read-only doctor mode. Reports checkout, origin, registration, pointer, and hook
+    health against the recorded manifest without fetching, checking out, or writing
+    anything. Exit code 0 when nothing is wrong, 1 otherwise.
 .EXAMPLE
     ./setup.ps1 -Hosts codex
     Install latest stable for Codex, both native and explicitly routed skills.
@@ -39,6 +43,9 @@
 .EXAMPLE
     ./setup.ps1 -Uninstall
     Remove managed registrations; keep checkout and customized files.
+.EXAMPLE
+    ./setup.ps1 -Verify
+    Report installation health; change nothing.
 #>
 [CmdletBinding()]
 param(
@@ -49,11 +56,13 @@ param(
     [switch] $DryRun,
     [switch] $Uninstall,
     [switch] $Force,
+    [switch] $Verify,
     # Private second stage: re-enter the installer FROM the selected commit.
     [switch] $RegisterOnly,
     [string] $PreviousCommit,
     [string] $RequestedVersion
 )
+if ($Verify -and ($Uninstall -or $RegisterOnly)) { throw '-Verify cannot be combined with -Uninstall or internal re-entry.' }
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'AgentKit requires Git on PATH.' }
@@ -152,7 +161,7 @@ if ($manifest.ContainsKey('installRoot') -and $manifest.installRoot -ne $install
 $effectiveSource = if ($Source) { $Source } elseif ($manifest.ContainsKey('source') -and $manifest.source) { $manifest.source } else { $publicSource }
 Assert-Root
 $exists = Test-Path -LiteralPath (Join-Path $installRoot '.git')
-if ($exists) {
+if ($exists -and -not $Verify) {
     $origin = [string](Invoke-Git @('remote','get-url','origin'))
     if ((Normalize-Origin $origin) -ne (Normalize-Origin $effectiveSource)) {
         if (-not $Force -or $Uninstall) { throw "Wrong origin '$origin'; expected '$effectiveSource'. Explicit -Source and -Force are required to re-point a checkout." }
@@ -274,6 +283,68 @@ function Update-Hooks([switch] $Remove) {
 }
 $pointerBlocks = [ordered]@{}
 if ($manifest.ContainsKey('pointerBlocks')) { foreach ($key in $manifest.pointerBlocks.Keys) { $pointerBlocks[$key] = $manifest.pointerBlocks[$key] } }
+
+function Invoke-Doctor {
+    $issues = [Collections.Generic.List[string]]::new()
+    $notes = [Collections.Generic.List[string]]::new()
+    if (-not $manifest.Count) {
+        Write-Host "No AgentKit manifest found at '$manifestPath'. Nothing installed for this profile."
+        return 1
+    }
+    Write-Host "AgentKit doctor report"
+    Write-Host "Root: $installRoot"
+    if (-not $exists) {
+        $issues.Add("Canonical checkout missing at '$installRoot'.")
+    } else {
+        $originNow = [string](Invoke-Git @('remote','get-url','origin'))
+        if ((Normalize-Origin $originNow) -ne (Normalize-Origin $effectiveSource)) {
+            $issues.Add("Origin '$originNow' does not match recorded source '$effectiveSource'.")
+        }
+        if (Invoke-Git @('status','--porcelain')) { $issues.Add('Checkout has uncommitted changes.') }
+        $headSha = [string](Invoke-Git @('rev-parse','HEAD'))
+        Write-Host "Commit: $headSha"
+        if ($manifest.ContainsKey('commit') -and $manifest.commit -and $manifest.commit -ne $headSha) {
+            $issues.Add("HEAD ($headSha) does not match manifest recorded commit ($($manifest.commit)).")
+        }
+    }
+    $regs = @(if ($manifest.ContainsKey('registrations')) { $manifest.registrations } else { @() })
+    if (-not $regs.Count) { $notes.Add('No host registrations recorded.') }
+    foreach ($group in @($regs | Group-Object host)) {
+        $ok = @($group.Group | Where-Object { Test-Owned $_ }).Count
+        if ($ok -ne $group.Count) { $issues.Add("Host $($group.Name): only $ok/$($group.Count) registrations intact; the rest are missing or were modified outside AgentKit.") }
+        Write-Host "Host $($group.Name): $ok/$($group.Count) registrations intact."
+    }
+    foreach ($path in @($pointerBlocks.Keys)) {
+        if (-not (Test-Path -LiteralPath $path)) { $issues.Add("Pointer block missing: '$path' no longer exists."); continue }
+        $text = [IO.File]::ReadAllText($path)
+        $pattern = [regex]::Escape($pointerStart) + '.*?' + [regex]::Escape($pointerEnd)
+        $match = [regex]::Match($text, $pattern, 'Singleline')
+        if (-not $match.Success) { $issues.Add("Pointer block missing from '$path'."); continue }
+        if ($match.Value -cne $pointerBlocks[$path]) { $notes.Add("Pointer block at '$path' was customized after install (preserved, not an error).") }
+    }
+    if ($manifest.ContainsKey('hooksManaged') -and $manifest.hooksManaged) {
+        $hooksPath = Join-Path $HOME '.claude/settings.json'
+        if (-not (Test-Path -LiteralPath $hooksPath)) {
+            $issues.Add("Hooks are managed but '$hooksPath' does not exist.")
+        } else {
+            $settings = Get-Content -LiteralPath $hooksPath -Raw | ConvertFrom-Json -AsHashtable
+            foreach ($event in @('SessionEnd','UserPromptSubmit')) {
+                $mode = if ($event -eq 'SessionEnd') { '-Hook' } else { '-Watch' }
+                $expected = [ordered]@{ hooks = @([ordered]@{ type='command'; command='pwsh'; args=@('-NoProfile','-File',(Join-Path $installRoot 'tools/Measure-Session.ps1').Replace('\','/'),$mode); timeout=$(if ($mode -eq '-Hook') {30} else {10}) }) }
+                $serialized = ConvertTo-Json -InputObject $expected -Depth 10 -Compress
+                $present = $settings.ContainsKey('hooks') -and $settings.hooks.ContainsKey($event) -and
+                    @($settings.hooks[$event] | Where-Object { $_ -and (ConvertTo-Json -InputObject $_ -Depth 10 -Compress) -ceq $serialized }).Count -gt 0
+                if (-not $present) { $issues.Add("Expected $event hook entry missing from '$hooksPath'.") }
+            }
+        }
+    }
+    foreach ($note in $notes) { Write-Host "Note: $note" }
+    if (-not $issues.Count) { Write-Host 'Overall: OK'; return 0 }
+    Write-Host "Overall: $($issues.Count) issue(s) found:"
+    foreach ($issue in $issues) { Write-Host " - $issue" }
+    return 1
+}
+if ($Verify) { exit (Invoke-Doctor) }
 
 if ($Uninstall) {
     foreach ($entry in $oldRegistrations) { Remove-Registration $entry }
