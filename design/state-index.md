@@ -49,6 +49,7 @@ means no record exists yet, not that nothing is true.
 | `unit/document/agents-md` | document | `AGENTS.shared.md` |
 | `unit/document/codex-profiles` | document | `codex/PROFILES.md` |
 | `unit/document/companions-md` | document | `.claude/COMPANIONS.md` |
+| `unit/document/contributing-md` | document | `CONTRIBUTING.md` |
 | `unit/document/design-00-brief` | document | `design/00-brief.md` |
 | `unit/document/design-10-design` | document | `design/10-design.md` |
 | `unit/document/design-20-contract` | document | `design/20-contract.md` |
@@ -61,6 +62,7 @@ means no record exists yet, not that nothing is true.
 | `unit/document/issue-template-story` | document | `.github/ISSUE_TEMPLATE/story.md` |
 | `unit/document/project-agents-md` | document | `AGENTS.md` |
 | `unit/document/readme-md` | document | `README.md` |
+| `unit/document/security-md` | document | `SECURITY.md` |
 | `unit/document/template-00-brief` | document | `templates/design/00-brief.md` |
 | `unit/document/template-10-design` | document | `templates/design/10-design.md` |
 | `unit/document/template-20-contract` | document | `templates/design/20-contract.md` |
