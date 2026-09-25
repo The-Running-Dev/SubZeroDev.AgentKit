@@ -545,6 +545,57 @@ function Get-CheckerGlobPatterns {
 }
 
 <#
+    Whether a kind's declared pattern still shares at least one glob token with the checker's own
+    kit-shaped default (design/20-contract.md § "Artifacts of a unit kind"). Sharing one is enough:
+    the checker's hardcoded Get-*GlobFiles enumerator walks every kit-shaped root regardless of
+    which of them the table still declares, so as long as the table keeps at least one of those
+    roots, the enumerator's reading of that root is still a genuine independent reading and
+    GlobDisagreement can still compare on it - narrowing the declared list (dropping one glob
+    among several, trimming an exclusion) is not the same defect as moving the kind's root
+    location away entirely. Zero shared tokens means every root the table declares is one the
+    kit-shaped enumerator does not know about - the same structural situation § "Artifacts of a
+    unit kind" already carves 'component' out for, since there is then no independently derivable
+    second reading left at all to compare against (#397).
+#>
+function Test-KindGlobReachesKitDefault {
+    param([Parameter(Mandatory)][string] $Kind, [Parameter(Mandatory)] $Spec)
+
+    $default = $script:AgentKitGlobPatterns[$Kind]
+    if ($null -eq $default) { return $false }
+    [string[]] $declared = @($Spec.Glob)
+    [string[]] $kit = @($default.Glob)
+    foreach ($pattern in $declared) {
+        if ($kit -contains $pattern) { return $true }
+    }
+    $false
+}
+
+<#
+    The declared table's resolved files for a kind when the project supplies one and it carries at
+    least one pattern for that kind; the checker's own kit-shaped enumeration otherwise. Mirrors
+    Test-UnrecordedArtifact's per-kind fallback (#386) for a caller - here, marked-region scanning
+    - that needs the same "which files actually carry this kind" answer without also needing
+    UnrecordedArtifact's record cross-reference (#397).
+#>
+function Resolve-EffectiveKindGlobFiles {
+    param(
+        [Parameter(Mandatory)][string] $RepoPath,
+        [Parameter(Mandatory)][string] $Kind,
+        [AllowNull()] $ComponentGlobResult,
+        [Parameter(Mandatory)][scriptblock] $KitEnumerator
+    )
+
+    if ($null -ne $ComponentGlobResult -and -not $ComponentGlobResult.Failure -and $ComponentGlobResult.Kinds.ContainsKey($Kind)) {
+        $spec = $ComponentGlobResult.Kinds[$Kind]
+        if (@($spec.Glob).Count -gt 0) {
+            return ,(Get-ContractGlobResolvedFiles -RepoPath $RepoPath -Spec $spec)
+        }
+        return ,@()
+    }
+    ,(& $KitEnumerator)
+}
+
+<#
     Expands one parsed pattern against the checkout. A pattern is repository-relative and
     wildcards exactly one segment: either the final one, where the directory half is literal and
     the file half is a -Filter, or the directory's own last segment, where the leaf is literal and
@@ -629,6 +680,11 @@ function Get-ContractGlobResolvedFiles {
     exists for. The parsed patterns only ever compare - UnrecordedArtifact keeps reading the
     Get-*GlobFiles enumerations - so a mis-parse can report a disagreement or report
     ContractListUnreadable, and can never narrow the world being checked.
+
+    A kind whose declared pattern shares no glob token at all with the checker's own kit-shaped
+    default (Test-KindGlobReachesKitDefault) is skipped rather than compared: every root the table
+    declares is then one the kit-shaped enumerator does not know about, so there is no independent
+    second reading left - the same reason 'component' below is never a disagreement (#397).
 #>
 function Test-GlobDisagreement {
     param(
@@ -659,6 +715,12 @@ function Test-GlobDisagreement {
             continue
         }
         $spec = $parsed.Kinds[$kind]
+
+        # A table that shares no glob token at all with the checker's own kit-shaped enumeration
+        # leaves no independent second reading to compare against - the same structural situation
+        # 'component' is already carved out for, below - so this kind is never a disagreement,
+        # whether or not the resolved file sets happen to match (#397).
+        if (-not (Test-KindGlobReachesKitDefault -Kind $kind -Spec $spec)) { continue }
 
         # Expand-ContractGlobPattern and the Get-*GlobFiles enumerations all emit `,@(...)`, a
         # single object that *is* an array. Both sides are cast flat before comparing; without it
@@ -2003,7 +2065,11 @@ function Invoke-DesignStateCheck {
     if ($globResult.CouldNotEvaluate) { $couldNotEvaluate.Add($globResult.CouldNotEvaluate) }
     $blockingFindings.AddRange($globResult.Findings)
 
-    $regionFiles = @((Get-DocumentGlobFiles -RepoPath $RepoPath) + (Get-CommandGlobFiles -RepoPath $RepoPath) | Sort-Object -Unique)
+    $regionFiles = @(
+        (Resolve-EffectiveKindGlobFiles -RepoPath $RepoPath -Kind 'document' -ComponentGlobResult $componentGlobResult -KitEnumerator { Get-DocumentGlobFiles -RepoPath $RepoPath }) +
+        (Resolve-EffectiveKindGlobFiles -RepoPath $RepoPath -Kind 'command'  -ComponentGlobResult $componentGlobResult -KitEnumerator { Get-CommandGlobFiles  -RepoPath $RepoPath }) |
+        Sort-Object -Unique
+    )
     $regionResult = Get-MarkedRegions -RepoPath $RepoPath -Files $regionFiles
     $blockingFindings.AddRange($regionResult.Findings)
     $blockingFindings.AddRange((Test-RegionFormCollision -Inventory $regionResult.Inventory))
