@@ -54,22 +54,10 @@ The cache only remembers gates; it never decides what they are — that judgemen
 
 For each flagged step, read its `run:` block and translate it to the equivalent local
 invocation — that translation is still genuine judgement, the flag only says *that* a step
-is a gate, not *how* to reproduce it outside CI. This repository's current flagged steps and
-their local equivalents:
+is a gate, not *how* to reproduce it outside CI. Read [the live workflow](../../.github/workflows/verify.yml)
+for this repository's flagged steps, including any OS-specific repetitions.
 
-| Flagged step (`.github/workflows/verify.yml`) | Run locally |
-|---|---|
-| `Parse-check PowerShell scripts` | Parse every `*.ps1` with `[System.Management.Automation.Language.Parser]::ParseFile`, as the step does |
-| `Run Pester tests` | `Invoke-Pester -Path tools -Output Detailed -PassThru` |
-| `Validate the core/companion split` | `./tools/Test-Companion.ps1` |
-| `Check the design state against the tree` | `./tools/Test-DesignState.ps1` |
-| `Typecheck videos/` | `cd videos && npx tsc --noEmit` |
-
-A repository can gain, lose, or rename flagged steps over time — re-derive this table from
-the workflow files rather than trusting a memorized list; the five rows above describe this
-repository's steps as of this writing, not a fixed schema.
-
-**Two of those steps exit 2 as well as 0 and 1, and 2 is not a failure — it is the third
+**Two kit checkers exit 2 as well as 0 and 1, and 2 is not a failure — it is the third
 list.** `Test-Companion.ps1` and `Test-DesignState.ps1` both distinguish *ran and found
 something* from *could not run at all*, and the exit code is how they say which: 0 is `Passed`,
 1 is `Failed`, and **2 is `DidNotRun`, with the script's own could-not-evaluate reasons as the

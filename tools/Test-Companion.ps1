@@ -364,6 +364,7 @@ function Invoke-CompanionCheck {
             }
             if ($decl.Categories -notcontains $heading.Name) {
                 $findings.Add((New-CompanionFinding $companionRel 'UndeclaredCategory' "'$($heading.Name)' is a valid category, but $coreRel does not allow it to be overridden."))
+                continue
             }
             if (-not $heading.HasBody) {
                 $findings.Add((New-CompanionFinding $companionRel 'EmptyCategory' "'## $($heading.Name)' has nothing under it. An empty category still reads as an override; delete the heading instead."))
