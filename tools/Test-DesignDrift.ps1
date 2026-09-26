@@ -130,9 +130,16 @@ function Get-SliceCriteria {
         }
     }
 
-    $slices  = @{}
-    $landed  = [System.Collections.Generic.List[int]]::new()
-    $current = $null
+    $slices    = @{}
+    $landed    = [System.Collections.Generic.List[int]]::new()
+    $current   = $null
+    $foreign   = [System.Collections.Generic.List[string]]::new()
+
+    # A heading or landed-table row that is shaped like a slice marker but does not use the
+    # literal `S` prefix. Checked only when nothing at all matched the real prefix (below) - a
+    # renamed vocabulary (`W<n>`, `track/SKILL-local.md`) must not be read as "no slices exist".
+    $slicePattern = '^#{2,3}\s+(?:\[[ xX]\]\s+)?(?<prefix>[A-Za-z]{1,6})(?<n>\d+)\b'
+    $rowPattern   = '^\|\s*\*\*(?<prefix>[A-Za-z]{1,6})(?<n>\d+)\*\*\s*\|'
 
     foreach ($line in (Get-Content -LiteralPath $Path)) {
         if ($line -match '^#{2,3}\s') {
@@ -145,11 +152,19 @@ function Get-SliceCriteria {
             if ($null -ne $current -and -not $slices.ContainsKey($current)) {
                 $slices[$current] = [System.Collections.Generic.List[string]]::new()
             }
+            if ($null -eq $current -and $line -match $slicePattern -and $Matches['prefix'] -ne 'S') {
+                $foreign.Add($Matches['prefix'])
+            }
             continue
         }
 
         if ($line -match '^\|\s*\*\*S(?<n>\d+)\*\*\s*\|') {
             $landed.Add([int]$Matches['n'])
+            continue
+        }
+
+        if ($line -match $rowPattern -and $Matches['prefix'] -ne 'S') {
+            $foreign.Add($Matches['prefix'])
             continue
         }
 
@@ -169,10 +184,20 @@ function Get-SliceCriteria {
         }
     }
 
+    # Zero real slices matched is only legitimate when nothing slice-shaped exists to match -
+    # every S<n> already landed (design/30-slices.md's own current state) is Clean at 0; a
+    # renamed prefix that left slice-shaped content unmatched is a structural read failure, not
+    # an empty document, and must not reach the same exit code as a genuine clean comparison.
+    $failure = $null
+    if ($slices.Count -eq 0 -and $landed.Count -eq 0 -and $foreign.Count -gt 0) {
+        $prefixes = @($foreign | Sort-Object -Unique) -join ', '
+        $failure = New-Failure -Reason 'UnrecognizedSlicePrefix' -Detail "no 'S<n>' heading or landed row matched in $Path; found prefix(es) $prefixes instead - check track/SKILL-local.md's vocabulary override"
+    }
+
     [pscustomobject]@{
         Slices  = $slices
         Landed  = @($landed)
-        Failure = $null
+        Failure = $failure
     }
 }
 
