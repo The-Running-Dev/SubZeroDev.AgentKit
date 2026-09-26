@@ -10,6 +10,7 @@ disable-model-invocation: true
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `document-map`, `extra-steps`, `gate-commands`, `tightened-authorization`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
+Without asking, it: `branch-commit-push-pr`, `file-bug-issue`.
 <!-- companion:declared:end -->
 
 Fix the defect named by **$1** — an issue number, a description, a failing test already in this session's context, or (with no argument and none of those) the highest-value open bug issue, picked automatically. `/slice` needs a slice id and a contract signature; a bug has neither, which is why this command exists as its own front door rather than an extension of `/slice`.

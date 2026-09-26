@@ -10,6 +10,7 @@ disable-model-invocation: true
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `extra-steps`, `tightened-authorization`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
+Without asking, it: `branch-commit-push-pr`.
 <!-- companion:declared:end -->
 
 Home install (`INSTALL.md` phase 4) stopped copying kit-owned files into a target repository at

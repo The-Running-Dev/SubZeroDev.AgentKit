@@ -9,6 +9,7 @@ disable-model-invocation: true
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `extra-steps`, `gate-commands`, `tightened-authorization`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
+Without asking, it: `branch-commit-push-pr`, `merge-when-green`, `resolve-review-thread`.
 <!-- companion:declared:end -->
 
 Take the work on the current branch to merged, in four phases, in order.
