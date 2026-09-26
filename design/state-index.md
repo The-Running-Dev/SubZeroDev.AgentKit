@@ -342,7 +342,6 @@ that looks old.
 <!-- outstanding:start -->
 | Rank | Issue | Title | Criteria | Mirrored at |
 |---|---|---|---|---|
-| 358 | #358 | Get-MarkedRegions reads a fenced example as a live marked region | — | `ec1f2faefd5816e716f27bc06902c28ce6ab6a34` |
-| 359 | #359 | Give the six contract-less script units a contract record | — | `ec1f2faefd5816e716f27bc06902c28ce6ab6a34` |
-| milestone/3 | #33 | Move commands to a vendor-neutral path | — | `2fe2b41650c0dfd0c31f5e33618e7ac8c72cd465` |
+| 404 | #404 | Sign release tags and publish checksums with each release | — | `5b7bba0c61d59c7663446501947ed9dcbe2a754d` |
+| 408 | #408 | Companion narrowing-only rule has no automated enforcement, only manual review | — | `5b7bba0c61d59c7663446501947ed9dcbe2a754d` |
 <!-- outstanding:end -->
