@@ -433,6 +433,33 @@ Acceptance:
             Should -Invoke Get-TrackerIssue -Exactly -Times 0
         }
 
+        It 'a doc using a renamed slice prefix is NotEvaluated, not Clean at 0 (issue #416)' {
+            $path = New-SlicesDoc -Content @'
+# Slices
+
+## Outstanding
+
+### [ ] W115 -- A slice using a renamed prefix
+
+- **W115.1** first
+- **W115.2** second
+
+## Landed
+
+| Slice | Name | Issue | Criteria | Body complete at |
+|---|---|---|---|---|
+| **W1** | An earlier slice, already landed | #9, closed | W1.1-W1.2 | `af610a6` |
+'@
+            Mock Get-TrackerIssue { New-Tracker }
+
+            $r = Invoke-DriftCheck -SlicesPath $path
+
+            $r.State | Should -Be 'NotEvaluated'
+            $r.Failures.Reason | Should -Contain 'UnrecognizedSlicePrefix'
+            $r.SlicesCompared | Should -Be 0
+            Get-DriftExitCode -State $r.State | Should -Be 2
+        }
+
         It 'a criterion numbered for another slice is unparseable, not silently filed' {
             $path = New-SlicesDoc -Content @'
 # Slices
