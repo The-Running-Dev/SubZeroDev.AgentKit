@@ -10,6 +10,7 @@ disable-model-invocation: true
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `extra-steps`, `tightened-authorization`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
+Without asking, it: `branch-commit-push-pr`, `merge-when-green`.
 <!-- companion:declared:end -->
 
 Install the project-owned part of AgentKit. In a global skill invocation the adapter names the

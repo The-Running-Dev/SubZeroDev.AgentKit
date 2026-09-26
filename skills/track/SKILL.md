@@ -10,6 +10,7 @@ disable-model-invocation: true
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `vocabulary`, `document-map`, `tightened-authorization`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
+Without asking, it: `open-issue`, `open-milestone`, `tick-checkbox`.
 <!-- companion:declared:end -->
 
 ## Stop if `design/` is frozen

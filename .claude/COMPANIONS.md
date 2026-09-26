@@ -57,12 +57,38 @@ under a heading is that category's override. A heading that is not an id below i
 Two properties of the table are load-bearing:
 
 - **`tightened-authorization` tightens only.** A companion may require an ask the core does not.
-  It may never remove one. A companion that widens an authorization is a defect, not a policy —
-  the validator cannot detect intent, so this is the reviewer's check, and it is the reason the
-  category is named for its direction rather than for its subject.
+  It may never remove one. `tools/Test-Companion.ps1` enforces this mechanically (I33): an
+  override is a grammar of `ask-before` entries, each naming an action from the table below that
+  its core actually performs unasked, and nothing else — a widening has no form in which to be
+  written, so it is the reason the category is named for its direction rather than for its subject.
 - **There is no `behaviour` category, and adding one is a decision, not an edit.** The five
   above are deliberately narrow. A repository that needs a command to *do something else* needs
   a different command, or an amendment to the core — not a companion.
+
+## Actions
+
+A core that allows `tightened-authorization` names, in its declared block, the subset of the
+ids below it actually performs without asking — its **authorization set**. Each id is a name for
+a grant that `AGENTS.shared.md` already makes to that command; a row here does not create
+authorization, it only gives an existing grant an id a companion's `ask-before` entry can point
+at. A companion narrows the set with an entry naming one of these ids; it can never widen it,
+because an entry can only name an id already in its core's authorization set.
+
+| Id | What it grants | Granted by |
+|---|---|---|
+| `branch-commit-push-pr` | Branch off default, stage by named path, commit, push, and open the pull request, without asking first | `AGENTS.shared.md` § *Git and delivery* |
+| `merge-when-green` | Merge a pull request via `tools/Merge-PullRequest.ps1` once every gate it checks is confirmed green, without asking first | `AGENTS.shared.md` § *Git and delivery* |
+| `delete-merged-branch` | Delete a local branch `git branch --merged` confirms is merged, without asking first | `AGENTS.shared.md` § *Git and delivery* |
+| `force-delete-squash-merged-branch` | Force-delete a local branch `tools/Invoke-DoneHousekeeping.ps1` confirms is squash-merged, without asking first | `AGENTS.shared.md` § *Git and delivery* |
+| `stash-dirty-tree` | Stash — never discard — a dirty working tree to unblock a branch switch, without asking first | `AGENTS.shared.md` § *Git and delivery* |
+| `resolve-review-thread` | Resolve or reply to a `Defect`-class review thread, without asking first | `AGENTS.shared.md` § *Git and delivery* |
+| `open-issue` | Open, label, close, comment on, or edit a GitHub issue, without asking first | `AGENTS.shared.md` § *Tracking work* |
+| `open-milestone` | Create a GitHub milestone or project, without asking first | `AGENTS.shared.md` § *Tracking work* |
+| `tick-checkbox` | Tick a `Done when` checkbox in the same run that confirms the criterion, without asking first | `AGENTS.shared.md` § *Tracking work* |
+| `file-bug-issue` | File one bug issue after reproducing the defect it describes, without asking first | `AGENTS.shared.md` § *Tracking work* |
+
+Adding a row for an action `AGENTS.shared.md` does not already grant is not permitted — this
+table states the vocabulary an existing grant is known by, it does not mint a new one.
 
 ## Never
 

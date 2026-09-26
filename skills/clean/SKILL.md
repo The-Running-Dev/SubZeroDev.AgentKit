@@ -9,6 +9,7 @@ disable-model-invocation: true
 empty, or frontmatter-only file is no companion, and this file then stands alone.
 It may override: `extra-steps`, `tightened-authorization`. It may never override anything in
 [`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
+Without asking, it: `delete-merged-branch`, `force-delete-squash-merged-branch`, `stash-dirty-tree`.
 <!-- companion:declared:end -->
 
 Housekeeping for the end of a piece of work: get back to the default branch, remove the local branches that are done, and drop remote-tracking refs for branches deleted on the remote. It always ends by handing off to `/next` — see *Hand off to `/next`* below.

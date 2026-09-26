@@ -37,6 +37,10 @@
       UnknownCompanionHeading A companion heading that is not a category id
       UndeclaredCategory      A companion overrides a category its core did not allow
       EmptyCategory           A companion heading with nothing under it
+      NoDelegatedActions      A core allows tightened-authorization but names no action
+      UnknownAction           A core names an action absent from COMPANIONS.md's action table
+      NonConformingAuthorization A tightened-authorization line is not an ask-before entry
+      UndelegatedAction       An ask-before entry names an action its core does not perform unasked
 
     A companion that is missing, empty, or frontmatter-only is *absent* - counted, never a
     finding. That is COMPANIONS.md's *Absence* rule, and treating any of the three as an
@@ -110,21 +114,55 @@ function New-CompanionFinding {
 }
 
 <#
-    Reads the category ids out of COMPANIONS.md's table. Rows look like:
+    Returns the text of one `## <Heading>` section of a document - from just after the heading
+    line to the next `##` heading or the end of the file. Scoping a table read to its own
+    section is what keeps two same-shaped tables (Categories, Actions) from being merged by a
+    single whole-file regex.
+#>
+function Get-DocSection {
+    param(
+        [Parameter(Mandatory)][string] $Text,
+        [Parameter(Mandatory)][string] $HeadingName
+    )
+    $m = [regex]::Match($Text, "(?m)^##[ \t]+$([regex]::Escape($HeadingName))[ \t]*`$")
+    if (-not $m.Success) { return '' }
+    $start = $m.Index + $m.Length
+    $rest = $Text.Substring($start)
+    $next = [regex]::Match($rest, '(?m)^##[ \t]+')
+    if ($next.Success) { $rest.Substring(0, $next.Index) } else { $rest }
+}
+
+<#
+    Reads the ids out of one row-shaped table section of COMPANIONS.md. Rows look like:
       | `vocabulary` | What this repository calls ... |
     The leading-pipe anchor is what keeps this from also matching the backticked ids used in
-    the prose above and below the table.
+    the prose above and below the table. Scoped to a single `## <Heading>` section so the
+    Categories table and the Actions table are never read as one list.
 #>
-function Get-CompanionCategory {
-    param([Parameter(Mandatory)][string] $CompanionsDoc)
+function Get-CompanionTableIds {
+    param(
+        [Parameter(Mandatory)][string] $CompanionsDoc,
+        [Parameter(Mandatory)][string] $HeadingName
+    )
 
     $text = [System.IO.File]::ReadAllText($CompanionsDoc) -replace "`r`n", "`n"
+    $section = Get-DocSection -Text $text -HeadingName $HeadingName
     $ids = [System.Collections.Generic.List[string]]::new()
-    foreach ($m in [regex]::Matches($text, '(?m)^\|\s*`([a-z][a-z0-9-]*)`\s*\|')) {
+    foreach ($m in [regex]::Matches($section, '(?m)^\|\s*`([a-z][a-z0-9-]*)`\s*\|')) {
         $id = $m.Groups[1].Value
         if (-not $ids.Contains($id)) { $ids.Add($id) }
     }
     , @($ids)
+}
+
+function Get-CompanionCategory {
+    param([Parameter(Mandatory)][string] $CompanionsDoc)
+    Get-CompanionTableIds -CompanionsDoc $CompanionsDoc -HeadingName 'Categories'
+}
+
+function Get-CompanionAction {
+    param([Parameter(Mandatory)][string] $CompanionsDoc)
+    Get-CompanionTableIds -CompanionsDoc $CompanionsDoc -HeadingName 'Actions'
 }
 
 <#
@@ -174,10 +212,20 @@ function Get-CoreDeclaration {
         }
     }
 
+    $actions = [System.Collections.Generic.List[string]]::new()
+    $actionMatch = [regex]::Match($body, '(?s)Without asking, it:(.*?)\.\s')
+    if ($actionMatch.Success) {
+        foreach ($m in [regex]::Matches($actionMatch.Groups[1].Value, '`([a-z][a-z0-9-]*)`')) {
+            $id = $m.Groups[1].Value
+            if (-not $actions.Contains($id)) { $actions.Add($id) }
+        }
+    }
+
     [pscustomobject]@{
         BlockCount   = $blocks.Count
         CompanionPath = $declaredPath
         Categories   = @($categories)
+        Actions      = @($actions)
     }
 }
 
@@ -198,9 +246,11 @@ function Get-CompanionHeading {
     for ($i = 0; $i -lt $headings.Count; $i++) {
         $start = $headings[$i].Index + $headings[$i].Length
         $end = if ($i + 1 -lt $headings.Count) { $headings[$i + 1].Index } else { $body.Length }
+        $sectionBody = $body.Substring($start, $end - $start)
         $rows.Add([pscustomobject]@{
                 Name    = $headings[$i].Groups[1].Value.Trim('`', ' ')
-                HasBody = -not [string]::IsNullOrWhiteSpace($body.Substring($start, $end - $start))
+                HasBody = -not [string]::IsNullOrWhiteSpace($sectionBody)
+                Body    = $sectionBody
             })
     }
     , @($rows)
@@ -233,6 +283,14 @@ function Invoke-CompanionCheck {
         return [pscustomobject]@{
             State = 'NotEvaluated'; Findings = @(); CoreCount = 0; CompanionCount = 0; AbsentCount = 0
             Detail = "No category ids found in '$companionsDoc' - its table is missing or its shape changed."
+        }
+    }
+
+    $validActions = Get-CompanionAction -CompanionsDoc $companionsDoc
+    if ($validActions.Count -eq 0) {
+        return [pscustomobject]@{
+            State = 'NotEvaluated'; Findings = @(); CoreCount = 0; CompanionCount = 0; AbsentCount = 0
+            Detail = "No action ids found in '$companionsDoc' - its Actions table is missing or its shape changed."
         }
     }
 
@@ -282,6 +340,17 @@ function Invoke-CompanionCheck {
             }
         }
 
+        if ($decl.Categories -contains 'tightened-authorization') {
+            if ($decl.Actions.Count -eq 0) {
+                $findings.Add((New-CompanionFinding $coreRel 'NoDelegatedActions' "Allows 'tightened-authorization' but names no action it performs without asking."))
+            }
+            foreach ($action in $decl.Actions) {
+                if ($validActions -notcontains $action) {
+                    $findings.Add((New-CompanionFinding $coreRel 'UnknownAction' "'$action' is not an action in .claude/COMPANIONS.md's Actions table."))
+                }
+            }
+        }
+
         if (Test-CompanionAbsent -Path $companionPath) {
             $absentCount++
             continue
@@ -298,6 +367,21 @@ function Invoke-CompanionCheck {
             }
             if (-not $heading.HasBody) {
                 $findings.Add((New-CompanionFinding $companionRel 'EmptyCategory' "'## $($heading.Name)' has nothing under it. An empty category still reads as an override; delete the heading instead."))
+                continue
+            }
+            if ($heading.Name -eq 'tightened-authorization') {
+                $lines = ($heading.Body -split "`n") | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+                foreach ($line in $lines) {
+                    $lineMatch = [regex]::Match($line.Trim(), '^-\s*ask-before:\s*`([a-z][a-z0-9-]*)`\s*$')
+                    if (-not $lineMatch.Success) {
+                        $findings.Add((New-CompanionFinding $companionRel 'NonConformingAuthorization' "'$($line.Trim())' is not a single '- ask-before: `<action>`' entry."))
+                        continue
+                    }
+                    $action = $lineMatch.Groups[1].Value
+                    if ($decl.Actions -notcontains $action) {
+                        $findings.Add((New-CompanionFinding $companionRel 'UndelegatedAction' "'$action' is not in $coreRel's authorization set - it cannot be asked before, only widened."))
+                    }
+                }
             }
         }
     }

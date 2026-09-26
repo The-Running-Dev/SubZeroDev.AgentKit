@@ -26,12 +26,39 @@ BeforeAll {
     $script:CompanionsDoc = @(
         '# Command cores and their per-repo companions'
         ''
+        '## Categories'
+        ''
         '| Id | What it may override | Example |'
         '|---|---|---|'
         '| `vocabulary` | What this repository calls things | ids are `W<n>` |'
         '| `document-map` | Where a document lives | compound canonical files |'
         '| `extra-steps` | Repository-specific extra steps | regenerate the docs site |'
         '| `gate-commands` | The concrete commands a gate runs | `just verify` |'
+        '| `tightened-authorization` | A narrowing of what may happen unasked | ask per thread |'
+        ''
+        '## Actions'
+        ''
+        '| Id | What it grants | Granted by |'
+        '|---|---|---|'
+        '| `branch-commit-push-pr` | Branch, commit, push, open the PR unasked | Git and delivery |'
+        '| `merge-when-green` | Merge once every gate is green | Git and delivery |'
+        '| `resolve-review-thread` | Resolve a Defect-class thread unasked | Git and delivery |'
+        ''
+        '## Never'
+        ''
+        'A stop condition or a refusal.'
+    ) -join "`n"
+
+    # A fixture doc whose Actions table is missing entirely - the Categories table alone,
+    # for the two NotEvaluated cases about an absent/empty Actions section.
+    $script:CompanionsDocNoActions = @(
+        '# Command cores and their per-repo companions'
+        ''
+        '## Categories'
+        ''
+        '| Id | What it may override | Example |'
+        '|---|---|---|'
+        '| `vocabulary` | What this repository calls things | ids are `W<n>` |'
         '| `tightened-authorization` | A narrowing of what may happen unasked | ask per thread |'
         ''
         '## Never'
@@ -44,12 +71,13 @@ BeforeAll {
     # Phase 4 stopped a target repo from ever holding a copy of either (AGENTS.shared.md,
     # *House conventions* -> Home-install convention).
     function New-KitRoot {
-        param([Parameter(Mandatory)][string] $Name, [switch] $NoCompanionsDoc)
+        param([Parameter(Mandatory)][string] $Name, [switch] $NoCompanionsDoc, [switch] $NoActionsTable)
         $kitRoot = Join-Path $TestDrive $Name
         New-Item -ItemType Directory -Path (Join-Path $kitRoot 'skills') -Force | Out-Null
         if (-not $NoCompanionsDoc) {
             New-Item -ItemType Directory -Path (Join-Path $kitRoot '.claude') -Force | Out-Null
-            [System.IO.File]::WriteAllText((Join-Path $kitRoot '.claude/COMPANIONS.md'), $script:CompanionsDoc, [System.Text.UTF8Encoding]::new($false))
+            $doc = if ($NoActionsTable) { $script:CompanionsDocNoActions } else { $script:CompanionsDoc }
+            [System.IO.File]::WriteAllText((Join-Path $kitRoot '.claude/COMPANIONS.md'), $doc, [System.Text.UTF8Encoding]::new($false))
         }
         $kitRoot
     }
@@ -74,19 +102,24 @@ BeforeAll {
             [Parameter(Mandatory)][string] $KitRoot,
             [Parameter(Mandatory)][string] $Name,
             [string[]] $Categories = @('vocabulary'),
+            [string[]] $Actions,
             [string] $CompanionPath,
             [int] $BlockCount = 1
         )
         if (-not $CompanionPath) { $CompanionPath = "skills/$Name/SKILL-local.md" }
         $cats = ($Categories | ForEach-Object { "``$_``" }) -join ', '
-        $block = @(
-            '<!-- companion:declared:start -->'
-            "**Per-repo companion:** ``$CompanionPath``. Read it now, if it exists — an absent,"
-            'empty, or frontmatter-only file is no companion, and this file then stands alone.'
-            "It may override: $cats. It may never override anything in"
-            '[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.'
-            '<!-- companion:declared:end -->'
-        ) -join "`n"
+        $lines = [System.Collections.Generic.List[string]]::new()
+        $lines.Add('<!-- companion:declared:start -->')
+        $lines.Add("**Per-repo companion:** ``$CompanionPath``. Read it now, if it exists — an absent,")
+        $lines.Add('empty, or frontmatter-only file is no companion, and this file then stands alone.')
+        $lines.Add("It may override: $cats. It may never override anything in")
+        $lines.Add('[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.')
+        if ($PSBoundParameters.ContainsKey('Actions')) {
+            $actionList = ($Actions | ForEach-Object { "``$_``" }) -join ', '
+            $lines.Add("Without asking, it: $actionList.")
+        }
+        $lines.Add('<!-- companion:declared:end -->')
+        $block = $lines -join "`n"
 
         $body = @("---", "description: fixture $Name", "---", "")
         for ($i = 0; $i -lt $BlockCount; $i++) { $body += @($block, '') }
@@ -165,6 +198,38 @@ The canonical design docs are compound files with marked blocks.
         $ids | Should -Contain 'gate-commands'
         $ids | Should -Contain 'tightened-authorization'
         $ids.Count | Should -Be 5
+    }
+
+    It 'every action id in the real .claude/COMPANIONS.md is parsed out of its own, separate table' {
+        $ids = Get-CompanionAction -CompanionsDoc (Join-Path (Split-Path -Parent $PSScriptRoot) '.claude/COMPANIONS.md')
+
+        $ids | Should -Contain 'branch-commit-push-pr'
+        $ids | Should -Contain 'merge-when-green'
+        $ids | Should -Contain 'delete-merged-branch'
+        $ids | Should -Contain 'force-delete-squash-merged-branch'
+        $ids | Should -Contain 'stash-dirty-tree'
+        $ids | Should -Contain 'resolve-review-thread'
+        $ids | Should -Contain 'open-issue'
+        $ids | Should -Contain 'open-milestone'
+        $ids | Should -Contain 'tick-checkbox'
+        $ids | Should -Contain 'file-bug-issue'
+        $ids.Count | Should -Be 10
+    }
+
+    It 'a tightened-authorization override naming an action its core performs unasked is Valid' {
+        $kitRoot = New-KitRoot -Name 'valid-authorization-kit'
+        $repo = New-TargetRepo -Name 'valid-authorization-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @('tightened-authorization') -Actions @('branch-commit-push-pr', 'merge-when-green')
+        Write-Fixture -Root $repo -RelPath 'skills/slice/SKILL-local.md' -Content @"
+## tightened-authorization
+
+- ask-before: ``branch-commit-push-pr``
+"@
+
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
+
+        $r.State | Should -Be 'Valid'
+        $r.Findings.Count | Should -Be 0
     }
 
     It 'this repository itself is Valid, as both its own kit root and target' {
@@ -339,6 +404,52 @@ Describe 'Test-Companion — negative cases, one per rule' {
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'EmptyCategory'
     }
+
+    It 'NoDelegatedActions — a core allows tightened-authorization but names no action' {
+        $kitRoot = New-KitRoot -Name 'neg-no-delegated-actions-kit'
+        $repo = New-TargetRepo -Name 'neg-no-delegated-actions-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @('tightened-authorization')
+
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
+
+        $r.State | Should -Be 'Invalid'
+        $r.Findings.Rule | Should -Contain 'NoDelegatedActions'
+    }
+
+    It 'UnknownAction — a core names an action absent from COMPANIONS.md''s Actions table' {
+        $kitRoot = New-KitRoot -Name 'neg-unknown-action-kit'
+        $repo = New-TargetRepo -Name 'neg-unknown-action-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @('tightened-authorization') -Actions @('branch-commit-push-pr', 'launch-nukes')
+
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
+
+        $r.State | Should -Be 'Invalid'
+        ($r.Findings | Where-Object Rule -eq 'UnknownAction').Detail | Should -Match 'launch-nukes'
+    }
+
+    It 'NonConformingAuthorization — a tightened-authorization line that is not an ask-before entry' {
+        $kitRoot = New-KitRoot -Name 'neg-nonconforming-kit'
+        $repo = New-TargetRepo -Name 'neg-nonconforming-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @('tightened-authorization') -Actions @('branch-commit-push-pr')
+        Write-Fixture -Root $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## tightened-authorization`n`nAsk before pushing.`n"
+
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
+
+        $r.State | Should -Be 'Invalid'
+        $r.Findings.Rule | Should -Contain 'NonConformingAuthorization'
+    }
+
+    It 'UndelegatedAction — an ask-before entry names an action its core does not perform unasked' {
+        $kitRoot = New-KitRoot -Name 'neg-undelegated-action-kit'
+        $repo = New-TargetRepo -Name 'neg-undelegated-action-target'
+        New-Core -KitRoot $kitRoot -Name 'slice' -Categories @('tightened-authorization') -Actions @('branch-commit-push-pr')
+        Write-Fixture -Root $repo -RelPath 'skills/slice/SKILL-local.md' -Content "## tightened-authorization`n`n- ask-before: ``merge-when-green```n"
+
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
+
+        $r.State | Should -Be 'Invalid'
+        $r.Findings.Rule | Should -Contain 'UndelegatedAction'
+    }
 }
 
 Describe 'Test-Companion — NotEvaluated' {
@@ -374,6 +485,17 @@ Describe 'Test-Companion — NotEvaluated' {
         $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
 
         $r.State | Should -Be 'NotEvaluated'
+    }
+
+    It 'a COMPANIONS.md with a Categories table but no Actions table is NotEvaluated' {
+        $kitRoot = New-KitRoot -Name 'no-actions-table-kit' -NoActionsTable
+        $repo = New-TargetRepo -Name 'no-actions-table-target'
+        New-Core -KitRoot $kitRoot -Name 'slice'
+
+        $r = Invoke-CompanionCheck -TargetRepo $repo -KitRoot $kitRoot
+
+        $r.State | Should -Be 'NotEvaluated'
+        $r.Detail | Should -Match 'Actions'
     }
 }
 
