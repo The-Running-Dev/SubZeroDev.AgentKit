@@ -20,6 +20,7 @@ Get-ChildItem <kit-root> -Recurse -File | Where-Object FullName -notmatch '\\\.g
 git -C <target> rev-parse --absolute-git-dir --show-toplevel
 git -C <target> status --short --branch
 git -C <target> log -5 --oneline
+git -C <target> remote -v
 ```
 
 - **Resolve the real repository root.** `git rev-parse --show-toplevel` is authoritative, not the path you were given. A junction, a symlink, or a Dropbox-synced duplicate means two paths address one repository — install once, at the resolved root, and say in your report which path that was. Installing "both" writes the same files twice and reports success twice.
@@ -30,6 +31,7 @@ git -C <target> log -5 --oneline
   into an unversioned directory anyway. Phase 4 runs `git init -b main` at the resolved path as its first
   step; there is no separate prompt for it, because phase 3 already waits for sign-off on the whole install.
   Nothing is written here — phases 0–2 still write nothing at all.
+- **Record whether a remote named `origin` is configured** (a repository not yet initialized has none, same as one that is). Phase 4 step 8 creates one on GitHub when none exists, and that is exactly the kind of action `AGENTS.shared.md` requires authorization for — recording it here is what lets phase 3's report surface it instead of it happening silently, four phases downstream, with no chance to say no.
 - **Two conditions still stop the run outright**, because initializing under either does something you were not asked to do:
   - **The path does not exist.** Do not create it. A tree conjured from a mistyped path is a new repository
     somewhere nobody will look for it, holding a copy of the kit.
@@ -175,6 +177,7 @@ Produce this, and **stop**:
 ## Installing <kit-root> → <resolved target root>
 
 Not a repository:         will run git init -b main at <resolved target root>, nothing committed
+No remote configured:     will run gh repo create <folder-name> --private --source=. --remote=origin, then push
 Absent (will create):     <paths>
 Identical (skipping):     <paths>
 Divergent (proposed):     <path> — <what differs, what I propose, why>
@@ -239,13 +242,18 @@ Only after sign-off.
    - **The repository was initialized in step 1.** There is no default branch carrying a commit yet, so there
      is nothing to protect. Commit onto `main`.
    - **No remote configured** (whether or not step 1 ran). **Create one and push, rather than stopping short.**
+     No separate prompt here — phase 3's report already named this and sign-off covers it, the same as step 1's
+     `git init`. If phase 0 did not record a remote check (a re-run of an older report, say), stop and ask before
+     creating one; do not treat silence on this point as authorization.
      Run `gh repo create <folder-name> --private --source=. --remote=origin` from the resolved target root —
      `<folder-name>` is the resolved root's own directory name, not an invented one — then push. If `gh` is
      missing or not authenticated (`gh auth status` fails), fall back to reporting that a remote could not be
      created and the push did not run; do not guess at a remote URL or invent an org/owner. This is the one
      place this procedure creates a GitHub repository on its own — it is bounded to *no remote existing yet*
      on the repository this install is already touching, never a second repository, and never a rename or
-     visibility change to one that already exists.
+     visibility change to one that already exists. **State plainly in the closing report and the pull request
+     body that a remote was created, naming its URL** — the same as step 1 is required to say it initialized
+     the repository.
 
    **The pull request body is the phase 3 report plus what step 4 recorded** — what was created, what was
    reconciled and how, which forks were decided and what was rejected, and what is left for the user. Not a
