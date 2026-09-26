@@ -73,4 +73,50 @@ Describe 'Test-GatesCache' {
 
         (& $script:ScriptPath -RepoRoot $root).Status | Should -Be 'Stale'
     }
+
+    It 'rejects a write whose gates are not a nonempty array of usable objects' {
+        $invalidJson = @(
+            '"not-a-gate"',
+            '{"name":"Pester","command":"Invoke-Pester"}',
+            '[]',
+            '[{"name":" ","command":"Invoke-Pester"}]',
+            '[{"name":"Pester","command":null}]',
+            '[{"name":1,"command":"Invoke-Pester"}]',
+            '[{"name":"Pester"}]',
+            '[{"name":"Pester","command":"Invoke-Pester"},null]'
+        )
+        foreach ($json in $invalidJson) {
+            $root = New-CacheRepo
+            { & $script:ScriptPath -RepoRoot $root -Write -GatesJson $json } | Should -Throw
+            Test-Path -LiteralPath (Join-Path $root '.claude/gates.json') | Should -BeFalse
+        }
+    }
+
+    It 'marks a matching cache Stale when any gate is malformed' {
+        $invalidGateJson = @(
+            '"not-a-gate"',
+            '{"name":"Pester","command":"Invoke-Pester"}',
+            '[{"name":"Pester","command":"Invoke-Pester"},null]',
+            '[{"name":"Pester","command":" "}]',
+            '[{"name":"Pester","command":42}]',
+            '[{"command":"Invoke-Pester"}]'
+        )
+        foreach ($json in $invalidGateJson) {
+            $root = New-CacheRepo
+            & $script:ScriptPath -RepoRoot $root -Write -GatesJson '[{"name":"Pester","command":"Invoke-Pester"}]' | Out-Null
+            Set-CachedGate -Root $root -Gates (ConvertFrom-Json -InputObject $json -NoEnumerate)
+
+            $r = & $script:ScriptPath -RepoRoot $root
+            $r.Status | Should -Be 'Stale'
+            @($r.Gates).Count | Should -Be 0
+        }
+    }
+
+    It 'marks a cache with invalid JSON Stale' {
+        $root = New-CacheRepo
+        & $script:ScriptPath -RepoRoot $root -Write -GatesJson '[{"name":"Pester","command":"Invoke-Pester"}]' | Out-Null
+        Set-Content -LiteralPath (Join-Path $root '.claude/gates.json') -Value '{invalid json' -NoNewline
+
+        (& $script:ScriptPath -RepoRoot $root).Status | Should -Be 'Stale'
+    }
 }

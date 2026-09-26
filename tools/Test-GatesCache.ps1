@@ -18,11 +18,11 @@
     out, and says whether that answer is still trustworthy:
 
       (no -Write)   Compute the current manifest hash, compare it to .claude/gates.json.
-                    Fresh   - hash matches and the cache holds at least one gate. Emits
+                    Fresh   - hash matches and the cache holds a valid gate list. Emits
                               the cached gates; /check runs them directly and skips
                               discovery.
                     Stale   - a manifest file changed since the cache was written, or the
-                              cache's gate list is empty or null - it carries no answer to
+                              cache's gate list is malformed - it carries no answer to
                               reuse. /check re-discovers, then calls this script with -Write.
                     Missing - no cache yet. Same as Stale.
 
@@ -30,7 +30,7 @@
                     current manifest hash. Call this once, right after /check has done a
                     real discovery pass by hand.
 
-    The manifest hash covers exactly the inputs the /check skill's own discovery table reads:
+    The manifest hash covers the inputs the /check skill's discovery procedure reads:
     every `.github/workflows/*.yml` (content - a changed step is a changed gate list),
     `package.json` (content - scripts can be added, renamed, or removed), and the presence
     of `*.sln`/`*.csproj`, `build/Test-Documentation.ps1`,
@@ -47,8 +47,8 @@
     Write a new cache instead of checking the existing one. Requires -GatesJson.
 
 .PARAMETER GatesJson
-    A JSON array of gate objects, each with at least `name` and `command`. Only used with
-    -Write.
+    A nonempty JSON array of gate objects, each with nonblank string `name` and `command`.
+    Only used with -Write.
 
 .EXAMPLE
     ./tools/Test-GatesCache.ps1
@@ -80,7 +80,7 @@ $cachePath = Join-Path $repoRootResolved '.claude/gates.json'
 
 function Get-ManifestHash {
     <#
-    Hashes exactly the inputs the /check skill's discovery table reads: workflow and package
+    Hashes the inputs the /check skill's discovery procedure reads: workflow and package
     manifest *content* (a step or script changing must invalidate the cache), and the
     *existence* of the known build-script paths (their content is not this cache's concern).
     #>
@@ -126,10 +126,30 @@ function Get-ManifestHash {
     }
 }
 
+function Test-GateList {
+    param([AllowNull()][object]$Gates)
+
+    if ($Gates -isnot [array] -or $Gates.Count -eq 0) { return $false }
+    foreach ($gate in $Gates) {
+        if ($gate -isnot [pscustomobject]) { return $false }
+        foreach ($propertyName in @('name', 'command')) {
+            $property = $gate.PSObject.Properties[$propertyName]
+            if ($null -eq $property -or $property.Value -isnot [string] -or
+                [string]::IsNullOrWhiteSpace($property.Value)) {
+                return $false
+            }
+        }
+    }
+    return $true
+}
+
 $currentHash = Get-ManifestHash -RepoRoot $repoRootResolved
 
 if ($Write) {
-    $gates = $GatesJson | ConvertFrom-Json
+    $gates = ConvertFrom-Json -InputObject $GatesJson -NoEnumerate
+    if (-not (Test-GateList -Gates $gates)) {
+        throw '-GatesJson must be a nonempty array of objects with nonblank string name and command.'
+    }
     $cache = [pscustomobject]@{
         manifestHash = $currentHash
         generated    = (Get-Date -Format 'yyyy-MM-dd')
@@ -140,7 +160,7 @@ if ($Write) {
         New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
     }
     ($cache | ConvertTo-Json -Depth 10) | Set-Content -LiteralPath $cachePath -NoNewline
-    [pscustomobject]@{ Status = 'Written'; ManifestHash = $currentHash; GateCount = @($gates).Count }
+    [pscustomobject]@{ Status = 'Written'; ManifestHash = $currentHash; GateCount = $gates.Count }
     return
 }
 
@@ -149,14 +169,21 @@ if (-not (Test-Path -LiteralPath $cachePath)) {
     return
 }
 
-$existing = Get-Content -LiteralPath $cachePath -Raw | ConvertFrom-Json
-# @() wraps a bare $null into a one-element array holding null, not zero elements - a
-# corrupted or hand-edited "gates": null cache must not be handed back as a trustworthy
-# Fresh result. Filtering nulls out here means an empty or corrupted cache always falls
-# through to Stale, forcing rediscovery, the same as no cache at all.
-$cachedGates = @($existing.gates | Where-Object { $null -ne $_ })
-if ($existing.manifestHash -ceq $currentHash -and $cachedGates.Count -gt 0) {
-    [pscustomobject]@{ Status = 'Fresh'; ManifestHash = $currentHash; Generated = $existing.generated; Gates = $cachedGates }
+$cacheJson = Get-Content -LiteralPath $cachePath -Raw
+try {
+    $existing = ConvertFrom-Json -InputObject $cacheJson -NoEnumerate
+} catch {
+    [pscustomobject]@{ Status = 'Stale'; ManifestHash = $currentHash; Gates = @() }
+    return
+}
+if ($existing -is [pscustomobject] -and
+    $null -ne $existing.PSObject.Properties['manifestHash'] -and
+    $null -ne $existing.PSObject.Properties['gates'] -and
+    $null -ne $existing.PSObject.Properties['generated'] -and
+    $existing.manifestHash -is [string] -and
+    $existing.manifestHash -ceq $currentHash -and
+    (Test-GateList -Gates $existing.gates)) {
+    [pscustomobject]@{ Status = 'Fresh'; ManifestHash = $currentHash; Generated = $existing.generated; Gates = $existing.gates }
 } else {
     [pscustomobject]@{ Status = 'Stale'; ManifestHash = $currentHash; Gates = @() }
 }

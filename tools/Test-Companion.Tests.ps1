@@ -391,6 +391,7 @@ Describe 'Test-Companion — negative cases, one per rule' {
 
         $r.State | Should -Be 'Invalid'
         $r.Findings.Rule | Should -Contain 'UndeclaredCategory'
+        $r.Findings.Count | Should -Be 1
     }
 
     It 'EmptyCategory — a declared heading with nothing under it' {
