@@ -1882,7 +1882,7 @@ function Invoke-GhRaw {
         ProcessStartInfo with an explicit UTF-8 StandardOutputEncoding sidesteps the console
         entirely.
     #>
-    param([string[]] $GhArgs)
+    param([string[]] $GhArgs, [string] $WorkingDirectory)
     $psi = [System.Diagnostics.ProcessStartInfo]::new()
     $psi.FileName = 'gh'
     foreach ($a in $GhArgs) { $psi.ArgumentList.Add($a) }
@@ -1890,6 +1890,11 @@ function Invoke-GhRaw {
     $psi.RedirectStandardError = $true
     $psi.UseShellExecute = $false
     $psi.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    # Left unset, gh's own repo auto-detection falls back to Environment.CurrentDirectory,
+    # which a caller running with $PWD different from $RepoPath (a test suite that changed
+    # location and did not restore it, a script invoked from elsewhere) leaves pointed at the
+    # wrong tree - or none at all (#415). $RepoPath is what every caller already has on hand.
+    if ($WorkingDirectory) { $psi.WorkingDirectory = $WorkingDirectory }
     $proc = [System.Diagnostics.Process]::Start($psi)
     $stdout = $proc.StandardOutput.ReadToEnd()
     $proc.StandardError.ReadToEnd() | Out-Null
@@ -1898,11 +1903,11 @@ function Invoke-GhRaw {
 }
 
 function Test-TrackerAvailable {
-    param([string] $Repository)
+    param([string] $Repository, [string] $RepoPath)
     $ghArgs = @('issue', 'list', '--state', 'all', '--limit', '1', '--json', 'number')
     if ($Repository) { $ghArgs += @('-R', $Repository) }
     try {
-        $result = Invoke-GhRaw -GhArgs $ghArgs
+        $result = Invoke-GhRaw -GhArgs $ghArgs -WorkingDirectory $RepoPath
         return ($result.ExitCode -eq 0)
     } catch {
         return $false
@@ -1925,7 +1930,7 @@ function Test-TrackerClasses {
         }
     }
 
-    $ghOk = Test-TrackerAvailable -Repository $Repository
+    $ghOk = Test-TrackerAvailable -Repository $Repository -RepoPath $RepoPath
     if (-not $ghOk) {
         $couldNotEvaluate.Add((New-CouldNotEvaluate -Reason 'TrackerUnavailable' -Detail 'gh missing or unauthenticated; WorkStateDivergence not compared'))
     } else {
@@ -1934,7 +1939,7 @@ function Test-TrackerClasses {
             if ([string]::IsNullOrWhiteSpace($number)) { continue }
             $issueViewArgs = @('issue', 'view', $number, '--json', 'title,state')
             if ($Repository) { $issueViewArgs += @('-R', $Repository) }
-            $issueResult = Invoke-GhRaw -GhArgs $issueViewArgs
+            $issueResult = Invoke-GhRaw -GhArgs $issueViewArgs -WorkingDirectory $RepoPath
             if ($issueResult.ExitCode -ne 0 -or -not $issueResult.Output) {
                 $couldNotEvaluate.Add((New-CouldNotEvaluate -Reason 'TrackerUnavailable' -Detail "could not read issue #$number for $($ref.Id)"))
                 continue

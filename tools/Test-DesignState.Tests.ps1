@@ -1954,6 +1954,21 @@ Describe 'Test-DesignState: the tracker classes (S5.11)' {
         $script:CapturedGhArgs | Should -Contain '-R'
         $script:CapturedGhArgs[$script:CapturedGhArgs.IndexOf('-R') + 1] | Should -Be 'x/y'
     }
+
+    It '#415: every gh call is scoped to -RepoPath, not left to the ambient working directory' {
+        $script:CapturedWorkingDirectories = [System.Collections.Generic.List[string]]::new()
+        Mock -CommandName Invoke-GhRaw -MockWith {
+            param([string[]] $GhArgs, [string] $WorkingDirectory)
+            $script:CapturedWorkingDirectories.Add($WorkingDirectory)
+            [pscustomobject]@{ ExitCode = 0; Output = '{"title":"t","state":"open"}' }
+        }
+
+        $ref = New-Record -Id 'work/42' -Kind 'WorkRef' -Scalars @{ Issue = '42'; State = 'open'; Title = 't' }
+        Test-TrackerClasses -Records @($ref) -RepoPath $TestDrive -Repository 'x/y' | Out-Null
+
+        $script:CapturedWorkingDirectories.Count | Should -Be 2
+        $script:CapturedWorkingDirectories | ForEach-Object { $_ | Should -Be $TestDrive }
+    }
 }
 
 Describe 'Test-DesignState: end-to-end (S5.2, S5.3, S5.4, S5.9)' {
