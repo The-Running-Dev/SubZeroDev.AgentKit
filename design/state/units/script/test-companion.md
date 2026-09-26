@@ -4,7 +4,7 @@ Status: active
 Anchor: tools/Test-Companion.ps1
 Consumes:
 Exposes: contract/test-companion
-Binds:
+Binds: I33
 Live:
 Questions:
 Work:

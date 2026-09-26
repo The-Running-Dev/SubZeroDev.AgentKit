@@ -129,6 +129,7 @@ means no record exists yet, not that nothing is true.
 | I30 | `unit/script/test-designstate` |
 | I31 | `unit/script/test-designstate` |
 | I32 | `unit/script/merge-pullrequest` |
+| I33 | `unit/script/test-companion` |
 <!-- bound-by:end -->
 
 ## Contracts — consumers
@@ -316,6 +317,7 @@ means no record exists yet, not that nothing is true.
 | decision/2026-09-19-script-unit-without-a-contract-acquires-one | `unit/document/design-20-contract` |
 | decision/2026-09-19-spec-asks-what-the-contract-got-wrong | `unit/command/contract` |
 | decision/2026-09-19-three-evidence-gaps-the-citation-gate-does-not-reach | `unit/command/redteam`, `unit/document/agents-md` |
+| decision/2026-09-26-companion-authorization-narrowing-is-a-grammar | `unit/document/design-20-contract`, `unit/script/test-companion` |
 <!-- decision-affects:end -->
 
 ## Questions — blocks and answered

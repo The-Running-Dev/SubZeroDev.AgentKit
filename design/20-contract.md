@@ -514,6 +514,30 @@ cannot state:
   `skills/` (the companion location) or no `.claude/COMPANIONS.md` is could-not-evaluate, never a pass.
 - **`-TargetRepo` defaults to the current directory.** `-Quiet` suppresses the printed
   report only; the result object and exit code are unchanged either way.
+- **A companion's `tightened-authorization` override is a grammar, not prose** (I33). Every
+  non-blank line under the heading is exactly `` - ask-before: `<action>` ``, naming one action
+  id — no qualifier, no trailing reason, no second verb. `ask-before` is the only verb because it
+  is the only one that cannot widen: it adds an ask per instance and removes none. The entries
+  must be a subset of the core's authorization set, below. This is what makes a widening
+  unrepresentable rather than undetected — the validator still cannot read intent, and it no
+  longer has to. A heading with only blank lines under it stays `EmptyCategory`, not a
+  conforming override of zero entries; and under a heading its core does not allow, the
+  authorization rules do not run, because `UndeclaredCategory` is already the finding.
+- **A core whose block allows `tightened-authorization` names, in the same block, the actions it
+  performs without asking** — its authorization set, each an id from `.claude/COMPANIONS.md`'s
+  action table. That list is the only thing read for it; the core's prose is never mined for
+  one. The list names what the command actually does unasked, and never an action it does not
+  perform: an `ask-before` naming such an action narrows nothing and would pass.
+- **The category read and the action read are each scoped to their own section of
+  `.claude/COMPANIONS.md`.** Both are tables whose rows open with a backticked id, so a read over
+  the whole file merges the two sets — an action id would become a heading a companion may use,
+  and a category id an action a core may delegate. Neither read may widen to the whole file. An
+  action table that is missing or yields no ids is `NotEvaluated` for the whole run, exactly as
+  an empty category table is — never `Valid`.
+- **Migration is by hand, per target.** An existing prose override fails
+  `NonConformingAuthorization` from the kit release that ships the check, and is rewritten as
+  entries by the repository that owns it. The check never rewrites a companion — a companion is
+  the target's own file (`.claude/COMPANIONS.md`, *What this means for installing and syncing*).
 
 ### `tools/Read-DesignState.ps1`
 
@@ -1002,7 +1026,7 @@ Stated once here rather than enumerated per command, because the obligation is t
 |---|---|---|
 | `AGENTS.shared.md` | The marked-region rule — both kinds — generalised from the agent-fence rule it states today; the freeze rule; the review-thread delegation; I9 | State the rule twice, or leave the agent-fence wording behind as a second copy. **Exactly one document states it**, and `.claude/COMPANIONS.md` names `companion` as declared without restating what declared means |
 | `design/20-contract.md` | The closed divergence-class list and each class's blocking status (below) | Decide blocking-ness per finding at the call site, or carry a class the checker does not declare |
-| `.claude/COMPANIONS.md` | The companion mechanism, and that `companion` is a **declared** region | Acquire a projection, or restate the marker form this document fixes |
+| `.claude/COMPANIONS.md` | The companion mechanism, and that `companion` is a **declared** region; the action vocabulary a core's authorization set and a companion's `ask-before` entries draw from (I33) | Acquire a projection, or restate the marker form this document fixes. Restate a carve-out's terms — each action row names the `AGENTS.shared.md` rule granting it, so a new row is a new name for an existing grant, never a grant |
 | `skills/resolve/SKILL.md` | `ThreadClass` and its five values | — |
 | `.github/ISSUE_TEMPLATE/bug.md` | `/fix`'s stop conditions | — |
 
@@ -1169,6 +1193,19 @@ rather than that it came out against merging. Either way nothing merges — whic
 
 **A refusal is the answer, not an obstacle.** No condition in either list is worked around by
 the caller; each is reported and the merge is left undone (I32).
+
+### `Test-Companion.ps1`
+
+The nine structural rules are enumerated in the script's own help and not re-tabled here: each
+is non-retryable, and the caller fixes the file the finding names — in the kit for a core, in the
+target for a companion. The four authorization rules carry more than that (I33):
+
+| `CompanionFinding` | Raised when | Retryable | Caller does |
+|---|---|---|---|
+| `NoDelegatedActions` | A core allows `tightened-authorization` and its block lists no action | No | Fix the core in the kit: list what it performs unasked, or stop allowing the category. **Never** list an action the core does not perform to satisfy the rule |
+| `UnknownAction` | A core lists an action id absent from `.claude/COMPANIONS.md`'s action table | No | Correct the id, or add the row pointing at the `AGENTS.shared.md` rule that already grants the action. A grant that does not exist there is not created by naming it |
+| `NonConformingAuthorization` | A non-blank line under a companion's `## tightened-authorization` is not exactly one `ask-before` entry | No | Rewrite the line as an entry, or delete it. **Never** relax the grammar to admit it: prose is where a widening is written, and a line the grammar cannot read is one the validator cannot vouch for |
+| `UndelegatedAction` | An entry names an action its core's authorization set does not carry | No | Delete the entry, or — where the core really performs the action unasked — fix the core's list. An ask before something the command never does is a mistake or a widening dressed as a narrowing, and the check cannot tell which |
 
 ### The divergence classes
 
@@ -1450,6 +1487,7 @@ each against its regeneration.
 | **I30** | A record with `Status: retired` keeps its id resolvable, is in no closure, and has its `Anchor` exempt from the tree check. Nothing else about it changes, and an active record naming it is a `HalfStatusMismatch` finding rather than the permitted reference it once was. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 | **I31** | A contract's `Owner` is the unique active unit whose `Exposes` names that contract. It is the only reverse edge written to a record, and it is written only because it is checked. | `unit/script/test-designstate` | code | tools/Test-DesignState.Tests.ps1 |
 | **I32** | `Merge-PullRequest.ps1` merges only an open, non-draft pull request whose head is exactly the SHA named to it, whose every check reached a terminal passing state on that SHA, and whose review threads are all resolved. Every condition it cannot positively confirm — an unreadable API, a timeout, an unrecognised bucket, or a repository with no checks configured at all — refuses. | `unit/script/merge-pullrequest` | code | tools/Merge-PullRequest.Tests.ps1 |
+| **I33** | `tools/Test-Companion.ps1` reports `Valid` for a companion's `tightened-authorization` override only when every non-blank line under it is an `ask-before` entry naming an action its core's block lists as performed without asking. Any other line, and any action outside that list, is `Invalid`, so an override that widens an authorization cannot pass — it has no form in which to be written. | `unit/script/test-companion` | instruction | — |
 <!-- invariants:end -->
 
 **Enforcement is a claim about the tree as it stands, not about the tree as designed.** The
