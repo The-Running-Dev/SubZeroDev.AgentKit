@@ -234,6 +234,10 @@ The table above names each vendor's primary identity for a tier. A vendor's own 
 
 **Never recommend re-running a phase gate.** I decide when a phase repeats. This holds outside `/redteam` too — see that command for its own stopping rule.
 
+### Command names in Claude Code
+
+This file and every command file name commands bare — `/plan`, `/resume`, `/track` — because the name is the command's identity on every host. **Under Claude Code, a command named for the user to type is written `/agentkit:<name>`** — in `Next:`, a session-boundary banner, a transfer block's `Start here`, and anywhere else the user is told what to run. The kit ships to Claude Code as the `agentkit` plugin, so that is the only form that reaches it there: bare `/plan`, `/resume` and `/help` are Claude Code's own commands, and `/design` is a skill it bundles, so telling the user to run one of those starts something that is not AgentKit at all. Codex and Copilot keep the bare form.
+
 ### Session boundaries
 
 Routing says which model runs a command. This says **when a session must end.** A boundary exists wherever carrying context would corrupt the next step's judgement, or wherever the next step must read the tree rather than remember it. **The durable artifact remains the authoritative input to the next stage** — a stage that writes one has already handed over everything the next stage is entitled to reason from. That is a rule about *truth*, not about *transport*: the conversation still owes the operator a short Markdown block that says exactly what to run, what artifact or state to read, and what remains, because turning an artifact path into the next session's first message is not something a boundary banner does by itself. **A fresh-session boundary is incomplete until both that block and the terminal banner below are present.** The block points at the authoritative artifact — a path, a commit, a PR, a slice id — rather than reproducing its contents or this session's reasoning; *The session-transfer handoff block*, below the table, is where its shape lives.
