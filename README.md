@@ -207,7 +207,7 @@ You write `Frozen because` and `Lifts when` yourself; a command never invents th
 
 ## Invocation
 
-**Claude Code** — the commands are native. `/interview`, `/brief`, `/design`, `/redteam`, `/spec`, `/plan`, `/slice S3`, `/align`. Set the model per session with `/model`.
+**Claude Code** — the bootstrap installs the commands as one plugin, `~/.claude/skills/agentkit`, which Claude Code loads in every session with no marketplace or install step. Every command is namespaced under it: `/agentkit:interview`, `/agentkit:brief`, `/agentkit:design`, `/agentkit:redteam`, `/agentkit:spec`, `/agentkit:plan`, `/agentkit:slice S3`, `/agentkit:align`. The namespace is not optional. Bare `/plan`, `/resume` and `/help` are Claude Code's own commands, and `/design` is a skill it bundles. An install that predates the plugin had bare per-command folders under `~/.claude/skills/`; re-running `setup.ps1` moves them into the plugin and removes the bare folders, unless you edited one. Set the model per session with `/model`.
 
 `/slice` takes the slice id, or no argument at all — bare, it takes the lowest-numbered slice whose issue is neither closed nor fully ticked and whose dependencies are done, says which it picked, and proceeds. It asks rather than guessing when the tracker cannot be read, since doneness is not observable from the working tree.
 

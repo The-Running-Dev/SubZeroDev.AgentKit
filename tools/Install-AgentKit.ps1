@@ -7,6 +7,9 @@
     managed host registrations. It never copies kit cores or tools into a project.
     Claude and Copilot receive native adapters; Codex receives native and routed
     adapters. All adapters resolve dependencies from the one canonical checkout.
+    Claude's adapters ship inside one skills-directory plugin, ~/.claude/skills/agentkit,
+    so they run as /agentkit:<command> and never collide with Claude Code's own
+    commands (/plan, /resume, /help) or its bundled skills (/design).
 .PARAMETER Version
     Tag, branch, or SHA. Omitted: newest valid vYYYY.MM.DD[.N] release, ordered by
     date and numeric revision, never tag creation time. No implicit main fallback.
@@ -17,7 +20,8 @@
     claude, codex, copilot; omitted: detect personal folders or installed executables.
     Codex honors CODEX_HOME. Existing unselected managed hosts remain registered.
 .PARAMETER Prefix
-    Prefix each registered name; e.g. ak- gives ak-slice and ak-slice-routed.
+    Prefix each registered name; e.g. ak- gives ak-slice and ak-slice-routed
+    (under Claude, /agentkit:ak-slice).
 .PARAMETER DryRun
     Show operations without fetch, checkout, registration, or state writes. A fresh
     dry run cannot resolve remote tags; an existing dry run uses cached references.
@@ -73,6 +77,7 @@ $manifestPath = Join-Path $stateDir 'installed.json'
 $codexRoot = if ($env:CODEX_HOME) { [IO.Path]::GetFullPath($env:CODEX_HOME) } else { Join-Path $HOME '.codex' }
 $collisions = [Collections.Generic.List[string]]::new()
 $registrations = [Collections.Generic.List[object]]::new()
+$pluginName = 'agentkit'
 $pointerStart = '<!-- agentkit-pointer:start -->'
 $pointerEnd = '<!-- agentkit-pointer:end -->'
 
@@ -129,6 +134,15 @@ function Get-HostRoot([string] $Name) {
         codex { $codexRoot }
         copilot { Join-Path $HOME '.copilot' }
     }
+}
+# Claude Code loads any ~/.claude/skills/<dir> holding .claude-plugin/plugin.json as a
+# plugin (<name>@skills-dir), in place, with no marketplace or install step. Its skills
+# are namespaced /agentkit:<name>; a bare ~/.claude/skills/<name> skill is not, and the
+# kit's bare names collide with Claude Code's own /plan, /resume, /help and /design.
+function Get-PluginRoot { Join-Path (Get-HostRoot 'claude') "skills/$pluginName" }
+function Get-SkillPath([string] $HostName, [string] $Name) {
+    if ($HostName -eq 'claude') { return Join-Path (Get-PluginRoot) "skills/$Name" }
+    return Join-Path (Get-HostRoot $HostName) "skills/$Name"
 }
 function Get-RulesPath([string] $Name) {
     $leaf = switch ($Name) { claude { 'CLAUDE.md' } codex { 'AGENTS.md' } copilot { 'copilot-instructions.md' } }
@@ -197,6 +211,16 @@ function Remove-Registration($Entry) {
         else {
             foreach ($file in $Entry.files.Keys) { Remove-Item -LiteralPath (Join-Path $Entry.path $file) -Force }
             [IO.Directory]::Delete($Entry.path)
+        }
+        # A plugin registration sits below the host's skills folder; prune only the
+        # directories its removal left empty, never the skills folder itself.
+        $stop = [IO.Path]::GetFullPath((Join-Path (Get-HostRoot $Entry.host) 'skills')).TrimEnd('/','\')
+        $parent = Split-Path -Parent ([IO.Path]::GetFullPath($Entry.path))
+        while ($parent -and $parent.TrimEnd('/','\') -ne $stop -and $parent.StartsWith($stop) -and
+            (Test-Path -LiteralPath $parent -PathType Container) -and
+            -not (Get-ChildItem -LiteralPath $parent -Force | Select-Object -First 1)) {
+            [IO.Directory]::Delete($parent)
+            $parent = Split-Path -Parent $parent
         }
     }
 }
@@ -435,7 +459,8 @@ function New-Adapter([string] $Name, [string] $RegistrationName, [string] $HostN
     $root = $installRoot.Replace('\','/')
     $escaped = $installRoot.Replace("'", "''")
     $mode = if ($Routed) { 'routed, separate terminal' } elseif ($HostName -eq 'codex') { 'native, current session' } else { 'native' }
-    $header = "---`nname: $RegistrationName`ndescription: 'AgentKit /$Name ($mode). Use only when the user requests this command.'`n---`n"
+    $invocation = if ($HostName -eq 'claude') { "/$pluginName`:$RegistrationName" } else { "/$Name" }
+    $header = "---`nname: $RegistrationName`ndescription: 'AgentKit $invocation ($mode). Use only when the user requests this command.'`n---`n"
     if ($HostName -eq 'claude') { $header = $header.Replace("`n---`n", "`ndisable-model-invocation: true`n---`n") }
     $dependencies = "Runtime: [$root]($root). Read [$root/AGENTS.shared.md]($root/AGENTS.shared.md) and [$root/.claude/COMPANIONS.md]($root/.claude/COMPANIONS.md). Kit scripts and templates resolve under this runtime; project files and companions stay relative to the current project.`n"
     if ($Routed) {
@@ -455,7 +480,9 @@ approvals and session completion. Report that it launched; do not claim the comm
 completed. Never substitute headless codex exec or auto-answer child approvals.
 "@
     }
-    $native = if ($HostName -eq 'codex') { 'Execution mode: native Codex. Keep the current session model and effort under the explicit native-mode exception in the shared rules linked above; do not claim routed tier verification. For enforced command routing use the corresponding -routed skill.' } else { 'Execute the core using this host and its normal model policy.' }
+    $native = if ($HostName -eq 'codex') { 'Execution mode: native Codex. Keep the current session model and effort under the explicit native-mode exception in the shared rules linked above; do not claim routed tier verification. For enforced command routing use the corresponding -routed skill.' }
+        elseif ($HostName -eq 'claude') { "Execute the core using this host and its normal model policy. In Claude Code this command is ``$invocation``; name every AgentKit command for the user the same way (shared rules, *Command names in Claude Code*)." }
+        else { 'Execute the core using this host and its normal model policy.' }
     return $header + $dependencies + @"
 
 $native
@@ -474,12 +501,41 @@ spaces, quotes and multiline text). Do not invoke this global adapter recursivel
 "@
 }
 
+function Register-Plugin {
+    # Returns $false when the plugin folder is not ours to write.
+    $path = Join-Path (Get-PluginRoot) '.claude-plugin'
+    $old = @($oldRegistrations | Where-Object { $_.path -eq $path } | Select-Object -First 1)
+    $owned = $old.Count -and (Test-Owned $old[0])
+    if ((Test-Path -LiteralPath (Get-PluginRoot)) -and -not $owned) {
+        Add-Collision (Get-PluginRoot)
+        if ($old.Count) { $registrations.Add($old[0]) }
+        return $false
+    }
+    $text = ([ordered]@{ name=$pluginName; description='AgentKit commands, namespaced /agentkit:<command> so they never reach Claude Code''s own commands. Generated by tools/Install-AgentKit.ps1; edit the canonical kit, not these files.' } | ConvertTo-Json) + "`n"
+    $marker = "AgentKit registration`nRoot: $installRoot`nHost: claude`nName: $pluginName`n"
+    Write-Plan "Register claude plugin $pluginName -> $installRoot"
+    Save-Text (Join-Path $path 'plugin.json') $text
+    Save-Text (Join-Path $path '.agentkit-owner') $marker
+    $registrations.Add([ordered]@{host='claude';name=$pluginName;path=$path;root=$installRoot;kind='files';files=[ordered]@{'plugin.json'=(Get-Hash $text);'.agentkit-owner'=(Get-Hash $marker)}})
+    return $path
+}
+
 foreach ($hostName in $effectiveHosts) {
     $desired = [Collections.Generic.List[string]]::new()
+    if ($hostName -eq 'claude') {
+        $plugin = Register-Plugin
+        if (-not $plugin) {
+            # Keep every earlier Claude registration as it stands rather than half-migrate.
+            foreach ($entry in @($oldRegistrations | Where-Object { $_.host -eq 'claude' -and $_.path -ne (Join-Path (Get-PluginRoot) '.claude-plugin') })) { $registrations.Add($entry) }
+            Update-Pointer (Get-RulesPath $hostName)
+            continue
+        }
+        $desired.Add($plugin)
+    }
     foreach ($skill in $skills) {
         foreach ($routed in @(if ($hostName -eq 'codex') { $false; $true } else { $false })) {
             $name = "$Prefix$($skill.Name)$(if ($routed) {'-routed'})"
-            $path = Join-Path (Get-HostRoot $hostName) "skills/$name"
+            $path = Get-SkillPath $hostName $name
             $desired.Add($path)
             $old = @($oldRegistrations | Where-Object { $_.path -eq $path } | Select-Object -First 1)
             $item = Get-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
