@@ -232,6 +232,57 @@ None.
             $r.SlicesCompared | Should -Be 0
         }
 
+        It 'a landed slice kept as a prose heading is not reported as NoIssue and carries no criteria (issue #430)' {
+            $path = New-SlicesDoc -Content @'
+# Slices
+
+## Outstanding
+
+None.
+
+## Landed
+
+### S3 — A slice that landed as prose
+
+Closed: S3.1, S3.2. Committed in `e01c1f1`, no issue tracks it.
+
+- S3.1 A bullet that must not be read as an outstanding criterion.
+
+### S7 — Another landed slice
+'@
+            Mock Get-TrackerIssue { New-Tracker }
+
+            $r = Invoke-DriftCheck -SlicesPath $path
+
+            $r.State | Should -Be 'Clean'
+            $r.Findings.Count | Should -Be 0
+            $r.SlicesCompared | Should -Be 0
+        }
+
+        It 'a slice under Outstanding is still compared when the same number also has a prose Landed entry' {
+            $path = New-SlicesDoc -Content @'
+# Slices
+
+## Outstanding
+
+### S1 — A slice
+Acceptance:
+  - S1.1 The first criterion holds.
+
+## Landed
+
+### S1 — A slice
+'@
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                New-Issue -Number 9 -Title 'S1 — A slice' -Body "- [ ] **S1.1** first`n- [ ] **S1.2** extra"
+            ) }
+
+            $r = Invoke-DriftCheck -SlicesPath $path
+
+            $r.SlicesCompared | Should -Be 1
+            $r.Findings.Kind | Should -Contain 'InIssueNotDoc'
+        }
+
         It 'a slice with no issue at all is reported rather than skipped' {
             $path = New-SlicesDoc -Content $script:TwoCriterionDoc
             Mock Get-TrackerIssue { New-Tracker }

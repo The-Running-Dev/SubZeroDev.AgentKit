@@ -141,8 +141,26 @@ function Get-SliceCriteria {
     $slicePattern = '^#{2,3}\s+(?:\[[ xX]\]\s+)?(?<prefix>[A-Za-z]{1,6})(?<n>\d+)\b'
     $rowPattern   = '^\|\s*\*\*(?<prefix>[A-Za-z]{1,6})(?<n>\d+)\*\*\s*\|'
 
+    $inLanded = $false
+
     foreach ($line in (Get-Content -LiteralPath $Path)) {
         if ($line -match '^#{2,3}\s') {
+            # `## Landed` ends every slice body above it, and what follows is the retired index.
+            # A repository may keep that index as prose - `### S<n> - <name>` headings with
+            # narrative under them - rather than the table Update-SlicesDocument.ps1 writes.
+            # Such a heading names a slice that already landed: it carries no criteria to compare
+            # and needs no issue, so it is recorded as landed instead of as a slice.
+            if ($line -match '^##\s+Landed\s*$') {
+                $inLanded = $true
+                $current = $null
+                continue
+            }
+            if ($inLanded -and $line -match '^#{2,3}\s+S(?<n>\d+)\b') {
+                $landed.Add([int]$Matches['n'])
+                $current = $null
+                continue
+            }
+
             # A new second- or third-level heading always ends the previous slice's body, so an
             # Acceptance line can never be attributed across a section boundary. Slices sit at
             # `##` when they are top-level sections (S1-S18) and at `###` when nested under
