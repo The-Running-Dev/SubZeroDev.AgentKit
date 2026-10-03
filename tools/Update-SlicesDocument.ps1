@@ -380,15 +380,27 @@ function Invoke-SlicesRetirement {
         if ($doc.Lines[$i] -match '^\|\s*-+\s*\|') { $sepIdx = $i; break }
     }
     if ($sepIdx -lt 0) {
-        return New-RetireResult -State 'NotEvaluated' -CouldNotEvaluate @((New-RetireFailure -Reason 'NoLandedTable' -Detail $SlicesPath))
-    }
+        # A Landed section kept as prose (`### S<n>` entries, no table) has nowhere to put a row.
+        # Start the table directly under the heading and leave the prose below it untouched -
+        # the entries are the repository's own record and this script never rewrites prose.
+        $afterHeading = $landedIdx + 1
+        if ($afterHeading -lt $doc.Lines.Count -and [string]::IsNullOrWhiteSpace($doc.Lines[$afterHeading])) {
+            $afterHeading++
+        }
+        $table = @(
+            '',
+            '| Slice | Name | Issue | Criteria | Body complete at |',
+            '|---|---|---|---|---|'
+        ) + @($rows) + @('')
+        $newLines = @($doc.Lines[0..$landedIdx]) + $table + (Get-ArraySlice -Array $doc.Lines -From $afterHeading)
+    } else {
+        $lastRowIdx = $sepIdx
+        for ($i = $sepIdx + 1; $i -lt $doc.Lines.Count; $i++) {
+            if ($doc.Lines[$i] -match '^\|') { $lastRowIdx = $i } else { break }
+        }
 
-    $lastRowIdx = $sepIdx
-    for ($i = $sepIdx + 1; $i -lt $doc.Lines.Count; $i++) {
-        if ($doc.Lines[$i] -match '^\|') { $lastRowIdx = $i } else { break }
+        $newLines = @($doc.Lines[0..$lastRowIdx]) + @($rows) + (Get-ArraySlice -Array $doc.Lines -From ($lastRowIdx + 1))
     }
-
-    $newLines = @($doc.Lines[0..$lastRowIdx]) + @($rows) + (Get-ArraySlice -Array $doc.Lines -From ($lastRowIdx + 1))
 
     if (-not $DryRun) {
         $text = (($newLines -join "`n") + "`n")

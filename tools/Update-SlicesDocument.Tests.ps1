@@ -155,6 +155,45 @@ So must this one.
             ($written -split "`n" | Where-Object { $_ -match '^\|\s*\*\*S' }).Count | Should -Be 2
         }
 
+        It 'starts the Landed table when the section is prose, leaving the prose entries in place (issue #430)' {
+            $path = New-GitSlicesDoc -Content @'
+# Slices
+
+## Outstanding
+
+### S23 — First landed slice
+Delivers: something.
+Acceptance:
+  - S23.1 first criterion.
+  - S23.2 second criterion.
+
+## Landed
+
+### S3 — A slice retired as prose
+
+Closed: S3.1. Committed in `e01c1f1`.
+'@
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                (New-Issue -Number 200 -Title 'S23 — First landed slice' -State 'CLOSED')
+            ) }
+
+            $r = Invoke-SlicesRetirement -SlicesPath $path
+
+            $r.State | Should -Be 'Retired'
+            $r.CouldNotEvaluate.Count | Should -Be 0
+
+            $written = Get-Content -LiteralPath $path -Raw
+            $written | Should -Not -Match 'S23 — First landed slice'
+            $written | Should -Match '(?m)^\| Slice \| Name \| Issue \| Criteria \| Body complete at \|$'
+            $written | Should -Match '\| \*\*S23\*\* \| First landed slice \| \[#200\]\(\.\./\.\./issues/200\), closed \| S23\.1–S23\.2 \| `[0-9a-f]{7}` \|'
+            # The prose entry survives, and sits after the new table.
+            $written | Should -Match '(?s)\*\*S23\*\*.*### S3 — A slice retired as prose.*Committed in `e01c1f1`'
+
+            # A second run finds nothing left to retire and does not add a second table.
+            (Invoke-SlicesRetirement -SlicesPath $path).State | Should -Be 'Clean'
+            ([regex]::Matches((Get-Content -LiteralPath $path -Raw), '(?m)^\|---\|')).Count | Should -Be 1
+        }
+
         It 'leaves a slice with no matching issue untouched, and is otherwise a no-op' {
             $path = New-GitSlicesDoc -Content $script:TwoOutstandingDoc
             Mock Get-TrackerIssue { New-Tracker -Issues @() }
