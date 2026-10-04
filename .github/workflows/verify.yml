@@ -57,14 +57,6 @@ jobs:
           $result = Invoke-Pester -Path tools -Output Detailed -PassThru
           if ($result.FailedCount -gt 0) { exit 1 }
 
-      # Read-only: cited tools and commands exist, the contract's Scripts and Commands tables
-      # match tools/ and skills/, and every slice has a Status line (S33). /next runs the same
-      # check before each pull request, so a red run here is the agent's to fix, not the user's.
-      # verification: true
-      - name: Check design facts
-        shell: pwsh
-        run: ./tools/Test-Design.ps1
-
   # Runs the PowerShell suite on Linux, without gh or GH_TOKEN, to back the repository's
   # cross-platform claim. Only the suite: the attribution and parse checks are platform-neutral
   # and already run in the powershell job above, which stays the only one carrying GH_TOKEN.

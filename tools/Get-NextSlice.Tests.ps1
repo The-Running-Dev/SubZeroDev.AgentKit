@@ -33,6 +33,16 @@ BeforeAll {
         $obj = ($json | Select-Object -Last 1) | ConvertFrom-Json
         $obj | Add-Member -NotePropertyName ExitCode -NotePropertyValue $code -PassThru
     }
+    # One open pull request as gh prints it: this repository's, into main, unless overridden.
+    function Pr([int] $Number, [string] $Head, [string] $BaseRef = 'main', [bool] $Fork = $false) {
+        @{ number = $Number; headRefName = $Head; baseRefName = $BaseRef; isCrossRepository = $Fork; url = "https://example.test/pull/$Number" }
+    }
+    function PrJson([object[]] $Prs) { ConvertTo-Json -InputObject @($Prs) -Compress -Depth 3 }
+    function Set-File($F, [string] $Path, [string] $Text) {
+        $full = Join-Path $F.Work $Path
+        New-Item -ItemType Directory -Path (Split-Path $full) -Force | Out-Null
+        [IO.File]::WriteAllText($full, $Text)
+    }
     $script:ThreeSlices = @"
 # Slices
 
@@ -78,7 +88,7 @@ Describe 'Get-NextSlice' {
 
     It 'resumes a slice with an open pull request ahead of starting an earlier one' {
         $f = New-Fixture $ThreeSlices
-        $r = Invoke-NextObject $f '[{"number":42,"headRefName":"slice/S3-third","url":"https://example.test/pull/42"}]'
+        $r = Invoke-NextObject $f (PrJson (Pr 42 'slice/S3-third'))
         $r.State | Should -Be 'Resume'
         $r.Reason | Should -Be 'OpenPullRequest'
         $r.Slice | Should -Be 'S3'
@@ -88,17 +98,79 @@ Describe 'Get-NextSlice' {
 
     It 'does not mistake slice/S10 for S1' {
         $f = New-Fixture $ThreeSlices
-        $r = Invoke-NextObject $f '[{"number":7,"headRefName":"slice/S10-other","url":"u"}]'
+        $r = Invoke-NextObject $f (PrJson (Pr 7 'slice/S10-other'))
         $r.State | Should -Be 'Start'
         $r.Slice | Should -Be 'S1'
     }
 
-    It 'ignores a slice branch the default branch already contains' {
+    It 'ignores an origin slice branch the default branch already contains' {
         $f = New-Fixture $ThreeSlices
-        Git-Fixture $f.Work @('branch','slice/S1-first') | Out-Null
+        Git-Fixture $f.Seed @('push','-q','origin','main:slice/S1-first') | Out-Null
         $r = Invoke-NextObject $f
         $r.State | Should -Be 'Start'
         $r.Slice | Should -Be 'S1'
+    }
+
+    It 'ignores a fork''s pull request and one into another branch, and blocks on two for one slice' {
+        $f = New-Fixture $ThreeSlices
+        $r = Invoke-NextObject $f (PrJson @((Pr 5 'slice/S3-third' -Fork $true), (Pr 6 'slice/S3-third' 'release')))
+        $r.State | Should -Be 'Start'
+        $r.Slice | Should -Be 'S1'
+        $r = Invoke-NextObject $f (PrJson @((Pr 8 'slice/S3-third'), (Pr 9 'slice/S3-again')))
+        $r.ExitCode | Should -Be 1
+        $r.State | Should -Be 'Blocked'
+        $r.Reason | Should -Be 'AmbiguousPullRequest'
+        $r.Detail | Should -Match '#8 slice/S3-third, #9 slice/S3-again'
+    }
+
+    Context 'a run interrupted before it committed everything' {
+        It 'resumes a branch with no commits yet, carrying on with its own edits and guarding the rest' {
+            $f = New-Fixture $ThreeSlices
+            Set-File $f 'notes/user.txt' 'user work'
+            (Invoke-NextObject $f).State | Should -Be 'Start'
+            Git-Fixture $f.Work @('switch','-q','-c','slice/S1-first','origin/main') | Out-Null
+            Set-File $f 'src/impl.txt' 'slice work'
+            $r = Invoke-NextObject $f
+            $r.State | Should -Be 'Resume'
+            $r.Reason | Should -Be 'EmptyBranch'
+            $r.Branch | Should -Be 'slice/S1-first'
+            @($r.GuardedFiles) | Should -Be @('notes/user.txt')
+            @($r.OwnFiles) | Should -Be @('src/impl.txt')
+        }
+
+        It 'keeps edits made after the first commit as the slice''s own' {
+            $f = New-Fixture $ThreeSlices
+            Set-File $f 'notes/user.txt' 'user work'
+            (Invoke-NextObject $f).State | Should -Be 'Start'
+            Git-Fixture $f.Work @('switch','-q','-c','slice/S1-first','origin/main') | Out-Null
+            Set-File $f 'src/a.txt' 'committed'
+            Git-Fixture $f.Work @('add','src/a.txt') | Out-Null
+            Git-Fixture $f.Work @('commit','-qm','first') | Out-Null
+            Set-File $f 'src/a.txt' 'edited after'
+            Set-File $f 'src/b.txt' 'new after'
+            $r = Invoke-NextObject $f
+            $r.Reason | Should -Be 'UnmergedBranch'
+            @($r.GuardedFiles) | Should -Be @('notes/user.txt')
+            @($r.OwnFiles | Sort-Object) | Should -Be @('src/a.txt','src/b.txt')
+        }
+
+        It 'guards every dirty file when there is no record for the slice' {
+            $f = New-Fixture $ThreeSlices
+            Git-Fixture $f.Work @('switch','-q','-c','slice/S1-first','origin/main') | Out-Null
+            Set-File $f 'src/impl.txt' 'whose?'
+            $r = Invoke-NextObject $f
+            $r.State | Should -Be 'Resume'
+            @($r.GuardedFiles) | Should -Be @('src/impl.txt')
+            @($r.OwnFiles).Count | Should -Be 0
+        }
+
+        It 'does not reuse another slice''s record' {
+            $f = New-Fixture $ThreeSlices
+            (Invoke-NextObject $f '[]' @('-Slice','S3')).State | Should -Be 'Start'
+            Git-Fixture $f.Work @('switch','-q','-c','slice/S1-first','origin/main') | Out-Null
+            Set-File $f 'src/impl.txt' 'whose?'
+            @((Invoke-NextObject $f).GuardedFiles) | Should -Be @('src/impl.txt')
+        }
     }
 
     It 'reads the plan from origin when the local default branch is behind' {
@@ -144,7 +216,9 @@ Describe 'Get-NextSlice' {
         $before = Git-Fixture $f.Work @('status','--porcelain')
         $r = Invoke-NextObject $f
         @($r.DirtyFiles | Sort-Object) | Should -Be @('design/30-slices.md','notes/scratch.txt')
-        (Git-Fixture $f.Work @('status','--porcelain')) | Should -Be $before
+        @($r.GuardedFiles | Sort-Object) | Should -Be @('design/30-slices.md','notes/scratch.txt')
+        @($r.OwnFiles).Count | Should -Be 0
+        (Git-Fixture $f.Work @('status','--porcelain')) | Should -Be $before -Because 'the ownership record lives in the git directory, not the tree'
         (Git-Fixture $f.Work @('branch','--show-current')) | Should -Be 'main'
     }
 

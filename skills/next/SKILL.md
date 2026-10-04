@@ -18,17 +18,17 @@ With `$1` set to a slice id, start there. With `$1` set to `one`, stop after one
 
 Run `pwsh -File tools/Get-NextSlice.ps1 -RepoRoot .` (add `-Slice $1` when `$1` is a slice id, on the first pass only). It fetches, reads the plan as `origin/<default branch>` has it — never the working copy, so a branch carrying an unmerged `Status: done` or a local default branch a failed pull left behind cannot decide what is finished — and returns one `State`. Act on it; do not re-derive it from the file:
 
-- **`Resume`** — work from an earlier run is in flight: an open pull request (`PullRequest`) or a branch with unmerged commits and no pull request yet (`Branch`). Check out `Branch` (step 2) and continue: from step 3 if its work is complete, otherwise finish it in step 2 first. `AGENTS.shared.md` § *Git and delivery* applies: continue that branch, never a new one.
+- **`Resume`** — work from an earlier run is in flight: an open pull request (`PullRequest`), or a branch with no pull request yet (`Branch`), with commits or, if the run stopped before its first commit, without. Check out `Branch` (step 2) and continue: from step 3 if its work is complete, otherwise finish it in step 2 first. `OwnFiles` are that run's uncommitted edits: carry on with them. `AGENTS.shared.md` § *Git and delivery* applies: continue that branch, never a new one.
 - **`Start`** — build `Slice` from `Base` in step 2.
 - **`Finished`** — the plan is done: report it and stop.
-- **`Blocked`** — `Detail` says why (a failed fetch with git's error, a dependency cycle or gap, two branches holding work for one slice, `gh` unavailable). Report it and stop.
+- **`Blocked`** — `Detail` says why (a failed fetch with git's error, a dependency cycle or gap, two branches or two open pull requests for one slice, `gh` unavailable). Report it and stop.
 
 The rule it applies, for reading the plan by hand: a slice is a `## S<n>` heading and the lines under it; the next is the first, in document order, whose `Status:` is not `done` and whose `Depends on:` slices are all `done`; a slice with no `Status:` line is not done. Slices named in a `## Landed` table, or any other index of slices retired by an earlier version of the kit, are history: they count as `done`, and none is ever rebuilt.
 
 ## 2. Build it
 
 - Branch in this worktree: `git switch -c slice/S<n>-<short-name> <Base>` for `Start`, `git switch <Branch>` for `Resume`. If git refuses the switch because uncommitted work would be overwritten, that is a blocker: stop and name the files.
-- `DirtyFiles` from the run's first pass of step 1 are someone else's work in progress and are guarded until the run ends: never stage, commit, revert or reformat them. If the slice has to change one of them, that is a blocker: stop and name the file, rather than mixing that work into the slice.
+- `GuardedFiles` from step 1 are someone else's work in progress, guarded for the whole slice: never stage, commit, revert or reformat them. If the slice has to change one of them, that is a blocker: stop and name the file, rather than mixing that work into the slice. Every other file you change is the slice's: `Get-NextSlice.ps1` recorded what was already dirty when the slice started, so after an interruption it hands your edits back as `OwnFiles` rather than guarding them.
 - Read the slice, `design/20-contract.md`, and the parts of `design/10-design.md` it touches. Read the code you are about to change in full.
 - For each acceptance criterion, write a test that fails first where the criterion can be tested, then implement until it passes. Stay inside the slice's `Out of scope:` line.
 - Where the code and the design disagree, do what works, keep going, and note it for the pull request (`AGENTS.shared.md` § *The design is the spec*).
@@ -38,11 +38,10 @@ The rule it applies, for reading the plan by hand: a slice is a `## S<n>` headin
 
 Run the repository's gates: the steps marked `# verification: true` in `.github/workflows/*.yml` (`pwsh -File tools/Test-GatesCache.ps1 -RepoRoot .` caches that list), or, where none are marked, the test suite, linter and type checker the repository uses. Fix failures before pushing. A gate that cannot run here is named as not run, with the reason — never reported as passed.
 
-Then run the design check: `pwsh -File tools/Test-Design.ps1 -RepoRoot .`. It is read-only and checks that what `design/`, the command files and `AGENTS.md` state about the tree is true — cited scripts and commands exist, the contract's tables match the scripts and skills, every slice has a `Status:` line. Exit 2 means there is no `design/` and nothing to check.
+Then run the design check, which is advisory and never a gate: `pwsh -File tools/Test-Design.ps1 -RepoRoot .`. It is read-only and checks that what `design/`, the command files and `AGENTS.md` state about the tree is true — cited scripts and commands exist, the contract's tables match the scripts and skills, every slice has a `Status:` line. Exit 2 means there is no `design/` and nothing to check.
 
-- **A finding this slice's change caused** — a script renamed without its citations, a parameter added without its contract row, a skill added without its row — is fixed in this branch, the same as a failing test.
-- **A finding in design prose this slice did not touch** goes in the pull request's *Differs from design* section, one line each, and does not stop the run. Do not edit `design/` to clear it beyond what this slice itself changed.
-- **Unless the design check is one of the gates.** If a `# verification: true` step in `.github/workflows/*.yml` runs it, a finding there turns CI red and the merge script refuses, so "does not stop the run" cannot hold. Clear it with the smallest edit that makes the check pass, and name each such edit in *Differs from design*. If no edit can clear it, that is a blocker.
+- A reference **outside `design/`** that this slice broke — a skill citing a script the slice renamed — is the slice's own bug: fix it in this branch.
+- Every other finding goes in the pull request's *Differs from design* section, one line each, and never stops the run. Never edit `design/` to clear one; that is `/align`, when the user asks.
 
 ## 4. Open the pull request
 
