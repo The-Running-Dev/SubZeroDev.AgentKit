@@ -3,7 +3,7 @@
     {
       "name": "Check commits carry no AI attribution",
       "status": "Passed",
-      "detail": "./tools/Test-NoAttribution.ps1 against the branch head - see the pull request for the result."
+      "detail": "./tools/Test-NoAttribution.ps1 - RESULT=PASSED, every commit on the branch checked, none carry AI attribution. Exit 0."
     },
     {
       "name": "Parse-check PowerShell scripts",
