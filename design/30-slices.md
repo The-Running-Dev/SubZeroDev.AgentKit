@@ -10,10 +10,42 @@ merge, and sets `Status: done` in that slice's own pull request. Anything that i
 heading — this preamble, the `## Landed` table — is never a slice and is never rebuilt.
 `/plan` appends new slices after the last one; ids are never reused or renumbered.
 
-## Outstanding
-
-Nothing is outstanding. The kit's own plan is complete; new work arrives as issues or as a new
-`/plan`.
+## S33 — A design check the agent runs and keeps passing itself
+Status: todo
+Delivers: `tools/Test-Design.ps1`, a read-only check that the facts `design/`, the command files
+and the agent contract state about the tree are true. CI runs it on every pull request, and
+`/next` runs it before each pull request and once more when the plan is finished, so keeping it
+green is part of the agent's normal work and never the user's.
+Touches: `tools/Test-Design.ps1`, `tools/Test-Design.Tests.ps1`, `.github/workflows/verify.yml`,
+`skills/next/SKILL.md`, `.claude/verify-report.json`
+Depends on: none
+Acceptance:
+  - S33.1 A `tools/<path>` cited in `AGENTS.shared.md`, `AGENTS.md`, a `skills/*/SKILL.md`, or
+    the live part of `design/00`–`30` (everything above `## Landed`) that exists neither in the
+    repository nor in the kit is a `MissingTool` finding naming the file and line.
+  - S33.2 A backticked `/<name>` or `/agentkit:<name>` that is neither a skill in the repository
+    or the kit nor a host command on the script's own list is an `UnknownCommand` finding.
+  - S33.3 Where `design/20-contract.md` has a `## Scripts` table: a script it lists that does not
+    exist is `MissingScript`; a parameter it lists that the script does not declare is
+    `UnknownParameter`; a parameter the script declares that its row does not list is
+    `UnlistedParameter` (a row reading "see the script" is exempt from both parameter checks);
+    a `tools/*.ps1` other than a `*.Tests.ps1` that no row lists is `UnlistedScript`.
+  - S33.4 Where `design/20-contract.md` has a `## Commands` table: a `skills/<name>/SKILL.md` with
+    no row is `UnlistedCommand`, and a row with no skill is `MissingCommand`.
+  - S33.5 In `design/30-slices.md` above `## Landed`: a `## S<n>` heading without
+    `Status: todo` or `Status: done` is `MissingStatus`; a slice id used twice is
+    `DuplicateSlice`; a `Depends on:` naming a slice that is neither a heading nor in the
+    Landed index is `UnknownDependency`.
+  - S33.6 It never writes: `git status` is unchanged by a run. Exit 0 with no findings, 1 with
+    findings, 2 when there is no `design/` to check.
+  - S33.7 A `# verification: true` step in the `powershell` CI job runs it, and this repository
+    passes it at merge.
+  - S33.8 `/next` runs it in step 3. A finding the slice's own change caused is fixed in that
+    pull request; a finding in design prose goes in *Differs from design* and does not stop the
+    run; when the plan is finished, any findings still open are filed as one GitHub issue.
+Out of scope: editing `design/` to clear a finding (that is `/align`); judging whether prose
+describes behaviour correctly; restoring the design-state records, projections or per-slice
+issues.
 
 ## Landed
 
