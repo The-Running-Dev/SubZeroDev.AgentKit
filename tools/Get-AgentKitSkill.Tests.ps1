@@ -2,7 +2,7 @@
 #Requires -Modules Pester
 BeforeAll {
     $script:KitSource = Split-Path -Parent $PSScriptRoot
-    $script:Files = @('tools/Get-AgentKitSkill.ps1','skills/help/SKILL.md','AGENTS.shared.md','.claude/COMPANIONS.md')
+    $script:Files = @('tools/Get-AgentKitSkill.ps1','skills/next/SKILL.md','AGENTS.shared.md')
     function Git-Fixture([string] $Repo, [string[]] $Arguments) {
         $output = & git -C $Repo -c core.autocrlf=false -c user.email=test@example.com -c user.name=Test @Arguments 2>&1
         if ($LASTEXITCODE) { throw "$output" }
@@ -41,7 +41,7 @@ BeforeAll {
         Set-Content -LiteralPath (Join-Path $state 'installed.json') -Value (ConvertTo-Json $manifest)
         @{ Origin=$origin; Home=$homeDir; Root=$root; State=$state }
     }
-    function Invoke-Reader($F, [string] $Session = 's1', [hashtable] $Environment = @{}, [string[]] $Arguments = @('-Command','help')) {
+    function Invoke-Reader($F, [string] $Session = 's1', [hashtable] $Environment = @{}, [string[]] $Arguments = @('-Command','next')) {
         $psi = [Diagnostics.ProcessStartInfo]::new((Join-Path $PSHOME $(if ($IsWindows) {'pwsh.exe'} else {'pwsh'})))
         foreach ($a in @('-NoProfile','-File',(Join-Path $F.Root 'tools/Get-AgentKitSkill.ps1')) + $Arguments) { $psi.ArgumentList.Add($a) }
         $psi.Environment['HOME']=$F.Home; $psi.Environment['USERPROFILE']=$F.Home
@@ -57,7 +57,7 @@ BeforeAll {
     function Should-BeBodyOnly($R) {
         $R.ExitCode | Should -Be 0 -Because $R.Error
         $R.Output | Should -Match '^AgentKit canonical runtime:'
-        $R.Output | Should -Match 'name: help'
+        $R.Output | Should -Match 'name: next'
     }
 }
 
@@ -74,7 +74,7 @@ Describe 'Get-AgentKitSkill update check' {
 
         $r = Invoke-Reader $f
         $r.ExitCode | Should -Be 0 -Because $r.Error
-        $r.Output | Should -Match '(?s)^=== AgentKit update available ===.*end AgentKit update notice ===\s+AgentKit canonical runtime:.*name: help'
+        $r.Output | Should -Match '(?s)^=== AgentKit update available ===.*end AgentKit update notice ===\s+AgentKit canonical runtime:.*name: next'
         $r.Output | Should -Match 'Installed: v2026[.]09[.]17'
         $r.Output | Should -Match 'Available: v2026[.]09[.]18'
         $r.Output | Should -Match 'What changed \(2 commits\)'

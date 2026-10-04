@@ -1,82 +1,37 @@
 ---
 name: align
-description: Check the design docs against the tree, and decide the differences that are decisions
+description: On request only — compare the design docs against the tree, then bring them back into agreement
 disable-model-invocation: true
 ---
 
-<!-- companion:declared:start -->
-**Per-repo companion:** `skills/align/SKILL-local.md`. Read it now, if it exists — an absent,
-empty, or frontmatter-only file is no companion, and this file then stands alone.
-It may override: `vocabulary`, `document-map`, `extra-steps`. It may never override anything in
-[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
-<!-- companion:declared:end -->
+Runs only when the user asks. `design/` is a write-once spec (`AGENTS.shared.md` § *The design is the spec*); this command is how it is refreshed when the user wants it refreshed, not a step any other command waits on.
 
-## Stop if `design/` is frozen
+## Gather
 
-If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and take no other action. The rule and the marker's format live in `AGENTS.shared.md`, *The design freeze* — not restated here.
+- `design/10-design.md`, `design/20-contract.md`, `design/30-slices.md`, `design/90-decisions.md`.
+- The code those documents describe.
+- The **Differs from design** section of every merged pull request since `design/` last changed (`gh pr list --state merged --search "merged:>=<date>" --json number,title,body`). Those are mismatches already found and recorded while building; start from them rather than rediscovering them.
 
-This command is the one the freeze ends *with*, which is exactly why it does not end the freeze itself: the marker is deleted by hand first, and then this runs as the single reconciliation pass. **Never delete `design/FROZEN.md` yourself**, and never treat "the freeze looks finished" as authorization to proceed — `Lifts when` names a checkable condition, and confirming it is the user's call, not this command's.
+## Report
 
-Compare the working tree against `design/10-design.md` and `design/20-contract.md`.
+Before editing anything, list what disagrees, in these sections. A section with nothing in it says "none".
 
-This is the step that stops the docs becoming fiction. A stale design doc is worse than none, because every future agent session gets confidently briefed on a system that does not exist.
+- **Contract** — places where the code and `20-contract.md` disagree about meaning: an invariant no longer held, an error raised under conditions the contract does not describe, a public signature that changed.
+- **Design** — module boundaries crossed, control flow changed, a failure mode handled differently or not at all.
+- **Undocumented decisions** — choices made while building that `90-decisions.md` does not record.
+- **Invalidated assumptions** — anything the design assumed that building showed to be false.
+- **Lessons** — things that cost time and would again, each naming what it cost. Propose them for `agent.md`; do not append them yourself.
 
-## What is no longer this command's
+Each item cites the `path:line` in the code and the section of the document. Plain wording differences are not drift.
 
-**This is a check, not a rewrite.** Two things were taken off it deliberately, and taking either back is how it becomes generative again — which is the loop `AGENTS.shared.md`, *The design freeze* exists to escape.
+## Then resolve
 
-- **Descriptive drift is already gone.** A declaration, parameter list, field name, path or count that disagreed with the tree was corrected in the slice that found it, in that slice's commit (`AGENTS.shared.md`, *Hard rules*). Anything of that kind still here is a slice that missed it: correct it, in one line, and move on. **Do not open it as a fork** — there is no decision in a transcription error, and turning one into a question is most of what made this command expensive.
-- **`design/30-slices.md` is out of scope entirely, and an unlanded slice's acceptance criteria are never edited here.** Landing slice N and then rewriting slice N+1's criteria is the first link in the churn loop, and it is the one link this command owns. A problem found with an unlanded slice's criteria is escalated to `/plan` or written to `## Open` in `90-decisions.md` — never resolved in this pass. `/track` compares the tracker against that document; if this command has just rewritten it, the two were never independent.
+Ask the user to decide the divergences, one at a time, each with a recommendation: the document changes to match the code, or the code changes to match the document, and why that one. A passing test proves the code does what it does, not that it does what was agreed — do not assume the code is right because it runs.
 
-Produce a drift report first, before editing anything:
+A difference that is plainly a transcription — a renamed field, a moved file, a changed count — needs no question: correct the document and list it in the report.
 
-## Contract drift
-Places where the code and `20-contract.md` disagree **about meaning**: an error variant raised under conditions the contract does not describe, a documented retry story the caller does not implement, a field the contract says is meaningful only under one state being populated under another, an invariant no longer held. For each: which is currently correct, and what the other should become.
-
-`20-contract.md` no longer restates declarations, so a signature difference is not reportable here — it is either a descriptive correction (above) or, where a public interface genuinely changed, a contract amendment that belongs to `/spec`. Say which; do not absorb it.
-
-## Design drift
-Places where the implemented structure differs from `10-design.md` — module boundaries crossed, control flow changed, a failure mode handled differently or not at all.
-
-## Undocumented decisions
-Choices made during implementation that are not in `90-decisions.md`. These are the ones that silently become load-bearing.
-
-## LiveAlreadyStated
-For each active unit, compare every decision named in its `Live` against the artifact that unit is live on — its own `Anchor`, or a record one hop from it (`design/20-contract.md` § *The divergence classes*). Where a decision's terms already stand at a heading there with no site naming it, report the apparent match under the name `LiveAlreadyStated`. The payload is three parts: the unit id, the decision id, and the candidate site in `StatedIn`'s own `<id> § <heading>` form.
-
-This is a reading — `tools/Test-DesignState.ps1` declares the id and never raises it itself, for the same reason `SemanticDisagreement` cannot: judging whether a section states a decision's terms is a model reading prose, not a check a script can run. **This pass reports and never absorbs.** Acting on a match is the caller's own step 4 of `AGENTS.shared.md` § *Writing a design-state record* — copying the payload into the record and dropping the id from `Live` — or stating in the pull request why the terms do not stand there. That sign-off happens below, at *Then ask*, the same as every other divergence this command finds; absorbing it here instead would be running that step unattended.
-
-## SemanticDisagreement
-Over the same records the pass above already opened — the active units carrying a non-empty `Live`, plus the contracts and invariants reached in doing so — compare each record's **own prose** against the artifact it describes: a unit's `Owns`, a contract's `Semantics`, an invariant's `Statement`. Where the prose claims something the artifact does not do, report it under the name `SemanticDisagreement`. The payload is two parts: the record id and the field, and the line of the artifact that contradicts it.
-
-**Scope is the records this pass already had open, never the corpus.** Sweeping all of `design/state/` would re-read most of the tree on every run for a class that can never block, which is the cost that keeps a reading from being commissioned at all. A record outside that set is simply not examined, and the report says so rather than reading as clean (`AGENTS.shared.md`, *A findings report states what it examined*).
-
-This is a reading, for the reason given above and stated in `design/20-contract.md` § *The divergence classes*: `tools/Test-DesignState.ps1` declares the id so `ClassListDisagreement` sees one list, and never raises it, because a build that fails on a model's opinion is a build nobody trusts. **It reports and never edits.** A record whose prose is wrong is a divergence like any other, and which side is wrong — the prose or the artifact — is decided below at *Then ask*, not here.
-
-## Invalidated assumptions
-Anything the design assumed that implementation showed to be false.
-
-## Generated-guide drift
-If `docs/docs/guide.md` (or `guide.md`) exists, compare it against the design and contract. It is generated, so it goes stale silently. Report only **semantic** divergence — behaviour it describes that the design no longer specifies, or design changes it does not reflect. Do not report wording differences; a regenerated file is never byte-identical. If it is stale, say so and recommend `/docs`; do not regenerate it as part of this command.
-
-## Lessons
-Things that cost time and would cost it again. Each one must name what it actually cost — a lesson with no cost attached is a preference, and preferences go in `AGENTS.md`, not `agent.md`. Propose these for `agent.md`; do not append them yourself. If nothing here would have changed a decision, say "none" rather than padding.
-
-## Then ask — do not stop at the report
-
-**A reconciliation ends in a decision, not a report** (`AGENTS.shared.md`, *Working with me*). Having listed the drift, close by asking me to resolve it — one divergence at a time, each with a recommendation and what the alternatives cost.
-
-For each: which direction you recommend — the code changing to match the doc, or the doc changing to match the code — **and why that one**. Do not assume the code is right just because it runs; a passing test proves the code does what it does, not that it does what was agreed.
-
-If a section found nothing, say "none" and move on. Do not manufacture a fork to have something to ask about.
-
-Once I have decided, apply the edits and append the decision-log entries — following the full record-writing sequence in `AGENTS.shared.md` § *Writing a design-state record* where this repository's own `design/state/` exists. Nothing else beyond that sequence.
+Once decided, make the edits on a branch, append a `90-decisions.md` entry for each decision (date, decision, context, chosen, rejected and why), and ship it as one pull request per `AGENTS.shared.md` § *Git and delivery*. Never edit the acceptance criteria of a slice whose `Status:` is `done`.
 
 ## Re-run
 
-Every run re-derives every section from the tree and `design/` as they currently stand —
-nothing from a prior pass is cached or assumed still true, and every section is checked again
-even where a previous run said "none." A divergence already decided and applied should not
-reappear as a fresh question; if it does, that is drift in what got applied, not a re-ask, and
-is itself a finding worth naming. A decision I already made and recorded in `90-decisions.md`
-is not relitigated (`AGENTS.shared.md`, *Budget discipline*).
+Every run re-derives everything from the tree and `design/` as they stand now. A decision already recorded in `90-decisions.md` is not re-asked.

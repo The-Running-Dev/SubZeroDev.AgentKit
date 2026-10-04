@@ -9,7 +9,7 @@
     adapters. All adapters resolve dependencies from the one canonical checkout.
     Claude's adapters ship inside one skills-directory plugin, ~/.claude/skills/agentkit,
     so they run as /agentkit:<command> and never collide with Claude Code's own
-    commands (/plan, /resume, /help) or its bundled skills (/design).
+    commands (/plan) or its bundled skills (/design).
 .PARAMETER Version
     Tag, branch, or SHA. Omitted: newest valid vYYYY.MM.DD[.N] release, ordered by
     date and numeric revision, never tag creation time. No implicit main fallback.
@@ -20,8 +20,8 @@
     claude, codex, copilot; omitted: detect personal folders or installed executables.
     Codex honors CODEX_HOME. Existing unselected managed hosts remain registered.
 .PARAMETER Prefix
-    Prefix each registered name; e.g. ak- gives ak-slice and ak-slice-routed
-    (under Claude, /agentkit:ak-slice).
+    Prefix each registered name; e.g. ak- gives ak-next and ak-next-routed
+    (under Claude, /agentkit:ak-next).
 .PARAMETER DryRun
     Show operations without fetch, checkout, registration, or state writes. A fresh
     dry run cannot resolve remote tags; an existing dry run uses cached references.
@@ -138,7 +138,7 @@ function Get-HostRoot([string] $Name) {
 # Claude Code loads any ~/.claude/skills/<dir> holding .claude-plugin/plugin.json as a
 # plugin (<name>@skills-dir), in place, with no marketplace or install step. Its skills
 # are namespaced /agentkit:<name>; a bare ~/.claude/skills/<name> skill is not, and the
-# kit's bare names collide with Claude Code's own /plan, /resume, /help and /design.
+# kit's bare names collide with Claude Code's own /plan and /design.
 function Get-PluginRoot { Join-Path (Get-HostRoot 'claude') "skills/$pluginName" }
 function Get-SkillPath([string] $HostName, [string] $Name) {
     if ($HostName -eq 'claude') { return Join-Path (Get-PluginRoot) "skills/$Name" }
@@ -447,7 +447,7 @@ if (-not $RegisterOnly) {
 
 # Verify canonical dependencies before writing host state. A download of SKILL.md alone
 # cannot satisfy this boundary.
-foreach ($relative in @('AGENTS.shared.md','.claude/COMPANIONS.md','templates','tools/Invoke-CodexCommand.ps1','tools/Start-AgentKitCodex.ps1','tools/Get-AgentKitSkill.ps1')) {
+foreach ($relative in @('AGENTS.shared.md','templates','tools/Invoke-CodexCommand.ps1','tools/Start-AgentKitCodex.ps1','tools/Get-AgentKitSkill.ps1')) {
     if (-not (Test-Path -LiteralPath (Join-Path $installRoot $relative))) { throw "Incomplete runtime: missing '$relative'." }
 }
 $skills = @(Get-ChildItem -LiteralPath (Join-Path $installRoot 'skills') -Directory | Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md') } | Sort-Object Name)
@@ -462,7 +462,7 @@ function New-Adapter([string] $Name, [string] $RegistrationName, [string] $HostN
     $invocation = if ($HostName -eq 'claude') { "/$pluginName`:$RegistrationName" } else { "/$Name" }
     $header = "---`nname: $RegistrationName`ndescription: 'AgentKit $invocation ($mode). Use only when the user requests this command.'`n---`n"
     if ($HostName -eq 'claude') { $header = $header.Replace("`n---`n", "`ndisable-model-invocation: true`n---`n") }
-    $dependencies = "Runtime: [$root]($root). Read [$root/AGENTS.shared.md]($root/AGENTS.shared.md) and [$root/.claude/COMPANIONS.md]($root/.claude/COMPANIONS.md). Kit scripts and templates resolve under this runtime; project files and companions stay relative to the current project.`n"
+    $dependencies = "Runtime: [$root]($root). Read [$root/AGENTS.shared.md]($root/AGENTS.shared.md). Kit scripts and templates resolve under this runtime; project files stay relative to the current project.`n"
     if ($Routed) {
         return $header + $dependencies + @"
 
@@ -480,8 +480,8 @@ approvals and session completion. Report that it launched; do not claim the comm
 completed. Never substitute headless codex exec or auto-answer child approvals.
 "@
     }
-    $native = if ($HostName -eq 'codex') { 'Execution mode: native Codex. Keep the current session model and effort under the explicit native-mode exception in the shared rules linked above; do not claim routed tier verification. For enforced command routing use the corresponding -routed skill.' }
-        elseif ($HostName -eq 'claude') { "Execute the core using this host and its normal model policy. In Claude Code this command is ``$invocation``; name every AgentKit command for the user the same way (shared rules, *Command names in Claude Code*)." }
+    $native = if ($HostName -eq 'codex') { 'Execution mode: native Codex. Keep the current session model and effort; do not claim routed tier verification. For enforced command routing use the corresponding -routed skill.' }
+        elseif ($HostName -eq 'claude') { "Execute the core using this host and its normal model policy. In Claude Code this command is ``$invocation``; name every AgentKit command for the user the same way (shared rules, *Models*)." }
         else { 'Execute the core using this host and its normal model policy.' }
     return $header + $dependencies + @"
 
@@ -489,7 +489,7 @@ $native
 
 Load the complete canonical command through this reader, then execute the returned
 body with the user's arguments. The reader resolves kit dependencies to absolute
-paths without moving project companions or project files:
+paths without moving project files:
 
 ``````powershell
 & '$escaped/tools/Get-AgentKitSkill.ps1' -Command '$Name'

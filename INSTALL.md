@@ -67,12 +67,12 @@ The artifacts:
 
 - **The four states above still apply, and Occupied is the interesting one.** Absent — write it. Identical — skip. Divergent, meaning a copy of an older kit hook — reconcile as usual. **Occupied, meaning a `commit-msg` hook the kit did not write, stops this artifact and is reported.** Do not append to it, do not merge into it, do not rename it aside. A repository with its own `commit-msg` hook has a commit convention, and replacing it silently changes what every future commit is checked against. The rest of the install still proceeds; saying which artifact you skipped is the point.
 - **It is never staged, committed, or pushed.** `.git/` is not in the working tree, so the hook is absent from phase 4 step 8's branch and from the pull request. A target's collaborators do not receive it by merging — they receive it by running `/install` themselves.
-- **`tools/Test-WriteSurface.ps1` cannot see it.** `git status` does not report writes inside `.git/`, so the guard is not merely silent here, it is structurally blind — which means **adding a `.git/` prefix to its list would be dead configuration**, matching nothing and reading to the next person as coverage that does not exist. Phase 1's Occupied rule and this procedure's own report are the whole of what stands in its place.
-- **`/install-all` does not write it at all**, and reports it as skipped. That command's unattended, multi-repository pass is guarded by exactly the check that cannot see this write, so the one artifact with no mechanical guard is the one artifact an unattended pass must not touch — the same reasoning that keeps `.claude/settings.json` out of it.
+- **`git status` cannot see it.** Writes inside `.git/` never show up in a diff or a pull request, so Phase 1's Occupied rule and this procedure's own report are the only record that it happened.
+- **`/install-all` does not write it at all**, and reports it as skipped. An unattended, multi-repository pass must not make a write nobody can review afterwards — the same reasoning that keeps `.claude/settings.json` out of it.
 
 **It also needs the target's `core.hooksPath` unset or pointing at `.git/hooks`.** A repository that has redirected it — Husky and lefthook both do — runs its hooks from somewhere else, so a file written to `.git/hooks/commit-msg` there is inert while looking installed. Check with `git -C <target> config --get core.hooksPath`; if it names anywhere else, skip the hook and report the path it names rather than writing into a directory the kit does not own.
 
-**`AGENTS.shared.md`, `skills/<name>/SKILL.md`, `skills/<name>/SKILL-local.md`, `.claude/COMPANIONS.md` and `tools/*.ps1` are not installed into the target at all.** They are kit-owned and live once, machine-wide, at the installed kit root (`AGENTS.shared.md` § *House conventions* → Home-install convention) — a repository never holds its own copy, so there is nothing here to classify, reconcile, or update on a re-install. The pointer section (phase 2) is what lets a target's `AGENTS.md`/`CLAUDE.md` reach `AGENTS.shared.md` without copying it. A `skills/<name>/SKILL-local.md` companion, if the target has one, is its own — this procedure never reads, writes, or classifies it.
+**`AGENTS.shared.md`, `skills/<name>/SKILL.md` and `tools/*.ps1` are not installed into the target at all.** They are kit-owned and live once, machine-wide, at the installed kit root (`AGENTS.shared.md` § *House conventions*, kit files resolve from the kit root) — a repository never holds its own copy, so there is nothing here to classify, reconcile, or update on a re-install. The pointer section (phase 2) is what lets a target's `AGENTS.md`/`CLAUDE.md` reach `AGENTS.shared.md` without copying it. A `skills/<name>/SKILL-local.md` or `.claude/COMPANIONS.md` left by an older install is no longer read by anything; report it, and leave deleting it to the user.
 
 `INSTALL.md` itself is **not** installed into targets. It is the kit's procedure, and a copy in the target is a copy that drifts.
 
@@ -163,7 +163,7 @@ The kit ships this seeded with lessons harvested from other projects. It says so
 
 **Check provenance before offering any lesson back.** The kit's seed was harvested from real repositories, and some of those repositories are targets. Re-installing a lesson into the repository it came from re-imports that repo's own hard-won specifics in generalised, evidence-stripped form — and it will read as new, because the wording has changed. If a kit lesson describes something that already appears in the target's own file with more detail, it did not come from somewhere else; it came from here. Drop it silently and say so in the report.
 
-**A relocated `design/` path is a target-local fact the kit cannot take back.** Where a command needs to know it, that belongs in the affected command's own companion at `skills/<name>/SKILL-local.md`, under `document-map` (`.claude/COMPANIONS.md`) — not in this procedure, which no longer writes or reconciles command files at all.
+**A relocated `design/` path is a target-local fact the kit cannot take back.** Record it in the target's own `AGENTS.md`, where every command reads it — not in this procedure, which no longer writes or reconciles command files at all.
 
 ### Rules the target already states
 
@@ -190,7 +190,7 @@ Commit-msg hook:          <installed | skipped — core.hooksPath names <path> |
 Dirty files, untouched:   <paths from phase 0>
 ```
 
-**An install is a reconciliation, so it ends in a decision, not a report** (`AGENTS.shared.md`, *Working with me*). The block above is not the deliverable — closing with the questions is. Every divergence you listed becomes a question with a recommendation and the cost of each alternative.
+**An install is a reconciliation, so it ends in a decision, not a report.** The block above is not the deliverable — closing with the questions is. Every divergence you listed becomes a question with a recommendation and the cost of each alternative.
 
 Present the decisions **one at a time**. Do not batch them, and do not proceed on the ones you think are obvious while waiting on the rest — a later answer can change an earlier one. If nothing diverged, say the install is a no-op; do not invent a fork to have something to ask.
 
@@ -204,7 +204,7 @@ Only after sign-off.
    this kit assumes. Say in the closing report that you created it.
 
 2. **Re-check the target's state first.** Phase 0's snapshot is stale by now — a long reconciliation gives the user time to commit, branch, or edit the very file you are about to move. Re-run `git status --short --branch` and diff your source-of-truth for any moved content against `HEAD`, not against what you read in phase 0.
-3. Write the approved files. Preserve UTF-8 and LF. This is only ever `AGENTS.md`/`CLAUDE.md` (including the pointer section), `agent.md`, the `design/` seed, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md`, `.claude/kit.json`, and `.git/hooks/commit-msg` — nothing under `skills/` or `tools/`, and no `.claude/COMPANIONS.md`, is ever written here. The hook is the one path in that list outside the working tree, and it is written here and then deliberately not staged in step 8.
+3. Write the approved files. Preserve UTF-8 and LF. This is only ever `AGENTS.md`/`CLAUDE.md` (including the pointer section), `agent.md`, the `design/` seed, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md`, `.claude/kit.json`, and `.git/hooks/commit-msg` — nothing under `skills/` or `tools/` is ever written here. The hook is the one path in that list outside the working tree, and it is written here and then deliberately not staged in step 8.
 4. **Record every fork that had a real alternative** — the relocation, the `AGENTS.md`/`CLAUDE.md` direction, anything the target overrode, anything skipped. **Rejected alternatives included**; without them the next install relitigates the same choices, and the commonest question a re-install faces is "why is it set up this way here?"
 
    The log's home, in this order — the first that applies:
@@ -260,7 +260,7 @@ Only after sign-off.
    placeholder deferring to `/pr`, and not a summary of one; `/pr` does not run here.
 
 Name the branch and link the pull request — its body already carries what was created and reconciled, so the
-chat report adds only what remains for the user to decide (`AGENTS.shared.md`, *Output discipline*).
+chat report adds only what remains for the user to decide (`AGENTS.shared.md`, *Reporting*).
 
 ---
 
@@ -281,4 +281,4 @@ Installing again upgrades. The classification in phase 1 is what makes it safe: 
 - Not delete anything without explicit approval, including lessons it proposes pruning.
 - Not install `codex/PROFILES.md` into a repository that has never been used with Codex.
 - Not overwrite, append to, or move aside a `commit-msg` hook the kit did not write, and not write one at all where `core.hooksPath` names a directory other than `.git/hooks`.
-- Not write, rewrite, or delete anything under `skills/` or `tools/`, or `.claude/COMPANIONS.md`. Those are kit-owned and live once, machine-wide — never in a target repository.
+- Not write, rewrite, or delete anything under `skills/` or `tools/`. Those are kit-owned and live once, machine-wide — never in a target repository.

@@ -1,13 +1,12 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Validates .claude/verify-report.json - the structured artifact /verify writes - before its
+    Validates .claude/verify-report.json - the structured artifact a gate run writes - before its
     contents are trusted to become a pull request's Verified section.
 
 .DESCRIPTION
-    Same pattern as Test-DesignDrift.ps1 (AGENTS.shared.md, "structured artifact plus deterministic
-    validator"), ported to a second agent output: /verify's gate report. verify.md's own report
-    is currently free-form prose that /pr copies "verbatim" into a PR description - which means
+    A structured artifact plus a deterministic validator, applied to an agent's gate report.
+    A free-form gate report copied "verbatim" into a PR description means
     the honesty rules in AGENTS.shared.md's Verification section ("never write all checks pass unless
     every gate is in the first list", "quote failures, a summary of a failure is a claim about
     a failure", "the did-not-run list goes in word for word, including the reason") are enforced
@@ -22,12 +21,11 @@
         script" is the report table's own words, and an empty reason fails validation.
 
     It does not decide what the gates are or whether a gate should have passed - that is
-    /verify's judgement, same division as Test-DesignDrift.ps1 not deciding which side of a
-    drift is correct. It only refuses to let a malformed report reach a PR body unnoticed.
+    the reporting agent's judgement. It only refuses to let a malformed report reach a PR body unnoticed.
 
     Exit codes: 0 Valid, 1 Invalid - the report parses but breaks an invariant, 2 NotEvaluated -
     the file is missing or is not readable JSON at all, so no invariant could even be checked.
-    NotEvaluated takes precedence the same way Test-DesignDrift.ps1's does: a run that could not
+    NotEvaluated takes precedence: a run that could not
     read the artifact has nothing to say about whether it is valid, and reporting Invalid or
     Valid either one would be inventing an answer. Never prompts.
 
@@ -114,8 +112,7 @@ function Get-VerifyReportDocument {
 
 <#
     The one function that reads meaning out of the parsed object, kept separate from file I/O
-    so tests can hand it an in-memory object the same way Test-DesignDrift.Tests.ps1 hands
-    Invoke-DriftCheck a fixture path.
+    so tests can hand it an in-memory object.
 #>
 function Invoke-VerifyReportCheck {
     param([Parameter(Mandatory)] $Report)
@@ -205,7 +202,7 @@ function Write-VerifyReportResult {
     }
 }
 
-# Same dot-source guard as Test-DesignDrift.ps1: lets this script's tests define every function
+# Dot-source guard: lets this script's tests define every function
 # above in the caller's scope without exiting the test runner's process.
 if ($MyInvocation.InvocationName -ne '.') {
     if (-not $Path) {

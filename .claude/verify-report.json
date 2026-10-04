@@ -3,27 +3,17 @@
     {
       "name": "Check commits carry no AI attribution",
       "status": "Passed",
-      "detail": "./tools/Test-NoAttribution.ps1 - RESULT=PASSED, 2 commits checked, none carry AI attribution. Exit 0."
+      "detail": "./tools/Test-NoAttribution.ps1 - RESULT=PASSED, 1 commit checked, none carry AI attribution. Exit 0."
     },
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parser::ParseFile over every *.ps1 in the tree - no parse errors. Exit 0."
+      "detail": "Parser::ParseFile over every *.ps1 in the tree - 29 files, no parse errors. Exit 0."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools - 660 passed, 0 failed, 11 skipped, 671 total. Exit 0."
-    },
-    {
-      "name": "Validate the core/companion split",
-      "status": "Passed",
-      "detail": "./tools/Test-Companion.ps1 - 27 cores, 0 companions, 27 absent companions; valid. Exit 0."
-    },
-    {
-      "name": "Check the design state against the tree",
-      "status": "Passed",
-      "detail": "./tools/Test-DesignState.ps1 - 0 blocking findings, 0 could-not-evaluate, 52 non-blocking reports. Largest closure unit/script/test-designstate at 13377 bytes of 16384. Exit 0."
+      "detail": "Invoke-Pester -Path tools - 212 passed, 0 failed, 4 skipped, 216 total. Exit 0."
     },
     {
       "name": "Typecheck videos/",

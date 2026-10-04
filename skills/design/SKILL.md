@@ -1,21 +1,11 @@
 ---
 name: design
-description: Produce or revise the design doc from the brief
+description: Produce or revise the design doc and its contract from the brief
 disable-model-invocation: true
 ---
 
-<!-- companion:declared:start -->
-**Per-repo companion:** `skills/design/SKILL-local.md`. Read it now, if it exists — an absent,
-empty, or frontmatter-only file is no companion, and this file then stands alone.
-It may override: `vocabulary`, `document-map`, `extra-steps`. It may never override anything in
-[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
-<!-- companion:declared:end -->
 
-## Stop if `design/` is frozen
-
-If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and write nothing. The rule and the marker's format live in `AGENTS.shared.md`, *The design freeze* — not restated here.
-
-Read `design/00-brief.md`. Write `design/10-design.md`.
+Read `design/00-brief.md`. Write `design/10-design.md`, then `design/20-contract.md`.
 
 This is the stage where irreversible decisions get made. Data model, module boundaries and error semantics are expensive to change later; code is not. Spend the reasoning here.
 
@@ -41,8 +31,8 @@ Then wait. A premise the user disagrees with is re-stated from their correction,
 ## Approaches, then stop
 
 **Do not write `design/10-design.md` until the approach is approved.** Offer two or three, name
-which you recommend, and say why — the plain-English statement of the *problem* comes before the
-options, per `AGENTS.shared.md` § *Working with me*:
+which you recommend, and say why — a plain-English statement of the *problem* comes before the
+options:
 
 - **Minimal viable** — the smallest architecture that satisfies the brief, and what it gives up.
 - **Ideal** — what this looks like with the current constraints relaxed, and what that costs.
@@ -87,33 +77,28 @@ Things that cannot be resolved without information I have not given you. Ask the
 
 Rules:
 - No code. No file layouts. No package names beyond what a decision required.
-- Every decision that survives goes into `design/90-decisions.md` in the logged format. Where this repository's own `design/state/` exists, writing it also follows the record-writing sequence in `AGENTS.shared.md` § *Writing a design-state record* — not restated here.
+- Every decision that survives goes into `design/90-decisions.md`: date, decision, context, what was chosen, what was rejected and why.
 - If the brief is too thin to design against, stop and say what is missing rather than inventing requirements.
 
-## Hand off
+## Then the contract
 
-`design/10-design.md` is committed and the session ends. `/redteam` runs next, and
-`AGENTS.shared.md` § *Session boundaries* makes this the strictest boundary the pipeline has:
-fresh session **and a different vendor**, because a model recognises its own output distribution
-and defends it. Emit the transfer block `AGENTS.shared.md` § *The session-transfer handoff block*
-requires, then that boundary's banner.
+Once `design/10-design.md` is written, write `design/20-contract.md` from it in the same run. It is what `/next` builds against, so precision here is what lets the build run without stopping.
 
-Two things this one block must carry that a banner cannot:
+- **Invariants** — statements that must always hold, written so they could become assertions, each naming the module that maintains it. Write this section first; it is the most valuable one.
+- **Public surface** — every function, command or endpoint crossing a module boundary: inputs, outputs, what a caller may rely on, what it must never do. Before the code exists, give declarations in the project's language, signatures only.
+- **Persisted schemas** — tables, collections or files, with keys and constraints, and what happens to existing data.
+- **Error semantics** — per module, each error: when it is raised, whether it is retryable, what the caller does. No bare exceptions, no string errors.
+- **Unresolved** — any signature the design does not determine. Do not invent one; list it here.
 
-- **`Start here` is `/redteam`, strongest model, different vendor from the design author** — the
-  tier `AGENTS.shared.md` § *Command routing* fixes for it.
-- **The different-vendor requirement goes in `Constraints`, in words.** It is the only constraint
-  in the pipeline that the receiving session cannot check for itself — a fresh session of this
-  same model reads as a clean start from the inside, which is exactly the failure.
-- **`Authoritative inputs` names the committed path and its commit** — `design/10-design.md`,
-  plus `design/00-brief.md` for what it was designed against. **Do not paste the design into the
-  block, and do not summarise the arguments behind it.** Those arguments are precisely what the
-  boundary exists to keep out of the reviewing session; a `Current state` that rehearses why an
-  approach was chosen hands the red team the defence before it has read the design.
+The contract is written once. When the code later departs from it, the pull request says so; the contract is not kept in sync (`AGENTS.shared.md` § *The design is the spec*).
+
+## When done
+
+Report in the `AGENTS.shared.md` § *Reporting* shape. `Next:` is `/plan`. `/redteam` is optional before it — best run by a different vendor than this session's, and it is the user's call, not a gate.
 
 ## Re-run
 
-Rewrites `design/10-design.md` in full from the current brief — there is no partial
+Rewrites `design/10-design.md` and `design/20-contract.md` in full from the current brief — there is no partial
 regeneration. Both gates run again: a brief that moved is exactly when a premise goes stale
 without anyone noticing, and re-confirming one costs a line. An approach already approved and
 still unchallenged by the brief is re-stated in one line rather than re-offered as a choice.

@@ -2,11 +2,9 @@
 #Requires -Modules Pester
 
 <#
-  Test-VerifyReport.ps1 exits the process on every path (0/1/2), same hazard
-  Test-DesignDrift.Tests.ps1 documents for its own script. Dot-sourcing defines its functions
+  Test-VerifyReport.ps1 exits the process on every path (0/1/2). Dot-sourcing defines its functions
   here and skips the exit-calling wrapper; Invoke-VerifyReportCheck is called directly against
-  an in-memory object (ConvertFrom-Json of a here-string), the same way Invoke-DriftCheck is
-  called against a fixture path in that file. Get-VerifyReportExitCode is a pure state->code
+  an in-memory object (ConvertFrom-Json of a here-string). Get-VerifyReportExitCode is a pure state->code
   map tested alone.
 #>
 

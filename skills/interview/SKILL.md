@@ -5,18 +5,10 @@ argument-hint: "[one line about the idea, or nothing]"
 disable-model-invocation: true
 ---
 
-<!-- companion:declared:start -->
-**Per-repo companion:** `skills/interview/SKILL-local.md`. Read it now, if it exists — an absent,
-empty, or frontmatter-only file is no companion, and this file then stands alone.
-It may override: `vocabulary`, `document-map`. It may never override anything in
-[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
-<!-- companion:declared:end -->
-
 Ask the questions that turn **$ARGUMENTS** — or an idea that so far exists only in the user's head — into `design/00-brief.md`. You conduct the interview and you type the file. You do not supply what goes in it.
 
 ## Stop first
 
-- **`design/FROZEN.md` exists** — refuse. Report its `Frozen because` and `Lifts when` lines **verbatim** and stop. Authoring is gated while the design is frozen (`AGENTS.shared.md`, *The design freeze*), and the brief is the furthest upstream thing there is to author.
 - **`design/00-brief.md` already has real content** — this is a re-run. Read *Re-run* below before asking anything.
 - **No `design/` at all** — that is the ordinary starting state. Copy `templates/design/00-brief.md` into place when you write, and leave the rest of the seed to `/install`.
 
@@ -46,7 +38,7 @@ Be direct to the point of discomfort. Comfort means the question did not land. T
 - Challenge the strongest reading of what the user said, never a weaker one you can dispose of.
 - Acknowledge a good answer by naming what was good about it and asking a harder question. Do not linger on it.
 - Name a failure pattern when you see it — *a solution looking for a problem*, *hypothetical users*, *the workaround is fine and nobody will switch*, *this is three projects*.
-- Gloss any term of this repository's own vocabulary the first time you use it (`AGENTS.shared.md`, *Output discipline*). Someone writing their first brief does not yet know what a slice or a closure is, and an interview is the worst possible place to start using them unexplained.
+- Gloss any term of this repository's own vocabulary the first time you use it. Someone writing their first brief does not yet know what a slice or a closure is, and an interview is the worst possible place to start using them unexplained.
 
 A claimed impossibility is a claim like any other and needs evidence before it is allowed to shape the brief — the user's as much as yours (`AGENTS.shared.md`, *Verification*). Where a cheap check settles it, run the check before asking anything further.
 
@@ -118,7 +110,7 @@ PREMISES:
 
 This is where an assumption gets caught while catching it is still free. Four to six premises; if there are ten, the interview did not converge, and saying so is more useful than listing them.
 
-Then draft the three fields the questions did not ask for directly, and put them up **one at a time for sign-off** (`AGENTS.shared.md`, *Working with me*):
+Then draft the three fields the questions did not ask for directly, and put them up **one at a time for sign-off**:
 
 - **`## Non-goals`** — the adjacent things this must not become. Draft them from what the user ruled out while answering, say which answer each came from, and change any the user corrects. **Every non-goal binds every later session permanently**, so say that out loud when presenting the list. A non-goal the user did not agree to is the worst single output this command can produce.
 - **`## Definition of done`** — checkable statements, not aspirations. Each one has to be something that can be run, read, or counted.
@@ -128,17 +120,15 @@ Only then write `design/00-brief.md`, from `templates/design/00-brief.md`, and s
 
 ## Never
 
-- Never write anything but `design/00-brief.md`. Not `10-design.md`, not `90-decisions.md`, not the tracker. Architecture is `/design`'s, and proposing it here anchors the design to whatever happened to come to mind during an interview.
+- Never write anything but `design/00-brief.md`. Not `10-design.md`, not `90-decisions.md`. Architecture is `/design`'s, and proposing it here anchors the design to whatever happened to come to mind during an interview.
 - Never name a technology, a library, or a file format. The brief describes the problem; a tool named at this stage is a decision made before there was anything to decide it against.
 - Never fill a field the user did not answer. Empty and labelled is a finding; filled and plausible is a fiction that survives the whole pipeline.
 - Never ask a second round of questions after writing. `/brief` is the next stage and its four lists are the second pass — that is the boundary, and running it here would make one session both the author and the judge.
 - Never assess whether the idea is a good one. This interview establishes what the idea *is*.
 
-## Hand off
+## When done
 
-The brief is committed and the session ends. `/brief` runs next, in a fresh session, and it deliberately writes nothing — the user edits the brief from its four lists (`AGENTS.shared.md`, *Session boundaries*).
-
-Emit the transfer block `AGENTS.shared.md` § *The session-transfer handoff block* requires, then that boundary's banner. `Start here` is `/brief`, `opus`/`high` — the tier `AGENTS.shared.md` § *Command routing* fixes for it; `Authoritative inputs` is `design/00-brief.md` at the commit just written. **`Current state` names the fields left empty and says they are empty** — an unanswered field is this command's finding, and it is the one thing the next session must not mistake for an oversight. Nothing else from the interview crosses: not the answers behind a field, not what the user nearly said, not this session's reading of what they meant.
+Report in the `AGENTS.shared.md` § *Reporting* shape. `Result:` names any field left empty — an unanswered field is this command's finding, not an oversight. `Next:` is `/brief`, which writes nothing and lists what the brief is missing, then `/design`.
 
 ## Re-run
 

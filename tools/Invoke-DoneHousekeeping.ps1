@@ -1,25 +1,22 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    The mechanical half of /clean (skills/clean/SKILL.md): switch to the default branch,
-    prune stale remote-tracking refs, and report which local branches are safe to delete.
+    Post-merge branch housekeeping for /next (skills/next/SKILL.md, step 0): switch to the
+    default branch, prune stale remote-tracking refs, and report which local branches are safe
+    to delete.
 
 .DESCRIPTION
-    Everything clean.md does before its "Ask, once" step is a fact-gathering and
-    non-destructive git sequence with no judgement call in it - is the tree dirty, what is
+    Everything before a branch deletion is a fact-gathering and non-destructive git sequence with no judgement call in it - is the tree dirty, what is
     the default branch, does the current branch have unmerged commits, which local branches
     does `--merged` confirm, and (cross-checked via `gh`) which of the rest merged by squash.
     That is exactly the kind of repeated, mechanical scan AGENTS.shared.md's own model-work table
-    calls out as not needing a model call at all, which is why /clean is routed `sonnet/medium`
-    rather than higher - this script removes even that call for the part that never needed
-    judgement.
+    calls out as not needing a model call at all.
 
     Deletion is the one step this script will not decide on its own. Called with no
     -DeleteBranches, it only switches, prunes, and reports candidates - nothing is deleted.
-    AGENTS.shared.md's *Git and delivery* is explicit that deleting a branch is not carved out of
-    the authorization rule, so the actual delete list has to come from the one-time chat
-    approval clean.md's "Ask, once" step gets - this script executes that approved list, it
-    does not produce it.
+    The delete list comes from the caller (Invoke-Housekeeping.ps1 passes the branches this
+    script confirmed merged, which AGENTS.shared.md's *Git and delivery* delegates) - this
+    script executes that list, it does not produce it.
 
 .PARAMETER RepoRoot
     Repository to operate on. Defaults to the current directory.

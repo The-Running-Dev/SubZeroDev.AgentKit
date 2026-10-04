@@ -13,9 +13,8 @@ jobs:
   powershell:
     runs-on: windows-latest
     steps:
-      # Full history: the design-state check resolves merge-base ancestry for every WorkRef's
-      # MirroredAt sha, which a shallow (default depth-1) checkout can't do - ShallowCheckout
-      # would fire for every one and fail S12.5 with no real drift to show for it.
+      # Full history: the attribution check walks every commit between the base and head sha,
+      # which a shallow (default depth-1) checkout does not have.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -47,11 +46,7 @@ jobs:
           }
           if ($failed) { exit 1 }
 
-      # S12.5 calls the real, gh-calling design-state check against this repository and
-      # expects exit 0 - the same reason the later "Check the design state against the
-      # tree" step below carries GH_TOKEN. Without it here, an unauthenticated gh makes
-      # that one test a could-not-evaluate (TrackerUnavailable) rather than a check of
-      # anything this step is meant to gate (#79).
+      # GH_TOKEN lets the tests that call gh run here rather than skip (#79).
       # verification: true
       - name: Run Pester tests
         shell: pwsh
@@ -62,42 +57,10 @@ jobs:
           $result = Invoke-Pester -Path tools -Output Detailed -PassThru
           if ($result.FailedCount -gt 0) { exit 1 }
 
-      # Exit 2 (NotEvaluated) fails this step as well as exit 1 - .claude/COMPANIONS.md
-      # going missing means nothing was checked, which must not read as a pass.
-      #
-      # The flag must sit on the line immediately above `- name:`; a comment between the
-      # two hides the step from discovery entirely.
-      # verification: true
-      - name: Validate the core/companion split
-        shell: pwsh
-        run: ./tools/Test-Companion.ps1 | Out-Null
-
-      # Exit 2 (could not evaluate) fails this step exactly as exit 1 does. A gate that failed
-      # only on 1 would turn "the design state was never read" into a passing build - I19 and
-      # I20 defeated at the call site rather than by the script, which is the substitution
-      # design/20-contract.md § tools/Test-DesignState.ps1 puts on the caller.
-      #
-      # GH_TOKEN is what keeps TrackerUnavailable off that list: the checker probes gh
-      # unconditionally, an unauthenticated CLI is a contracted could-not-evaluate, and without
-      # a token this step would be red on every run for a reason that says nothing at all about
-      # the design state.
-      #
-      # The flag sits on the line immediately above `- name:`, which is where
-      # skills/verify/SKILL.md says discovery looks for it.
-      # verification: true
-      - name: Check the design state against the tree
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./tools/Test-DesignState.ps1 | Out-Null
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
   # Runs the platform-neutral PowerShell suites on Linux, without gh or GH_TOKEN, to back the
   # repository's cross-platform PowerShell claim. The powershell job above stays the only one
-  # carrying GH_TOKEN and the authenticated design-state CLI invocation - S12.5/S25.4 and S18.6
-  # in Test-DesignState.Tests.ps1 detect the missing credential themselves and report Skipped
-  # rather than failing or silently passing (AGENTS.shared.md, Verification).
+  # carrying GH_TOKEN; tests that need gh detect the missing credential themselves and report
+  # Skipped rather than failing or silently passing (AGENTS.shared.md, Verification).
   powershell-linux:
     runs-on: ubuntu-latest
     steps:
@@ -130,9 +93,7 @@ jobs:
           if ($failed) { exit 1 }
 
       # No GH_TOKEN here on purpose - this job proves the suite degrades cleanly (Skipped, not
-      # Failed) without gh, which the windows-latest job's authenticated run cannot prove. Named
-      # differently from the windows-latest job's "Run Pester tests" step so
-      # Test-CIWorkflow.Tests.ps1's name-based lookup for that step's GH_TOKEN stays unambiguous.
+      # Failed) without gh, which the windows-latest job's authenticated run cannot prove.
       # verification: true
       - name: Run offline Pester suite
         shell: pwsh
@@ -141,16 +102,9 @@ jobs:
           $result = Invoke-Pester -Path tools -Output Detailed -PassThru
           if ($result.FailedCount -gt 0) { exit 1 }
 
-      # verification: true
-      - name: Validate the core/companion split
-        shell: pwsh
-        run: ./tools/Test-Companion.ps1 | Out-Null
-
   # Proves the shared PowerShell suite actually runs on macOS rather than merely being
   # documented as a supported install target (#405). Same offline/unauthenticated shape as
-  # powershell-linux: no GH_TOKEN, and the Pester step keeps a name distinct from
-  # "Run Pester tests" so it does not create a second match for
-  # Test-CIWorkflow.Tests.ps1's name-based GH_TOKEN lookup (#79).
+  # powershell-linux: no GH_TOKEN.
   powershell-macos:
     runs-on: macos-latest
     steps:
@@ -188,11 +142,6 @@ jobs:
           Import-Module Pester -MinimumVersion 5.0
           $result = Invoke-Pester -Path tools -Output Detailed -PassThru
           if ($result.FailedCount -gt 0) { exit 1 }
-
-      # verification: true
-      - name: Validate the core/companion split
-        shell: pwsh
-        run: ./tools/Test-Companion.ps1 | Out-Null
 
   videos:
     runs-on: windows-latest

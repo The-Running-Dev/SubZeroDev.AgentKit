@@ -3,15 +3,14 @@
 
 <#
   Invoke-CodexCommand.ps1 maps each command name to a Codex profile per AGENTS.shared.md's
-  *Command routing* table. The regression this guards (issue #116): /done was renamed to
-  /clean (issue #127) but the map kept the old 'done' key, so /clean fell through to the
-  "no profile mapping" error - exactly the manual profile selection the script exists to
-  remove. Runs against this repository's own skills/ rather than a fixture,
-  since the defect is staleness against the real command set.
+  *Models* table. The regression this guards (issue #116): a renamed command kept its old
+  map key, so the new name fell through to the "no profile mapping" error - exactly the
+  manual profile selection the script exists to remove. Runs against this repository's own
+  skills/ rather than a fixture, since the defect is staleness against the real command set.
 #>
 
 <#
-  W3 correspondence parsers. These read AGENTS.shared.md's *Command routing* table and
+  W3 correspondence parsers. These read AGENTS.shared.md's *Models* command table and
   codex/PROFILES.md's 0.134+ profile blocks as data, so the tests below (and their fixture
   counterparts) catch drift between what those documents say and what
   Invoke-CodexCommand.ps1 actually does - instead of the hand-kept-in-sync comments that
@@ -37,7 +36,7 @@ BeforeAll {
 
 function Get-AgentsCanonicalTierMap {
     <#
-      Parses AGENTS.md's primary tier table (*Model, effort, and review budget*): rows of
+      Parses AGENTS.md's primary tier table (*Models*): rows of
       the form "| **<Tier>** | <work> | <effort> | `<claude alias>` | `<codex alias>` |".
       Returns alias -> tier name, first row wins a duplicate alias (so `opus` resolves to
       'Deep reasoning', not 'Exceptional fork' - Command routing never routes a command to
@@ -59,7 +58,7 @@ function Get-CommandRoutingRows {
     <#
       Parses any markdown table row whose first cell contains one or more `` `/name` ``
       tokens and is not a *Session boundaries*-style "`/a` -> `/b`" transition row - which
-      in practice leaves only AGENTS.shared.md's *Command routing* table, since *Session
+      in practice leaves only AGENTS.shared.md's *Models* command table, since *Session
       boundaries* is the only other table writing a slash-prefixed command name in
       backticks, and its first cell always names a transition rather than a single
       command's row. Returns one object per row: Commands (the slash names, without the
@@ -97,9 +96,8 @@ function Get-CommandRoutingRows {
 function Get-RoutingCoverageGaps {
     <#
       Every skills/*/SKILL.md file should appear in exactly one routing row. Returns
-      the ones that don't (zero rows, or more than one) - $NamedSkips excuses the ones
-      AGENTS.md itself calls out as not fitting the one-row-one-command shape (/resume,
-      which needs two profiles and so has its own dedicated Describe block already).
+      the ones that don't (zero rows, or more than one) - $NamedSkips excuses any command
+      that does not fit the one-row-one-command shape.
     #>
     param($Rows, $CommandNames, $NamedSkips = @())
 
@@ -165,7 +163,7 @@ function Get-ProfileTomlBlocks {
 function Get-LauncherProfileConfig {
     <#
       Parses Invoke-CodexCommand.ps1's own $profileConfig hashtable out of its source text,
-      the same technique the /resume prompt tests already use for the here-strings above -
+      reading the source text -
       reading the launcher's actual literal values rather than re-declaring them, so a hand
       edit to one place and not the other is exactly what these tests are meant to catch.
     #>
@@ -200,11 +198,6 @@ Describe 'Invoke-CodexCommand command map' {
         }
     }
 
-    It 'resolves /clean rather than the retired /done name' {
-        $result = & $script:ScriptPath -Command 'clean' -WhatIf
-        $result | Should -Match 'gpt-5.3-codex-spark'
-    }
-
     It 'throws for a command name with no mapping' {
         { & $script:ScriptPath -Command 'not-a-real-command' -WhatIf } | Should -Throw
     }
@@ -224,12 +217,12 @@ Describe 'Invoke-CodexCommand tier stamping' {
     }
 
     It 'stamps AGENTKIT_TIER as Implementation for a builder-profile command' {
-        $result = & $script:ScriptPath -Command 'slice' -WhatIf
+        $result = & $script:ScriptPath -Command 'next' -WhatIf
         $result | Should -Match 'AGENTKIT_TIER=Implementation'
     }
 
     It 'stamps the resolved effort, not the profile default, when -Effort overrides it' {
-        $result = & $script:ScriptPath -Command 'slice' -Effort high -WhatIf
+        $result = & $script:ScriptPath -Command 'next' -Effort high -WhatIf
         $result | Should -Match 'AGENTKIT_EFFORT=high'
         $result | Should -Match 'AGENTKIT_TIER=Implementation'
     }
@@ -248,10 +241,10 @@ Describe 'Invoke-CodexCommand resolved effort and sandbox match AGENTS.md (issue
       sandboxed read-only - correct for /redteam and /brief, which write nothing, but
       wrong for /design, /spec, /plan, and /align, whose normal work is writing to
       design/. The same profile also defaulted to 'xhigh' effort where AGENTS.md's tier table
-      requires 'high'. Separately, /help and /clean resolved 'low' effort against an
+      requires 'high'. Separately, two housekeeping commands resolved 'low' effort against an
       implementation-tier requirement of 'medium'. These hardcode the expected effort and
       sandbox per command name, kept in sync with AGENTS.md's tables by hand - they do not
-      parse AGENTS.md itself, so an edit to *Command routing* without a matching edit here
+      parse AGENTS.md itself, so an edit to the *Models* command table without a matching edit here
       would not fail. The 'W3' Describe blocks below are the ones that parse AGENTS.md's
       tables directly and so catch that drift automatically.
     #>
@@ -267,14 +260,14 @@ Describe 'Invoke-CodexCommand resolved effort and sandbox match AGENTS.md (issue
     }
 
     It 'never defaults a deep-reasoning command to xhigh effort' {
-        foreach ($name in 'brief', 'design', 'spec', 'plan', 'redteam', 'align') {
+        foreach ($name in 'brief', 'interview', 'design', 'plan', 'redteam', 'align') {
             (Get-Resolved $name).Effort | Should -Be 'high' -Because "/$name is deep-reasoning tier, which defaults to 'high' per AGENTS.md - xhigh is for one escalated question, not a profile default"
         }
     }
 
-    It 'gives implementation-tier housekeeping commands medium effort, not low' {
-        foreach ($name in 'help', 'clean') {
-            (Get-Resolved $name).Effort | Should -Be 'medium' -Because "/$name is implementation tier per AGENTS.shared.md's Command routing table"
+    It 'gives implementation-tier commands medium effort, not low' {
+        foreach ($name in 'next', 'fix', 'sync') {
+            (Get-Resolved $name).Effort | Should -Be 'medium' -Because "/$name is implementation tier per AGENTS.shared.md's Models command table"
         }
     }
 
@@ -285,91 +278,8 @@ Describe 'Invoke-CodexCommand resolved effort and sandbox match AGENTS.md (issue
     }
 
     It 'gives design-document-writing deep-reasoning commands a writable sandbox' {
-        foreach ($name in 'design', 'spec', 'plan', 'align') {
+        foreach ($name in 'interview', 'design', 'plan', 'align') {
             (Get-Resolved $name).Sandbox | Should -Be 'workspace-write' -Because "/$name writes to design/ as its normal work"
-        }
-    }
-}
-
-Describe 'Invoke-CodexCommand /resume two-process chain (issue #253)' {
-    <#
-      resume.md requires its align phase at deep-reasoning tier and its track phase at
-      implementation tier "in this same session," but a single Codex profile can't switch
-      mid-session. Before this fix, /resume mapped to one profile ('builder') for the whole
-      run, so its align phase could never actually reach deep-reasoning tier. The fix
-      chains two separate `codex` invocations instead of picking one profile.
-    #>
-
-    BeforeAll {
-        $script:ResumeWhatIf = & $script:ScriptPath -Command 'resume' -WhatIf
-    }
-
-    It 'emits two codex invocations, not one' {
-        ($script:ResumeWhatIf | Measure-Object).Count | Should -Be 2
-    }
-
-    It 'runs the first (align) process at deep-reasoning tier with a writable sandbox' {
-        $script:ResumeWhatIf[0] | Should -Match 'AGENTKIT_TIER=Deep reasoning'
-        $script:ResumeWhatIf[0] | Should -Match '-s workspace-write'
-    }
-
-    It 'runs the second (track) process at implementation tier' {
-        $script:ResumeWhatIf[1] | Should -Match 'AGENTKIT_TIER=Implementation'
-    }
-
-    It 'still resolves /resume without a $commandProfiles entry throwing "no profile mapping"' {
-        { & $script:ScriptPath -Command 'resume' -WhatIf } | Should -Not -Throw
-    }
-}
-
-Describe 'Invoke-CodexCommand /resume prompts inline resume/SKILL.md, not a path citation (W2)' {
-    <#
-      A launched codex process does not necessarily share this script's working directory
-      with the kit checkout once the kit is home-installed, so a prompt that told the process
-      to go open a kit file by path could hand it a path it cannot read. The prompts inline
-      skills/resume/SKILL.md's actual text instead (Get-SkillContent), read fresh from the
-      install root on every run - not a second, hand-kept-in-sync copy (AGENTS.shared.md, Single
-      ownership: there is exactly one copy of the procedure text; this only changes how it
-      reaches the codex process).
-    #>
-
-    BeforeAll {
-        $script:ResumeMdPath = Join-Path $script:RepoRoot 'skills/resume/SKILL.md'
-        $script:ResumeMdText = Get-Content -Raw -LiteralPath $script:ResumeMdPath
-        $script:ResumeHeadings = [regex]::Matches($script:ResumeMdText, '(?m)^#{1,3}\s+(.+)$') |
-            ForEach-Object { $_.Groups[1].Value.Trim() }
-
-        $script:LauncherText = Get-Content -Raw -LiteralPath $script:ScriptPath
-        $script:ResumeWhatIfInlined = & $script:ScriptPath -Command 'resume' -WhatIf
-    }
-
-    It 'no longer names a kit command path for a launched process to open itself' {
-        $script:LauncherText | Should -Not -Match '\.claude/commands/unfreeze\.md'
-    }
-
-    It 'reads the prompt content through Get-SkillContent, not a hardcoded restatement' {
-        $script:LauncherText | Should -Match "Get-SkillContent -Name 'resume'"
-    }
-
-    It 'the resolved align invocation carries resume.md''s real heading text' {
-        $alignText = $script:ResumeWhatIfInlined[0]
-        foreach ($heading in 'Split across sessions', 'Phase 1 — read and delete the marker', 'Commit') {
-            $pattern = [regex]::Escape($heading)
-            $alignText | Should -Match $pattern -Because "the inlined prompt should carry resume.md's '$heading' heading"
-        }
-    }
-
-    It 'the resolved track invocation carries resume.md''s real heading text' {
-        $trackText = $script:ResumeWhatIfInlined[1]
-        foreach ($heading in 'Phase 3 — track', 'Report') {
-            $pattern = [regex]::Escape($heading)
-            $trackText | Should -Match $pattern -Because "the inlined prompt should carry resume.md's '$heading' heading"
-        }
-    }
-
-    It 'cites headings that actually exist in resume.md, so the fixture above is not testing itself' {
-        foreach ($heading in 'Split across sessions', 'Phase 1 — read and delete the marker', 'Phase 2 — reconcile', 'Commit', 'Phase 3 — track', 'Report') {
-            $script:ResumeHeadings | Should -Contain $heading
         }
     }
 }
@@ -380,8 +290,8 @@ Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, 
       script's own containing checkout, when it has a .git folder, so kit development reads
       live uncommitted edits rather than a possibly-stale synced copy; (2) $env:AGENTKIT_HOME,
       when set and present; (3) $HOME/.agent-kit, the location /sync maintains. Exercised
-      through -WhatIf on /resume (the one command whose prompt actually reads a skill file),
-      since the function itself is not exported.
+      through -WhatIf on /next with -SkillArguments (which makes the prompt read the skill
+      file), since the function itself is not exported.
 
       $script:ScriptPath always resolves self-hosted (this repo has a real .git), so branches
       2 and 3 are exercised against a copy under TestDrive that has no .git sibling - the
@@ -392,7 +302,7 @@ Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, 
         $script:PriorAgentKitHome = $env:AGENTKIT_HOME
 
         function New-NonSelfHostedFixture {
-            <# Copies just enough of this repo (the launcher + skills/resume/SKILL.md)
+            <# Copies just enough of this repo (the launcher + skills/next/SKILL.md)
                into a fresh TestDrive directory with no .git, so Get-AgentKitInstallRoot's
                self-hosted check fails there and falls through to $env:AGENTKIT_HOME /
                $HOME/.agent-kit - the branches $script:ScriptPath can never exercise, since
@@ -401,10 +311,10 @@ Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, 
 
             $fixtureRoot = Join-Path $TestDrive $Name
             New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'tools') -Force | Out-Null
-            New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'skills/resume') -Force | Out-Null
+            New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'skills/next') -Force | Out-Null
             Copy-Item -LiteralPath $script:ScriptPath -Destination (Join-Path $fixtureRoot 'tools/Invoke-CodexCommand.ps1')
             Copy-Item -LiteralPath (Join-Path $script:RepoRoot 'tools/Get-AgentKitSkill.ps1') -Destination (Join-Path $fixtureRoot 'tools/Get-AgentKitSkill.ps1')
-            Copy-Item -LiteralPath (Join-Path $script:RepoRoot 'skills/resume/SKILL.md') -Destination (Join-Path $fixtureRoot 'skills/resume/SKILL.md')
+            Copy-Item -LiteralPath (Join-Path $script:RepoRoot 'skills/next/SKILL.md') -Destination (Join-Path $fixtureRoot 'skills/next/SKILL.md')
             return (Join-Path $fixtureRoot 'tools/Invoke-CodexCommand.ps1')
         }
     }
@@ -415,24 +325,24 @@ Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, 
 
     It 'resolves the install root from the self-hosted checkout even when $env:AGENTKIT_HOME points elsewhere' {
         $env:AGENTKIT_HOME = Join-Path $TestDrive 'does-not-exist'
-        { & $script:ScriptPath -Command 'resume' -WhatIf } | Should -Not -Throw
+        { & $script:ScriptPath -Command 'next' -SkillArguments @('x') -WhatIf } | Should -Not -Throw
     }
 
     It 'falls back to $env:AGENTKIT_HOME when no self-hosted checkout is available' {
         $fixtureScript = New-NonSelfHostedFixture -Name 'agentkit-home-fixture'
         $env:AGENTKIT_HOME = $script:RepoRoot
-        { & $fixtureScript -Command 'resume' -WhatIf } | Should -Not -Throw
+        { & $fixtureScript -Command 'next' -SkillArguments @('x') -WhatIf } | Should -Not -Throw
     }
 
     It 'falls back to $HOME/.agent-kit when self-hosted is unavailable and $env:AGENTKIT_HOME is unset' {
         $fixtureScript = New-NonSelfHostedFixture -Name 'home-agent-kit-fixture'
         Remove-Item Env:AGENTKIT_HOME -ErrorAction SilentlyContinue
         $fallbackRoot = Join-Path $HOME '.agent-kit'
-        if (Test-Path -LiteralPath (Join-Path $fallbackRoot 'skills/resume/SKILL.md')) {
+        if (Test-Path -LiteralPath (Join-Path $fallbackRoot 'skills/next/SKILL.md')) {
             Set-ItResult -Skipped -Because 'this machine already has a real home install at $HOME/.agent-kit'
             return
         }
-        { & $fixtureScript -Command 'resume' -WhatIf } | Should -Throw "*$fallbackRoot*"
+        { & $fixtureScript -Command 'next' -SkillArguments @('x') -WhatIf } | Should -Throw "*$fallbackRoot*"
     }
 
     It 'throws naming every location checked when self-hosted, $env:AGENTKIT_HOME, and $HOME/.agent-kit all miss' {
@@ -447,16 +357,16 @@ Describe 'Invoke-CodexCommand install root resolution (Get-AgentKitInstallRoot, 
         # interpolating its value - see Invoke-CodexCommand.ps1's Get-AgentKitInstallRoot,
         # since this branch fires whether the var is unset or set to a bad path.
         $fixtureRoot = Split-Path -Parent (Split-Path -Parent $fixtureScript)
-        { & $fixtureScript -Command 'resume' -WhatIf } | Should -Throw "*$fixtureRoot*`$env:AGENTKIT_HOME*$fallbackRoot*"
+        { & $fixtureScript -Command 'next' -SkillArguments @('x') -WhatIf } | Should -Throw "*$fixtureRoot*`$env:AGENTKIT_HOME*$fallbackRoot*"
     }
 }
 
 Describe 'Invoke-CodexCommand command routing matches AGENTS.shared.md Command routing (W3, issue #299)' {
     <#
       Regression coverage for the gap the #252 Describe block above disclosed once corrected:
-      nothing previously parsed AGENTS.md's own *Command routing* table and compared it
+      nothing previously parsed AGENTS.md's own *Models* command table and compared it
       against $commandProfiles/$profileTiers, so the two could drift silently (exactly the
-      /done-vs-/clean staleness issue #116 already found once, in the other direction).
+      renamed-command staleness issue #116 already found once, in the other direction).
 
       Skipped, not failed, when a target repo's locally edited AGENTS.md no longer contains
       anything Get-CommandRoutingRows recognises as the table - AGENTS.md ships to every
@@ -468,12 +378,10 @@ Describe 'Invoke-CodexCommand command routing matches AGENTS.shared.md Command r
         $script:AgentsMdText = Get-Content -Raw -LiteralPath $script:AgentsMdPath
         $script:CanonicalTierMap = Get-AgentsCanonicalTierMap -Text $script:AgentsMdText
         $script:RoutingRows = Get-CommandRoutingRows -Text $script:AgentsMdText
-        # /resume needs two profiles in one run and has its own dedicated Describe block
-        # above (issue #253) - it is not a one-row-one-tier case this block can check.
-        $script:NamedSkips = @('resume')
+        $script:NamedSkips = @()
     }
 
-    It 'finds rows in AGENTS.md''s Command routing table' {
+    It 'finds rows in AGENTS.md''s Models command table' {
         $script:RoutingRows.Count | Should -BeGreaterThan 0 -Because 'a locally edited AGENTS.md that no longer has a recognisable Command routing table would silently skip every check below - this fails loudly instead'
     }
 
@@ -504,7 +412,7 @@ Describe 'Invoke-CodexCommand command routing matches AGENTS.shared.md Command r
 Describe 'Command routing correspondence parser rejects bad data (W3 fixtures)' {
     <#
       Unit coverage for the parser/comparison functions above, independent of whatever
-      AGENTS.md currently says. Uses real command names (/slice, /redteam) so the tier
+      AGENTS.md currently says. Uses real command names (/next, /redteam) so the tier
       mismatch case exercises the actual launcher, not a stand-in.
     #>
 
@@ -512,7 +420,7 @@ Describe 'Command routing correspondence parser rejects bad data (W3 fixtures)' 
         $script:GoodFixture = @'
 | Command | Tier | Notes |
 |---|---|---|
-| `/slice` | `sonnet`, `medium` | — |
+| `/next` | `sonnet`, `medium` | — |
 | `/redteam` | strongest model, different vendor | If it must be Claude, a fresh `opus`, `high` session |
 '@
         $script:TierMap = [ordered]@{ opus = 'Deep reasoning'; sonnet = 'Implementation' }
@@ -520,31 +428,31 @@ Describe 'Command routing correspondence parser rejects bad data (W3 fixtures)' 
 
     It 'parses command names and the tier alias, including one found only in the Notes column' {
         $rows = Get-CommandRoutingRows -Text $script:GoodFixture
-        ($rows | Where-Object { $_.Commands -contains 'slice' }).Alias | Should -Be 'sonnet'
+        ($rows | Where-Object { $_.Commands -contains 'next' }).Alias | Should -Be 'sonnet'
         ($rows | Where-Object { $_.Commands -contains 'redteam' }).Alias | Should -Be 'opus'
     }
 
     It 'passes correspondence checks for a fixture that agrees with the real launcher' {
-        $mismatches = Get-RoutingTierMismatches -Rows (Get-CommandRoutingRows -Text $script:GoodFixture) -TierMap $script:TierMap -ScriptPath $script:ScriptPath -CommandNames @('slice', 'redteam')
+        $mismatches = Get-RoutingTierMismatches -Rows (Get-CommandRoutingRows -Text $script:GoodFixture) -TierMap $script:TierMap -ScriptPath $script:ScriptPath -CommandNames @('next', 'redteam')
         $mismatches | Should -BeNullOrEmpty
     }
 
-    It 'rejects a wrong tier: fixture claims /slice is opus/high, but the launcher stamps it Implementation' {
-        $badFixture = $script:GoodFixture -replace '`/slice` \| `sonnet`, `medium`', '`/slice` | `opus`, `high`'
-        $mismatches = Get-RoutingTierMismatches -Rows (Get-CommandRoutingRows -Text $badFixture) -TierMap $script:TierMap -ScriptPath $script:ScriptPath -CommandNames @('slice', 'redteam')
-        $mismatches.Command | Should -Contain 'slice'
+    It 'rejects a wrong tier: fixture claims /next is opus/high, but the launcher stamps it Implementation' {
+        $badFixture = $script:GoodFixture -replace '`/next` \| `sonnet`, `medium`', '`/next` | `opus`, `high`'
+        $mismatches = Get-RoutingTierMismatches -Rows (Get-CommandRoutingRows -Text $badFixture) -TierMap $script:TierMap -ScriptPath $script:ScriptPath -CommandNames @('next', 'redteam')
+        $mismatches.Command | Should -Contain 'next'
     }
 
     It 'rejects a wrong/unrecognised model alias' {
         $badFixture = $script:GoodFixture -replace '`sonnet`, `medium`', '`gpt4`, `medium`'
-        $mismatches = Get-RoutingTierMismatches -Rows (Get-CommandRoutingRows -Text $badFixture) -TierMap $script:TierMap -ScriptPath $script:ScriptPath -CommandNames @('slice', 'redteam')
-        ($mismatches | Where-Object { $_.Command -eq 'slice' }).Reason | Should -Match 'unrecognised or missing alias'
+        $mismatches = Get-RoutingTierMismatches -Rows (Get-CommandRoutingRows -Text $badFixture) -TierMap $script:TierMap -ScriptPath $script:ScriptPath -CommandNames @('next', 'redteam')
+        ($mismatches | Where-Object { $_.Command -eq 'next' }).Reason | Should -Match 'unrecognised or missing alias'
     }
 
     It 'rejects a command with no routing row' {
-        $gaps = Get-RoutingCoverageGaps -Rows (Get-CommandRoutingRows -Text $script:GoodFixture) -CommandNames @('slice', 'redteam', 'fix')
+        $gaps = Get-RoutingCoverageGaps -Rows (Get-CommandRoutingRows -Text $script:GoodFixture) -CommandNames @('next', 'redteam', 'fix')
         $gaps.Command | Should -Contain 'fix'
-        $gaps.Command | Should -Not -Contain 'slice'
+        $gaps.Command | Should -Not -Contain 'next'
     }
 }
 
@@ -600,8 +508,8 @@ Describe 'Invoke-CodexCommand canonical skill prompts' {
     It 'inlines the selected canonical SKILL.md and preserves user arguments as one JSON array' {
         $arguments = @('contains spaces', 'quote " and apostrophe ''', "line one`nline two", '-not-a-launcher-switch')
         $expectedJson = ConvertTo-Json -InputObject $arguments -Compress
-        $result = & $script:ScriptPath -Command 'help' -WhatIf -SkillArguments $arguments
-        $skill = & (Join-Path $script:RepoRoot 'tools/Get-AgentKitSkill.ps1') -Command help
+        $result = & $script:ScriptPath -Command 'next' -WhatIf -SkillArguments $arguments
+        $skill = & (Join-Path $script:RepoRoot 'tools/Get-AgentKitSkill.ps1') -Command next
 
         $result | Should -Match ([regex]::Escape($skill))
         $result | Should -Match 'Do not invoke\s+another AgentKit wrapper, skill-dispatch command, or global adapter'
@@ -616,60 +524,8 @@ Describe 'Invoke-CodexCommand canonical skill prompts' {
     }
 
     It 'preserves legacy CodexArgs passthrough without a canonical skill prompt' {
-        $result = & $script:ScriptPath -Command help -WhatIf '--legacy-flag' 'legacy prompt'
+        $result = & $script:ScriptPath -Command next -WhatIf '--legacy-flag' 'legacy prompt'
         $result | Should -Match '--legacy-flag legacy prompt'
-        $result | Should -Not -Match 'canonical skills/help/SKILL.md'
-    }
-}
-
-Describe 'Invoke-CodexCommand /resume execution chain' {
-    BeforeEach {
-        $global:AgentKitCodexCalls = [System.Collections.Generic.List[object]]::new()
-        $global:AgentKitCodexExitCodes = @(0, 0)
-        $global:AgentKitCodexCallIndex = 0
-        function global:codex {
-            param([Parameter(ValueFromRemainingArguments = $true)][string[]] $Arguments)
-            $global:AgentKitCodexCalls.Add([pscustomobject]@{
-                Arguments = $Arguments
-                Command   = $env:AGENTKIT_COMMAND
-                Profile   = $env:AGENTKIT_PROFILE
-                Tier      = $env:AGENTKIT_TIER
-            })
-            $global:LASTEXITCODE = $global:AgentKitCodexExitCodes[$global:AgentKitCodexCallIndex]
-            $global:AgentKitCodexCallIndex++
-        }
-    }
-
-    AfterEach {
-        Remove-Item Function:global:codex -ErrorAction SilentlyContinue
-        Remove-Variable AgentKitCodexCalls, AgentKitCodexExitCodes, AgentKitCodexCallIndex -Scope Global -ErrorAction SilentlyContinue
-    }
-
-    It 'runs author then builder in order with the user handoff in both prompts' {
-        & $script:ScriptPath -Command resume -SkillArguments @('handoff id')
-
-        $global:AgentKitCodexCalls.Count | Should -Be 2
-        $global:AgentKitCodexCalls[0].Command | Should -Be '/resume-align'
-        $global:AgentKitCodexCalls[0].Profile | Should -Be 'author'
-        $global:AgentKitCodexCalls[1].Command | Should -Be '/resume-track'
-        $global:AgentKitCodexCalls[1].Profile | Should -Be 'builder'
-        foreach ($call in $global:AgentKitCodexCalls) {
-            ($call.Arguments -join "`n") | Should -Match ([regex]::Escape('["handoff id"]'))
-        }
-    }
-
-    It 'fails fast after the author process and never starts builder' {
-        $global:AgentKitCodexExitCodes = @(23, 0)
-
-        { & $script:ScriptPath -Command resume -SkillArguments @('handoff id') } | Should -Throw '*align phase*exited 23*'
-        $global:AgentKitCodexCalls.Count | Should -Be 1
-        $global:AgentKitCodexCalls[0].Command | Should -Be '/resume-align'
-    }
-
-    It 'preserves legacy resume arguments on the align process only' {
-        $result = & $script:ScriptPath -Command resume -WhatIf 'legacy resume id'
-        $result[0] | Should -Match 'legacy resume id'
-        $result[1] | Should -Not -Match 'legacy resume id'
-        $result | Should -Not -Match 'User arguments \(JSON array'
+        $result | Should -Not -Match 'canonical skills/next/SKILL.md'
     }
 }
