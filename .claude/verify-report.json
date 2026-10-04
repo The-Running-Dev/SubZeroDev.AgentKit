@@ -3,7 +3,7 @@
     {
       "name": "Check commits carry no AI attribution",
       "status": "Passed",
-      "detail": "./tools/Test-NoAttribution.ps1 - see CI on this head; run locally against the redesign commit before push."
+      "detail": "./tools/Test-NoAttribution.ps1 - RESULT=PASSED, 1 commit checked, none carry AI attribution. Exit 0."
     },
     {
       "name": "Parse-check PowerShell scripts",
