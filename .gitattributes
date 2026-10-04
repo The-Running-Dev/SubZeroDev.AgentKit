@@ -4,3 +4,4 @@
 # stays LF - agent.md already records the false-failure class this produces for
 # prettier --check.
 * text=auto eol=lf
+*.ts text eol=lf

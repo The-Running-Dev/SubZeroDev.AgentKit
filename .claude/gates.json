@@ -1,18 +1,38 @@
 {
-  "manifestHash": "7e824274ef5673d7100596c1c2088a2ad2e39c915029b34ee41b22f1acd4e76f",
+  "manifestHash": "ae5f2654ebbd61144180851fc26033a12cb1eb120f0cab9484f7459c7d940bc7",
   "generated": "2026-10-04",
   "gates": [
+    {
+      "name": "Install Node development dependencies",
+      "command": "npm ci"
+    },
+    {
+      "name": "Typecheck tools",
+      "command": "npx tsc --noEmit"
+    },
+    {
+      "name": "Check no runtime dependencies",
+      "command": "node --input-type=module -e \"import fs from 'node:fs'; const p = JSON.parse(fs.readFileSync('package.json', 'utf8')); if (Object.keys(p.dependencies ?? {}).length) throw new Error('Runtime dependencies are forbidden');\""
+    },
+    {
+      "name": "Run Node tests",
+      "command": "node --test tools/"
+    },
     {
       "name": "Check commits carry no AI attribution",
       "command": "./tools/Test-NoAttribution.ps1"
     },
     {
       "name": "Parse-check PowerShell scripts",
-      "command": "Parser::ParseFile over every *.ps1"
+      "command": "Parser::ParseFile over every tracked *.ps1"
     },
     {
       "name": "Run Pester tests",
       "command": "Invoke-Pester -Path tools -Output Detailed -PassThru"
+    },
+    {
+      "name": "Run offline Pester suite",
+      "command": "Invoke-Pester -Path tools -Output Detailed -PassThru (without GH_TOKEN or gh credentials)"
     },
     {
       "name": "Typecheck videos/",
