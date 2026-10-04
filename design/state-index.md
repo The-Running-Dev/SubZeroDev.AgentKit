@@ -80,6 +80,7 @@ means no record exists yet, not that nothing is true.
 | `unit/script/new-reducedprompt` | script | `tools/New-ReducedPrompt.ps1` |
 | `unit/script/read-designstate` | script | `tools/Read-DesignState.ps1` |
 | `unit/script/repoaliases` | script | `tools/RepoAliases.ps1` |
+| `unit/script/set-issuecriteriontick` | script | `tools/Set-IssueCriterionTick.ps1` |
 | `unit/script/start-agentkitcodex` | script | `tools/Start-AgentKitCodex.ps1` |
 | `unit/script/test-companion` | script | `tools/Test-Companion.ps1` |
 | `unit/script/test-designdrift` | script | `tools/Test-DesignDrift.ps1` |
