@@ -97,6 +97,39 @@ jobs:
         shell: bash
         run: node --test tools/
 
+  node-windows-required:
+    name: node-windows
+    needs: node-windows
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require both Node versions to pass
+        env:
+          MATRIX_RESULT: ${{ needs.node-windows.result }}
+        run: test "$MATRIX_RESULT" = success
+
+  node-linux-required:
+    name: node-linux
+    needs: node-linux
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require both Node versions to pass
+        env:
+          MATRIX_RESULT: ${{ needs.node-linux.result }}
+        run: test "$MATRIX_RESULT" = success
+
+  node-macos-required:
+    name: node-macos
+    needs: node-macos
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require both Node versions to pass
+        env:
+          MATRIX_RESULT: ${{ needs.node-macos.result }}
+        run: test "$MATRIX_RESULT" = success
+
   powershell:
     runs-on: windows-latest
     steps:

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { run } from './process.ts';
 import { integerOption, parseOptions, requiredOption } from './options.ts';
 import { isMain, requireNode, supportedNode } from './runtime.ts';
@@ -52,6 +52,7 @@ test('version floor accepts 22.18 and newer and rejects older versions', () => {
   assert.throws(() => requireNode('22.17.0'), /requires Node >= 22.18; found 22.17.0/);
 });
 test('main detection works without import.meta.main', () => {
+  assert.equal(isMain(import.meta.url, fileURLToPath(import.meta.url)), true);
   assert.equal(isMain(import.meta.url, new URL(import.meta.url).pathname + '-missing'), false);
   assert.equal(isMain(import.meta.url, ''), false);
 });

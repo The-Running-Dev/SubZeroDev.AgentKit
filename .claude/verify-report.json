@@ -22,8 +22,8 @@
     },
     {
       "name": "Check commits carry no AI attribution",
-      "status": "DidNotRun",
-      "reason": "The new commit does not yet exist; checked after committing and in CI."
+      "status": "Passed",
+      "detail": "RESULT=PASSED - 1 commit(s) checked, none carry AI attribution."
     },
     {
       "name": "Parse-check PowerShell scripts",
@@ -32,8 +32,8 @@
     },
     {
       "name": "Run Pester tests",
-      "status": "DidNotRun",
-      "reason": "The full local Pester suite is in progress; results will be recorded before merge."
+      "status": "Passed",
+      "detail": "Tests completed in 303.81s. Tests Passed: 249, Failed: 0, Skipped: 11, NotRun: 0. TotalCount: 260. Exit 0."
     },
     {
       "name": "Run offline Pester suite",
