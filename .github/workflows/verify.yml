@@ -10,6 +10,93 @@ permissions:
   issues: read
 
 jobs:
+  node-windows:
+    name: node-windows
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22.18.0", "24"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      # verification: true
+      - name: Install Node development dependencies
+        shell: bash
+        run: npm ci
+      # verification: true
+      - name: Typecheck tools
+        shell: bash
+        run: npx tsc --noEmit
+      # verification: true
+      - name: Check no runtime dependencies
+        shell: bash
+        run: node --input-type=module -e "import fs from 'node:fs'; const p = JSON.parse(fs.readFileSync('package.json', 'utf8')); if (Object.keys(p.dependencies ?? {}).length) throw new Error('Runtime dependencies are forbidden');"
+      # verification: true
+      - name: Run Node tests
+        shell: bash
+        run: node --test tools/
+
+  node-linux:
+    name: node-linux
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22.18.0", "24"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      # verification: true
+      - name: Install Node development dependencies
+        shell: bash
+        run: npm ci
+      # verification: true
+      - name: Typecheck tools
+        shell: bash
+        run: npx tsc --noEmit
+      # verification: true
+      - name: Check no runtime dependencies
+        shell: bash
+        run: node --input-type=module -e "import fs from 'node:fs'; const p = JSON.parse(fs.readFileSync('package.json', 'utf8')); if (Object.keys(p.dependencies ?? {}).length) throw new Error('Runtime dependencies are forbidden');"
+      # verification: true
+      - name: Run Node tests
+        shell: bash
+        run: node --test tools/
+
+  node-macos:
+    name: node-macos
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22.18.0", "24"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      # verification: true
+      - name: Install Node development dependencies
+        shell: bash
+        run: npm ci
+      # verification: true
+      - name: Typecheck tools
+        shell: bash
+        run: npx tsc --noEmit
+      # verification: true
+      - name: Check no runtime dependencies
+        shell: bash
+        run: node --input-type=module -e "import fs from 'node:fs'; const p = JSON.parse(fs.readFileSync('package.json', 'utf8')); if (Object.keys(p.dependencies ?? {}).length) throw new Error('Runtime dependencies are forbidden');"
+      # verification: true
+      - name: Run Node tests
+        shell: bash
+        run: node --test tools/
+
   powershell:
     runs-on: windows-latest
     steps:
