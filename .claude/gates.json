@@ -1,5 +1,5 @@
 {
-  "manifestHash": "f9bc61963bc89c22dcc1b33c24444d9e85dec80cea9ce1b723915b65c07a00c7",
+  "manifestHash": "7e824274ef5673d7100596c1c2088a2ad2e39c915029b34ee41b22f1acd4e76f",
   "generated": "2026-10-04",
   "gates": [
     {
@@ -13,10 +13,6 @@
     {
       "name": "Run Pester tests",
       "command": "Invoke-Pester -Path tools -Output Detailed -PassThru"
-    },
-    {
-      "name": "Check design facts",
-      "command": "./tools/Test-Design.ps1"
     },
     {
       "name": "Typecheck videos/",

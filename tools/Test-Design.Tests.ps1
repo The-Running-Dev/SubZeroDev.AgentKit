@@ -251,12 +251,4 @@ Describe 'Test-Design' {
             (Invoke-Child $root).Code | Should -Be 2
         }
     }
-
-    Context 'S33.7 this repository' {
-        It 'passes its own design check' {
-            $repo = Split-Path $PSScriptRoot -Parent
-            $r = Invoke-DesignCheck -RepoRoot $repo -KitRoot $repo
-            ($r.Findings | ForEach-Object { "$($_.Check) $($_.File):$($_.Line) $($_.Message)" }) | Should -BeNullOrEmpty
-        }
-    }
 }

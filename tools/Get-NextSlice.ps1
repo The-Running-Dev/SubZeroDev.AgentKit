@@ -14,18 +14,25 @@
         carrying an unmerged "done", or a local default branch a failed pull left behind,
         cannot decide what is finished. A fetch that fails stops the run with git's own error.
       - Work already in flight wins over new work. For each slice that is not done, an open
-        pull request whose head is slice/S<n>... is resumed; failing that, a local or
-        origin slice/S<n>... branch with commits the default branch does not have (work
-        that was interrupted before its pull request was opened).
+        pull request from this repository into the default branch whose head is slice/S<n>...
+        is resumed (two such pull requests are Blocked, never a guess); failing that, a local or
+        origin slice/S<n>... branch with commits the default branch does not have, or a local
+        one with no commits yet (work interrupted before its first commit or its pull request).
       - Otherwise the first slice in document order whose Status is not done and whose
         Depends on: slices are all done is started. Slices named below a "## Landed" heading
         are history and count as done.
 
-    It also lists the files with uncommitted changes when it runs (DirtyFiles). Those changes
-    are someone else's and ride across the branch switch, so the caller never stages those
-    files; a slice that must change one of them is a blocker, not a judgement call.
+    It also lists the files with uncommitted changes (DirtyFiles) and splits them in two.
+    GuardedFiles are someone else's: they were already uncommitted when the slice started and
+    ride across the branch switch, so the caller never stages them, and a slice that must
+    change one is a blocker. OwnFiles are the slice's own edits from a run that was interrupted
+    before committing them, so a resumed run carries on with them. On Start the script records
+    the dirty files of that moment in the worktree's git directory (agentkit/next-guard.json,
+    never in the tree); on Resume that record is what tells the two apart. Without a record
+    for the slice, every dirty file is guarded: unknown ownership fails safe.
 
-    Read-only apart from the fetch: it never switches branches, writes, stages or stashes.
+    Apart from the fetch and that record it never writes: it never switches branches, stages
+    or stashes.
     Never prompts. Exit codes: 0 for Resume, Start and Finished; 1 for Blocked.
 
 .PARAMETER RepoRoot
@@ -38,7 +45,8 @@
     A slice id (S12 or 12) to take instead of the first eligible one: /next's $1.
 
 .PARAMETER PullRequestsJson
-    The open pull requests as `gh pr list --json number,headRefName,url` would print them,
+    The open pull requests as
+    `gh pr list --json number,headRefName,baseRefName,isCrossRepository,url` would print them,
     instead of calling gh. For tests and for hosts without gh.
 
 .PARAMETER Quiet
@@ -96,7 +104,7 @@ function Get-OpenPullRequest {
     param([string] $Root, [string] $Json)
     if (-not $Json) {
         Push-Location -LiteralPath $Root
-        try { $Json = (& gh pr list --state open --limit 200 --json number,headRefName,url 2>&1) -join "`n" }
+        try { $Json = (& gh pr list --state open --limit 200 --json number,headRefName,baseRefName,isCrossRepository,url 2>&1) -join "`n" }
         finally { Pop-Location }
         if ($LASTEXITCODE) { throw "gh pr list failed: $Json" }
     }
@@ -113,10 +121,27 @@ function Get-NextSlice {
     $root = (Resolve-Path -LiteralPath $RepoRoot).Path
     $result = [ordered]@{
         State = $null; Slice = $null; Branch = $null; PullRequest = $null; PullRequestUrl = $null
-        Base = $null; DefaultBranch = $null; DirtyFiles = @(); Reason = $null; Detail = $null
+        Base = $null; DefaultBranch = $null; DirtyFiles = @(); GuardedFiles = @(); OwnFiles = @()
+        Reason = $null; Detail = $null
     }
+    $guardPath = (Invoke-Git $root @('rev-parse','--git-path','agentkit/next-guard.json')).Output
+    if (-not [IO.Path]::IsPathRooted($guardPath)) { $guardPath = Join-Path $root $guardPath }
     function Complete([string] $State, [string] $Reason, [string] $Detail) {
         $result.State = $State; $result.Reason = $Reason; $result.Detail = $Detail
+        $result.GuardedFiles = $result.DirtyFiles
+        if ($State -eq 'Start') {
+            # Dirty before the slice's first edit, so someone else's for the whole slice.
+            New-Item -ItemType Directory -Path (Split-Path $guardPath) -Force | Out-Null
+            [ordered]@{ Slice = $result.Slice; Files = @($result.DirtyFiles) } | ConvertTo-Json |
+                Set-Content -LiteralPath $guardPath -Encoding utf8NoBOM
+        }
+        elseif ($State -eq 'Resume' -and (Test-Path -LiteralPath $guardPath)) {
+            $guard = Get-Content -LiteralPath $guardPath -Raw | ConvertFrom-Json
+            if ($guard.Slice -eq $result.Slice) {
+                $result.GuardedFiles = @($result.DirtyFiles | Where-Object { @($guard.Files) -contains $_ })
+                $result.OwnFiles = @($result.DirtyFiles | Where-Object { @($guard.Files) -notcontains $_ })
+            }
+        }
         [pscustomobject]$result
     }
 
@@ -160,27 +185,46 @@ function Get-NextSlice {
 
     try { $prs = Get-OpenPullRequest -Root $root -Json $PullRequestsJson }
     catch { return Complete 'Blocked' 'PullRequestsUnavailable' "$_" }
-    # A branch only counts as work in flight when it has commits the default branch lacks.
+    # Only this repository's pull requests into the default branch: a fork's branch name says
+    # nothing about this slice.
+    $prs = @($prs | Where-Object {
+        $_.PSObject.Properties['isCrossRepository'] -and -not $_.isCrossRepository -and
+        $_.PSObject.Properties['baseRefName'] -and $_.baseRefName -eq $DefaultBranch })
+    # A branch is work in flight when it has commits the default branch lacks, or, for a local
+    # branch, when it has none yet: a run interrupted before its first commit.
     $refs = @((Invoke-Git $root @('for-each-ref','--format=%(refname)','refs/heads/slice/','refs/remotes/origin/slice/')).Output -split "`n" | Where-Object { $_ })
-    $unmerged = @($refs | Where-Object { (Invoke-Git $root @('merge-base','--is-ancestor',$_,$base)).ExitCode -eq 1 } |
-        ForEach-Object { $_ -replace '^refs/(heads|remotes/origin)/', '' } | Sort-Object -Unique)
+    $inFlight = @($refs | ForEach-Object {
+            $ahead = (Invoke-Git $root @('merge-base','--is-ancestor',$_,$base)).ExitCode -eq 1
+            if ($ahead -or $_ -like 'refs/heads/*') {
+                [pscustomobject]@{ Name = $_ -replace '^refs/(heads|remotes/origin)/', ''; Ahead = $ahead }
+            }
+        } | Group-Object Name | ForEach-Object {
+            [pscustomobject]@{ Name = $_.Name; Empty = -not @($_.Group | Where-Object Ahead).Count }
+        })
 
     foreach ($s in $pending) {
         $pattern = "^slice/S$($s.Id)(?![0-9])"
-        $pr = @($prs | Where-Object { $_.headRefName -match $pattern }) | Select-Object -First 1
-        if ($pr) {
+        $matching = @($prs | Where-Object { $_.headRefName -match $pattern })
+        if ($matching.Count -gt 1) {
+            $result.Slice = "S$($s.Id)"
+            return Complete 'Blocked' 'AmbiguousPullRequest' "S$($s.Id) has more than one open pull request: $(($matching | ForEach-Object { "#$($_.number) $($_.headRefName)" }) -join ', ')."
+        }
+        if ($matching.Count -eq 1) {
+            $pr = $matching[0]
             $result.Slice = "S$($s.Id)"; $result.Branch = $pr.headRefName
             $result.PullRequest = [int]$pr.number; $result.PullRequestUrl = $pr.url
             return Complete 'Resume' 'OpenPullRequest' "S$($s.Id) has open pull request #$($pr.number) on $($pr.headRefName)."
         }
-        $branches = @($unmerged | Where-Object { $_ -match $pattern })
+        $branches = @($inFlight | Where-Object { $_.Name -match $pattern })
         if ($branches.Count -gt 1) {
             $result.Slice = "S$($s.Id)"
-            return Complete 'Blocked' 'AmbiguousBranch' "S$($s.Id) has unmerged work on more than one branch: $($branches -join ', ')."
+            return Complete 'Blocked' 'AmbiguousBranch' "S$($s.Id) has work in flight on more than one branch: $(($branches | ForEach-Object Name) -join ', ')."
         }
         if ($branches.Count -eq 1) {
-            $result.Slice = "S$($s.Id)"; $result.Branch = $branches[0]
-            return Complete 'Resume' 'UnmergedBranch' "S$($s.Id) has unmerged work on $($branches[0]) and no open pull request."
+            $b = $branches[0]
+            $result.Slice = "S$($s.Id)"; $result.Branch = $b.Name
+            if ($b.Empty) { return Complete 'Resume' 'EmptyBranch' "S$($s.Id) has branch $($b.Name) with no commits yet and no open pull request." }
+            return Complete 'Resume' 'UnmergedBranch' "S$($s.Id) has unmerged work on $($b.Name) and no open pull request."
         }
     }
 
@@ -201,7 +245,7 @@ if ($MyInvocation.InvocationName -ne '.') {
     $result = Get-NextSlice -RepoRoot $RepoRoot -DefaultBranch $DefaultBranch -Slice $Slice -PullRequestsJson $PullRequestsJson
     if (-not $Quiet) {
         $what = @($result.Slice, $result.Branch, $(if ($result.PullRequest) { "#$($result.PullRequest)" })) | Where-Object { $_ }
-        Write-Host "Next slice: $($result.State)$(if ($what) { " $($what -join ' ')" }) - $($result.Detail)$(if ($result.DirtyFiles.Count) { " Uncommitted, never stage: $($result.DirtyFiles -join ', ')." })"
+        Write-Host "Next slice: $($result.State)$(if ($what) { " $($what -join ' ')" }) - $($result.Detail)$(if ($result.GuardedFiles.Count) { " Uncommitted, never stage: $($result.GuardedFiles -join ', ')." })$(if ($result.OwnFiles.Count) { " Uncommitted slice work to carry on: $($result.OwnFiles -join ', ')." })"
     }
     $result
     exit $(if ($result.State -eq 'Blocked') { 1 } else { 0 })

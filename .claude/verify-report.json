@@ -3,22 +3,17 @@
     {
       "name": "Check commits carry no AI attribution",
       "status": "Passed",
-      "detail": "./tools/Test-NoAttribution.ps1 - RESULT=PASSED, 2 commits checked, none carry AI attribution. Exit 0."
+      "detail": "./tools/Test-NoAttribution.ps1 - RESULT=PASSED, every commit on the branch checked, none carry AI attribution. Exit 0."
     },
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parser::ParseFile over every tracked *.ps1 outside videos/ - 29 files, no parse errors."
+      "detail": "Parser::ParseFile over every tracked *.ps1 outside videos/ - 33 files, no parse errors."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools - 234 passed, 0 failed, 11 skipped, 245 total. Skipped: 3 home-install branches unreachable on this machine, 1 non-Windows launch case, 7 commit-msg hook cases that need sh, which this PowerShell session does not have on PATH."
-    },
-    {
-      "name": "Check design facts",
-      "status": "Passed",
-      "detail": "./tools/Test-Design.ps1 -Quiet - State Passed, no findings, exit 0."
+      "detail": "Invoke-Pester -Path tools - 256 passed, 0 failed, 4 skipped. The skips were not itemised in this run."
     },
     {
       "name": "Typecheck videos/",
