@@ -1,17 +1,10 @@
 ---
 name: redteam
-description: Adversarial review of the design doc. Run in a fresh session, ideally on a different vendor's model.
+description: Optional adversarial review of the design doc, run when asked. Best on a different vendor's model than the design's author.
 disable-model-invocation: true
 ---
 
-<!-- companion:declared:start -->
-**Per-repo companion:** `skills/redteam/SKILL-local.md`. Read it now, if it exists — an absent,
-empty, or frontmatter-only file is no companion, and this file then stands alone.
-It may override: `vocabulary`, `document-map`. It may never override anything in
-[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
-<!-- companion:declared:end -->
-
-Read `design/00-brief.md` and `design/10-design.md`.
+Read `design/00-brief.md`, `design/10-design.md` and `design/20-contract.md`.
 
 You did not write this design and you are not being asked whether it is good. You are being asked where it breaks.
 
@@ -80,11 +73,11 @@ Cost: <cheap to fix now / expensive to fix later, and why>
 
 ## Stopping rule
 
-**A red-team pass is a phase gate, not an iterative design loop.**
+**A red-team pass is optional and runs once per request. It is never a gate on `/plan` or `/next`, and never an iterative design loop.**
 
 - One invocation authorizes **exactly one complete pass**. At most one pass per materially changed design revision.
 - **Never automatically recommend or start another pass.** Repeat only when I ask and the design has materially changed since the last one.
 - After a pass, stop. Present findings **one at a time** for adjudication, and classify each as I rule on it: **defect**, **accepted risk**, **brief conflict**, or **not sustained**.
-- **Recommend a classification for each, but never a fix.** The general rule is that a reconciliation ends in a decision rather than a report (`AGENTS.shared.md`, *Working with me*); this command is the one place it is narrowed. Naming a fix invites me to accept your framing of the problem — naming a *severity and category* does not.
+- **Recommend a classification for each, but never a fix.** Naming a fix invites me to accept your framing of the problem — naming a *severity and category* does not.
 - **A known-and-retained decision is not a new defect.** It becomes one only if new evidence shows it contradicts a higher-precedence source, or creates a consequence not already recorded. Name that evidence or consequence — without one, it is the same finding again.
 - For a local correction, verify the correction. Do not reread and re-attack the whole design because wording changed.

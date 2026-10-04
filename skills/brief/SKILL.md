@@ -4,13 +4,6 @@ description: Interrogate the concept brief before any design work
 disable-model-invocation: true
 ---
 
-<!-- companion:declared:start -->
-**Per-repo companion:** `skills/brief/SKILL-local.md`. Read it now, if it exists — an absent,
-empty, or frontmatter-only file is no companion, and this file then stands alone.
-It may override: `vocabulary`, `document-map`. It may never override anything in
-[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
-<!-- companion:declared:end -->
-
 Read `design/00-brief.md`.
 
 Your job is to find what is missing or load-bearing-but-unstated. You are not here to develop the idea, propose architecture, or tell me whether it is a good idea.

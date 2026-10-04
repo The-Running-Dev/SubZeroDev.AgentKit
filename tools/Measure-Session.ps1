@@ -490,8 +490,8 @@ function Get-CostLogPath {
       worktree's own directory rather than the main checkout - so a session
       run there wrote its row to <worktree>/.claude/session-costs.tsv,
       invisible to anyone looking at the main checkout's log, and lost
-      outright once the worktree is deleted (this repository's own /clean
-      does exactly that after a merge). 'git rev-parse --git-common-dir'
+      outright once the worktree is deleted (this repository's own post-merge
+      housekeeping does exactly that). 'git rev-parse --git-common-dir'
       resolves to the same shared .git directory regardless of which
       worktree asks, so its parent is the one stable place every checkout of
       that repository agrees on. Falls back to the resolution root itself

@@ -413,7 +413,7 @@ Describe 'Measure-Session -Hook' {
         # location (Split-Path $PSScriptRoot -Parent), which differs per
         # worktree even though every worktree shares one repository. A
         # session run inside a worktree - this repository's own normal
-        # /slice workflow - silently logged to <worktree>/.claude/, invisible
+        # /next workflow - silently logged to <worktree>/.claude/, invisible
         # to anyone checking the main checkout, and lost once the worktree
         # was deleted. Reproduced here with a real 'git worktree add' rather
         # than a timing trick, since the bug is structural, not a race.

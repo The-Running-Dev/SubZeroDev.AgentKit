@@ -5,14 +5,6 @@ argument-hint: "[version]"
 disable-model-invocation: true
 ---
 
-<!-- companion:declared:start -->
-**Per-repo companion:** `skills/sync/SKILL-local.md`. Read it now, if it exists — an absent,
-empty, or frontmatter-only file is no companion, and this file then stands alone.
-It may override: `extra-steps`, `tightened-authorization`. It may never override anything in
-[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
-Without asking, it: `branch-commit-push-pr`, `merge-when-green`.
-<!-- companion:declared:end -->
-
 Update the machine-wide kit, then reconcile it into this repository — the two steps `/install` needs, done back to back, without requiring a branch checkout in the target.
 
 **This repository must be the target, not the kit.** If this tree contains `INSTALL.md` and `skills/design/SKILL.md`, it is the kit itself; stop and say so rather than cloning the kit into itself.
@@ -64,7 +56,7 @@ Everything `INSTALL.md` phase 3 already requires, plus:
 
 - Force-push, reset, or discard uncommitted work in `~/.agent-kit`. It is shared across every repository that runs this command.
 - Run `main` implicitly. A stable tag is the default; `main` is an explicit version request.
-- Write, rewrite, or delete this repository's `skills/*/SKILL-local.md`. They are the reason a routine sync can take every core outright; a sync that edited them would be reconciling the very thing the split moved out of its way.
+- Write, rewrite, or delete this repository's own `skills/*/SKILL-local.md` files, where any exist.
 - Commit to, or push to, *this* repository's default branch. Delivery is `INSTALL.md` phase 4 step 8's feature branch and pull request, unchanged by syncing from a branch — this command adds nothing to it and does not restate it.
 
 ## Re-run

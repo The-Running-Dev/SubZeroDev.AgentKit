@@ -159,7 +159,6 @@ function Get-UpdateNotice {
 $path = Join-Path $root "skills/$Command/SKILL.md"
 if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Unknown AgentKit command '$Command': '$path' is missing." }
 $text = [IO.File]::ReadAllText($path)
-$text = $text.Replace('../../.claude/COMPANIONS.md', "$root/.claude/COMPANIONS.md")
 # Executable examples must remain valid when the runtime root contains spaces or quotes.
 $quotedRoot = $root.Replace("'", "''")
 $text = [regex]::Replace($text, 'pwsh (?:-File )?(?:\./)?tools/([\w-]+[.]ps1)', [Text.RegularExpressions.MatchEvaluator]{ param($m) "pwsh -File '$quotedRoot/tools/$($m.Groups[1].Value)'" })
@@ -167,7 +166,7 @@ $text = [regex]::Replace($text, '(?m)^(\s*)(?:\./)?tools/([\w-]+[.]ps1)', [Text.
 # Bare references in migration enumerate TARGET copies to classify/delete. Leave those
 # identifiers untouched; its executable calls above still use the canonical runtime.
 if ($Command -ne 'install-all') {
-    foreach ($relative in @('AGENTS.shared.md','.claude/COMPANIONS.md','INSTALL.md','tools/','templates/')) {
+    foreach ($relative in @('AGENTS.shared.md','INSTALL.md','tools/','templates/')) {
         $pattern = '(?<![\w/\\.])(?:\./)?' + [regex]::Escape($relative)
         $replacement = "$root/$relative"
         $text = [regex]::Replace($text, $pattern, [Text.RegularExpressions.MatchEvaluator]{ param($m) $replacement })
@@ -178,10 +177,9 @@ $notice = try { Get-UpdateNotice } catch { Write-Verbose "AgentKit update check 
 $notice + @"
 AgentKit canonical runtime: $root
 Shared rules: $root/AGENTS.shared.md
-Companion mechanism: $root/.claude/COMPANIONS.md
 Kit script root: $root/tools/
 Kit template root: $root/templates/
-Project companions and project files remain relative to the calling project. In
+Project files remain relative to the calling project. In
 /install-all, old-copy classification and deletion paths are TARGET project paths,
 never canonical runtime paths. Keep the project working directory when running tools.
 Quote absolute paths when executing PowerShell commands.

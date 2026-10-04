@@ -11,7 +11,6 @@ Issues and pull requests are welcome.
 
    ```powershell
    Invoke-Pester -Path tools -Output Detailed
-   pwsh -File tools/Test-DesignState.ps1
    ```
 
 4. **Open the pull request against `main`.** CI (`.github/workflows/verify.yml`) must pass before it
@@ -26,8 +25,6 @@ often missed:
 - UTF-8 with LF line endings; PowerShell 7 for scripts; metric units.
 - Stage files by named path. Do not use `git add -A`.
 - Commit messages say what changed. No AI attribution lines.
-- Adding a Markdown file, a script or a command means adding its unit record under `design/state/`;
-  `tools/Test-DesignState.ps1` reports the ones that are missing.
 
 ## Security issues
 

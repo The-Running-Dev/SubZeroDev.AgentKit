@@ -6,7 +6,7 @@ BeforeAll {
     $script:RepoRoot = Split-Path $PSScriptRoot -Parent
     $bootstrapArguments = Join-Path $TestDrive 'bootstrap-arguments.json'
     Set-Content -LiteralPath $bootstrapArguments -Value '[]' -NoNewline
-    . $script:StartPath -Command help -ArgumentsFile $bootstrapArguments -WhatIf | Out-Null
+    . $script:StartPath -Command next -ArgumentsFile $bootstrapArguments -WhatIf | Out-Null
 }
 
 Describe 'Start-AgentKitCodex JSON transport' {
@@ -16,9 +16,9 @@ Describe 'Start-AgentKitCodex JSON transport' {
         $arguments | ConvertTo-Json -Compress | Set-Content -LiteralPath $file -NoNewline
         $expectedJson = ConvertTo-Json -InputObject $arguments -Compress
 
-        $result = & $script:StartPath -Command help -ArgumentsFile $file -WhatIf
+        $result = & $script:StartPath -Command next -ArgumentsFile $file -WhatIf
 
-        $result | Should -Match 'AGENTKIT_COMMAND=/help'
+        $result | Should -Match 'AGENTKIT_COMMAND=/next'
         $result | Should -Match ([regex]::Escape($expectedJson))
     }
 
@@ -28,14 +28,14 @@ Describe 'Start-AgentKitCodex JSON transport' {
         Set-Content -LiteralPath $scalar -Value '"not an array"' -NoNewline
         Set-Content -LiteralPath $mixed -Value '["valid", 2]' -NoNewline
 
-        { & $script:StartPath -Command help -ArgumentsFile $scalar -WhatIf } | Should -Throw '*JSON array of strings*'
-        { & $script:StartPath -Command help -ArgumentsFile $mixed -WhatIf } | Should -Throw '*only strings*'
+        { & $script:StartPath -Command next -ArgumentsFile $scalar -WhatIf } | Should -Throw '*JSON array of strings*'
+        { & $script:StartPath -Command next -ArgumentsFile $mixed -WhatIf } | Should -Throw '*only strings*'
     }
 
     It 'preserves an empty argument array instead of introducing a null argument' {
         $file = Join-Path $TestDrive 'empty.json'
         Set-Content -LiteralPath $file -Value '[]' -NoNewline
-        $result = & $script:StartPath -Command help -ArgumentsFile $file -WhatIf
+        $result = & $script:StartPath -Command next -ArgumentsFile $file -WhatIf
         $result | Should -Match 'preserve each element exactly\):\s*\[\]'
     }
 
@@ -50,7 +50,7 @@ Describe 'Start-AgentKitCodex JSON transport' {
     It 'encodes Windows dispatch data and preserves the project working directory' {
         $argumentsFile = Join-Path $TestDrive 'window-arguments.json'
         Set-Content -LiteralPath $argumentsFile -Value '["two words", "line one\\nline two"]' -NoNewline
-        $injectedCommand = "help'; Start-Process calc; '"
+        $injectedCommand = "next'; Start-Process calc; '"
         $script:Started = $null
         Mock Start-Process {
             param($FilePath, $WorkingDirectory, $ArgumentList)
@@ -87,7 +87,7 @@ Describe 'Start-AgentKitCodex JSON transport' {
             $script:Started = [pscustomobject]@{ FilePath = $FilePath; WorkingDirectory = $WorkingDirectory; ArgumentList = $ArgumentList }
         }
 
-        Start-AgentKitCodexWindow -Launcher (Join-Path $script:RepoRoot 'tools/Invoke-CodexCommand.ps1') -Command help -ArgumentsFile $argumentsFile -WorkingDirectory $TestDrive
+        Start-AgentKitCodexWindow -Launcher (Join-Path $script:RepoRoot 'tools/Invoke-CodexCommand.ps1') -Command next -ArgumentsFile $argumentsFile -WorkingDirectory $TestDrive
 
         $script:Started.FilePath | Should -Be (Join-Path $PSHOME 'pwsh.exe')
         $script:Started.ArgumentList[0..1] | Should -Be @('-NoExit', '-EncodedCommand')
@@ -100,18 +100,13 @@ Describe 'Start-AgentKitCodex JSON transport' {
 
         foreach ($command in $commands) {
             $result = & $script:StartPath -Command $command -ArgumentsFile $argumentsFile -WhatIf
-            if ($command -eq 'resume') {
-                @($result | Where-Object { $_ -match 'AGENTKIT_COMMAND=/resume-(align|track)' }).Count | Should -Be 2
-            }
-            else {
-                $result | Should -Match "AGENTKIT_COMMAND=/$command"
-            }
+            $result | Should -Match "AGENTKIT_COMMAND=/$command"
         }
     }
 
     It 'rejects a real new-window launch outside Windows' -Skip:$IsWindows {
         $file = Join-Path $TestDrive 'arguments.json'
         Set-Content -LiteralPath $file -Value '[]' -NoNewline
-        { & $script:StartPath -Command help -ArgumentsFile $file -NewWindow } | Should -Throw '*supported only on Windows*'
+        { & $script:StartPath -Command next -ArgumentsFile $file -NewWindow } | Should -Throw '*supported only on Windows*'
     }
 }

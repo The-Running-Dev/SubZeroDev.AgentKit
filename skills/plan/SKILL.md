@@ -4,19 +4,6 @@ description: Break the contract into vertical slices with acceptance criteria
 disable-model-invocation: true
 ---
 
-<!-- companion:declared:start -->
-**Per-repo companion:** `skills/plan/SKILL-local.md`. Read it now, if it exists — an absent,
-empty, or frontmatter-only file is no companion, and this file then stands alone.
-It may override: `vocabulary`, `document-map`. It may never override anything in
-[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
-<!-- companion:declared:end -->
-
-## Stop if `design/` is frozen
-
-If `design/FROZEN.md` exists, **stop before doing anything else.** Report its `Frozen because` and `Lifts when` lines verbatim and write nothing. The rule and the marker's format live in `AGENTS.shared.md`, *The design freeze* — not restated here.
-
-This includes **resizing or splitting an existing slice**, which is the edit most likely to look harmless mid-freeze and is the one that renumbers criteria and desyncs the tracker. If a slice turns out to be mis-sized while frozen, say so and stop; it is a real finding, and it is the user's to schedule.
-
 Read `design/10-design.md` and `design/20-contract.md`. Write `design/30-slices.md`.
 
 Slices are **vertical**: each one goes from entry point to persistence and leaves the system runnable. A slice that only adds a layer ("build the data access layer") is wrong — it cannot be run, so it cannot be verified, so it accumulates undetected error.
@@ -25,10 +12,10 @@ Per slice:
 
 ```
 ## S<n> — <name>
+Status: todo
 Delivers: <one or two sentences, written as a user story: who this is for and what they
-          can do afterwards that they could not before. This becomes the issue's narrative
-          verbatim, so write it for a human who will never open the design docs — no
-          pixel values, breakpoints, file paths, or type names.>
+          can do afterwards that they could not before — no pixel values, breakpoints,
+          file paths, or type names.>
 Touches: <files or modules, from the contract>
 Depends on: <slice numbers, or none>
 Acceptance:
@@ -39,39 +26,17 @@ Out of scope: <the adjacent thing an agent will be tempted to also do>
 
 Rules:
 - Acceptance criteria must be checkable without judgement. "Handles errors gracefully" is not a criterion. "Returns `NotFound` and leaves the record untouched when the id does not exist" is. This is where precise, technical detail belongs — measurements, thresholds, exact values — not in `Delivers:`.
-- **Every criterion carries a stable id** — `S3.1`, `S3.2`. The id is what `/track` matches on, so drift detection compares ids rather than prose and a reworded criterion stops reading as a new one.
-- **Ids are never reused and never renumbered.** Removing `S3.2` leaves a gap; the next criterion is `S3.4`. Renumbering silently rewrites what an existing issue's checkbox refers to, which is the one failure this scheme exists to prevent.
-- `Delivers:` is the only line written for a non-implementer, and it is a user story, not a spec summary. If it reads as a label, a measurement list, or an implementer's recap rather than a sentence about a person, the issue narrative will too — fix it here, where the slice set is reviewed, rather than letting `/track` invent prose.
+- **Every criterion carries a stable id** — `S3.1`, `S3.2` — so a pull request can report each one by id.
+- **Ids are never reused and never renumbered.** Removing `S3.2` leaves a gap; the next criterion is `S3.4`.
+- **`Status:` is how `/next` tracks progress.** Every new slice starts `todo`; `/next` sets it to `done` in that slice's own pull request. There is no separate tracker.
+- `Delivers:` is the only line written for a non-implementer: a sentence about a person, not a spec summary.
 - Every slice needs an explicit `Out of scope` line. This is the single most effective constraint on an implementing agent.
 - Order slices so the riskiest assumption in the design gets exercised earliest. If the design bets on something working, slice 1 or 2 should prove it.
-- Target a slice a coding agent can finish in one session without compaction. If a slice needs more, split it.
+- Size a slice as one pull request a reviewer can read in one sitting. If it needs more, split it.
 - No slice may introduce a signature absent from the contract.
 
-Write the document only. **Do not open issues** — that is `/track`'s job (`AGENTS.shared.md`, *Tracking work*). Say that it should be run next.
-
-## Hand off
-
-`design/30-slices.md` is committed and the session ends. `/track` opens the issues, and each
-slice is then implemented by `/slice` in a session of its own — `AGENTS.shared.md` § *Session
-boundaries*, **one slice per session**. Emit the transfer block `AGENTS.shared.md` § *The
-session-transfer handoff block* requires, then that boundary's banner.
-
-- **`Start here` names the exact next command**, and where it is `/slice`, the **exact slice id**
-  — `/slice S3`, never "the first outstanding slice". The id is what the tracker, the criteria
-  and the branch all key on, so a handoff that makes the next session pick one has already given
-  away the one-slice-per-session guarantee. It also carries the tier `AGENTS.shared.md` §
-  *Command routing* fixes for that command — `/track` is `sonnet`/`medium`, `/slice` is
-  `sonnet`/`medium` (`high` for a large or difficult slice).
-- **`Authoritative inputs` names `design/30-slices.md` and `design/20-contract.md`**, the
-  documents the implementing session is constrained by. The slice's own acceptance criteria are
-  in the first of those, by id; do not copy them into the block.
-- **`Current state` says which slices exist, not which is easiest.** Ordering was decided here,
-  by risk; re-arguing it in a handoff invites the next session to re-decide it.
+Write the document only. Report in the `AGENTS.shared.md` § *Reporting* shape; `Next:` is `/next`, which builds every slice in order through to merge.
 
 ## Re-run
 
-A re-run only appends new slices under `## Outstanding` (`design/30-slices.md`, *How this
-document is kept*) — it never rewrites `## Landed`, and never renumbers or reuses a retired
-id, even for a slice that never got an issue. Resizing or splitting a slice that already has an
-open issue desyncs that issue's criteria; that drift is `/track`'s to report against the
-tracker, not this command's to avoid by refusing to ever re-run.
+A re-run only appends new slices. It never rewrites a slice whose `Status:` is `done`, and never renumbers or reuses an id. A slice not yet started may be resized or split; give the new slices fresh ids.

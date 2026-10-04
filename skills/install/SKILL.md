@@ -5,14 +5,6 @@ argument-hint: <other repo path>
 disable-model-invocation: true
 ---
 
-<!-- companion:declared:start -->
-**Per-repo companion:** `skills/install/SKILL-local.md`. Read it now, if it exists — an absent,
-empty, or frontmatter-only file is no companion, and this file then stands alone.
-It may override: `extra-steps`, `tightened-authorization`. It may never override anything in
-[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
-Without asking, it: `branch-commit-push-pr`, `merge-when-green`.
-<!-- companion:declared:end -->
-
 Install the project-owned part of AgentKit. In a global skill invocation the adapter names the
 canonical kit root; otherwise resolve `$env:AGENTKIT_HOME`, then `$HOME/.agent-kit`. Read that
 runtime's `INSTALL.md`. The kit itself is not the target repository.
@@ -35,6 +27,5 @@ occupied fork resolved on a prior run is only skipped once the target's own tree
 resolution, not because this command remembers asking before. Re-running after a fork was
 answered must not ask the same fork again.
 
-Kit-owned command cores do not reclassify or copy into a target. The target's own per-command
-content lives in a companion this command never reads or writes; adapters and owned links resolve
-the core from the canonical installed checkout.
+Kit-owned command files are never copied into a target; adapters and owned links resolve them from
+the canonical installed checkout.

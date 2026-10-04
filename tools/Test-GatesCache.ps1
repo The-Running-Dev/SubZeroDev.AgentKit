@@ -5,7 +5,7 @@
     to a hash of the files whose presence or content determines what the gate list is.
 
 .DESCRIPTION
-    /check's own procedure (skills/check/SKILL.md, "Discover, do not assume") reads
+    /next's local check (skills/next/SKILL.md, step 3) reads
     CI workflow files, package manifests, and known build-script paths every single run,
     even when none of them have changed since the last run. That discovery is genuine
     judgement the first time - CI is the authoritative list, and matching a workflow's
@@ -13,31 +13,31 @@
     answer from an unchanged manifest on every run is the repeated-scan cost
     AGENTS.shared.md's own model-work table calls out as maybe-avoidable.
 
-    This script does not discover gates itself - that stays /check's judgement call, and
-    stays owned by skills/check/SKILL.md. It only remembers the answer /check already worked
+    This script does not discover gates itself - that stays /next's judgement call, and
+    stays owned by skills/next/SKILL.md. It only remembers the answer /next already worked
     out, and says whether that answer is still trustworthy:
 
       (no -Write)   Compute the current manifest hash, compare it to .claude/gates.json.
                     Fresh   - hash matches and the cache holds a valid gate list. Emits
-                              the cached gates; /check runs them directly and skips
+                              the cached gates; /next runs them directly and skips
                               discovery.
                     Stale   - a manifest file changed since the cache was written, or the
                               cache's gate list is malformed - it carries no answer to
-                              reuse. /check re-discovers, then calls this script with -Write.
+                              reuse. /next re-discovers, then calls this script with -Write.
                     Missing - no cache yet. Same as Stale.
 
       -Write        Persist -GatesJson (an array of {name, command} objects) alongside the
-                    current manifest hash. Call this once, right after /check has done a
+                    current manifest hash. Call this once, right after /next has done a
                     real discovery pass by hand.
 
-    The manifest hash covers the inputs the /check skill's discovery procedure reads:
+    The manifest hash covers the inputs /next's gate discovery reads:
     every `.github/workflows/*.yml` (content - a changed step is a changed gate list),
     `package.json` (content - scripts can be added, renamed, or removed), and the presence
     of `*.sln`/`*.csproj`, `build/Test-Documentation.ps1`,
     `build/Test-DocumentationArtifact.ps1`, and `docs.ps1` (existence only - what a project
     file contains is not this cache's concern, only whether the gate exists at all).
     Anything not in that list - a new `tools/*.Tests.ps1` file, for instance - will not
-    invalidate the cache; the manifest is deliberately the same set the /check skill already
+    invalidate the cache; the manifest is deliberately the same set skills/next/SKILL.md already
     names, not a broader guess at what might matter.
 
 .PARAMETER RepoRoot
@@ -80,7 +80,7 @@ $cachePath = Join-Path $repoRootResolved '.claude/gates.json'
 
 function Get-ManifestHash {
     <#
-    Hashes the inputs the /check skill's discovery procedure reads: workflow and package
+    Hashes the inputs /next's gate discovery reads: workflow and package
     manifest *content* (a step or script changing must invalidate the cache), and the
     *existence* of the known build-script paths (their content is not this cache's concern).
     #>

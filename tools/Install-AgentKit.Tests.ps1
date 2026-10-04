@@ -15,7 +15,7 @@ BeforeAll {
         $homeDir = Join-Path $Base 'temporary home'
         $project = Join-Path $Base 'project'
         foreach ($dir in @($origin,$homeDir,$project)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        foreach ($relative in @('setup.ps1','AGENTS.shared.md','.claude/COMPANIONS.md','tools/Install-AgentKit.ps1','tools/Get-AgentKitSkill.ps1','tools/Invoke-CodexCommand.ps1','tools/Start-AgentKitCodex.ps1','skills/help/SKILL.md','skills/slice/SKILL.md','skills/resume/SKILL.md')) {
+        foreach ($relative in @('setup.ps1','AGENTS.shared.md','tools/Install-AgentKit.ps1','tools/Get-AgentKitSkill.ps1','tools/Invoke-CodexCommand.ps1','tools/Start-AgentKitCodex.ps1','skills/next/SKILL.md','skills/fix/SKILL.md','skills/align/SKILL.md')) {
             $dest = Join-Path $origin $relative
             New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force | Out-Null
             Copy-Item -LiteralPath (Join-Path $script:KitSource $relative) -Destination $dest
@@ -25,7 +25,7 @@ BeforeAll {
         Set-Content -LiteralPath (Join-Path $origin 'AGENTS.md') -Value 'PROJECT-ONLY-RULE-MUST-NOT-LOAD-GLOBALLY'
         Set-Content -LiteralPath (Join-Path $project 'keep.txt') -Value 'project stays unchanged'
         Git-Fixture $origin @('init','-q','-b','main') | Out-Null
-        Git-Fixture $origin @('add','setup.ps1','AGENTS.shared.md','AGENTS.md','.claude/COMPANIONS.md','tools/Install-AgentKit.ps1','tools/Get-AgentKitSkill.ps1','tools/Invoke-CodexCommand.ps1','tools/Start-AgentKitCodex.ps1','skills/help/SKILL.md','skills/slice/SKILL.md','skills/resume/SKILL.md','templates/example.md') | Out-Null
+        Git-Fixture $origin @('add','setup.ps1','AGENTS.shared.md','AGENTS.md','tools/Install-AgentKit.ps1','tools/Get-AgentKitSkill.ps1','tools/Invoke-CodexCommand.ps1','tools/Start-AgentKitCodex.ps1','skills/next/SKILL.md','skills/fix/SKILL.md','skills/align/SKILL.md','templates/example.md') | Out-Null
         Git-Fixture $origin @('commit','-qm','fixture') | Out-Null
         Git-Fixture $origin @('tag','v2026.09.17') | Out-Null
         @{ Origin=$origin; Home=$homeDir; Root=(Join-Path $homeDir '.agent-kit'); Codex=(Join-Path $Base 'custom codex home'); Project=$project }
@@ -71,10 +71,10 @@ Describe 'Global front door with isolated homes and local Git origin' {
         $state.registrations.Count | Should -Be 13
         $state.commit | Should -Be (Git-Fixture $f.Origin @('rev-parse','HEAD'))
         $state.requestedVersion | Should -Be 'latest stable'
-        foreach ($path in @('.claude/skills/agentkit/.claude-plugin/plugin.json','.claude/skills/agentkit/skills/help/SKILL.md','.copilot/skills/help/SKILL.md')) { (Join-Path $f.Home $path) | Should -Exist }
-        (Join-Path $f.Home '.claude/skills/help') | Should -Not -Exist
-        (Join-Path $f.Codex 'skills/help/SKILL.md') | Should -Exist
-        (Join-Path $f.Codex 'skills/help-routed/SKILL.md') | Should -Exist
+        foreach ($path in @('.claude/skills/agentkit/.claude-plugin/plugin.json','.claude/skills/agentkit/skills/next/SKILL.md','.copilot/skills/next/SKILL.md')) { (Join-Path $f.Home $path) | Should -Exist }
+        (Join-Path $f.Home '.claude/skills/next') | Should -Not -Exist
+        (Join-Path $f.Codex 'skills/next/SKILL.md') | Should -Exist
+        (Join-Path $f.Codex 'skills/next-routed/SKILL.md') | Should -Exist
         @(Get-ChildItem -LiteralPath $f.Project).Count | Should -Be 1
         $result.Output | Should -Match 'Verified: canonical runtime'
     }
@@ -199,7 +199,6 @@ Describe 'Global front door with isolated homes and local Git origin' {
             $content=Get-Content (Join-Path $entry.path 'SKILL.md') -Raw
             $content | Should -Match "(?s)^---\nname: $($entry.name)\ndescription: '[^\n]+'\n(?:disable-model-invocation: true\n)?---"
             $content | Should -Match ([regex]::Escape($f.Root.Replace('\','/')))
-            $content | Should -Not -Match '\.\./\.\./\.claude/COMPANIONS[.]md'
             $content | Should -Not -Match '(?<![\w/\\])(?:AGENTS[.]shared[.]md|tools/|templates/)'
         }
     }
@@ -233,17 +232,17 @@ Describe 'Global front door with isolated homes and local Git origin' {
         $result.Output | Should -Not -Match ('Skipped collisions:.*' + [regex]::Escape($path))
     }
     It 'foreign same-named skill survives byte-for-byte and is reported' {
-        $path=Join-Path $f.Codex 'skills/help/SKILL.md'
+        $path=Join-Path $f.Codex 'skills/next/SKILL.md'
         New-Item -ItemType Directory -Path (Split-Path $path -Parent) -Force | Out-Null
         [IO.File]::WriteAllText($path,'foreign bytes')
         $result=Run-Setup $f; Assert-Success $result
         [IO.File]::ReadAllText($path) | Should -BeExactly 'foreign bytes'
-        $result.Output | Should -Match 'Skipped collisions:.*help'
+        $result.Output | Should -Match 'Skipped collisions:.*next'
         (Join-Path (Split-Path $path -Parent) '.agentkit-owner') | Should -Not -Exist
     }
     It 'edited managed skills survive refresh and uninstall' {
         Assert-Success (Run-Setup $f)
-        $path=Join-Path $f.Codex 'skills/help/SKILL.md'
+        $path=Join-Path $f.Codex 'skills/next/SKILL.md'
         [IO.File]::WriteAllText($path,'my edited core')
         Assert-Success (Run-Setup $f)
         [IO.File]::ReadAllText($path) | Should -BeExactly 'my edited core'
@@ -252,13 +251,13 @@ Describe 'Global front door with isolated homes and local Git origin' {
     }
     It 'prefix change removes only unchanged previous managed registrations' {
         Assert-Success (Run-Setup $f)
-        $path=Join-Path $f.Codex 'skills/help/SKILL.md'
+        $path=Join-Path $f.Codex 'skills/next/SKILL.md'
         [IO.File]::WriteAllText($path,'keep customized')
         Assert-Success (Run-Setup $f @{Prefix='ak-'})
         $path | Should -Exist
-        (Join-Path $f.Codex 'skills/slice') | Should -Not -Exist
-        (Join-Path $f.Codex 'skills/ak-slice/SKILL.md') | Should -Exist
-        (Join-Path $f.Codex 'skills/ak-slice-routed/SKILL.md') | Should -Exist
+        (Join-Path $f.Codex 'skills/fix') | Should -Not -Exist
+        (Join-Path $f.Codex 'skills/ak-fix/SKILL.md') | Should -Exist
+        (Join-Path $f.Codex 'skills/ak-fix-routed/SKILL.md') | Should -Exist
     }
     It 'uninstall removes managed entries and leaves unrelated hooks and rules text' {
         Assert-Success (Run-Setup $f)
@@ -268,9 +267,9 @@ Describe 'Global front door with isolated homes and local Git origin' {
         $settings | ConvertTo-Json -Depth 20 | Set-Content $settingsPath
         Add-Content (Join-Path $f.Codex 'AGENTS.md') 'keep user rules'
         Assert-Success (Run-Setup $f @{Uninstall=$true})
-        (Join-Path $f.Codex 'skills/help') | Should -Not -Exist
+        (Join-Path $f.Codex 'skills/next') | Should -Not -Exist
         (Join-Path $f.Home '.claude/skills/agentkit') | Should -Not -Exist
-        (Join-Path $f.Home '.copilot/skills/help') | Should -Not -Exist
+        (Join-Path $f.Home '.copilot/skills/next') | Should -Not -Exist
         $f.Root | Should -Exist
         (Get-Content $settingsPath -Raw) | Should -Match '/foreign/tools/Measure-Session.ps1'
         (Get-Content (Join-Path $f.Codex 'AGENTS.md') -Raw) | Should -Match 'keep user rules'
@@ -283,25 +282,25 @@ Describe 'Global front door with isolated homes and local Git origin' {
     }
     It 'updating after a removed core cleans stale managed registrations' {
         Assert-Success (Run-Setup $f)
-        Git-Fixture $f.Origin @('rm','skills/help/SKILL.md') | Out-Null
-        Git-Fixture $f.Origin @('commit','-qm','remove help') | Out-Null
+        Git-Fixture $f.Origin @('rm','skills/next/SKILL.md') | Out-Null
+        Git-Fixture $f.Origin @('commit','-qm','remove next') | Out-Null
         Git-Fixture $f.Origin @('tag','v2026.09.18') | Out-Null
         Assert-Success (Run-Setup $f)
-        (Join-Path $f.Codex 'skills/help') | Should -Not -Exist
-        (Join-Path $f.Codex 'skills/help-routed') | Should -Not -Exist
-        (Join-Path $f.Home '.claude/skills/agentkit/skills/help') | Should -Not -Exist
+        (Join-Path $f.Codex 'skills/next') | Should -Not -Exist
+        (Join-Path $f.Codex 'skills/next-routed') | Should -Not -Exist
+        (Join-Path $f.Home '.claude/skills/agentkit/skills/next') | Should -Not -Exist
     }
     It 'retargeted legacy manifest links survive refresh and uninstall' {
         Git-Fixture $f.Origin @('clone','-q',$f.Origin,$f.Root) | Out-Null
         $stateDir = Join-Path $f.Home '.agent-kit-state'
         New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
-        @{installRoot=$f.Root;source=$f.Origin;hosts=@{claude=@('help')}} | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $stateDir 'installed.json')
+        @{installRoot=$f.Root;source=$f.Origin;hosts=@{claude=@('next')}} | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $stateDir 'installed.json')
         $foreign = Join-Path $TestDrive 'foreign skill target'
         New-Item -ItemType Directory -Path $foreign -Force | Out-Null
         Set-Content (Join-Path $foreign 'SKILL.md') 'foreign skill'
         $skillsDir = Join-Path $f.Home '.claude/skills'
         New-Item -ItemType Directory -Path $skillsDir -Force | Out-Null
-        $link = Join-Path $skillsDir 'help'
+        $link = Join-Path $skillsDir 'next'
         New-Item -ItemType $(if ($IsWindows) {'Junction'} else {'SymbolicLink'}) -Path $link -Target $foreign | Out-Null
         Assert-Success (Run-Setup $f)
         (Get-Item $link).Target | Should -Be $foreign
@@ -386,7 +385,7 @@ Describe 'Global front door with isolated homes and local Git origin' {
     }
     It '-Verify reports a foreign-modified registration without repairing it' {
         Assert-Success (Run-Setup $f)
-        $skill = Join-Path $f.Home '.claude/skills/agentkit/skills/help/SKILL.md'
+        $skill = Join-Path $f.Home '.claude/skills/agentkit/skills/next/SKILL.md'
         Set-Content -LiteralPath $skill -Value 'tampered outside AgentKit'
         $result = Run-Setup $f @{Verify=$true}
         $result.ExitCode | Should -Not -Be 0
@@ -403,10 +402,10 @@ Describe 'Global front door with isolated homes and local Git origin' {
         $plugin = Join-Path $f.Home '.claude/skills/agentkit'
         (Get-Content (Join-Path $plugin '.claude-plugin/plugin.json') -Raw | ConvertFrom-Json).name | Should -BeExactly 'agentkit'
         (Join-Path $plugin 'SKILL.md') | Should -Not -Exist
-        $adapter = Get-Content (Join-Path $plugin 'skills/resume/SKILL.md') -Raw
-        $adapter | Should -Match "description: 'AgentKit /agentkit:resume \(native\)"
-        $adapter | Should -Match '`/agentkit:resume`'
-        (Get-Content (Join-Path $f.Codex 'skills/resume/SKILL.md') -Raw) | Should -Not -Match 'agentkit:'
+        $adapter = Get-Content (Join-Path $plugin 'skills/align/SKILL.md') -Raw
+        $adapter | Should -Match "description: 'AgentKit /agentkit:align \(native\)"
+        $adapter | Should -Match '`/agentkit:align`'
+        (Get-Content (Join-Path $f.Codex 'skills/align/SKILL.md') -Raw) | Should -Not -Match 'agentkit:'
         @(Get-ChildItem -LiteralPath (Join-Path $f.Home '.claude/skills') -Force).Name | Should -Be @('agentkit')
     }
     It 'migrates bare Claude skill registrations from an earlier install into the plugin' {
@@ -423,7 +422,7 @@ Describe 'Global front door with isolated homes and local Git origin' {
         $state.registrations = @($legacy)
         $state | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $manifestPath
         $result = Run-Setup $f @{Hosts=@('claude')}; Assert-Success $result
-        foreach ($name in @('help','slice','resume')) {
+        foreach ($name in @('next','fix','align')) {
             (Join-Path $f.Home ".claude/skills/$name") | Should -Not -Exist
             (Join-Path $f.Home ".claude/skills/agentkit/skills/$name/SKILL.md") | Should -Exist
         }
@@ -444,12 +443,11 @@ Describe 'Global front door with isolated homes and local Git origin' {
     }
 }
 Describe 'Canonical skill dependencies' {
-    It 'resolves kit-owned dependencies of every shipped skill and preserves project companions' {
+    It 'resolves kit-owned dependencies of every shipped skill' {
         foreach ($skill in Get-ChildItem (Join-Path $script:KitSource 'skills') -Directory) {
             $body = & (Join-Path $script:KitSource 'tools/Get-AgentKitSkill.ps1') -Command $skill.Name
-            if ($skill.Name -ne 'install-all') { $body | Should -Not -Match '(?<![\w/\\])(?:AGENTS[.]shared[.]md|\.\./\.\./\.claude/COMPANIONS[.]md|tools/|templates/)' }
+            if ($skill.Name -ne 'install-all') { $body | Should -Not -Match '(?<![\w/\\])(?:AGENTS[.]shared[.]md|tools/|templates/)' }
             else { $body | Should -Match '(?m)^- `tools/\*[.]ps1`'; $body | Should -Match '(?m)^- `AGENTS[.]shared[.]md`' }
-            $body | Should -Match ([regex]::Escape("skills/$($skill.Name)/SKILL-local.md"))
         }
     }
 }

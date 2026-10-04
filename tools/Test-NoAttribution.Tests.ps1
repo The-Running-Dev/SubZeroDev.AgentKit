@@ -10,8 +10,7 @@
 
 # -Skip: is evaluated during discovery, so this is the one variable safe to compute at
 # top level; everything else is recomputed inside each Describe's own BeforeAll, because a
-# $script: variable set during discovery is not in scope once Pester's run phase starts
-# (tools/Test-CIWorkflow.Tests.ps1 carries the same note).
+# $script: variable set during discovery is not in scope once Pester's run phase starts.
 $script:SkipHookTests = -not (Get-Command sh -ErrorAction SilentlyContinue)
 
 Describe 'tools/git-hooks/commit-msg: strips AI attribution locally (#340 S.2/S.3)' {

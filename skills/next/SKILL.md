@@ -1,176 +1,80 @@
 ---
 name: next
-description: Work out what this repository owes next, and do it - stopping at any session boundary rather than crossing it
+description: Build the plan — take the next unfinished slice through to merge, then keep going until the plan is done or something genuinely blocks
+argument-hint: "[optional: a slice id to start from, or 'one' to stop after a single slice]"
 disable-model-invocation: true
 ---
 
-<!-- companion:declared:start -->
-**Per-repo companion:** `skills/next/SKILL-local.md`. Read it now, if it exists — an absent,
-empty, or frontmatter-only file is no companion, and this file then stands alone.
-It may override: `vocabulary`, `document-map`, `extra-steps`. It may never override anything in
-[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
-<!-- companion:declared:end -->
+Build `design/30-slices.md` to completion. **Do the work; do not describe it.** Each slice goes from code to merged pull request, then the next slice starts, in this same session. Stop only when the plan is finished or on a genuine blocker (`AGENTS.shared.md` § *When to stop*). Never end with "run /next again" or "start a fresh session" — that is the failure this command exists to remove.
 
-`/help` answers "where am I and what runs next" and then stops, so the answer has to be typed
-back in by hand every time. This command answers the same question and then **runs it** — with one
-rule that keeps it from breaking the contract it operates under.
+With `$1` set to a slice id, start there. With `$1` set to `one`, stop after one slice.
 
-## The rule
+## 0. Start clean
 
-**Act where the next step is legal in this session. Stop where it is not.**
+- `git status --short --branch`. Uncommitted work that is not yours: leave it, work in a separate branch, and mention it in the report. Never stage, discard or stash it.
+- If the current branch's pull request has merged, run `pwsh -File tools/Invoke-Housekeeping.ps1 -RepoRoot .`: it switches to the default branch, pulls, and deletes every branch confirmed merged. Report any stash it made — never pop it silently. Anything it escalates (`Escalate`) is left alone and named in the report; it does not stop the run.
+- If an open pull request from an earlier run of this command exists for an unfinished slice, check out its branch and continue from step 3 rather than starting over.
 
-`AGENTS.shared.md` § *Session boundaries* is the authority on which is which, and this command does not
-restate the table. Read it, decide which side the next step falls on, and then:
+## 1. Pick the slice
 
-- **Same session** — run the command. `/pr` after `/slice`, `/resolve` after `/pr`, `/clean` after
-  a merge. No confirmation, no announcement first; act and report.
-- **Fresh session** — do **not** run it. Emit the boundary banner in the form `AGENTS.shared.md` defines
-  and stop. Merge → `/track`, implementation → `/align`, `/design` → `/redteam`, and every
-  artifact-writing stage to the one after it, all land here.
-- **Deep-reasoning tier** — do not run it under this command's `sonnet`/`medium` routing even
-  where no boundary applies. Name the command and its tier, and stop. The work-start banner in
-  `AGENTS.shared.md` § *Model, effort, and review budget* is what gates that, and it gates this command
-  the same as any other.
+Read `design/30-slices.md`. The next slice is the first, in document order, whose `Status:` is not `done` and whose `Depends on:` slices are all `done`. A slice with no `Status:` line is not done.
 
-**Nothing is ever assumed owed.** Every step below is decided from something read, not from what
-usually comes next. This is the whole reason the command exists: `/clean` used to name `/track`
-unconditionally, `/track` opened a pull request for its own mirror refresh, and the merge brought
-the session straight back to `/clean`. A handoff that never checks is a loop.
+If none is left, the plan is finished: report that and stop. If slices remain but every one waits on an unfinished dependency, report the cycle or gap and stop.
 
-## Orient
+## 2. Build it
 
-`/help` owns the stage map and this command reads it rather than carrying a copy — go there
-for what stage 0 through 6 mean and which command belongs to each. What this command adds is a
-check of what is *outstanding*, which orientation alone does not answer. `./tools/` below is the kit install root, not this repo (`AGENTS.shared.md` § *House conventions* → Home-install convention) — run from that root, or resolve it first:
+- Branch `slice/S<n>-<short-name>` off the up-to-date default branch.
+- Read the slice, `design/20-contract.md`, and the parts of `design/10-design.md` it touches. Read the code you are about to change in full.
+- For each acceptance criterion, write a test that fails first where the criterion can be tested, then implement until it passes. Stay inside the slice's `Out of scope:` line.
+- Where the code and the design disagree, do what works, keep going, and note it for the pull request (`AGENTS.shared.md` § *The design is the spec*).
+- Set the slice's `Status:` line to `done` in `design/30-slices.md` in this same branch. Change nothing else in `design/`.
 
-```powershell
-git status --short --branch
-git branch --show-current
-gh pr list --state open --json number,title,headRefName 2>$null
-gh pr list --state merged --limit 5 --json number,title,mergedAt 2>$null
-pwsh ./tools/Test-DesignDrift.ps1
-pwsh ./tools/Test-DesignState.ps1
+## 3. Check it locally
+
+Run the repository's gates: the steps marked `# verification: true` in `.github/workflows/*.yml` (`pwsh -File tools/Test-GatesCache.ps1 -RepoRoot .` caches that list), or, where none are marked, the test suite, linter and type checker the repository uses. Fix failures before pushing. A gate that cannot run here is named as not run, with the reason — never reported as passed.
+
+## 4. Open the pull request
+
+Commit by named path, `git diff --check`, push, and open a **non-draft** pull request. The description:
+
+```
+## What
+<one or two sentences: what a user can now do>
+
+## Criteria
+- S<n>.1 — met: <the test or check that shows it>
+- S<n>.2 — ...
+
+## Differs from design
+- <one line per place the code departs from design/, or omit the section>
+
+## Verified
+<each gate: passed / failed with its output / not run and why>
 ```
 
-These six reads carry no judgement of their own and can be gathered with no model call at all —
-`tools/Get-NextOrientation.ps1` (or `Get-AgentKitNext` after dot-sourcing `tools/RepoAliases.ps1`
-into a PowerShell profile) runs them and returns one object. It does not pick a row; *Decide, in
-this order* below still does, whether picked by a person reading that object or by a session
-(`design/90-decisions.md`, 2026-09-06, issue #183).
+## 5. Get it merged
 
-Read the open issue inventory separately; it is tracker state, not a seventh field in
-`Get-NextOrientation.ps1`'s stable six-read result:
+1. Wait for CI on the pushed head: `pwsh -File tools/Wait-PullRequestCheck.ps1 -PullRequest <n> -HeadSha <sha>`.
+2. If a check failed, read its log (`gh run view --log-failed`), fix it, push, and wait again.
+3. Read the review threads (`gh api graphql` on `pullRequest.reviewThreads`, paginated; fields `id isResolved isOutdated path line comments`). For each unresolved thread:
+   - **A real defect** — fix it, push, wait for CI, then resolve the thread (`resolveReviewThread`).
+   - **Wrong, or already handled** — reply with the evidence (`path:line`) and resolve it.
+   - **Real but outside this slice** — open a GitHub issue for it, reply with the link, resolve it.
+   - **Needs the user's judgement** (a product decision, not a code question) — leave it open; this is a blocker.
+4. Merge: `pwsh -File tools/Merge-PullRequest.ps1 -PullRequest <n> -HeadSha <sha>`. It waits for checks itself and refuses on anything unconfirmed. **A refusal stands** — never `--admin`, never merge another way. Fix what it names and retry; if it cannot be fixed, that is a blocker.
+5. Prune with `tools/Invoke-Housekeeping.ps1`, as in step 0.
 
-```powershell
-gh issue list --state open --limit 200 --json number,title,labels,body 2>$null
-```
+Three failed attempts to fix the same CI failure or review defect is a blocker: stop and report what each attempt assumed and what it disproved.
 
-**Say which signal you used.** A step taken on evidence nobody can see reads the same as a step
-taken from habit.
+## 6. Keep going
 
-## Open non-slice work
-
-An open issue is **pickable non-slice work** only when it carries the `ready` label — meaning
-**pickable now, with no owner decision needed** — and exactly one of these route markers. The
-route markers are labels too; their names describe ownership rather than issue type.
-
-| Route marker | Work it owns | Command |
-|---|---|---|
-| `bug` | A reproduced defect | `/fix <issue>` |
-| `documentation` | Documentation or an ADR that records an already-settled decision | `/docs` |
-| `spec` | A story whose required behaviour must be specified | `/spec` |
-| `align` | A decision or reconciliation between the tree and its design | `/align` |
-| `check` | A verification or audit request | `/check` |
-
-An `enhancement` or story label describes the work but does not route it: its owner applies one
-of the five route markers above. An unresolved ADR or decision is `align`, not `documentation`.
-If more than one route marker is present, or none is, list the issue as needing routing and do
-not choose it.
-
-`needs-decision` and `blocked-external` override `ready`. List every open issue carrying either
-label as **awaiting owner**, including its blocker label, but **never auto-pick** it. Those labels
-are waiting states, not route markers; removing the blocker and applying `ready` is an owner or
-tracker action outside `/next`.
-
-When more than one issue is pickable, select the **lowest issue number**. That makes selection
-deterministic without inventing priority from prose. Report the chosen issue number and the
-label that routed it; for `/docs`, `/spec`, `/align`, or `/check`, name the issue as the
-authoritative input when invoking or handing off to the command.
-
-## Decide, in this order
-
-Take the **first** row that matches. Do not batch — one action per invocation, then report and
-stop, so the next invocation decides against a tree that has actually moved.
-
-| If | Then |
-|---|---|
-| `design/FROZEN.md` exists **and** the next step is `/interview`, `/design`, `/spec`, `/plan`, `/align` or `/track` | Report `Frozen because` and `Lifts when` **verbatim** and stop. Do not route around a freeze |
-| The tree is dirty with work in progress | Report what is uncommitted and stop. Guessing whose work it is, is how it gets lost |
-| A branch is checked out with an open pull request | `/pr` — same session, run it |
-| A branch is checked out with unpushed commits and no pull request | Commit by named path, push, open the pull request. `AGENTS.shared.md` § *Git and delivery* delegates all four |
-| A pull request merged and its local branch still exists | `/clean` — same session, run it |
-| `/clean` just ran, or a merge landed with nothing local left to clean, **and the tracker is owed something** — `Test-DesignDrift.ps1` reports findings, `design/90-decisions.md` § `## Open` holds an item with no issue, or an open issue has every `Done when` box ticked. `MirrorStale` is **not** one of them: it is stale by construction, never blocks, and never reaches zero (`design/20-contract.md` § *The divergence classes*) | **Boundary.** Banner for `/track`, fresh session, `sonnet`/`medium`. Stop |
-| `Test-DesignDrift.ps1` or `Test-DesignState.ps1` reports a blocking finding | Report the finding and name the command that owns it. Do not fix it here |
-| An open slice issue maps to an entry in `design/30-slices.md` § *Outstanding* by its `S<n> —` title prefix, and no branch is in flight | `/slice S<n>` — **boundary**, one slice per session. Banner and stop |
-| `design/30-slices.md` § *Outstanding* is empty and an open `ready` non-slice issue has exactly one route marker and neither blocker label | Apply *Open non-slice work*: also list any `needs-decision` or `blocked-external` issues as awaiting owner, select the lowest issue number, and route it to its owning command under *The rule* |
-| `design/30-slices.md` § *Outstanding* is empty, open non-slice issues exist, and none is pickable | List the issues that need routing and those awaiting owner under `needs-decision` or `blocked-external`; never auto-pick either class. Stop without saying nothing is owed |
-| `design/30-slices.md` § *Outstanding* is empty and every issue is closed | Say the slice set is exhausted, and name `/align` (**boundary**, `opus`/`high`) as what follows |
-| Nothing above matches | Say so plainly. "Nothing is owed" is a valid answer and is the one this command exists to be able to give |
+Return to step 1 for the next slice. Do not pause between slices, do not ask whether to continue, and do not suggest a new session — context compaction is handled by the host.
 
 ## Report
 
-Lead with `Result:` and `Next:` (`AGENTS.shared.md` § *Output discipline*). `Result:` states what
-this run found and what it did or why it stopped. `Next:` names the very next step — the command
-just run needing nothing further (`Next: Nothing — this is complete.`), or the boundary's own
-command when the table stopped short of running it. State meaning before identifier — a gate's
-`Summary`, not its raw `ExitCode`. Where you stopped at a boundary, the banner is the last thing in
-the response, set off as `AGENTS.shared.md` requires — it may repeat the action already named in
-`Next:`; that duplication is intentional.
+Once, when the run stops, in the `AGENTS.shared.md` § *Reporting* shape:
 
-## Hand off
-
-Every **boundary** row above ends the session here. Emit the transfer block `AGENTS.shared.md`
-§ *The session-transfer handoff block* requires, then that boundary's banner — the block, then
-the banner, and nothing after it.
-
-Fill it from the row that matched, not from the reasoning that matched it:
-
-- **`Start here`** is the exact command the row chose — `/track`, `/slice S<n>` with the id
-  spelled out, the routed non-slice command and issue number, `/align`, `/redteam` — with the tier `AGENTS.shared.md` § *Command routing* fixes
-  for it. `/redteam` carries its **different vendor from the design author** constraint into
-  `Constraints`, since that is the one thing a fresh session of the same model cannot satisfy by
-  reading the tree.
-- **`Authoritative inputs`** names what the row actually read — the `Test-DesignDrift.ps1`
-  finding, the issue number and its unticked `Done when` ids, `design/30-slices.md` §
-  *Outstanding*, `design/90-decisions.md` § `## Open`. Name them; the next session reads them.
-- **`Current state`** says what this run did or found, as far as it verified it, and nothing about
-  what it expects the next command to conclude.
-
-**Do not carry the orientation reasoning across.** This command is stateless and re-derives every
-decision from the tree (*Re-run*, below), so the next session running `/next` again would reach
-the same row from the same evidence — pasting the argument for it in is the one thing that could
-make it reach a different one.
-
-## Never
-
-- **Cross a session boundary because the next step is small.** Size is not what the boundary
-  measures; carried context is.
-- **Run more than one routed command per invocation.** Each one changes the state the next
-  decision is made from.
-- **Invent a step.** Where the table above matches nothing and `/help`'s stage map matches
-  nothing either, say the state matches no stage and ask. An invented next step in the command
-  whose entire job is naming the next step is the one that gets followed.
-- **Run `/redteam`.** Its routing requires a different vendor from the design author, which this
-  session cannot satisfy by construction. Name it, banner it, stop.
-- **Name `/track` on the strength of a merge alone.** A merge is a fact about history, so it stays
-  true forever — while `/track` leaves no trace when the tracker has not moved, because
-  `Update-WorkMirror.ps1` writes only on change and a no-op run produces no commit for a later
-  invocation to see. A row keyed on the merge therefore matches again on the next invocation, and
-  the next, which is `/clean`'s old unconditional handoff wearing this command's name. Key it on
-  something *outstanding*, as the row above does.
-
-## Re-run
-
-Stateless. Every decision is re-derived from the tree, the tracker, and the gates as they stand
-at the moment it runs, so two calls in a row legitimately give different answers when something
-moved in between — and give the same answer, harmlessly, when nothing did.
+- `Result:` — which slices merged in this run (with pull request links), and either "the plan is complete" or exactly what stopped it.
+- `Next:` — `Nothing — this is complete.`, or the one decision or action the blocker needs from the user.
+- `Verified:` — the gates and CI results for the last pull request, and anything that did not run.
+- `Decisions:` — the material-ambiguity calls made along the way, one line each, if any mattered.

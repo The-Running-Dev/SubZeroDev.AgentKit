@@ -1,20 +1,19 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Launches `codex` configured for the tier that matches a command's requirement in
-    AGENTS.shared.md, so the tier gate in "Model, effort, and review budget" never has to catch
-    a mismatch caused by launching on whatever config the shell happened to have open.
+    Launches `codex` configured for the tier AGENTS.shared.md's *Models* section routes a command
+    to, so a session never runs on whatever config the shell happened to have open.
 
 .DESCRIPTION
     codex/PROFILES.md defines four profiles - architect (Sol, deep reasoning, read-only),
     author (Sol, deep reasoning, workspace-write), builder (Terra, implementation), quick
     (Codex Spark, implementation) - but nothing picks one from a command name. AGENTS.shared.md's
-    *Command routing* table names a tier per command; this script is that lookup.
+    *Models* routing table names a tier per command; this script is that lookup.
 
     architect and author share a model and effort and differ only in sandbox mode: architect
     is read-only, for the two deep-reasoning commands that must never touch the tree
     (/brief, /redteam); author is workspace-write, for the deep-reasoning commands
-    whose normal work is writing to design/ (/design, /spec, /plan, /align). A
+    whose normal work is writing to design/ (/interview, /design, /plan, /align). A
     single read-only 'architect' used to back all of these (issue #252) and blocked every
     one of them except /redteam and /brief from doing its job.
 
@@ -32,16 +31,12 @@
     `$profileConfig` below in sync with codex/PROFILES.md by hand; Invoke-CodexCommand.Tests.ps1's
     "profiles match codex/PROFILES.md" Describe block (W3, issue #299) enforces that automatically.
 
-    This is exactly the kind of mechanical, repeated lookup AGENTS.shared.md's own "What should
-    stop being model work" table calls 🔴 Definitely avoidable - arithmetic over a table,
-    not judgement. The judgement (which tier a *novel* task needs) still belongs to
-    whoever is running the session; this script only removes the "which flags do I type
-    for a command I already know the tier of" step.
+    This is a mechanical lookup over a table, not judgement; the judgement (which tier a novel
+    task needs) still belongs to whoever is running the session.
 
     -Effort overrides the profile's baked-in reasoning effort via `-c
-    model_reasoning_effort=<value>`, for the routing table's documented exceptions (a large
-    /slice at high, an /align mechanical-edit pass at medium instead of the profile's
-    default). It does not change which profile is selected.
+    model_reasoning_effort=<value>`, for the routing table's documented exception (a difficult
+    slice under /next at high). It does not change which profile is selected.
 
     /redteam's requirement ("strongest model, different vendor from the design author") is
     a constraint this script cannot enforce - it maps /redteam to `architect`, the
@@ -58,22 +53,8 @@
     launched without this flag never sees the file past that point. See codex/PROFILES.md's
     *Output and context budget* section for the full citation of that source.
 
-    /resume is the one command this script does not run as a single `codex` invocation.
-    Its own procedure needs a deep-reasoning align phase and an implementation-tier track
-    phase, and Codex profiles cannot switch mid-session - so this script is the case
-    skills/resume/SKILL.md's *Split across sessions* names, and chains two separate
-    `codex` processes ('author' then 'builder') instead of picking one profile for the whole
-    run (issue #253). The human still runs `./tools/Invoke-CodexCommand.ps1 resume` once;
-    nothing prompts them between the two processes.
-
-    Under home-install, the launched codex processes do not necessarily share this script's
-    own working directory with the kit checkout, so the two prompts below cannot just tell
-    the session to go open a kit file by path - Get-SkillContent reads
-    skills/resume/SKILL.md from the install root (Get-AgentKitInstallRoot) itself, and its
-    text is inlined into the prompt instead.
-
 .PARAMETER Command
-    The command name, with or without a leading slash (e.g. 'help' or '/help').
+    The command name, with or without a leading slash (e.g. 'next' or '/next').
 
 .PARAMETER Effort
     Override the profile's model_reasoning_effort for this run only (low, medium, high,
@@ -92,16 +73,16 @@
 
 .PARAMETER CodexArgs
     Everything after the command name/flags is passed through to `codex` verbatim (for example,
-    prompt text or `resume <id>`). This is the legacy direct-launcher interface.
+    prompt text). This is the legacy direct-launcher interface.
 
 .EXAMPLE
-    ./tools/Invoke-CodexCommand.ps1 help
-    Resolves /help to the 'quick' profile and runs codex with that profile's model,
+    ./tools/Invoke-CodexCommand.ps1 next
+    Resolves /next to the 'builder' profile and runs codex with that profile's model,
     effort, approval policy, and sandbox mode passed directly.
 
 .EXAMPLE
-    ./tools/Invoke-CodexCommand.ps1 slice -Effort high -- "implement S4"
-    Resolves /slice to 'builder' but overrides effort to high for a large slice.
+    ./tools/Invoke-CodexCommand.ps1 next -Effort high
+    Resolves /next to 'builder' but overrides effort to high for a difficult slice.
 
 .EXAMPLE
     ./tools/Invoke-CodexCommand.ps1 -List
@@ -128,40 +109,22 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Mirrors AGENTS.shared.md's *Command routing* table. Tier -> profile per codex/PROFILES.md:
-# deep reasoning (read-only) -> architect, deep reasoning (writes design/) -> author,
-# implementation -> builder or quick.
-# Where routing names two tiers for one command (a decide phase and a mechanical phase),
-# this maps to the tier of the phase that runs first / gates the rest.
+# Mirrors AGENTS.shared.md's *Models* routing table. Tier -> profile per codex/PROFILES.md:
+# deep reasoning (read-only) -> architect, deep reasoning (writes) -> author,
+# implementation -> builder.
 $commandProfiles = [ordered]@{
     'brief'            = 'architect'   # writes nothing (brief.md, *Re-run*)
     'interview'        = 'author'      # writes design/00-brief.md
-    'design'           = 'author'      # writes design/10-design.md
-    'spec'             = 'author'      # writes design/20-contract.md
+    'design'           = 'author'      # writes design/10-design.md and design/20-contract.md
     'plan'             = 'author'      # writes design/30-slices.md
     'redteam'          = 'architect'   # strongest local profile; vendor diversity is on the caller
-    'slice'            = 'builder'
-    'align'            = 'author'      # deciding which side is correct gates its own mechanical edits
-    'docs'             = 'builder'
-    'track'            = 'builder'
-    'check'            = 'builder'
-    'pr'               = 'builder'
-    'resolve'          = 'builder'
+    'align'            = 'author'      # writes design/ once the user has decided
+    'next'             = 'builder'
     'fix'              = 'builder'
-    'handoff'          = 'builder'  # tier-neutral by AGENTS.shared.md *Handoff mode*; a launcher must still pick one
-    'tune'             = 'builder'
     'install'          = 'builder'
     'install-all'      = 'builder'
-    'sync'             = 'builder'
-    'help'             = 'quick'
-    'next'             = 'builder'    # orients like /help but acts, so it needs write access
-    'clean'            = 'quick'
     'install-review'   = 'builder'
-    'hold'             = 'builder'
-    'autoupdate'       = 'quick'
-    'autoupdate-env'   = 'quick'
-    # 'resume' is deliberately absent here - it needs two profiles in one run (see the
-    # special case below, issue #253), which a single entry in this table cannot express.
+    'sync'             = 'builder'
 }
 
 # Mirrors codex/PROFILES.md's "Codex 0.134.0 and later" per-file values. --profile is not
@@ -173,10 +136,8 @@ $profileConfig = [ordered]@{
     'quick'     = @{ Model = 'gpt-5.3-codex-spark'; Effort = 'medium'; Approval = 'on-request'; Sandbox = 'workspace-write' }
 }
 
-# The tier each profile resolves to, spelled exactly as AGENTS.shared.md's *Model, effort, and
-# review budget* table spells it. This is the value stamped into the child environment so
-# the gate never has to infer a tier from a self-report, and never has to read a config
-# file the sandbox puts out of reach - see $tierEnvironment below.
+# The tier each profile resolves to, spelled exactly as AGENTS.shared.md's *Models* table
+# spells it. Stamped into the child environment - see $tierEnvironment below.
 $profileTiers = [ordered]@{
     'architect' = 'Deep reasoning'
     'author'    = 'Deep reasoning'
@@ -313,12 +274,11 @@ if ($List) {
             Tier     = $profileTiers[$_.Value]
         }
     } | Format-Table -AutoSize
-    Write-Output "/resume runs two processes, not one - 'author'/high for its align phase, then 'builder'/medium for its track phase. See -Command resume -WhatIf."
     return
 }
 
 if (-not $Command) {
-    throw "No command given. Pass a command name (e.g. 'help') or -List to see the table."
+    throw "No command given. Pass a command name (e.g. 'next') or -List to see the table."
 }
 
 $normalized = $Command.TrimStart('/')
@@ -328,93 +288,8 @@ $useSkillArguments = $PSBoundParameters.ContainsKey('SkillArguments')
 # launch, from the launch directory, and applied to every codex process this script starts.
 $projectDocBudget = Get-ProjectDocByteBudget
 
-# /resume's own procedure (skills/resume/SKILL.md, Phase 2 and Phase 3) requires its
-# align phase at deep-reasoning tier and its track phase at implementation tier, "in this
-# same session." Codex profiles cannot switch mid-session (codex/PROFILES.md), so one `codex`
-# invocation can never satisfy both halves - issue #253. This chains two separate `codex`
-# processes instead, so the human still runs this script once and nothing prompts them
-# in between: the align half is a real 'author' session, the track half a real 'builder'
-# session, and each is stamped with its own tier exactly as a standalone /align or /track
-# invocation would be.
-if ($normalized -eq 'resume') {
-    $resumeSkill = Get-SkillContent -Name 'resume'
-    $resumeArguments = if ($useSkillArguments) { ConvertTo-Json -InputObject @($SkillArguments) -Compress } else { $null }
-
-    $alignPrompt = @'
-This is session 1 of /resume's Split across sessions. Its full procedure follows.
-
-'@ + $resumeSkill + @'
-
-
-Run it as session 1: refuse if not frozen, Phase 1, Phase 2, and Commit. Stop there - a
-second, separately-launched process runs session 2.
-'@ + $(if ($useSkillArguments) { "`nUser arguments (JSON array; preserve each element exactly):`n$resumeArguments" } else { '' })
-    $trackPrompt = @'
-This is session 2 of /resume's Split across sessions. Its full procedure follows.
-
-'@ + $resumeSkill + @'
-
-
-Run it as session 2: read session 1's commit, then run Phase 3 and Report exactly as
-written there.
-'@ + $(if ($useSkillArguments) { "`nUser arguments (JSON array; preserve each element exactly):`n$resumeArguments" } else { '' })
-
-    $alignConfig = $profileConfig['author']
-    $trackConfig = $profileConfig['builder']
-
-    $alignArgs = @(
-        '-m', $alignConfig.Model,
-        '-c', "model_reasoning_effort=$($alignConfig.Effort)",
-        '-c', "project_doc_max_bytes=$projectDocBudget",
-        '-a', $alignConfig.Approval,
-        '-s', $alignConfig.Sandbox
-    ) + $(if ($useSkillArguments) { @() } else { $CodexArgs }) + @($alignPrompt)
-
-    $trackArgs = @(
-        '-m', $trackConfig.Model,
-        '-c', "model_reasoning_effort=$($trackConfig.Effort)",
-        '-c', "project_doc_max_bytes=$projectDocBudget",
-        '-a', $trackConfig.Approval,
-        '-s', $trackConfig.Sandbox,
-        $trackPrompt
-    )
-
-    $alignStamp = [ordered]@{
-        AGENTKIT_TIER    = $profileTiers['author']
-        AGENTKIT_MODEL   = $alignConfig.Model
-        AGENTKIT_EFFORT  = $alignConfig.Effort
-        AGENTKIT_COMMAND = '/resume-align'
-        AGENTKIT_PROFILE = 'author'
-    }
-    $trackStamp = [ordered]@{
-        AGENTKIT_TIER    = $profileTiers['builder']
-        AGENTKIT_MODEL   = $trackConfig.Model
-        AGENTKIT_EFFORT  = $trackConfig.Effort
-        AGENTKIT_COMMAND = '/resume-track'
-        AGENTKIT_PROFILE = 'builder'
-    }
-
-    if ($WhatIf) {
-        $alignStampText = ($alignStamp.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ' '
-        $trackStampText = ($trackStamp.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ' '
-        Write-Output "$alignStampText codex $($alignArgs -join ' ')"
-        Write-Output "$trackStampText codex $($trackArgs -join ' ')"
-        return
-    }
-
-    foreach ($entry in $alignStamp.GetEnumerator()) { Set-Item -Path "Env:$($entry.Key)" -Value $entry.Value }
-    & codex @alignArgs
-    if ($LASTEXITCODE -ne 0) {
-        throw "/resume's align phase (codex process 1 of 2, 'author' profile) exited $LASTEXITCODE - stopping before the track phase runs against a possibly-incomplete align."
-    }
-
-    foreach ($entry in $trackStamp.GetEnumerator()) { Set-Item -Path "Env:$($entry.Key)" -Value $entry.Value }
-    & codex @trackArgs
-    exit $LASTEXITCODE
-}
-
 if (-not $commandProfiles.Contains($normalized)) {
-    $known = (@($commandProfiles.Keys) + 'resume' | Sort-Object | ForEach-Object { "/$_" }) -join ', '
+    $known = (@($commandProfiles.Keys) | Sort-Object | ForEach-Object { "/$_" }) -join ', '
     throw "No profile mapping for '/$normalized'. Known commands: $known. Pass --profile to codex directly for anything else."
 }
 
@@ -436,16 +311,9 @@ else {
     $codexInvocationArgs += $CodexArgs
 }
 
-# AGENTS.shared.md's tier gate is told to resolve a Codex session's tier from its configuration
-# rather than its self-report. On the profile that matters most - `architect`, which is
-# `sandbox_mode = read-only` and scoped to the workspace - that configuration lives in
-# `~/.codex/`, outside the sandbox, so the session cannot read it and the gate falls to its
-# documented last resort (the self-report) and stops. That is the failure this stamping
-# removes: environment variables cross the sandbox boundary, config files do not.
-#
-# The gate reads AGENTKIT_TIER first, the configuration second, and the self-report last.
-# Only a session launched through this script carries the stamp, which is why it is a
-# hardening on top of the configuration read and not a replacement for it.
+# Stamp the resolved tier into the child environment. Environment variables cross the sandbox
+# boundary where `~/.codex/` config files do not, so a session can state its own tier as a
+# fact rather than infer it from its self-report.
 $tierEnvironment = [ordered]@{
     AGENTKIT_TIER    = $profileTiers[$codexProfile]
     AGENTKIT_MODEL   = $selectedConfig.Model

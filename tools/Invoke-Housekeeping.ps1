@@ -1,11 +1,11 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    The no-model invocation path for /clean's mechanical half: discover, auto-delete
+    The no-model invocation path for /next's post-merge branch cleanup: discover, auto-delete
     what needs no judgement, and say plainly when something does.
 
 .DESCRIPTION
-    clean.md's "Merged" and "SafeDelete" gates, and the squash-merge tip-equals-merged-head
+    The "Merged" and "SafeDelete" gates, and the squash-merge tip-equals-merged-head
     comparison, are all facts Invoke-DoneHousekeeping.ps1 already computes - nothing about
     applying them requires a model in the loop. This script is the missing invocation: it
     calls Invoke-DoneHousekeeping.ps1 once to discover candidates, then again to delete every

@@ -1,10 +1,10 @@
 #Requires -Version 7.0
 <#
 .SYNOPSIS
-    Shell-alias invocation for the no-model path of /clean and /next (issue #183).
+    Shell-alias invocation for branch housekeeping with no model call (issue #183).
 
 .DESCRIPTION
-    Dot-source this from a PowerShell profile to get two functions that run this repository's
+    Dot-source this from a PowerShell profile to get a function that runs this repository's
     mechanical housekeeping without starting a model session. This is deliberately a function a
     person types in a terminal they are watching, not a scheduled task: this repository's
     concurrency is sequential-by-policy and not by lock (design/00-brief.md § *Environment*), so
@@ -12,7 +12,7 @@
     stash made unattended has no guaranteed reader. Running it by hand means the report - stash
     ref included - lands in front of whoever ran it, immediately.
 
-    Neither function opens a model session. Where the underlying script reports a judgement
+    It never opens a model session. Where the underlying script reports a judgement
     case, these print it and stop; opening Claude Code, Codex, or Copilot to work it is left to
     the person reading the output (design/00-brief.md's non-goal keeps a human in adjudication,
     and this reading needs no per-vendor launch machinery, unlike having the script launch one
@@ -24,7 +24,6 @@
 
     # Then, from any of this kit's repositories:
     Invoke-AgentKitClean
-    Get-AgentKitNext
 #>
 
 $script:RepoAliasesRoot = $PSScriptRoot
@@ -32,7 +31,7 @@ $script:RepoAliasesRoot = $PSScriptRoot
 function Invoke-AgentKitClean {
     <#
     .SYNOPSIS
-        Runs /clean's mechanical half: discover, auto-delete what needs no judgement, report.
+        Prunes merged branches: discover, auto-delete what needs no judgement, report.
     .DESCRIPTION
         Wraps tools/Invoke-Housekeeping.ps1. Prints the report and returns the result object,
         whose .Escalate flags a case this script did not resolve - read it before deciding
@@ -40,28 +39,4 @@ function Invoke-AgentKitClean {
     #>
     param([string]$RepoRoot = (Get-Location).Path)
     & (Join-Path $script:RepoAliasesRoot 'Invoke-Housekeeping.ps1') -RepoRoot $RepoRoot
-}
-
-function Get-AgentKitNext {
-    <#
-    .SYNOPSIS
-        Runs /next's orientation reads with no model call, for a person to decide the row.
-    .DESCRIPTION
-        Wraps tools/Get-NextOrientation.ps1 and prints a short human summary before returning
-        the full object. Deciding what runs next is unchanged - AGENTS.shared.md § *Session
-        boundaries* and next.md's decision table still govern that; this only removes the cost
-        of gathering what they are decided against.
-    #>
-    param([string]$RepoRoot = (Get-Location).Path)
-    $orientation = & (Join-Path $script:RepoAliasesRoot 'Get-NextOrientation.ps1') -RepoRoot $RepoRoot
-
-    # Print the plain-language Summary each field already carries (AGENTS.shared.md, *Output
-    # discipline*) rather than a raw Dirty/Available/exit-code dump the reader has to translate.
-    Write-Host $orientation.Summary
-    Write-Host $orientation.OpenPrs.Summary
-    Write-Host $orientation.MergedPrs.Summary
-    Write-Host $orientation.DesignDrift.Summary
-    Write-Host $orientation.DesignState.Summary
-
-    $orientation
 }

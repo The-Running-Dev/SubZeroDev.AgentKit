@@ -168,8 +168,8 @@ function Get-UnresolvedReviewThread {
        --paginate walks reviewThreads' own pageInfo to exhaustion, so a PR with more than 100
        threads is not silently truncated into a false zero - which on this path would be a
        merge over a standing objection. Only id/isResolved/path/line are requested: this
-       script counts blockers, it never classifies or answers them (that is /resolve's, and
-       skills/resolve/SKILL.md owns the query that reads comment bodies). #>
+       script counts blockers, it never classifies or answers them (that is /next's, and
+       skills/next/SKILL.md, step 5, owns the query that reads comment bodies). #>
     param([int]$PullRequest, [string]$Repository)
 
     $query = @'

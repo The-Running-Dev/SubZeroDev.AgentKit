@@ -26,8 +26,8 @@
 
     Never invents content. 00-brief.md is a fill-in-the-blanks template meant to be
     written by a person (see its own header); 10-design.md, 20-contract.md and
-    30-slices.md are seeded empty on purpose - they are /design's, /contract's and
-    /slices's to fill, not this script's.
+    30-slices.md are seeded empty on purpose - they are /design's (both) and
+    /plan's to fill, not this script's.
 
 .PARAMETER TargetRepo
     Repository root to seed design/ into. Defaults to the current directory.

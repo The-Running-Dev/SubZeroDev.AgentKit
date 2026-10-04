@@ -5,20 +5,12 @@ argument-hint: "[repo name[,repo name...]] [--apply]"
 disable-model-invocation: true
 ---
 
-<!-- companion:declared:start -->
-**Per-repo companion:** `skills/install-all/SKILL-local.md`. Read it now, if it exists — an absent,
-empty, or frontmatter-only file is no companion, and this file then stands alone.
-It may override: `extra-steps`, `tightened-authorization`. It may never override anything in
-[`.claude/COMPANIONS.md`](../../.claude/COMPANIONS.md) § *Never*, which is also where these categories are defined.
-Without asking, it: `branch-commit-push-pr`.
-<!-- companion:declared:end -->
-
 Home install (`INSTALL.md` phase 4) stopped copying kit-owned files into a target repository at
 all — `AGENTS.shared.md`, `skills/<name>/SKILL.md`, `.claude/COMPANIONS.md` and `tools/*.ps1` are
 read from the installed kit now, never from a per-repo copy. Every `SubZeroDev.*` repository
 installed before that change still carries a copy of each. **This command is the one-time
-migration that removes them** — and only them: `skills/<name>/SKILL-local.md` companions are the
-target's own and are never touched, in this command or any other.
+migration that removes them** — and only them: `skills/<name>/SKILL-local.md` files are the
+target's own and are never touched.
 
 Unlike the old `/install-all`, which ran `INSTALL.md`'s ordinary reconciliation across every
 sibling repository, this command's job is narrower and runs, per repository, **exactly once**:
@@ -57,10 +49,10 @@ resolved Git root, and it is also the kit history Phase 1's check reads from.
 Check the target for each of these, present or absent:
 
 - `AGENTS.shared.md`
-- `skills/*/SKILL.md` — the core files. **Never `skills/*/SKILL-local.md`** — a companion was never
-  copied by any prior install, so it is never a candidate here, and this command does not open it,
-  hash it, or report on it.
-- `.claude/COMPANIONS.md`
+- `skills/*/SKILL.md` — the core files. **Never `skills/*/SKILL-local.md`** — no install ever
+  copied one, so it is never a candidate here, and this command does not open it, hash it, or
+  report on it.
+- `.claude/COMPANIONS.md` — retired from the kit, but an older install copied it
 - `tools/*.ps1`
 
 For each one **present** in the target, ask whether its exact content was ever, at any point,
@@ -81,8 +73,7 @@ git -C $kitRoot cat-file -e $blobSha 2>$null
   target's own edit to what was once a copy, or hand-authored content that happens to sit at a
   copied file's path. Report the path and the reason, and leave it in place. Deleting content this
   command cannot prove the kit once shipped is not a call it gets to make unasked
-  (`AGENTS.shared.md` § *Hard rules*: "No deletion without approval, including proposed prunes" —
-  the same principle `INSTALL.md`'s `agent.md` handling already applies).
+  (`AGENTS.shared.md` § *Git and delivery*: any other deletion needs the user's say-so).
 
 **A repository holding none of the four globs is already migrated.** Report it as such and move to
 the next target — this is the expected end state, not an error.
@@ -111,27 +102,18 @@ Phase 2's classification either way.
 1. **Stage exactly the Deletable paths from Phase 1, by named path** — `git rm <path>` for each,
    never `git add -A`, `git add .`, or a bare-directory add. Also stage the pointer-section edit
    from Phase 2, if one was written.
-2. **Run the companion validator and the write-surface guard, the same as the old `/install-all`
-   did, on the same per-target boundary:**
-
-   ```powershell
-   pwsh ./tools/Test-Companion.ps1 -TargetRepo <target>
-   pwsh ./tools/Test-WriteSurface.ps1 -TargetRepo <target>
-   ```
-
-   `Test-WriteSurface.ps1`'s defaults already carry this command's exact surface: `skills/`,
-   `tools/` and `.claude/COMPANIONS.md` as delete-only (a write there that is not a deletion is out
-   of surface), `AGENTS.md`/`CLAUDE.md` as ordinarily writable for the pointer section. **Exit 1 or
-   exit 2 from either aborts that target's apply** — do not commit or push a target the guard could
-   not confirm, or found something outside what this migration is allowed to touch. Record it under
-   *Aborted* in the phase 4 report and continue to the next target.
+2. **Check the write surface before committing.** `git -C <target> status --porcelain` must show
+   only deletions under `skills/`, `tools/` and `.claude/COMPANIONS.md`, plus at most an edit to
+   `AGENTS.md`, `CLAUDE.md` or `AGENTS.shared.md`'s removal. **Anything else aborts that target's
+   apply** — do not commit or push a target carrying a change this migration did not make. Record
+   it under *Aborted* in the phase 4 report and continue to the next target.
 3. **Commit, push a feature branch, and open a pull request** — the one place this command departs
    from the general "no separate ask" delegation's usual shape (`AGENTS.shared.md` § *Git and
    delivery*): here the pull request is opened **per repository**, not per session, and that is
    this command's own carve-out of the general rule, not a session-level exception. Commit message
    states plainly that this is the copy-removal migration and names the repository. The pull
    request body is Phase 1 and Phase 2's findings for that repository — every path deleted, every
-   path refused and why, and the pointer-section result — not a placeholder deferring to `/pr`.
+   path refused and why, and the pointer-section result.
 
 ## Phase 4 — One consolidated report, then stop
 
@@ -144,7 +126,7 @@ Refused:            <path> — <why: local edit / unaccounted-for content>
 Already migrated:   <none of the four globs present>
 Pointer section:    <applied / already correct / needs a decision>
 Needs a decision:   <AGENTS.md/CLAUDE.md direction ambiguous — recommendation>
-Aborted:            <target> — companion validator or write-surface guard, exit code
+Aborted:            <target> — the unexpected paths the write-surface check found
 Branch / PR:        <link, or "dry run — nothing written">
 ```
 
@@ -175,15 +157,14 @@ twice.
 - **No deletion of anything Phase 1's hash check did not confirm the kit's own history contains.**
   A near-miss is not a match; there is no partial-credit reconciliation here, only Phase 1's exact
   test.
-- **No write, read for classification, or report on `skills/*/SKILL-local.md`**, in any target. A
-  companion was never copied and is not this command's concern.
+- **No write, read for classification, or report on `skills/*/SKILL-local.md`**, in any target.
 - No `git add -A`, `git add .`, or bare-directory add.
 - No write to a target's `settings.json`, `settings.local.json`, `launch.json`, or `.claude/kit.json`
   — this command does not run `INSTALL.md`'s reconciliation and touches none of the per-repo files
   that procedure owns, beyond the pointer section named above.
 - **No write to a target's `.git/hooks/`**, including the `commit-msg` hook `INSTALL.md` phase 1
-  installs. `tools/Test-WriteSurface.ps1` reads `git status`, which does not report writes inside
-  `.git/` at all, so this is the one artifact whose install this command's own guard cannot check —
+  installs. `git status` does not report writes inside `.git/` at all, so this is the one artifact
+  whose install this command's own write-surface check cannot see —
   and an unattended pass does not write what it cannot verify it wrote. Report it as skipped;
   `/install` is where it is installed, attended.
 - **No commit, push, or pull request on a dry run** — `--apply`'s absence means exactly that nothing

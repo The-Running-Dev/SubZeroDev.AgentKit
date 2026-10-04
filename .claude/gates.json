@@ -1,6 +1,6 @@
 {
-  "manifestHash": "24d04923b334fd22504d2fdf59059c26ee1de94f110042f21a64d9dd1fb77b33",
-  "generated": "2026-09-21",
+  "manifestHash": "6422bde6b15ea0fc9ccedd29bdb41c01296047b8b048cb010bfeaadd89a8b748",
+  "generated": "2026-10-04",
   "gates": [
     {
       "name": "Check commits carry no AI attribution",
@@ -13,14 +13,6 @@
     {
       "name": "Run Pester tests",
       "command": "Invoke-Pester -Path tools -Output Detailed -PassThru"
-    },
-    {
-      "name": "Validate the core/companion split",
-      "command": "./tools/Test-Companion.ps1"
-    },
-    {
-      "name": "Check the design state against the tree",
-      "command": "./tools/Test-DesignState.ps1"
     },
     {
       "name": "Typecheck videos/",
