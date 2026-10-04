@@ -16,23 +16,6 @@
           }
         ]
       }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "pwsh",
-            "args": [
-              "-NoProfile",
-              "-File",
-              "${CLAUDE_PROJECT_DIR}/tools/Measure-Session.ps1",
-              "-Watch"
-            ],
-            "timeout": 10
-          }
-        ]
-      }
     ]
   }
 }
