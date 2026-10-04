@@ -11,14 +11,14 @@ With `$1` set to a slice id, start there. With `$1` set to `one`, stop after one
 
 ## 0. Start clean
 
-- `git status --short --branch`. Uncommitted work that is not yours: leave it, never stage, discard or stash it, and mention it in the report. Switching branches in this worktree would carry it into the slice, so while it is there, build in a separate worktree (step 2).
+- `git status --short --branch`. Uncommitted work that is not yours: leave it, never stage, discard or stash it, and mention it in the report. It rides across every branch switch, so the files it touches are guarded for the whole run (step 2).
 - If the current branch's pull request has merged, run `pwsh -File tools/Invoke-Housekeeping.ps1 -RepoRoot .`: it switches to the default branch, pulls, and deletes every branch confirmed merged. It never stashes: uncommitted work rides across the switch untouched, and if git refuses the switch because that work would be overwritten, the run carries on from `origin/<default branch>` (step 2) and names the files in the report. Anything it escalates (`Escalate`) is left alone and named in the report; it does not stop the run.
 
 ## 1. Pick the slice
 
 Run `pwsh -File tools/Get-NextSlice.ps1 -RepoRoot .` (add `-Slice $1` when `$1` is a slice id, on the first pass only). It fetches, reads the plan as `origin/<default branch>` has it — never the working copy, so a branch carrying an unmerged `Status: done` or a local default branch a failed pull left behind cannot decide what is finished — and returns one `State`. Act on it; do not re-derive it from the file:
 
-- **`Resume`** — work from an earlier run is in flight: an open pull request (`PullRequest`) or a branch with unmerged commits and no pull request yet (`Branch`). Check out `Branch` (step 2 decides where) and continue: from step 3 if its work is complete, otherwise finish it in step 2 first. `AGENTS.shared.md` § *Git and delivery* applies: continue that branch, never a new one.
+- **`Resume`** — work from an earlier run is in flight: an open pull request (`PullRequest`) or a branch with unmerged commits and no pull request yet (`Branch`). Check out `Branch` (step 2) and continue: from step 3 if its work is complete, otherwise finish it in step 2 first. `AGENTS.shared.md` § *Git and delivery* applies: continue that branch, never a new one.
 - **`Start`** — build `Slice` from `Base` in step 2.
 - **`Finished`** — the plan is done: report it and stop.
 - **`Blocked`** — `Detail` says why (a failed fetch with git's error, a dependency cycle or gap, two branches holding work for one slice, `gh` unavailable). Report it and stop.
@@ -27,7 +27,8 @@ The rule it applies, for reading the plan by hand: a slice is a `## S<n>` headin
 
 ## 2. Build it
 
-- Where to work: when `Dirty` is false, in this worktree — `git switch -c slice/S<n>-<short-name> <Base>` for `Start`, `git switch <Branch>` for `Resume`. When `Dirty` is true, in a separate worktree beside this one, so none of the uncommitted work can reach the slice: `git worktree add ../<repo>-S<n> -b slice/S<n>-<short-name> <Base>` (`Start`) or `git worktree add ../<repo>-S<n> <Branch>` (`Resume`), and run every command and commit for the slice there. Once its pull request has merged, `git worktree remove ../<repo>-S<n>`; if that is refused because the worktree is not clean, leave it and name it in the report.
+- Branch in this worktree: `git switch -c slice/S<n>-<short-name> <Base>` for `Start`, `git switch <Branch>` for `Resume`. If git refuses the switch because uncommitted work would be overwritten, that is a blocker: stop and name the files.
+- `DirtyFiles` from the run's first pass of step 1 are someone else's work in progress and are guarded until the run ends: never stage, commit, revert or reformat them. If the slice has to change one of them, that is a blocker: stop and name the file, rather than mixing that work into the slice.
 - Read the slice, `design/20-contract.md`, and the parts of `design/10-design.md` it touches. Read the code you are about to change in full.
 - For each acceptance criterion, write a test that fails first where the criterion can be tested, then implement until it passes. Stay inside the slice's `Out of scope:` line.
 - Where the code and the design disagree, do what works, keep going, and note it for the pull request (`AGENTS.shared.md` § *The design is the spec*).
@@ -45,7 +46,7 @@ Then run the design check: `pwsh -File tools/Test-Design.ps1 -RepoRoot .`. It is
 
 ## 4. Open the pull request
 
-Commit by named path, `git diff --check`, push, and open a **non-draft** pull request. The description:
+Commit by named path — never a guarded file (step 2) — `git diff --check`, push, and open a **non-draft** pull request. The description:
 
 ```
 ## What

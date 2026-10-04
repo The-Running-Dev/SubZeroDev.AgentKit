@@ -62,7 +62,7 @@ Describe 'Get-NextSlice' {
         $r.State | Should -Be 'Start'
         $r.Slice | Should -Be 'S1'
         $r.Base | Should -Be 'origin/main'
-        $r.Dirty | Should -BeFalse
+        @($r.DirtyFiles).Count | Should -Be 0
     }
 
     It 'resumes an interrupted slice from its branch, not the branch''s unmerged Status: done' {
@@ -136,12 +136,14 @@ Describe 'Get-NextSlice' {
         $r.Detail | Should -Match 'S1 waits on S2; S2 waits on S1'
     }
 
-    It 'flags a dirty tree and leaves it exactly as it was' {
+    It 'lists the uncommitted files and leaves them exactly as they were' {
         $f = New-Fixture $ThreeSlices
-        Set-Content -LiteralPath (Join-Path $f.Work 'scratch.txt') -Value 'user work'
+        New-Item -ItemType Directory -Path (Join-Path $f.Work 'notes') | Out-Null
+        Set-Content -LiteralPath (Join-Path $f.Work 'notes/scratch.txt') -Value 'user work'
+        Add-Content -LiteralPath (Join-Path $f.Work 'design/30-slices.md') -Value 'a user edit'
         $before = Git-Fixture $f.Work @('status','--porcelain')
         $r = Invoke-NextObject $f
-        $r.Dirty | Should -BeTrue
+        @($r.DirtyFiles | Sort-Object) | Should -Be @('design/30-slices.md','notes/scratch.txt')
         (Git-Fixture $f.Work @('status','--porcelain')) | Should -Be $before
         (Git-Fixture $f.Work @('branch','--show-current')) | Should -Be 'main'
     }

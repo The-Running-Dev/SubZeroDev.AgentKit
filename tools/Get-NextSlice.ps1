@@ -21,8 +21,9 @@
         Depends on: slices are all done is started. Slices named below a "## Landed" heading
         are history and count as done.
 
-    It also reports whether the working tree is dirty, so the caller builds in a separate
-    worktree rather than carrying someone else's uncommitted work into the slice branch.
+    It also lists the files with uncommitted changes when it runs (DirtyFiles). Those changes
+    are someone else's and ride across the branch switch, so the caller never stages those
+    files; a slice that must change one of them is a blocker, not a judgement call.
 
     Read-only apart from the fetch: it never switches branches, writes, stages or stashes.
     Never prompts. Exit codes: 0 for Resume, Start and Finished; 1 for Blocked.
@@ -112,14 +113,16 @@ function Get-NextSlice {
     $root = (Resolve-Path -LiteralPath $RepoRoot).Path
     $result = [ordered]@{
         State = $null; Slice = $null; Branch = $null; PullRequest = $null; PullRequestUrl = $null
-        Base = $null; DefaultBranch = $null; Dirty = $false; Reason = $null; Detail = $null
+        Base = $null; DefaultBranch = $null; DirtyFiles = @(); Reason = $null; Detail = $null
     }
     function Complete([string] $State, [string] $Reason, [string] $Detail) {
         $result.State = $State; $result.Reason = $Reason; $result.Detail = $Detail
         [pscustomobject]$result
     }
 
-    $result.Dirty = [bool](Invoke-Git $root @('status','--porcelain')).Output
+    # Not through Invoke-Git: its trim would eat the status column of the first line.
+    $status = @(& git -C $root -c core.quotepath=false status --porcelain --untracked-files=all 2>$null)
+    $result.DirtyFiles = @($status | Where-Object { $_.Length -gt 3 } | ForEach-Object { ($_.Substring(3) -split ' -> ')[-1].Trim('"') })
 
     if (-not $DefaultBranch) {
         $head = Invoke-Git $root @('symbolic-ref','--short','refs/remotes/origin/HEAD')
@@ -198,7 +201,7 @@ if ($MyInvocation.InvocationName -ne '.') {
     $result = Get-NextSlice -RepoRoot $RepoRoot -DefaultBranch $DefaultBranch -Slice $Slice -PullRequestsJson $PullRequestsJson
     if (-not $Quiet) {
         $what = @($result.Slice, $result.Branch, $(if ($result.PullRequest) { "#$($result.PullRequest)" })) | Where-Object { $_ }
-        Write-Host "Next slice: $($result.State)$(if ($what) { " $($what -join ' ')" }) - $($result.Detail)$(if ($result.Dirty) { ' Working tree is dirty: build in a separate worktree.' })"
+        Write-Host "Next slice: $($result.State)$(if ($what) { " $($what -join ' ')" }) - $($result.Detail)$(if ($result.DirtyFiles.Count) { " Uncommitted, never stage: $($result.DirtyFiles -join ', ')." })"
     }
     $result
     exit $(if ($result.State -eq 'Blocked') { 1 } else { 0 })
