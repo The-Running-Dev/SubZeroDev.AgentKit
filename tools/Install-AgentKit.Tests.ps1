@@ -274,6 +274,23 @@ Describe 'Global front door with isolated homes and local Git origin' {
         (Get-Content $settingsPath -Raw) | Should -Match '/foreign/tools/Measure-Session.ps1'
         (Get-Content (Join-Path $f.Codex 'AGENTS.md') -Raw) | Should -Match 'keep user rules'
     }
+    It 'install strips the retired -Watch hook and keeps foreign prompt hooks' {
+        Assert-Success (Run-Setup $f)
+        $settingsPath=Join-Path $f.Home '.claude/settings.json'
+        $measure=(Join-Path $f.Root 'tools/Measure-Session.ps1').Replace('\','/')
+        $settings=Get-Content $settingsPath -Raw | ConvertFrom-Json -AsHashtable
+        $settings.hooks.UserPromptSubmit = @(
+            @{hooks=@(@{type='command';command="pwsh -NoProfile -File $measure -Watch";timeout=10})},
+            @{hooks=@(@{type='command';command='pwsh';args=@('-NoProfile','-File',$measure,'-Watch');timeout=10})},
+            @{hooks=@(@{type='command';command='node /foreign/prompt-hook.js'})}
+        )
+        $settings | ConvertTo-Json -Depth 20 | Set-Content $settingsPath
+        Assert-Success (Run-Setup $f)
+        $text=Get-Content $settingsPath -Raw
+        $text | Should -Not -Match '-Watch'
+        $text | Should -Match '/foreign/prompt-hook.js'
+        $text | Should -Match '-Hook'
+    }
     It 'uninstall Force removes only the validated canonical checkout' {
         Assert-Success (Run-Setup $f)
         Assert-Success (Run-Setup $f @{Uninstall=$true;Force=$true})

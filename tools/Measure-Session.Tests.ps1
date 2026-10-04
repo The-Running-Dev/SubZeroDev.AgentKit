@@ -2,17 +2,17 @@
 #Requires -Modules Pester
 
 <#
-  Covers the -TranscriptPath, -Hook, and -Watch paths against fixture JSONL,
-  since those are the three ways the script is actually invoked (report,
-  SessionEnd hook, UserPromptSubmit hook). Resolve-TranscriptDirectory's
+  Covers the -TranscriptPath and -Hook paths against fixture JSONL, since
+  those are the two ways the script is actually invoked (report and
+  SessionEnd hook). Resolve-TranscriptDirectory's
   $HOME-derived auto-discovery is not covered here: it needs a real
   ~/.claude/projects layout to exercise honestly, and every other code path
   reaches the same logic through -TranscriptPath.
 
-  -Hook and -Watch read real console stdin (Console.In.ReadToEnd()), which a
+  -Hook reads real console stdin (Console.In.ReadToEnd()), which a
   PowerShell pipeline into `& $script` does not feed - that binds to $input
-  instead. Those two are invoked as `pwsh -File` child processes instead, the
-  same way Claude Code actually launches them as hooks.
+  instead. It is invoked as a `pwsh -File` child process instead, the same
+  way Claude Code actually launches it as a hook.
 
   -Hook tests run against a copy of the script under a fake tools/ so its
   hardcoded log path (../.claude/session-costs.tsv relative to the script)
@@ -494,66 +494,5 @@ Describe 'Measure-Session -Hook' {
         $rows = Get-Content $script:Log
         $rows.Count | Should -Be 2
         ($rows[1] -split "`t")[3] | Should -Be '2'
-    }
-}
-
-Describe 'Measure-Session -Watch' {
-    BeforeAll {
-        function New-TranscriptFile {
-            param([string]$Name, [string[]]$Lines)
-            $path = Join-Path $script:FixtureDir $Name
-            Set-Content -LiteralPath $path -Value $Lines -Encoding utf8NoBOM
-            return $path
-        }
-    }
-
-    BeforeEach {
-        $script:FixtureDir = Join-Path $TestDrive 'transcripts'
-        New-Item -ItemType Directory -Path $script:FixtureDir -Force | Out-Null
-    }
-
-    It 'stays silent below -WarnAtTokens' {
-        $transcript = New-TranscriptFile -Name 'watch-low.jsonl' -Lines @(
-            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"model":"claude-sonnet-5","usage":{"input_tokens":10,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
-        )
-        $payload = (@{ transcript_path = $transcript } | ConvertTo-Json -Compress)
-
-        $output = $payload | pwsh -NoProfile -File $script:ScriptPath -Watch
-
-        $output | Should -BeNullOrEmpty
-    }
-
-    It 'warns once the newest call''s context crosses -WarnAtTokens' {
-        $transcript = New-TranscriptFile -Name 'watch-high.jsonl' -Lines @(
-            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"model":"claude-sonnet-5","usage":{"input_tokens":200,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
-        )
-        $payload = (@{ transcript_path = $transcript } | ConvertTo-Json -Compress)
-
-        $output = $payload | pwsh -NoProfile -File $script:ScriptPath -Watch -WarnAtTokens 100
-
-        ($output -join ' ') | Should -Match 'Context is 200 tokens'
-    }
-
-    It 'names a directive action at the ordinary threshold, not a suggestion' {
-        $transcript = New-TranscriptFile -Name 'watch-past.jsonl' -Lines @(
-            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"model":"claude-sonnet-5","usage":{"input_tokens":150,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
-        )
-        $payload = (@{ transcript_path = $transcript } | ConvertTo-Json -Compress)
-
-        $output = $payload | pwsh -NoProfile -File $script:ScriptPath -Watch -WarnAtTokens 100
-
-        ($output -join ' ') | Should -Match 'Finish this step, then end the session'
-        ($output -join ' ') | Should -Not -Match 'consider'
-    }
-
-    It 'escalates the action when context is well past -WarnAtTokens' {
-        $transcript = New-TranscriptFile -Name 'watch-well-past.jsonl' -Lines @(
-            '{"type":"assistant","timestamp":"2026-01-01T10:00:00Z","message":{"model":"claude-sonnet-5","usage":{"input_tokens":300,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":1}}}'
-        )
-        $payload = (@{ transcript_path = $transcript } | ConvertTo-Json -Compress)
-
-        $output = $payload | pwsh -NoProfile -File $script:ScriptPath -Watch -WarnAtTokens 100
-
-        ($output -join ' ') | Should -Match 'Stop here'
     }
 }

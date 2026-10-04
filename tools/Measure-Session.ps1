@@ -85,28 +85,6 @@
     session killed before the hook fires is recovered by re-running this script
     without -Hook.
 
-.PARAMETER Watch
-    Run as a UserPromptSubmit hook. Reports the session's current context size
-    once it crosses -WarnAtTokens, and stays silent below it.
-
-    UserPromptSubmit is the event that fits: it fires before the turn is
-    processed, so the warning arrives while the session can still be ended
-    rather than after the expensive turn, and its stdout is injected as context
-    so the model reads it too. It always exits 0. Exit 2 on this event blocks
-    the prompt and erases what the user typed, which is never worth a cost
-    warning.
-
-    Silence below the threshold is the design, not an optimisation. An
-    unconditional per-turn metrics block was rejected on 2026-08-04 for
-    injecting noise on every turn while claiming to save tokens; a gated
-    warning is a different proposal rather than that one again.
-
-.PARAMETER WarnAtTokens
-    Context size that triggers the advisory warning. Default 150000, measured:
-    it is where sessions in this repository began climbing towards the 300-450K
-    per call that the largest ones sustained. Twice this value reads as a
-    firmer warning.
-
 .PARAMETER IdleThresholdMinutes
     Gaps longer than this are treated as idle and excluded from active time.
     Default 5.
@@ -125,8 +103,6 @@ param(
     [switch]$Detail,
     [switch]$Human,
     [switch]$Hook,
-    [switch]$Watch,
-    [int]$WarnAtTokens = 150000,
     [int]$IdleThresholdMinutes = 5
 )
 
@@ -573,68 +549,6 @@ if ($Hook) {
         [Console]::Error.WriteLine("Measure-Session (line $($_.InvocationInfo.ScriptLineNumber)): $($_.Exception.Message)")
         exit 1
     }
-}
-
-if ($Watch) {
-    # This runs on every prompt, so it never disturbs the session: every failure
-    # path exits 0 in silence. A cost warning that breaks a turn costs more than
-    # the tokens it saves, and exit 2 here would erase the user's prompt.
-    try {
-        $payload = ([Console]::In.ReadToEnd() | ConvertFrom-Json)
-        $path = if ($payload.PSObject.Properties.Name -contains 'transcript_path') { $payload.transcript_path } else { $null }
-        if (-not $path -or -not (Test-Path -LiteralPath $path)) { exit 0 }
-
-        # Only the newest usage record matters: its three input classes sum to
-        # the context every later call will pay again. Parsing every line is
-        # what the report does and it is too slow to repeat per prompt, so lines
-        # are filtered as text and parsed at the end. Several are kept rather
-        # than one because '"usage"' can appear inside tool output, and a false
-        # positive must not shadow the real record.
-        $recent = [System.Collections.Generic.Queue[string]]::new()
-        foreach ($line in [System.IO.File]::ReadLines($path)) {
-            if (-not $line.Contains('"usage"')) { continue }
-            $recent.Enqueue($line)
-            while ($recent.Count -gt 8) { [void]$recent.Dequeue() }
-        }
-        if (-not $recent.Count) { exit 0 }
-
-        $context = 0L
-        $candidates = $recent.ToArray()
-        for ($i = $candidates.Count - 1; $i -ge 0; $i--) {
-            try { $record = $candidates[$i] | ConvertFrom-Json } catch { continue }
-            if ($record.PSObject.Properties.Name -notcontains 'message') { continue }
-            $message = $record.message
-            if (-not $message -or $message.PSObject.Properties.Name -notcontains 'usage') { continue }
-            $usage = $message.usage
-            if (-not $usage) { continue }
-
-            foreach ($field in 'input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens') {
-                if ($usage.PSObject.Properties.Name -contains $field) { $context += [long]$usage.$field }
-            }
-            break
-        }
-
-        if ($context -lt $WarnAtTokens) { exit 0 }
-
-        # Emitted on every turn above the threshold rather than once on crossing.
-        # The number growing is itself the signal, a one-shot warning is read
-        # once and forgotten, and the alternative is a state file whose failure
-        # modes cost more than the repetition does.
-        #
-        # "Consider finishing up" measured at 0% effect over a full week (issue
-        # #184): 70 of 324 sessions crossed this threshold and none ended early
-        # because of it. The action is now a directive, not a suggestion, and it
-        # escalates with severity instead of repeating the same wording louder.
-        $severity = if ($context -ge ($WarnAtTokens * 2L)) { 'well past' } else { 'past' }
-        $action = if ($severity -eq 'well past') {
-            'Stop here: finish only what is already in flight and move anything further to a fresh session.'
-        } else {
-            'Finish this step, then end the session - do not start the next step here.'
-        }
-        '[session-watch] Context is {0:N0} tokens and every further turn pays it again ({1} the {2:N0} threshold). AGENTS.shared.md treats the artifact you are about to produce as the handoff point: {3}' -f $context, $severity, $WarnAtTokens, $action
-        exit 0
-    }
-    catch { exit 0 }
 }
 
 $directory = if ($TranscriptPath) {
