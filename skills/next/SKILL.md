@@ -11,21 +11,23 @@ With `$1` set to a slice id, start there. With `$1` set to `one`, stop after one
 
 ## 0. Start clean
 
-- `git status --short --branch`. Uncommitted work that is not yours: leave it, work in a separate branch, and mention it in the report. Never stage, discard or stash it.
+- `git status --short --branch`. Uncommitted work that is not yours: leave it, never stage, discard or stash it, and mention it in the report. Switching branches in this worktree would carry it into the slice, so while it is there, build in a separate worktree (step 2).
 - If the current branch's pull request has merged, run `pwsh -File tools/Invoke-Housekeeping.ps1 -RepoRoot .`: it switches to the default branch, pulls, and deletes every branch confirmed merged. It never stashes: uncommitted work rides across the switch untouched, and if git refuses the switch because that work would be overwritten, the run carries on from `origin/<default branch>` (step 2) and names the files in the report. Anything it escalates (`Escalate`) is left alone and named in the report; it does not stop the run.
-- If an open pull request from an earlier run of this command exists for an unfinished slice, check out its branch and continue from step 3 rather than starting over.
 
 ## 1. Pick the slice
 
-Read `design/30-slices.md`. A slice is a `## S<n>` heading and the lines under it. The next slice is the first, in document order, whose `Status:` is not `done` and whose `Depends on:` slices are all `done`. A slice with no `Status:` line is not done.
+Run `pwsh -File tools/Get-NextSlice.ps1 -RepoRoot .` (add `-Slice $1` when `$1` is a slice id, on the first pass only). It fetches, reads the plan as `origin/<default branch>` has it — never the working copy, so a branch carrying an unmerged `Status: done` or a local default branch a failed pull left behind cannot decide what is finished — and returns one `State`. Act on it; do not re-derive it from the file:
 
-Only `## S<n>` headings are candidates. Prose, a `## Landed` table, and any other index of slices retired by an earlier version of the kit are history: every slice named there counts as `done`, a `Depends on:` pointing at one is satisfied, and none is ever rebuilt.
+- **`Resume`** — work from an earlier run is in flight: an open pull request (`PullRequest`) or a branch with unmerged commits and no pull request yet (`Branch`). Check out `Branch` (step 2 decides where) and continue: from step 3 if its work is complete, otherwise finish it in step 2 first. `AGENTS.shared.md` § *Git and delivery* applies: continue that branch, never a new one.
+- **`Start`** — build `Slice` from `Base` in step 2.
+- **`Finished`** — the plan is done: report it and stop.
+- **`Blocked`** — `Detail` says why (a failed fetch with git's error, a dependency cycle or gap, two branches holding work for one slice, `gh` unavailable). Report it and stop.
 
-If none is left, the plan is finished: report that and stop. If slices remain but every one waits on an unfinished dependency, report the cycle or gap and stop.
+The rule it applies, for reading the plan by hand: a slice is a `## S<n>` heading and the lines under it; the next is the first, in document order, whose `Status:` is not `done` and whose `Depends on:` slices are all `done`; a slice with no `Status:` line is not done. Slices named in a `## Landed` table, or any other index of slices retired by an earlier version of the kit, are history: they count as `done`, and none is ever rebuilt.
 
 ## 2. Build it
 
-- Branch `slice/S<n>-<short-name>` off the up-to-date default branch (`git fetch`, then `git switch -c slice/S<n>-<short-name> origin/<default branch>`).
+- Where to work: when `Dirty` is false, in this worktree — `git switch -c slice/S<n>-<short-name> <Base>` for `Start`, `git switch <Branch>` for `Resume`. When `Dirty` is true, in a separate worktree beside this one, so none of the uncommitted work can reach the slice: `git worktree add ../<repo>-S<n> -b slice/S<n>-<short-name> <Base>` (`Start`) or `git worktree add ../<repo>-S<n> <Branch>` (`Resume`), and run every command and commit for the slice there. Once its pull request has merged, `git worktree remove ../<repo>-S<n>`; if that is refused because the worktree is not clean, leave it and name it in the report.
 - Read the slice, `design/20-contract.md`, and the parts of `design/10-design.md` it touches. Read the code you are about to change in full.
 - For each acceptance criterion, write a test that fails first where the criterion can be tested, then implement until it passes. Stay inside the slice's `Out of scope:` line.
 - Where the code and the design disagree, do what works, keep going, and note it for the pull request (`AGENTS.shared.md` § *The design is the spec*).
@@ -39,6 +41,7 @@ Then run the design check: `pwsh -File tools/Test-Design.ps1 -RepoRoot .`. It is
 
 - **A finding this slice's change caused** — a script renamed without its citations, a parameter added without its contract row, a skill added without its row — is fixed in this branch, the same as a failing test.
 - **A finding in design prose this slice did not touch** goes in the pull request's *Differs from design* section, one line each, and does not stop the run. Do not edit `design/` to clear it beyond what this slice itself changed.
+- **Unless the design check is one of the gates.** If a `# verification: true` step in `.github/workflows/*.yml` runs it, a finding there turns CI red and the merge script refuses, so "does not stop the run" cannot hold. Clear it with the smallest edit that makes the check pass, and name each such edit in *Differs from design*. If no edit can clear it, that is a blocker.
 
 ## 4. Open the pull request
 
