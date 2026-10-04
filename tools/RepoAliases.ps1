@@ -8,9 +8,9 @@
     mechanical housekeeping without starting a model session. This is deliberately a function a
     person types in a terminal they are watching, not a scheduled task: this repository's
     concurrency is sequential-by-policy and not by lock (design/00-brief.md § *Environment*), so
-    an unattended run could stash or switch branches under a session that is mid-edit, and a
-    stash made unattended has no guaranteed reader. Running it by hand means the report - stash
-    ref included - lands in front of whoever ran it, immediately.
+    an unattended run could switch branches under a session that is mid-edit. Running it by hand
+    means the report lands in front of whoever ran it, immediately. It never stashes: uncommitted
+    work is carried across the switch untouched.
 
     It never opens a model session. Where the underlying script reports a judgement
     case, these print it and stop; opening Claude Code, Codex, or Copilot to work it is left to

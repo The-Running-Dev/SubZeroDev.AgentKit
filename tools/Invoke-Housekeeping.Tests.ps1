@@ -118,6 +118,29 @@ Describe 'Invoke-Housekeeping' {
         }
     }
 
+    Context 'the tree already holds uncommitted work' {
+
+        It 'leaves tracked edits and untracked files in place and makes no stash' {
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-dirty')
+            Set-Content -LiteralPath (Join-Path $repo 'tracked.txt') -Value 'committed' -Encoding utf8NoBOM
+            & git -C $repo add tracked.txt | Out-Null
+            & git -C $repo -c user.email='test@example.com' -c user.name='Test' commit --quiet -m 'tracked' | Out-Null
+            New-MergedBranch -RepoPath $repo -Branch 'feature/dirty'
+            & git -C $repo checkout --quiet feature/dirty | Out-Null
+            Set-Content -LiteralPath (Join-Path $repo 'tracked.txt') -Value 'my edit' -Encoding utf8NoBOM
+            Set-Content -LiteralPath (Join-Path $repo 'scratch.txt') -Value 'my scratch' -Encoding utf8NoBOM
+
+            $result = & $script:ScriptPath -RepoRoot $repo -DefaultBranch main -SkipPull
+
+            $result.Escalate | Should -Be $false
+            $result.Applied.Deleted | Should -Contain 'feature/dirty'
+            (& git -C $repo branch --show-current).Trim() | Should -Be 'main'
+            (Get-Content -LiteralPath (Join-Path $repo 'tracked.txt') -Raw).Trim() | Should -Be 'my edit'
+            (Get-Content -LiteralPath (Join-Path $repo 'scratch.txt') -Raw).Trim() | Should -Be 'my scratch'
+            (& git -C $repo stash list) | Should -BeNullOrEmpty
+        }
+    }
+
     Context 'a real judgement case - commits a merged PR does not account for' {
 
         BeforeEach {

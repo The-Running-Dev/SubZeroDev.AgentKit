@@ -13,6 +13,13 @@ BeforeAll {
     $script:Shared = Get-Content -Raw -LiteralPath (Join-Path $script:RepoRoot 'AGENTS.shared.md')
     $script:Skills = Get-ChildItem -LiteralPath (Join-Path $script:RepoRoot 'skills') -Filter 'SKILL.md' -File -Recurse -Depth 1
     $script:Next = Get-Content -Raw -LiteralPath (Join-Path $script:RepoRoot 'skills/next/SKILL.md')
+    $script:DesignDocs = @('00-brief', '10-design', '20-contract', '30-slices') |
+        ForEach-Object {
+            # The Landed index is history and names retired tools by design; only the live text is checked.
+            $text = Get-Content -Raw -LiteralPath (Join-Path $script:RepoRoot "design/$_.md")
+            [pscustomobject]@{ Name = "$_.md"; Text = ($text -split '(?m)^## Landed\s*$')[0] }
+        }
+    $script:Slices = Get-Content -Raw -LiteralPath (Join-Path $script:RepoRoot 'design/30-slices.md')
 
     $script:Removed = @(
         'Test-DesignState', 'Test-DesignDrift', 'Test-Companion', 'Test-WriteSurface', 'Test-CIWorkflow',
@@ -52,6 +59,56 @@ Describe 'skills/next' {
 
     It 'merges only through Merge-PullRequest.ps1' {
         $script:Next | Should -Match 'tools/Merge-PullRequest\.ps1'
+    }
+
+    It 'never stashes a dirty tree' {
+        $script:Next | Should -Match '(?i)never stash'
+        $script:Next | Should -Not -Match 'git stash'
+    }
+
+    It 'treats the Landed index as done and never rebuilds it' {
+        $script:Next | Should -Match '## Landed'
+        $script:Next | Should -Match 'none is ever rebuilt'
+    }
+}
+
+Describe 'design/ (the live spec the build commands read)' {
+    It 'cites no removed tool or command' {
+        foreach ($doc in $script:DesignDocs) {
+            foreach ($tool in $script:Removed) {
+                $doc.Text | Should -Not -Match ([regex]::Escape($tool)) -Because "$($doc.Name) cites $tool, which was removed"
+            }
+            foreach ($command in $script:RemovedCommands) {
+                $doc.Text | Should -Not -Match "``/$command[`` ]" -Because "$($doc.Name) invokes /$command, which was removed"
+            }
+        }
+    }
+
+    It 'does not describe a session boundary or a design freeze' {
+        foreach ($doc in $script:DesignDocs) {
+            $doc.Text | Should -Not -Match '(?i)session boundar' -Because $doc.Name
+            $doc.Text | Should -Not -Match 'FROZEN\.md' -Because $doc.Name
+        }
+    }
+
+    It 'gives every slice heading a Status line, so /next selection is never ambiguous' {
+        $headings = [regex]::Matches($script:Slices, '(?m)^#{2,3} S(\d+)[^
+]*
+?
+(?<body>(?:(?!^#{1,3} ).*
+?
+?)*)')
+        foreach ($m in $headings) {
+            $m.Groups['body'].Value | Should -Match '(?m)^Status: (todo|done)\s*$' -Because "slice S$($m.Groups[1].Value) needs a Status line"
+        }
+    }
+
+    It 'keeps the migrated slices S1-S32 as a Landed index, not as slice headings' {
+        $script:Slices | Should -Match '(?m)^## Landed\s*$'
+        foreach ($n in 1..32) {
+            $script:Slices | Should -Match "\|\s*\*\*S$n\*\*\s*\|" -Because "S$n must stay in the Landed index"
+            $script:Slices | Should -Not -Match "(?m)^#{2,3} S$n" -Because "S$n must not be a buildable heading"
+        }
     }
 }
 

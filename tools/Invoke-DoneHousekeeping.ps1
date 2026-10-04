@@ -41,6 +41,13 @@
     i.e. `--merged` did not see it, but `gh` found a merged PR whose head was this branch.
     A name not in that list is refused, never force-deleted, even if passed here.
 
+.PARAMETER KeepDirty
+    Proceed on a dirty tree without touching it. Nothing is stashed, reset or cleaned; the
+    uncommitted changes ride across the checkout of the default branch exactly as `git
+    checkout` carries them, and git itself refuses (CheckoutFailed) if they would be
+    overwritten. This is how Invoke-Housekeeping.ps1 runs when the tree was already dirty, so
+    a routine /next never hides the user's work.
+
 .PARAMETER AutoStash
     Instead of stopping on a dirty tree, run `git stash push -u` and continue. The stash is
     never popped by this script - it is left on the stash list and reported back
@@ -69,7 +76,8 @@ param(
     [switch] $SkipPull,
     [string[]] $DeleteBranches = @(),
     [string[]] $ForceDeleteBranches = @(),
-    [switch] $AutoStash
+    [switch] $AutoStash,
+    [switch] $KeepDirty
 )
 
 Set-StrictMode -Version Latest
@@ -123,7 +131,7 @@ $stashed = $false
 $stashRef = $null
 
 $statusResult = Invoke-Git -GitArgs @('status', '--short') -WorkingDir $repoRootResolved
-if ($statusResult.Output.Trim()) {
+if ($statusResult.Output.Trim() -and -not $KeepDirty) {
     if (-not $AutoStash) {
         [pscustomobject]@{
             Stopped        = $true
