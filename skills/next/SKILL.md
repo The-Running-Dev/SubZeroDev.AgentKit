@@ -35,6 +35,11 @@ If none is left, the plan is finished: report that and stop. If slices remain bu
 
 Run the repository's gates: the steps marked `# verification: true` in `.github/workflows/*.yml` (`pwsh -File tools/Test-GatesCache.ps1 -RepoRoot .` caches that list), or, where none are marked, the test suite, linter and type checker the repository uses. Fix failures before pushing. A gate that cannot run here is named as not run, with the reason — never reported as passed.
 
+Then run the design check: `pwsh -File tools/Test-Design.ps1 -RepoRoot .`. It is read-only and checks that what `design/`, the command files and `AGENTS.md` state about the tree is true — cited scripts and commands exist, the contract's tables match the scripts and skills, every slice has a `Status:` line. Exit 2 means there is no `design/` and nothing to check.
+
+- **A finding this slice's change caused** — a script renamed without its citations, a parameter added without its contract row, a skill added without its row — is fixed in this branch, the same as a failing test.
+- **A finding in design prose this slice did not touch** goes in the pull request's *Differs from design* section, one line each, and does not stop the run. Do not edit `design/` to clear it beyond what this slice itself changed.
+
 ## 4. Open the pull request
 
 Commit by named path, `git diff --check`, push, and open a **non-draft** pull request. The description:
@@ -71,6 +76,8 @@ Three failed attempts to fix the same CI failure or review defect is a blocker: 
 ## 6. Keep going
 
 Return to step 1 for the next slice. Do not pause between slices, do not ask whether to continue, and do not suggest a new session — context compaction is handled by the host.
+
+When the plan is finished, run the design check once more on the default branch. If it still reports findings, open one GitHub issue listing them (check, `file:line`, message), so `/align` has them in one place, and link it in the report. Do not fix them in this run.
 
 ## Report
 

@@ -57,6 +57,14 @@ jobs:
           $result = Invoke-Pester -Path tools -Output Detailed -PassThru
           if ($result.FailedCount -gt 0) { exit 1 }
 
+      # Read-only: cited tools and commands exist, the contract's Scripts and Commands tables
+      # match tools/ and skills/, and every slice has a Status line (S33). /next runs the same
+      # check before each pull request, so a red run here is the agent's to fix, not the user's.
+      # verification: true
+      - name: Check design facts
+        shell: pwsh
+        run: ./tools/Test-Design.ps1
+
   # Runs the PowerShell suite on Linux, without gh or GH_TOKEN, to back the repository's
   # cross-platform claim. Only the suite: the attribution and parse checks are platform-neutral
   # and already run in the powershell job above, which stays the only one carrying GH_TOKEN.
@@ -72,6 +80,45 @@ jobs:
       # No GH_TOKEN here on purpose - this job proves the suite degrades cleanly (Skipped, not
       # Failed) without gh, which the windows-latest job's authenticated run cannot prove.
       # verification: true
+      - name: Run offline Pester suite
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 5.0
+          $result = Invoke-Pester -Path tools -Output Detailed -PassThru
+          if ($result.FailedCount -gt 0) { exit 1 }
+
+  # The macOS leg of the cross-platform claim. Disabled for now at the user's request: the job
+  # is kept so it can be switched back on by deleting the `if:` line, and it is not a required
+  # check, so a skipped run blocks nothing.
+  powershell-macos:
+    if: ${{ false }}
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Check commits carry no AI attribution
+        shell: pwsh
+        env:
+          ATTRIBUTION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          ATTRIBUTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: ./tools/Test-NoAttribution.ps1
+
+      - name: Parse-check PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count) {
+              Write-Error "Parse errors in $($_.FullName): $($parseErrors -join '; ')"
+              $failed = $true
+            }
+          }
+          if ($failed) { exit 1 }
+
       - name: Run offline Pester suite
         shell: pwsh
         run: |

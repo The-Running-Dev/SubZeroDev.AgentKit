@@ -67,7 +67,7 @@ why). No AI attribution anywhere.
 | `Get-AgentKitSkill.ps1`, `Invoke-CodexCommand.ps1`, `Start-AgentKitCodex.ps1` | see the script | Skill reading, Codex profile routing, Codex launch |
 | `Test-Design.ps1` | `[-RepoRoot -Quiet]` | `State` Passed / Failed / NotEvaluated with `Findings` (`Check`, `File`, `Line`, `Message`); read-only; exit 0 / 1 / 2 |
 | `RepoAliases.ps1` | see the script | Dot-sourced from a profile; a by-hand wrapper over `Invoke-Housekeeping.ps1` |
-| `Measure-Session.ps1` | `[-Project -TranscriptPath -SessionId -Detail -Human -Hook]` | Per-session cost report; `-Hook` appends a row on `SessionEnd` |
+| `Measure-Session.ps1` | `[-Project -TranscriptPath -SessionId -IdleThresholdMinutes -Detail -Human -Hook]` | Per-session cost report; `-Hook` appends a row on `SessionEnd` |
 
 ## Files the kit reads and writes in a repository
 

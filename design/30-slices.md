@@ -11,7 +11,7 @@ heading — this preamble, the `## Landed` table — is never a slice and is nev
 `/plan` appends new slices after the last one; ids are never reused or renumbered.
 
 ## S33 — A design check the agent runs and keeps passing itself
-Status: todo
+Status: done
 Delivers: `tools/Test-Design.ps1`, a read-only check that the facts `design/`, the command files
 and the agent contract state about the tree are true. CI runs it on every pull request, and
 `/next` runs it before each pull request and once more when the plan is finished, so keeping it
