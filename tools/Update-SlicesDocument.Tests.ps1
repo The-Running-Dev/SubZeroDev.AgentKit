@@ -351,6 +351,7 @@ This note must survive.
 
     Context 'slice issue lookup' {
         BeforeEach {
+            Mock Get-RepositoryUrl { [pscustomobject]@{ Url = 'https://github.com/example/repo'; Failure = $null } }
             $script:TaggedDoc = @'
 # Slices — commercial (D5)
 
