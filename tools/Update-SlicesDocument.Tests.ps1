@@ -141,6 +141,10 @@ So must this one.
     }
 
     Context 'Invoke-SlicesRetirement' {
+        BeforeEach {
+            Mock Get-RepositoryUrl { [pscustomobject]@{ Url = 'https://github.com/example/repo'; Failure = $null } }
+        }
+
         It 'retires a slice whose issue is closed, and leaves one whose issue is open' {
             $path = New-GitSlicesDoc -Content $script:TwoOutstandingDoc
             Mock Get-TrackerIssue { New-Tracker -Issues @(
@@ -160,7 +164,7 @@ So must this one.
             $written = Get-Content -LiteralPath $path -Raw
             $written | Should -Not -Match 'S23 — First landed slice'
             $written | Should -Match 'S24 — Second, still open'
-            $written | Should -Match '\| \*\*S23\*\* \| First landed slice \| \[#200\]\(\.\./\.\./issues/200\), closed \| S23\.1–S23\.3 \| `[0-9a-f]{7}` \|'
+            $written | Should -Match '\| \*\*S23\*\* \| First landed slice \| \[#200\]\(https://github\.com/example/repo/issues/200\), closed \| S23\.1–S23\.3 \| `[0-9a-f]{7}` \|'
             # The retained S1 row is untouched and still precedes the newly appended one.
             ($written -split "`n" | Where-Object { $_ -match '^\|\s*\*\*S' }).Count | Should -Be 2
         }
@@ -195,7 +199,7 @@ Closed: S3.1. Committed in `e01c1f1`.
             $written = Get-Content -LiteralPath $path -Raw
             $written | Should -Not -Match 'S23 — First landed slice'
             $written | Should -Match '(?m)^\| Slice \| Name \| Issue \| Criteria \| Body complete at \|$'
-            $written | Should -Match '\| \*\*S23\*\* \| First landed slice \| \[#200\]\(\.\./\.\./issues/200\), closed \| S23\.1–S23\.2 \| `[0-9a-f]{7}` \|'
+            $written | Should -Match '\| \*\*S23\*\* \| First landed slice \| \[#200\]\(https://github\.com/example/repo/issues/200\), closed \| S23\.1–S23\.2 \| `[0-9a-f]{7}` \|'
             # The prose entry survives, and sits after the new table.
             $written | Should -Match '(?s)\*\*S23\*\*.*### S3 — A slice retired as prose.*Committed in `e01c1f1`'
 
@@ -313,6 +317,35 @@ This note must survive.
 
             $r.State | Should -Be 'NotEvaluated'
             $r.CouldNotEvaluate[0].Reason | Should -Be 'GhUnavailable'
+        }
+    }
+
+    Context 'Landed-row issue link' {
+        It 'reports RepositoryUrlUnresolved as NotEvaluated and writes nothing when the repository URL cannot be resolved' {
+            $path = New-GitSlicesDoc -Content $script:TwoOutstandingDoc
+            $before = Get-Content -LiteralPath $path -Raw
+            Mock Get-RepositoryUrl { [pscustomobject]@{ Url = $null; Failure = (New-RetireFailure -Reason 'RepositoryUrlUnresolved' -Detail 'gh repo view exited 1') } }
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                (New-Issue -Number 200 -Title 'S23 — First landed slice' -State 'CLOSED'),
+                (New-Issue -Number 201 -Title 'S24 — Second, still open' -State 'OPEN')
+            ) }
+
+            $r = Invoke-SlicesRetirement -SlicesPath $path
+
+            $r.State | Should -Be 'NotEvaluated'
+            $r.CouldNotEvaluate[0].Reason | Should -Be 'RepositoryUrlUnresolved'
+            (Get-Content -LiteralPath $path -Raw) | Should -Be $before
+        }
+
+        It 'does not resolve the repository URL when nothing retires' {
+            $path = New-GitSlicesDoc -Content $script:TwoOutstandingDoc
+            Mock Get-RepositoryUrl { throw 'must not be called' }
+            Mock Get-TrackerIssue { New-Tracker -Issues @(
+                (New-Issue -Number 200 -Title 'S23 — First landed slice' -State 'OPEN'),
+                (New-Issue -Number 201 -Title 'S24 — Second, still open' -State 'OPEN')
+            ) }
+
+            (Invoke-SlicesRetirement -SlicesPath $path).State | Should -Be 'Clean'
         }
     }
 

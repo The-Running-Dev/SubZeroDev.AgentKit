@@ -289,15 +289,42 @@ function Format-CriteriaRange {
     "S$Number.$min–S$Number.$max"
 }
 
+<#
+    The repository's web URL (`https://github.com/<owner>/<repo>`), which an issue link in the
+    Landed table is built on. An absolute URL, because a relative `../../issues/<n>` link is
+    resolved against the document's own path by a documentation link checker and names no file.
+#>
+function Get-RepositoryUrl {
+    param([string] $Repository)
+
+    $ghArgs = @('repo', 'view')
+    if ($Repository) { $ghArgs += $Repository }
+    $ghArgs += @('--json', 'url', '--jq', '.url')
+
+    try {
+        $result = Invoke-GhRaw -GhArgs $ghArgs
+    } catch {
+        return [pscustomobject]@{ Url = $null; Failure = (New-RetireFailure -Reason 'GhUnavailable' -Detail $_.Exception.Message) }
+    }
+
+    $url = "$($result.Output)".Trim()
+    if ($result.ExitCode -ne 0 -or $url -notmatch '^https://\S+$') {
+        return [pscustomobject]@{ Url = $null; Failure = (New-RetireFailure -Reason 'RepositoryUrlUnresolved' -Detail "gh repo view exited $($result.ExitCode)") }
+    }
+
+    [pscustomobject]@{ Url = $url.TrimEnd('/'); Failure = $null }
+}
+
 function New-LandedRow {
     param(
         [Parameter(Mandatory)][int]    $Number,
         [Parameter(Mandatory)][string] $Name,
         [Parameter(Mandatory)][int]    $Issue,
+        [Parameter(Mandatory)][string] $IssueUrl,
         [Parameter(Mandatory)][string] $CriteriaRange,
         [Parameter(Mandatory)][string] $Sha
     )
-    "| **S$Number** | $Name | [#$Issue](../../issues/$Issue), closed | $CriteriaRange | ``$Sha`` |"
+    "| **S$Number** | $Name | [#$Issue]($IssueUrl), closed | $CriteriaRange | ``$Sha`` |"
 }
 
 <#
@@ -330,6 +357,7 @@ function Invoke-SlicesRetirement {
         return New-RetireResult -State 'NotEvaluated' -CouldNotEvaluate @((New-RetireFailure -Reason 'ShallowCheckout' -Detail 'no history to resolve the body-complete-at commit'))
     }
 
+    $repoUrl = $null
     $retired = [System.Collections.Generic.List[object]]::new()
     $left    = [System.Collections.Generic.List[object]]::new()
     $rows    = [System.Collections.Generic.List[string]]::new()
@@ -349,8 +377,17 @@ function Invoke-SlicesRetirement {
             continue
         }
 
+        # Resolved once, and only when a slice is actually retiring - a no-op run makes no extra call.
+        if (-not $repoUrl) {
+            $resolved = Get-RepositoryUrl -Repository $Repository
+            if ($resolved.Failure) {
+                return New-RetireResult -State 'NotEvaluated' -CouldNotEvaluate @($resolved.Failure)
+            }
+            $repoUrl = $resolved.Url
+        }
+
         $range = Format-CriteriaRange -Number $slice.Number -Criteria $slice.Criteria
-        $rows.Insert(0, (New-LandedRow -Number $slice.Number -Name $slice.Name -Issue ([int]$issue.number) -CriteriaRange $range -Sha $sha))
+        $rows.Insert(0, (New-LandedRow -Number $slice.Number -Name $slice.Name -Issue ([int]$issue.number) -IssueUrl "$repoUrl/issues/$($issue.number)" -CriteriaRange $range -Sha $sha))
         $retired.Insert(0, [pscustomobject]@{ Number = $slice.Number; Name = $slice.Name; Issue = [int]$issue.number; Criteria = $range; Sha = $sha })
 
         # Remove the block: its heading line through EndLine, plus the blank line that follows
