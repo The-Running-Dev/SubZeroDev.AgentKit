@@ -292,15 +292,23 @@ function Update-Hooks([switch] $Remove) {
     $path = Join-Path $HOME '.claude/settings.json'
     $settings = if (Test-Path -LiteralPath $path) { Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable } else { @{} }
     if (-not $settings.ContainsKey('hooks')) { $settings.hooks = @{} }
-    foreach ($event in @('SessionEnd','UserPromptSubmit')) {
-        $mode = if ($event -eq 'SessionEnd') { '-Hook' } else { '-Watch' }
-        $entry = [ordered]@{ hooks = @([ordered]@{ type='command'; command='pwsh'; args=@('-NoProfile','-File',(Join-Path $installRoot 'tools/Measure-Session.ps1').Replace('\','/'),$mode); timeout=$(if ($mode -eq '-Hook') {30} else {10}) }) }
-        $serialized = ConvertTo-Json -InputObject $entry -Depth 10 -Compress
-        $kept = @($settings.hooks[$event] | Where-Object { $_ -and (ConvertTo-Json -InputObject $_ -Depth 10 -Compress) -cne $serialized })
-        # [object[]] cast guards against PowerShell unrolling a one-element array back to
-        # a scalar when captured from an if/else block, which serialized this key as a
-        # bare object instead of a single-element array.
-        $settings.hooks[$event] = [object[]]$(if ($Remove) { @($kept) } else { @($kept) + @($entry) })
+    $measure = (Join-Path $installRoot 'tools/Measure-Session.ps1').Replace('\','/')
+    $entry = [ordered]@{ hooks = @([ordered]@{ type='command'; command='pwsh'; args=@('-NoProfile','-File',$measure,'-Hook'); timeout=30 }) }
+    $serialized = ConvertTo-Json -InputObject $entry -Depth 10 -Compress
+    $kept = @($settings.hooks['SessionEnd'] | Where-Object { $_ -and (ConvertTo-Json -InputObject $_ -Depth 10 -Compress) -cne $serialized })
+    # [object[]] cast guards against PowerShell unrolling a one-element array back to
+    # a scalar when captured from an if/else block, which serialized this key as a
+    # bare object instead of a single-element array.
+    $settings.hooks['SessionEnd'] = [object[]]$(if ($Remove) { @($kept) } else { @($kept) + @($entry) })
+    # The per-prompt context warning (-Watch) was retired: a build now continues in the
+    # same session. Strip this root's watch hook in either form an earlier install wrote,
+    # since the script no longer accepts -Watch and the hook would fail on every prompt.
+    if ($settings.hooks.ContainsKey('UserPromptSubmit')) {
+        $watch = @($settings.hooks['UserPromptSubmit'] | Where-Object {
+            $text = ConvertTo-Json -InputObject $_ -Depth 10 -Compress
+            -not ($text.Contains($measure) -and $text.Contains('-Watch'))
+        })
+        if ($watch.Count) { $settings.hooks['UserPromptSubmit'] = [object[]]$watch } else { $settings.hooks.Remove('UserPromptSubmit') }
     }
     $json = ConvertTo-Json -InputObject $settings -Depth 20
     if ((Test-Path -LiteralPath $path) -and [IO.File]::ReadAllText($path) -cne $json -and -not $DryRun) {
@@ -357,14 +365,11 @@ function Invoke-Doctor {
             $issues.Add("Hooks are managed but '$hooksPath' does not exist.")
         } else {
             $settings = Get-Content -LiteralPath $hooksPath -Raw | ConvertFrom-Json -AsHashtable
-            foreach ($event in @('SessionEnd','UserPromptSubmit')) {
-                $mode = if ($event -eq 'SessionEnd') { '-Hook' } else { '-Watch' }
-                $expected = [ordered]@{ hooks = @([ordered]@{ type='command'; command='pwsh'; args=@('-NoProfile','-File',(Join-Path $installRoot 'tools/Measure-Session.ps1').Replace('\','/'),$mode); timeout=$(if ($mode -eq '-Hook') {30} else {10}) }) }
-                $serialized = ConvertTo-Json -InputObject $expected -Depth 10 -Compress
-                $present = $settings.ContainsKey('hooks') -and $settings.hooks.ContainsKey($event) -and
-                    @($settings.hooks[$event] | Where-Object { $_ -and (ConvertTo-Json -InputObject $_ -Depth 10 -Compress) -ceq $serialized }).Count -gt 0
-                if (-not $present) { $issues.Add("Expected $event hook entry missing from '$hooksPath'.") }
-            }
+            $expected = [ordered]@{ hooks = @([ordered]@{ type='command'; command='pwsh'; args=@('-NoProfile','-File',(Join-Path $installRoot 'tools/Measure-Session.ps1').Replace('\','/'),'-Hook'); timeout=30 }) }
+            $serialized = ConvertTo-Json -InputObject $expected -Depth 10 -Compress
+            $present = $settings.ContainsKey('hooks') -and $settings.hooks.ContainsKey('SessionEnd') -and
+                @($settings.hooks['SessionEnd'] | Where-Object { $_ -and (ConvertTo-Json -InputObject $_ -Depth 10 -Compress) -ceq $serialized }).Count -gt 0
+            if (-not $present) { $issues.Add("Expected SessionEnd hook entry missing from '$hooksPath'.") }
         }
     }
     foreach ($note in $notes) { Write-Host "Note: $note" }
