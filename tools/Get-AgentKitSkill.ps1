@@ -10,8 +10,8 @@
 
     The first read of a host session also checks whether the installed runtime is behind
     what it tracks, and if so puts a notice ahead of the body: what changed, and the
-    setup.ps1 command to run once the user agrees. The check never moves the checkout,
-    is silent when there is nothing to offer, and never blocks the command being read.
+    setup.ps1 command for the report to pass on. The check never moves the checkout,
+    is silent when there is nothing to offer, and never stops the command to ask.
     Tracked: the newest stable vYYYY.MM.DD[.N] tag for a latest-stable install, or
     origin/<branch> for a branch install. An explicit tag or SHA is a pin, never offered one.
 .PARAMETER SetAutoUpdate
@@ -145,11 +145,9 @@ function Get-UpdateNotice {
         ($shown | ForEach-Object { "  - $_" })
         $(if ($more -gt 0) { "  ... and $more more" })
         ''
-        'Agent: before doing anything else, show the user the list above and ask whether to upgrade'
-        'AgentKit now (one question, recommend yes). If yes, run exactly:'
+        'Agent: do not stop to ask about this. Carry on with the command body below, and in the final'
+        'report add one line under Next: that an AgentKit update is available and is applied with:'
         "  & '$quoted/setup.ps1'$upgradeArgs"
-        'then re-read this command through the same reader and follow the refreshed body. If no, or if'
-        'the upgrade fails, report that in one line and continue with the command body below unchanged.'
         "This check runs once per session. Disable it with: & '$quoted/tools/Get-AgentKitSkill.ps1' -SetAutoUpdate Off"
         '=== end AgentKit update notice ==='
     )

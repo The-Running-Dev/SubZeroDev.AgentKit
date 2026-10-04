@@ -82,8 +82,10 @@ Describe 'Get-AgentKitSkill update check' {
         $r.Output | Should -Match 'Fix the gadget \(#402\)'
         $r.Output | Should -Not -Match 'Unreleased work on main'
         $r.Output | Should -Match ([regex]::Escape("setup.ps1'"))
-        $r.Output | Should -Match 'ask whether to upgrade'
-        # The check never moves the checkout; upgrading is setup.ps1's job after a yes.
+        # A notice, never a question: the command runs on without the user (AGENTS.shared.md).
+        $r.Output | Should -Match 'do not stop to ask'
+        $r.Output | Should -Not -Match 'ask whether to upgrade'
+        # The check never moves the checkout; upgrading is setup.ps1's job, run by the user.
         (Git-Fixture $f.Root @('describe','--tags')) | Should -Be 'v2026.09.17'
     }
 
