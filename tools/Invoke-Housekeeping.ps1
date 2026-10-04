@@ -10,7 +10,7 @@
     applying them requires a model in the loop. This script is the missing invocation: it
     calls Invoke-DoneHousekeeping.ps1 once to discover candidates, then again to delete every
     branch that discovery run confirmed, and reports the result the way clean.md's own
-    "Report" section requires - stash, pruned count, deletions, and anything left over.
+    "Report" section requires - pruned count, deletions, and anything left over.
 
     It never calls a model and it never launches one. Where the underlying script surfaces a
     genuine judgement call - Stopped:true, a TipAheadOfMergedPr entry, or a branch that failed
@@ -22,12 +22,12 @@
     either way).
 
     Intended to run from an interactive shell - see tools/RepoAliases.ps1 for the function that
-    wraps this for a PowerShell profile. A stash made by -AutoStash is printed directly to the
-    console so whoever is watching the terminal sees it; there is no unattended path here that
-    could let it go unreported, by design (design/90-decisions.md's 2026-09-06 entry on #183
-    records why a scheduled task was rejected: this repository's concurrency is
-    sequential-by-policy and not by lock, so an unattended run could stash or switch branches
-    out from under a session that is mid-edit).
+    wraps this for a PowerShell profile. Uncommitted work in the tree is never stashed:
+    it is left exactly where it is and carried across the switch to the default branch, so an
+    unrelated change in progress is still there afterwards (design/90-decisions.md's
+    2026-09-06 entry on #183 records why a scheduled task was rejected: this repository's
+    concurrency is sequential-by-policy and not by lock, so an unattended run could switch
+    branches out from under a session that is mid-edit).
 
 .PARAMETER RepoRoot
     Repository to operate on. Defaults to the current directory.
@@ -58,18 +58,19 @@ $ErrorActionPreference = 'Stop'
 
 $doneScript = Join-Path $PSScriptRoot 'Invoke-DoneHousekeeping.ps1'
 
+# A tree that is dirty when this starts is the user's work, not ours: carry it, never stash it.
+# Decided once up front so a tree that only becomes dirty mid-run (a hook, a generator) still
+# stops the apply pass as a judgement case instead of being waved through.
+$startedDirty = [bool](& git -C $RepoRoot status --short)
+
 $discoverArgs = @{
     RepoRoot  = $RepoRoot
     SkipPull  = $SkipPull
-    AutoStash = $true
+    KeepDirty = $startedDirty
 }
 if ($DefaultBranch) { $discoverArgs.DefaultBranch = $DefaultBranch }
 
 $discover = & $doneScript @discoverArgs
-
-if ($discover.Stashed) {
-    Write-Host "Stashed uncommitted changes as $($discover.StashRef) - restore with: git stash apply $($discover.StashRef)"
-}
 
 if ($discover.Stopped) {
     Write-Warning "Stopped: $($discover.Reason) - $($discover.Detail)"
@@ -85,7 +86,7 @@ $squashNames    = @($discover.SquashMergeCandidates | ForEach-Object Branch)
 
 $applied = if ($candidateNames.Count -or $squashNames.Count) {
     & $doneScript -RepoRoot $RepoRoot -DefaultBranch $discover.DefaultBranch -SkipPull `
-        -DeleteBranches $candidateNames -ForceDeleteBranches $squashNames
+        -DeleteBranches $candidateNames -ForceDeleteBranches $squashNames -KeepDirty:$startedDirty
 }
 else {
     $discover

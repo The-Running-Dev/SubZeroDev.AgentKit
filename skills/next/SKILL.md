@@ -12,18 +12,20 @@ With `$1` set to a slice id, start there. With `$1` set to `one`, stop after one
 ## 0. Start clean
 
 - `git status --short --branch`. Uncommitted work that is not yours: leave it, work in a separate branch, and mention it in the report. Never stage, discard or stash it.
-- If the current branch's pull request has merged, run `pwsh -File tools/Invoke-Housekeeping.ps1 -RepoRoot .`: it switches to the default branch, pulls, and deletes every branch confirmed merged. Report any stash it made — never pop it silently. Anything it escalates (`Escalate`) is left alone and named in the report; it does not stop the run.
+- If the current branch's pull request has merged, run `pwsh -File tools/Invoke-Housekeeping.ps1 -RepoRoot .`: it switches to the default branch, pulls, and deletes every branch confirmed merged. It never stashes: uncommitted work rides across the switch untouched, and if git refuses the switch because that work would be overwritten, the run carries on from `origin/<default branch>` (step 2) and names the files in the report. Anything it escalates (`Escalate`) is left alone and named in the report; it does not stop the run.
 - If an open pull request from an earlier run of this command exists for an unfinished slice, check out its branch and continue from step 3 rather than starting over.
 
 ## 1. Pick the slice
 
-Read `design/30-slices.md`. The next slice is the first, in document order, whose `Status:` is not `done` and whose `Depends on:` slices are all `done`. A slice with no `Status:` line is not done.
+Read `design/30-slices.md`. A slice is a `## S<n>` heading and the lines under it. The next slice is the first, in document order, whose `Status:` is not `done` and whose `Depends on:` slices are all `done`. A slice with no `Status:` line is not done.
+
+Only `## S<n>` headings are candidates. Prose, a `## Landed` table, and any other index of slices retired by an earlier version of the kit are history: every slice named there counts as `done`, a `Depends on:` pointing at one is satisfied, and none is ever rebuilt.
 
 If none is left, the plan is finished: report that and stop. If slices remain but every one waits on an unfinished dependency, report the cycle or gap and stop.
 
 ## 2. Build it
 
-- Branch `slice/S<n>-<short-name>` off the up-to-date default branch.
+- Branch `slice/S<n>-<short-name>` off the up-to-date default branch (`git fetch`, then `git switch -c slice/S<n>-<short-name> origin/<default branch>`).
 - Read the slice, `design/20-contract.md`, and the parts of `design/10-design.md` it touches. Read the code you are about to change in full.
 - For each acceptance criterion, write a test that fails first where the criterion can be tested, then implement until it passes. Stay inside the slice's `Out of scope:` line.
 - Where the code and the design disagree, do what works, keep going, and note it for the pull request (`AGENTS.shared.md` § *The design is the spec*).

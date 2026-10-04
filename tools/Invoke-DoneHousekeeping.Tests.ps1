@@ -216,6 +216,31 @@ Describe 'Invoke-DoneHousekeeping' {
         }
     }
 
+    Context '-KeepDirty' {
+
+        It 'proceeds on a dirty tree without stashing it' {
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-keepdirty')
+            Set-Content -LiteralPath (Join-Path $repo 'dirty.txt') -Value 'uncommitted' -Encoding utf8NoBOM
+
+            $result = & $script:ScriptPath -RepoRoot $repo -DefaultBranch main -SkipPull -KeepDirty
+
+            $result.Stopped | Should -Be $false
+            $result.Stashed | Should -Be $false
+            (Test-Path -LiteralPath (Join-Path $repo 'dirty.txt')) | Should -Be $true
+            (& git -C $repo stash list) | Should -BeNullOrEmpty
+        }
+
+        It 'still stops on a dirty tree when it is not set' {
+            $repo = New-GitRepo -Path (Join-Path $TestDrive 'repo-nokeepdirty')
+            Set-Content -LiteralPath (Join-Path $repo 'dirty.txt') -Value 'uncommitted' -Encoding utf8NoBOM
+
+            $result = & $script:ScriptPath -RepoRoot $repo -DefaultBranch main -SkipPull
+
+            $result.Stopped | Should -Be $true
+            $result.Reason | Should -Be 'DirtyTree'
+        }
+    }
+
     Context 'a step after the stash was created throws' {
 
         It 'still reports StashRef instead of losing the stash reference to an unhandled throw' {
