@@ -3,27 +3,32 @@
     {
       "name": "Check commits carry no AI attribution",
       "status": "Passed",
-      "detail": "./tools/Test-NoAttribution.ps1 - RESULT=PASSED, 1 commit checked, none carry AI attribution. Exit 0."
+      "detail": "./tools/Test-NoAttribution.ps1 - RESULT=PASSED, 2 commits checked, none carry AI attribution. Exit 0."
     },
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parser::ParseFile over every *.ps1 in the tree - 29 files, no parse errors. Exit 0."
+      "detail": "Parser::ParseFile over every tracked *.ps1 outside videos/ - 29 files, no parse errors."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Invoke-Pester -Path tools - 218 passed, 0 failed, 4 skipped, 222 total. Exit 0."
+      "detail": "Invoke-Pester -Path tools - 234 passed, 0 failed, 11 skipped, 245 total. Skipped: 3 home-install branches unreachable on this machine, 1 non-Windows launch case, 7 commit-msg hook cases that need sh, which this PowerShell session does not have on PATH."
+    },
+    {
+      "name": "Check design facts",
+      "status": "Passed",
+      "detail": "./tools/Test-Design.ps1 -Quiet - State Passed, no findings, exit 0."
     },
     {
       "name": "Typecheck videos/",
       "status": "DidNotRun",
-      "reason": "The local checkout lacks videos/node_modules/videowright. Running npx tsc --noEmit reached the compiler but only produced missing-module and cascading type diagnostics, so it did not evaluate the source tree. The CI workflow installs video dependencies with npm ci before this gate and is the authoritative result."
+      "reason": "videos/ is untouched by this change and the local checkout lacks videos/node_modules; the CI videos job installs with npm ci and runs it."
     },
     {
       "name": "Lint videos/",
-      "status": "Passed",
-      "detail": "npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts - checked 46 files, no findings, exit 0."
+      "status": "DidNotRun",
+      "reason": "videos/ is untouched by this change; not run locally this session. The CI videos job runs it."
     }
   ]
 }
