@@ -3,7 +3,7 @@
 # AGENTS.shared.md "House conventions": no AI attribution, anywhere, ever.
 # A model following a tooling reminder cannot bypass this; it runs after the message is written.
 # Strip, do not reject: this always exits 0, never blocks a commit (issue #340).
-# Pattern list kept in sync with tools/Test-NoAttribution.ps1's $script:AttributionPattern.
+# Pattern list kept in sync with tools/test-no-attribution.ts's attributionPattern.
 msg="$1"
 grep -v -i -E '^(Co-authored-by:[[:space:]]*(Claude|Anthropic|GPT|Codex|Copilot))|(Generated with \[?(Claude|Codex|Copilot))|(🤖 Generated with)' "$msg" > "$msg.stripped"
 # drop any trailing blank lines the removal left behind

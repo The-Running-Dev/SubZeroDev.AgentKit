@@ -41,11 +41,11 @@ Branch off the up-to-date default branch. Uncommitted work that is not this defe
 
 ## Fix, then ship it
 
-Implement until the reproduction passes, then verify the regression test by reverting the fix and watching it fail. Then ship it exactly as `/next` ships a slice — `skills/next/SKILL.md` steps 3 to 5: local gates, a non-draft pull request (its **Criteria** section lists the reproduction instead of slice criteria, and it says `Fixes #<issue>`), CI, review threads, merge through `tools/Merge-PullRequest.ps1`, and branch cleanup. No separate command, and no pause between them.
+Implement until the reproduction passes, then verify the regression test by reverting the fix and watching it fail. Then ship it exactly as `/next` ships a slice — `skills/next/SKILL.md` steps 3 to 5: local gates, a non-draft pull request (its **Criteria** section lists the reproduction instead of slice criteria, and it says `Fixes #<issue>`), CI, review threads, merge through `tools/merge-pull-request.ts`, and branch cleanup. No separate command, and no pause between them.
 
 ## Never
 
-- Open a pull request as a draft, or merge any way but `tools/Merge-PullRequest.ps1`.
+- Open a pull request as a draft, or merge any way but `tools/merge-pull-request.ts`.
 - File an issue for a defect that did not reproduce.
 - Patch a symptom whose cause has not been stated, or write a fourth fix after three have failed — *Name the cause before writing the patch*, above.
 - Fix an adjacent defect noticed along the way. Open an issue for it instead.

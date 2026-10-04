@@ -43,8 +43,8 @@ Describe 'AGENTS.shared.md' {
         $script:Shared | Should -Match 'No AI attribution, anywhere'
     }
 
-    It 'keeps merging delegated to Merge-PullRequest.ps1 alone' {
-        $script:Shared | Should -Match 'Merging is delegated to `tools/Merge-PullRequest\.ps1` and nothing else'
+    It 'keeps merging delegated to merge-pull-request.ts alone' {
+        $script:Shared | Should -Match 'Merging is delegated to `tools/merge-pull-request\.ts` and nothing else'
     }
 
     It 'has no design freeze' {
@@ -57,8 +57,8 @@ Describe 'skills/next' {
         $script:Next | Should -Match 'in this same session'
     }
 
-    It 'merges only through Merge-PullRequest.ps1' {
-        $script:Next | Should -Match 'tools/Merge-PullRequest\.ps1'
+    It 'merges only through merge-pull-request.ts' {
+        $script:Next | Should -Match 'tools/merge-pull-request\.ts'
     }
 
     It 'never stashes a dirty tree' {

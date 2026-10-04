@@ -13,7 +13,7 @@ setup.ps1                     global front door — bootstrap, update, roll back
 INSTALL.md                    how the kit installs into a repo
 skills/<name>/SKILL.md        slash commands, owned by the kit
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
-tools/Merge-PullRequest.ps1   merges only when every check on the exact head passed
+tools/merge-pull-request.ts   merges only when every check on the exact head passed
 tools/Invoke-Housekeeping.ps1 post-merge branch cleanup, no model call
 tools/Measure-Session.ps1     what a session actually cost, from the transcript
 codex/PROFILES.md             Codex profile definitions
@@ -166,7 +166,7 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 | Plan | `/plan` | `30-slices.md`, every slice `Status: todo` |
 | Build | `/next` | code, tests, one merged pull request per slice |
 
-**`/next` is the whole build.** It picks the first slice that is not done and whose dependencies are, builds it test-first, opens the pull request, waits for CI, fixes failures and review comments, merges through `tools/Merge-PullRequest.ps1`, cleans up the branch, and moves on to the next slice — same session. Each slice's pull request sets its `Status:` to `done` in `30-slices.md`; that line is the only tracker. `/next one` stops after a single slice; `/next S4` starts at S4. It stops only for a genuine blocker — two incompatible readings of the design with no evidence for either, a missing credential, a merge the script refused, three failed attempts at the same fix — and tells you exactly what it needs.
+**`/next` is the whole build.** It picks the first slice that is not done and whose dependencies are, builds it test-first, opens the pull request, waits for CI, fixes failures and review comments, merges through `tools/merge-pull-request.ts`, cleans up the branch, and moves on to the next slice — same session. Each slice's pull request sets its `Status:` to `done` in `30-slices.md`; that line is the only tracker. `/next one` stops after a single slice; `/next S4` starts at S4. It stops only for a genuine blocker — two incompatible readings of the design with no evidence for either, a missing credential, a merge the script refused, three failed attempts at the same fix — and tells you exactly what it needs.
 
 **The design is the spec, not a mirror.** `design/` is written once and left alone. When building shows the design was wrong somewhere, `/next` does what works and lists the mismatch in that pull request's *Differs from design* section. Nothing stops on drift and nothing rewrites the design behind your back. When you want the documents brought up to date, run `/align`: it gathers those *Differs from design* notes, compares the docs against the tree, and asks you to decide each divergence.
 
