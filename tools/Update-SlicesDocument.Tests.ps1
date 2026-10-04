@@ -91,6 +91,16 @@ Describe 'Update-SlicesDocument' {
             ($doc.Slices | Where-Object Number -eq 23).Name | Should -Be 'First landed slice'
         }
 
+        It 'finds slice blocks written at `##` as well as `###`' {
+            $path = New-GitSlicesDoc -Content $script:TwoOutstandingDoc.Replace('### S', '## S')
+            $doc = Get-SliceDocumentModel -Path $path
+
+            $doc.Failure | Should -BeNullOrEmpty
+            $doc.Slices.Count | Should -Be 2
+            ($doc.Slices | Where-Object Number -eq 23).Criteria | Should -Be @(1, 2, 3)
+            ($doc.Slices | Where-Object Number -eq 23).EndLine | Should -BeLessThan ($doc.Slices | Where-Object Number -eq 24).StartLine
+        }
+
         It 'reports NoOutstandingSection when the heading is missing' {
             $path = New-GitSlicesDoc -Content "# Slices`n`n## Landed`n"
             (Get-SliceDocumentModel -Path $path).Failure.Reason | Should -Be 'NoOutstandingSection'

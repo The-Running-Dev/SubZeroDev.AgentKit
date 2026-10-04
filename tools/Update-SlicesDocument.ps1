@@ -13,7 +13,7 @@
     cannot write to this document's body) and `/reconcile` (barred from this document outright)
     stopped short of it. This script is that missing mechanism.
 
-    For every `### S<n> - <name>` section under `## Outstanding`:
+    For every `##` or `### S<n> - <name>` section under `## Outstanding`:
       1. Look up a tracker issue whose title begins `S<n> ` - or `<Effort>-S<n> ` when the
          document's title carries an effort tag - open or closed (Test-DesignDrift.ps1's own
          match).
@@ -178,12 +178,12 @@ function Get-EffortTag {
 
 <#
     Splits the document into: everything before `## Outstanding`, the Outstanding section's own
-    slice blocks (each starting at a `### S<n> - <name>` heading and running to the line before
+    slice blocks (each starting at a `##` or `### S<n> - <name>` heading and running to the line before
     the next `##`/`###` heading), and everything from `## Landed` on. A slice block that is not
     immediately preceded by `## Outstanding` at some point above it, or one nested any deeper
     than `###`, is not a slice this script recognises - the same depth Test-DesignDrift.ps1
-    matches (`^#{2,3}\s+S(?<n>\d+)`), since S1-S18 sat at `##` and S19 on sit at `###` nested
-    under `## Outstanding` (design/90-decisions.md, 2026-08-30).
+    matches (`^#{2,3}\s+S(?<n>\d+)`). A repository's slices may sit at `##` or at `###` nested
+    under `## Outstanding`; both are slices.
 #>
 function Get-SliceDocumentModel {
     param([Parameter(Mandatory)][string] $Path)
@@ -220,7 +220,7 @@ function Get-SliceDocumentModel {
     for ($i = $outstandingStart + 1; $i -lt $landedStart; $i++) {
         if ($lines[$i] -match '^#{2,3}\s') {
             $allHeadingIdx.Add($i)
-            if ($lines[$i] -match '^###\s+S(?<n>\d+)\s+—\s+(?<name>.+?)\s*$') {
+            if ($lines[$i] -match '^#{2,3}\s+S(?<n>\d+)\s+—\s+(?<name>.+?)\s*$') {
                 $sliceHeadingIdx.Add($i)
             }
         }
@@ -234,7 +234,7 @@ function Get-SliceDocumentModel {
         # not a run of them, before whatever follows.
         while ($end -gt $start -and [string]::IsNullOrWhiteSpace($lines[$end])) { $end-- }
 
-        $lines[$start] -match '^###\s+S(?<n>\d+)\s+—\s+(?<name>.+?)\s*$' | Out-Null
+        $lines[$start] -match '^#{2,3}\s+S(?<n>\d+)\s+—\s+(?<name>.+?)\s*$' | Out-Null
         $number = [int]$Matches['n']
         $name   = $Matches['name']
 
