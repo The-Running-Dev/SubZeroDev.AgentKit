@@ -138,18 +138,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
 
       # Catches a commit made without tools/git-hooks/commit-msg installed locally - that
       # hook strips these silently, but nothing stops a contributor without it (#340 S.4).
-      # AGENTS.shared.md "House conventions" states the rule; tools/Test-NoAttribution.ps1
+      # AGENTS.shared.md "House conventions" states the rule; tools/test-no-attribution.ts
       # does the check, kept in sync with the hook's own pattern list.
       # verification: true
       - name: Check commits carry no AI attribution
-        shell: pwsh
+        shell: bash
         env:
           ATTRIBUTION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           ATTRIBUTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: ./tools/Test-NoAttribution.ps1
+        run: node tools/test-no-attribution.ts
 
       # verification: true
       - name: Parse-check PowerShell scripts
@@ -188,6 +191,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
 
       # No GH_TOKEN here on purpose - this job proves the suite degrades cleanly (Skipped, not
       # Failed) without gh, which the windows-latest job's authenticated run cannot prove.
@@ -209,13 +215,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
 
       - name: Check commits carry no AI attribution
-        shell: pwsh
+        shell: bash
         env:
           ATTRIBUTION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           ATTRIBUTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: ./tools/Test-NoAttribution.ps1
+        run: node tools/test-no-attribution.ts
 
       - name: Parse-check PowerShell scripts
         shell: pwsh

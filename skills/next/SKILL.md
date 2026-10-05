@@ -64,14 +64,14 @@ Commit by named path — never a guarded file (step 2) — `git diff --check`, p
 
 ## 5. Get it merged
 
-1. Wait for CI on the pushed head: `pwsh -File tools/Wait-PullRequestCheck.ps1 -PullRequest <n> -HeadSha <sha>`.
+1. Wait for CI on the pushed head: `node tools/wait-pull-request-check.ts --pull-request <n> --head-sha <sha>`.
 2. If a check failed, read its log (`gh run view --log-failed`), fix it, push, and wait again.
 3. Read the review threads (`gh api graphql` on `pullRequest.reviewThreads`, paginated; fields `id isResolved isOutdated path line comments`). For each unresolved thread:
    - **A real defect** — fix it, push, wait for CI, then resolve the thread (`resolveReviewThread`).
    - **Wrong, or already handled** — reply with the evidence (`path:line`) and resolve it.
    - **Real but outside this slice** — open a GitHub issue for it, reply with the link, resolve it.
    - **Needs the user's judgement** (a product decision, not a code question) — leave it open; this is a blocker.
-4. Merge: `pwsh -File tools/Merge-PullRequest.ps1 -PullRequest <n> -HeadSha <sha>`. It waits for checks itself and refuses on anything unconfirmed. **A refusal stands** — never `--admin`, never merge another way. Fix what it names and retry; if it cannot be fixed, that is a blocker.
+4. Merge: `node tools/merge-pull-request.ts --pull-request <n> --head-sha <sha>`. It waits for checks itself and refuses on anything unconfirmed. **A refusal stands** — never `--admin`, never merge another way. Fix what it names and retry; if it cannot be fixed, that is a blocker.
 5. Prune with `tools/Invoke-Housekeeping.ps1`, as in step 0.
 
 Three failed attempts to fix the same CI failure or review defect is a blocker: stop and report what each attempt assumed and what it disproved.

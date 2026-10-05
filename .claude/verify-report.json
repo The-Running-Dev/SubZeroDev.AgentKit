@@ -18,22 +18,22 @@
     {
       "name": "Run Node tests",
       "status": "Passed",
-      "detail": "Node 22.18.0, Node 24, and local Node 25.3.0: tests 14, pass 14, fail 0, cancelled 0, skipped 0, todo 0; exit 0 on all three."
+      "detail": "Node 25.3.0: tests 84, pass 77, fail 0, cancelled 0, skipped 7 (sh unavailable), todo 0; exit 0."
     },
     {
       "name": "Check commits carry no AI attribution",
       "status": "Passed",
-      "detail": "RESULT=PASSED - 1 commit(s) checked, none carry AI attribution."
+      "detail": "Node attribution check: State Passed, CommitCount 0, Offenders []; branch has no commits beyond main yet."
     },
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parser::ParseFile over all 33 tracked PowerShell files: no parse errors."
+      "detail": "Parser::ParseFile over all 25 tracked PowerShell files: no parse errors."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Tests completed in 303.81s. Tests Passed: 249, Failed: 0, Skipped: 11, NotRun: 0. TotalCount: 260. Exit 0."
+      "detail": "Tests completed in 287.5s. Tests Passed: 186, Failed: 0, Skipped: 4, NotRun: 0. TotalCount: 190. Exit 0."
     },
     {
       "name": "Run offline Pester suite",

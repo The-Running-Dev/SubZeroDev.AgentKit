@@ -1,5 +1,5 @@
 {
-  "manifestHash": "ae5f2654ebbd61144180851fc26033a12cb1eb120f0cab9484f7459c7d940bc7",
+  "manifestHash": "2f945fa34ee867959c9413a61c204d459c0de12b0f15cd9186e5fb965310acb3",
   "generated": "2026-10-04",
   "gates": [
     {
@@ -20,7 +20,7 @@
     },
     {
       "name": "Check commits carry no AI attribution",
-      "command": "./tools/Test-NoAttribution.ps1"
+      "command": "node tools/test-no-attribution.ts"
     },
     {
       "name": "Parse-check PowerShell scripts",
