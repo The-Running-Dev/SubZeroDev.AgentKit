@@ -10,13 +10,16 @@ export interface ProcessOptions {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
   input?: string;
+  timeout?: number;
+  stdio?: 'inherit';
+  windowsHide?: boolean;
 }
 export type Runner = (command: string, args: string[], options?: ProcessOptions) => ProcessResult;
 
 // Always pass arguments directly. In particular, user text must never become shell syntax.
 export const run: Runner = (command, args, options = {}) => {
   const result = spawnSync(command, args, {
-    ...options, encoding: 'utf8', shell: false, windowsHide: true,
+    ...options, encoding: 'utf8', shell: false, windowsHide: options.windowsHide ?? true,
     maxBuffer: 32 * 1024 * 1024,
   });
   return {

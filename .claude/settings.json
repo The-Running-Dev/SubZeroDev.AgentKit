@@ -5,12 +5,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh",
+            "command": "node",
             "args": [
-              "-NoProfile",
-              "-File",
-              "${CLAUDE_PROJECT_DIR}/tools/Measure-Session.ps1",
-              "-Hook"
+              "${CLAUDE_PROJECT_DIR}/tools/measure-session.ts",
+              "--hook"
             ],
             "timeout": 30
           }

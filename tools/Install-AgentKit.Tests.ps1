@@ -15,7 +15,7 @@ BeforeAll {
         $homeDir = Join-Path $Base 'temporary home'
         $project = Join-Path $Base 'project'
         foreach ($dir in @($origin,$homeDir,$project)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-        foreach ($relative in @('setup.ps1','AGENTS.shared.md','tools/Install-AgentKit.ps1','tools/Get-AgentKitSkill.ps1','tools/Invoke-CodexCommand.ps1','tools/Start-AgentKitCodex.ps1','skills/next/SKILL.md','skills/fix/SKILL.md','skills/align/SKILL.md')) {
+        foreach ($relative in @('setup.ps1','package.json','AGENTS.shared.md','tools/Install-AgentKit.ps1','tools/get-agentkit-skill.ts','tools/invoke-codex-command.ts','tools/start-agentkit-codex.ts','tools/lib/runtime.ts','tools/lib/process.ts','tools/lib/options.ts','tools/lib/kit-root.ts','tools/lib/executable.ts','skills/next/SKILL.md','skills/fix/SKILL.md','skills/align/SKILL.md')) {
             $dest = Join-Path $origin $relative
             New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force | Out-Null
             Copy-Item -LiteralPath (Join-Path $script:KitSource $relative) -Destination $dest
@@ -25,7 +25,7 @@ BeforeAll {
         Set-Content -LiteralPath (Join-Path $origin 'AGENTS.md') -Value 'PROJECT-ONLY-RULE-MUST-NOT-LOAD-GLOBALLY'
         Set-Content -LiteralPath (Join-Path $project 'keep.txt') -Value 'project stays unchanged'
         Git-Fixture $origin @('init','-q','-b','main') | Out-Null
-        Git-Fixture $origin @('add','setup.ps1','AGENTS.shared.md','AGENTS.md','tools/Install-AgentKit.ps1','tools/Get-AgentKitSkill.ps1','tools/Invoke-CodexCommand.ps1','tools/Start-AgentKitCodex.ps1','skills/next/SKILL.md','skills/fix/SKILL.md','skills/align/SKILL.md','templates/example.md') | Out-Null
+        Git-Fixture $origin @('add','setup.ps1','package.json','AGENTS.shared.md','AGENTS.md','tools/Install-AgentKit.ps1','tools/get-agentkit-skill.ts','tools/invoke-codex-command.ts','tools/start-agentkit-codex.ts','skills/next/SKILL.md','skills/fix/SKILL.md','skills/align/SKILL.md','templates/example.md','tools/lib/runtime.ts','tools/lib/process.ts','tools/lib/options.ts','tools/lib/kit-root.ts','tools/lib/executable.ts') | Out-Null
         Git-Fixture $origin @('commit','-qm','fixture') | Out-Null
         Git-Fixture $origin @('tag','v2026.09.17') | Out-Null
         @{ Origin=$origin; Home=$homeDir; Root=(Join-Path $homeDir '.agent-kit'); Codex=(Join-Path $Base 'custom codex home'); Project=$project }
@@ -376,7 +376,7 @@ Describe 'Global front door with isolated homes and local Git origin' {
     It 'failed setup after checkout reports previous commit and recovery without resetting' {
         Assert-Success (Run-Setup $f)
         $previous = (Read-State $f).commit
-        Git-Fixture $f.Origin @('rm','tools/Get-AgentKitSkill.ps1') | Out-Null
+        Git-Fixture $f.Origin @('rm','tools/get-agentkit-skill.ts') | Out-Null
         Git-Fixture $f.Origin @('commit','-qm','incomplete runtime') | Out-Null
         Git-Fixture $f.Origin @('tag','v2026.09.18') | Out-Null
         $result=Run-Setup $f
@@ -462,7 +462,7 @@ Describe 'Global front door with isolated homes and local Git origin' {
 Describe 'Canonical skill dependencies' {
     It 'resolves kit-owned dependencies of every shipped skill' {
         foreach ($skill in Get-ChildItem (Join-Path $script:KitSource 'skills') -Directory) {
-            $body = & (Join-Path $script:KitSource 'tools/Get-AgentKitSkill.ps1') -Command $skill.Name
+            $body = ((& node (Join-Path $script:KitSource 'tools/get-agentkit-skill.ts') --command $skill.Name) | ConvertFrom-Json).Content
             if ($skill.Name -ne 'install-all') { $body | Should -Not -Match '(?<![\w/\\])(?:AGENTS[.]shared[.]md|tools/|templates/)' }
             else { $body | Should -Match '(?m)^- `tools/\*[.]ps1`'; $body | Should -Match '(?m)^- `AGENTS[.]shared[.]md`' }
         }
