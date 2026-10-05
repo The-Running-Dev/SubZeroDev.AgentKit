@@ -159,6 +159,7 @@ if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Unknown AgentKi
 $text = [IO.File]::ReadAllText($path)
 # Executable examples must remain valid when the runtime root contains spaces or quotes.
 $quotedRoot = $root.Replace("'", "''")
+$text = [regex]::Replace($text, 'node (?:\./)?tools/([\w-]+[.]ts)', [Text.RegularExpressions.MatchEvaluator]{ param($m) "node '$quotedRoot/tools/$($m.Groups[1].Value)'" })
 $text = [regex]::Replace($text, 'pwsh (?:-File )?(?:\./)?tools/([\w-]+[.]ps1)', [Text.RegularExpressions.MatchEvaluator]{ param($m) "pwsh -File '$quotedRoot/tools/$($m.Groups[1].Value)'" })
 $text = [regex]::Replace($text, '(?m)^(\s*)(?:\./)?tools/([\w-]+[.]ps1)', [Text.RegularExpressions.MatchEvaluator]{ param($m) "$($m.Groups[1].Value)& '$quotedRoot/tools/$($m.Groups[2].Value)'" })
 # Bare references in migration enumerate TARGET copies to classify/delete. Leave those

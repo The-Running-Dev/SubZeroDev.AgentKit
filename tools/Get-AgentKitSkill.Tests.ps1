@@ -58,6 +58,7 @@ BeforeAll {
         $R.ExitCode | Should -Be 0 -Because $R.Error
         $R.Output | Should -Match '^AgentKit canonical runtime:'
         $R.Output | Should -Match 'name: next'
+        $R.Output | Should -Match "node '[^']+/tools/get-next-slice[.]ts' --repo-root"
     }
 }
 

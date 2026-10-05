@@ -14,7 +14,7 @@ INSTALL.md                    how the kit installs into a repo
 skills/<name>/SKILL.md        slash commands, owned by the kit
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
 tools/merge-pull-request.ts   merges only when every check on the exact head passed
-tools/Invoke-Housekeeping.ps1 post-merge branch cleanup, no model call
+tools/invoke-housekeeping.ts post-merge branch cleanup, no model call
 tools/Measure-Session.ps1     what a session actually cost, from the transcript
 codex/PROFILES.md             Codex profile definitions
 templates/design/*.md         seed copied into a target's design/

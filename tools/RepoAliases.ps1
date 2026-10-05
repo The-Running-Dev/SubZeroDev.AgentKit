@@ -33,10 +33,10 @@ function Invoke-AgentKitClean {
     .SYNOPSIS
         Prunes merged branches: discover, auto-delete what needs no judgement, report.
     .DESCRIPTION
-        Wraps tools/Invoke-Housekeeping.ps1. Prints the report and returns the result object,
+        Wraps tools/invoke-housekeeping.ts. Prints the report and returns the result object,
         whose .Escalate flags a case this script did not resolve - read it before deciding
         whether to open a session.
     #>
     param([string]$RepoRoot = (Get-Location).Path)
-    & (Join-Path $script:RepoAliasesRoot 'Invoke-Housekeeping.ps1') -RepoRoot $RepoRoot
+    & node (Join-Path $script:RepoAliasesRoot 'invoke-housekeeping.ts') --repo-root $RepoRoot | ConvertFrom-Json
 }
