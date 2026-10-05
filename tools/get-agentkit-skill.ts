@@ -67,11 +67,11 @@ export function updateNotice(root: string, home: string, env = process.env, runn
     if (targetName) { git(['fetch', '--quiet', 'origin', `+refs/tags/${targetName}:refs/tags/${targetName}`], 60000); target = git(['rev-parse', '--verify', `refs/tags/${targetName}^{commit}`]); }
   } else if (version && !version.startsWith('-') && !/^[0-9a-f]{7,40}$/i.test(version) && !/^v\d{4}\.\d{2}\.\d{2}/.test(version)) {
     git(['fetch', '--quiet', 'origin', `+refs/heads/${version}:refs/remotes/origin/${version}`], 60000);
-    targetName = `origin/${version}`; target = git(['rev-parse', '--verify', `refs/remotes/origin/${version}^{commit}`]); upgradeArgs = ` -Version ${JSON.stringify(version)}`;
+    targetName = `origin/${version}`; target = git(['rev-parse', '--verify', `refs/remotes/origin/${version}^{commit}`]); upgradeArgs = ` --version ${JSON.stringify(version)}`;
   }
   if (!target || target === installed || runner('git', ['-C', root, 'merge-base', '--is-ancestor', installed, target]).code !== 0) return '';
   const changes = git(['log', '--no-merges', '--format=%h %s', `${installed}..${target}`]).split(/\r?\n/).filter(Boolean);
-  return ['=== AgentKit update available ===', `Installed: ${version ? `${version} (${installed.slice(0, 7)})` : installed.slice(0, 7)}`, `Available: ${targetName} (${target.slice(0, 7)})`, `What changed (${changes.length} commit${changes.length === 1 ? '' : 's'}):`, ...changes.slice(0, 25).map(c => `  - ${c}`), ...(changes.length > 25 ? [`  ... and ${changes.length - 25} more`] : []), '', 'Agent: do not stop to ask about this. Carry on with the command body below, and in the final', 'report add one line under Next: that an AgentKit update is available and is applied with:', `  pwsh -File ${JSON.stringify(root + '/setup.ps1')}${upgradeArgs}`, `This check runs once per session. Disable it with: node ${JSON.stringify(root + '/tools/get-agentkit-skill.ts')} --set-auto-update Off`, '=== end AgentKit update notice ===', '', ''].join('\n');
+  return ['=== AgentKit update available ===', `Installed: ${version ? `${version} (${installed.slice(0, 7)})` : installed.slice(0, 7)}`, `Available: ${targetName} (${target.slice(0, 7)})`, `What changed (${changes.length} commit${changes.length === 1 ? '' : 's'}):`, ...changes.slice(0, 25).map(c => `  - ${c}`), ...(changes.length > 25 ? [`  ... and ${changes.length - 25} more`] : []), '', 'Agent: do not stop to ask about this. Carry on with the command body below, and in the final', 'report add one line under Next: that an AgentKit update is available and is applied with:', `  node ${JSON.stringify(root + '/setup.ts')}${upgradeArgs}`, `This check runs once per session. Disable it with: node ${JSON.stringify(root + '/tools/get-agentkit-skill.ts')} --set-auto-update Off`, '=== end AgentKit update notice ===', '', ''].join('\n');
 }
 export function getSkill(command: string, config: { root?: string; home?: string; env?: NodeJS.ProcessEnv; runner?: Runner } = {}): string {
   if (!/^[a-z][a-z0-9-]*$/.test(command)) throw new Error('Invalid AgentKit command name.');
@@ -80,9 +80,6 @@ export function getSkill(command: string, config: { root?: string; home?: string
   if (!existsSync(path)) throw new Error(`Unknown AgentKit command '${command}': '${path}' is missing.`);
   let text = readFileSync(path, 'utf8');
   text = text.replace(/node (?:\.\/)?tools\/([\w-]+\.ts)/g, (_, name) => `node ${JSON.stringify(`${root}/tools/${name}`)}`);
-  // During the staged migration, installer skill examples still name PowerShell.
-  const quoted = root.replaceAll("'", "''");
-  text = text.replace(/pwsh (?:-File )?(?:\.\/)?tools\/([\w-]+\.ps1)/g, (_, name) => `pwsh -File '${quoted}/tools/${name}'`).replace(/^(\s*)(?:\.\/)?tools\/([\w-]+\.ps1)/gm, (_, indent, name) => `${indent}& '${quoted}/tools/${name}'`);
   if (command !== 'install-all') for (const relative of ['AGENTS.shared.md', 'INSTALL.md', 'tools/', 'templates/']) text = text.replace(new RegExp('(?<![\\w/\\\\.])(?:\\./)?' + relative.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), () => root + '/' + relative);
   text = text.replace(/(?<![\w/\\.])skills\/([a-z0-9-]+)\/SKILL\.md/g, match => root + '/' + match);
   let notice = ''; try { notice = updateNotice(root, home, env, config.runner); } catch { /* Update discovery must never prevent reading a skill. */ }

@@ -11,31 +11,18 @@ Update the machine-wide kit, then reconcile it into this repository — the two 
 
 ## Resolve the installed kit
 
-```powershell
-$kitHome = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }
-$source = 'https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git'
-```
+Resolve the kit root from `AGENTKIT_HOME`, otherwise the home directory's `.agent-kit`. The canonical source is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`.
 
-- **Absent** — clone the canonical source, then run the checked-out bootstrap:
+- If absent, clone that source with Git into the kit root.
+- If present, run `git -C "<kit-root>" remote get-url origin` and require the canonical source before executing anything from it.
+- Run `node "<kit-root>/setup.ts"`, adding `--version "<requested-version>"` only when the user supplied a version. Substitute absolute paths and quote them for the calling shell.
+- If the installed checkout predates `setup.ts`, use README's temporary bootstrap clone procedure. Do not advance the old checkout by hand.
 
-  ```powershell
-  git clone $source $kitHome
-  & (Join-Path $kitHome 'setup.ps1') -Version $1
-  ```
-
-- **Present** — confirm it is a checkout of the canonical source before running anything from it:
-
-  ```powershell
-  $origin = (git -C $kitHome remote get-url origin).Trim()
-  if ($origin -ne $source) { throw "'$kitHome' has origin '$origin', not '$source'." }
-  & (Join-Path $kitHome 'setup.ps1') -Version $1
-  ```
-
-`$1` is an optional version. With no argument, `setup.ps1` selects the newest valid stable `vYYYY.MM.DD` tag, including an optional `.N` suffix. It never selects `main` as a fallback; pass `main` explicitly only for that opt-in. If the selected release predates `setup.ps1`, stop and report that it needs a post-front-door release to perform the rollback.
+The default selects the newest valid stable `vYYYY.MM.DD` tag, including an optional `.N` suffix. It never falls back to `main`; that branch requires an explicit request. Rollback to a release with only the old front door needs `pwsh`; setup refuses before checkout when it is unavailable.
 
 ## Reconcile
 
-Read `INSTALL.md` from `$kitHome` and follow it exactly, with `$kitHome` as `<kit-root>` and this repository as `<target>`. It is the same procedure `/install` runs — this command only gets the kit there first. Do not restate its phases here; execute them, and stop at its phase 3 report as instructed.
+Read `INSTALL.md` from `<kit-root>` and follow it exactly, with `<kit-root>` as `<kit-root>` and this repository as `<target>`. It is the same procedure `/install` runs — this command only gets the kit there first. Do not restate its phases here; execute them, and stop at its phase 3 report as instructed.
 
 **One addition to phase 4's `.claude/kit.json` write:** record the selected version, alongside the existing `source`, `commit` and `installed` fields:
 
@@ -49,7 +36,7 @@ That field is diagnostic only; it does not override the stable default on a late
 
 Everything `INSTALL.md` phase 3 already requires, plus:
 
-- Selected version and whether `$kitHome` was cloned fresh or already present
+- Selected version and whether `<kit-root>` was cloned fresh or already present
 - If setup cannot select or check out a version: say so, and stop there — do not fall through to reconciliation against an unknown checkout
 
 ## Never
@@ -62,5 +49,5 @@ Everything `INSTALL.md` phase 3 already requires, plus:
 ## Re-run
 
 Meant to be run routinely. A re-run selects the current newest stable release again and lets
-`setup.ps1` update the existing checkout safely; reconciliation still runs against the target
+`node setup.ts` update the existing checkout safely; reconciliation still runs against the target
 exactly as `/install` describes there.

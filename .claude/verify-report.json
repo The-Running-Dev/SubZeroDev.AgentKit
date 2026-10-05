@@ -18,27 +18,17 @@
     {
       "name": "Run Node tests",
       "status": "Passed",
-      "detail": "Node 25.3.0: tests 222, pass 215, fail 0, cancelled 0, skipped 7 (sh unavailable), todo 0; exit 0. Final reader and meter checks: 8 + 24 passed."
+      "detail": "Node 25.3.0: tests 283, pass 275, fail 0, cancelled 0, skipped 8 (7 require sh; isolated PATH install proof is Linux CI-only), todo 0; exit 0. Installer: 38 original cases plus missing-pwsh rollback and legacy singleton hooks; shared contract: 18 cases; forwarders: 2 cases. Real v2026.09.24 upgrade: 49 registrations, zero collisions; uninstall and separate rollback passed."
     },
     {
       "name": "Check commits carry no AI attribution",
       "status": "Passed",
-      "detail": "Node attribution check: State Passed, CommitCount 0, Offenders []; branch has no commits beyond main yet."
+      "detail": "Node attribution check at 83e1b494d3df00712139e7e970b53ceb108d3e7b: State Passed, CommitCount 3, Offenders []."
     },
     {
-      "name": "Parse-check PowerShell scripts",
-      "status": "Passed",
-      "detail": "Parser::ParseFile over all 5 remaining PowerShell files: no parse errors."
-    },
-    {
-      "name": "Run Pester tests",
-      "status": "Passed",
-      "detail": "TotalCount 56, PassedCount 56, FailedCount 0, SkippedCount 0; 194.4 seconds."
-    },
-    {
-      "name": "Run offline Pester suite",
+      "name": "Fresh install without PowerShell",
       "status": "DidNotRun",
-      "reason": "This workstation has gh credentials; the Linux CI job verifies the unauthenticated suite."
+      "reason": "Linux CI runs the isolated PATH install proof; this workstation is Windows."
     },
     {
       "name": "Typecheck videos/",

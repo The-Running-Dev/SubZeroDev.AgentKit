@@ -19,6 +19,8 @@ jobs:
         node: ["22.18.0", "24"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
@@ -38,6 +40,13 @@ jobs:
       - name: Run Node tests
         shell: bash
         run: node --test tools/
+      # verification: true
+      - name: Check commits carry no AI attribution
+        shell: bash
+        env:
+          ATTRIBUTION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          ATTRIBUTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: node tools/test-no-attribution.ts
 
   node-linux:
     name: node-linux
@@ -67,6 +76,12 @@ jobs:
       - name: Run Node tests
         shell: bash
         run: node --test tools/
+      # verification: true
+      - name: Fresh install without PowerShell
+        shell: bash
+        env:
+          AGENTKIT_PROVE_NO_PWSH: '1'
+        run: node --test tools/install-without-powershell.test.ts
 
   node-macos:
     name: node-macos
@@ -129,123 +144,6 @@ jobs:
         env:
           MATRIX_RESULT: ${{ needs.node-macos.result }}
         run: test "$MATRIX_RESULT" = success
-
-  powershell:
-    runs-on: windows-latest
-    steps:
-      # Full history: the attribution check walks every commit between the base and head sha,
-      # which a shallow (default depth-1) checkout does not have.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '24'
-
-      # Catches a commit made without tools/git-hooks/commit-msg installed locally - that
-      # hook strips these silently, but nothing stops a contributor without it (#340 S.4).
-      # AGENTS.shared.md "House conventions" states the rule; tools/test-no-attribution.ts
-      # does the check, kept in sync with the hook's own pattern list.
-      # verification: true
-      - name: Check commits carry no AI attribution
-        shell: bash
-        env:
-          ATTRIBUTION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          ATTRIBUTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: node tools/test-no-attribution.ts
-
-      # verification: true
-      - name: Parse-check PowerShell scripts
-        shell: pwsh
-        run: |
-          $failed = $false
-          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
-            $parseErrors = $null
-            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$parseErrors) | Out-Null
-            if ($parseErrors.Count) {
-              Write-Error "Parse errors in $($_.FullName): $($parseErrors -join '; ')"
-              $failed = $true
-            }
-          }
-          if ($failed) { exit 1 }
-
-      # GH_TOKEN lets the tests that call gh run here rather than skip (#79).
-      # verification: true
-      - name: Run Pester tests
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          Import-Module Pester -MinimumVersion 5.0
-          $result = Invoke-Pester -Path tools -Output Detailed -PassThru
-          if ($result.FailedCount -gt 0) { exit 1 }
-
-  # Runs the PowerShell suite on Linux, without gh or GH_TOKEN, to back the repository's
-  # cross-platform claim. Only the suite: the attribution and parse checks are platform-neutral
-  # and already run in the powershell job above, which stays the only one carrying GH_TOKEN.
-  # Tests that need gh detect the missing credential themselves and report Skipped rather than
-  # failing or silently passing (AGENTS.shared.md, Verification).
-  powershell-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '24'
-
-      # No GH_TOKEN here on purpose - this job proves the suite degrades cleanly (Skipped, not
-      # Failed) without gh, which the windows-latest job's authenticated run cannot prove.
-      # verification: true
-      - name: Run offline Pester suite
-        shell: pwsh
-        run: |
-          Import-Module Pester -MinimumVersion 5.0
-          $result = Invoke-Pester -Path tools -Output Detailed -PassThru
-          if ($result.FailedCount -gt 0) { exit 1 }
-
-  # The macOS leg of the cross-platform claim. Disabled for now at the user's request: the job
-  # is kept so it can be switched back on by deleting the `if:` line, and it is not a required
-  # check, so a skipped run blocks nothing.
-  powershell-macos:
-    if: ${{ false }}
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '24'
-
-      - name: Check commits carry no AI attribution
-        shell: bash
-        env:
-          ATTRIBUTION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          ATTRIBUTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: node tools/test-no-attribution.ts
-
-      - name: Parse-check PowerShell scripts
-        shell: pwsh
-        run: |
-          $failed = $false
-          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
-            $parseErrors = $null
-            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$parseErrors) | Out-Null
-            if ($parseErrors.Count) {
-              Write-Error "Parse errors in $($_.FullName): $($parseErrors -join '; ')"
-              $failed = $true
-            }
-          }
-          if ($failed) { exit 1 }
-
-      - name: Run offline Pester suite
-        shell: pwsh
-        run: |
-          Import-Module Pester -MinimumVersion 5.0
-          $result = Invoke-Pester -Path tools -Output Detailed -PassThru
-          if ($result.FailedCount -gt 0) { exit 1 }
 
   videos:
     runs-on: windows-latest

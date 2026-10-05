@@ -1,6 +1,6 @@
 {
-  "manifestHash": "2f945fa34ee867959c9413a61c204d459c0de12b0f15cd9186e5fb965310acb3",
-  "generated": "2026-10-04",
+  "manifestHash": "efba830664267d9b9dde7d12969a401eb336b9f279849fa0a035f14c31a383eb",
+  "generated": "2026-10-05",
   "gates": [
     {
       "name": "Install Node development dependencies",
@@ -23,16 +23,8 @@
       "command": "node tools/test-no-attribution.ts"
     },
     {
-      "name": "Parse-check PowerShell scripts",
-      "command": "Parser::ParseFile over every tracked *.ps1"
-    },
-    {
-      "name": "Run Pester tests",
-      "command": "Invoke-Pester -Path tools -Output Detailed -PassThru"
-    },
-    {
-      "name": "Run offline Pester suite",
-      "command": "Invoke-Pester -Path tools -Output Detailed -PassThru (without GH_TOKEN or gh credentials)"
+      "name": "Fresh install without PowerShell",
+      "command": "node --test tools/install-without-powershell.test.ts"
     },
     {
       "name": "Typecheck videos/",
