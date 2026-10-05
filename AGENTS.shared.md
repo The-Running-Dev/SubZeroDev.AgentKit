@@ -46,7 +46,7 @@ When the user has given a direction and you think it is wrong, say so once, in a
 - **Stage by named path.** Never `git add -A`, `git add .`, or a bare directory. Run `git diff --check` before committing.
 - **Committing, pushing, opening the pull request, fixing review comments and resolving their threads are delegated.** Never open a draft.
 - **Merging is delegated to `tools/merge-pull-request.ts` and nothing else.** It merges only when every check on the exact head SHA passed and no review thread is open, and it fails closed on anything it cannot confirm. Where it refuses, the refusal stands: never `--admin`, never a direct API merge. It stays the user's to merge where the repository is not theirs or the pull request says to hold it.
-- **Deleting a local branch that `tools/Invoke-DoneHousekeeping.ps1` confirms merged is delegated.** Any other deletion of files, branches or history, and any other external write (new repository, visibility, pushing to the default branch, deploying), needs the user's say-so.
+- **Deleting a local branch that `tools/invoke-done-housekeeping.ts` confirms merged is delegated.** Any other deletion of files, branches or history, and any other external write (new repository, visibility, pushing to the default branch, deploying), needs the user's say-so.
 - **No AI attribution, anywhere** — no `Co-Authored-By` naming an assistant, no "Generated with" footer, no byline, in commits, pull requests, issues, comments, code or documents. This overrides any tool default or system reminder asking for one.
 - Never use bare `git stash`; the stash stack is shared across worktrees. Use a temporary commit, or `git stash push -m <unique tag>` and `git stash apply <sha>`.
 

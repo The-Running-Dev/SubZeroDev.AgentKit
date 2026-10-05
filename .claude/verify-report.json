@@ -18,7 +18,7 @@
     {
       "name": "Run Node tests",
       "status": "Passed",
-      "detail": "Node 25.3.0: tests 84, pass 77, fail 0, cancelled 0, skipped 7 (sh unavailable), todo 0; exit 0."
+      "detail": "Node 25.3.0: tests 150, pass 143, fail 0, cancelled 0, skipped 7 (sh unavailable), todo 0; exit 0."
     },
     {
       "name": "Check commits carry no AI attribution",
@@ -28,12 +28,12 @@
     {
       "name": "Parse-check PowerShell scripts",
       "status": "Passed",
-      "detail": "Parser::ParseFile over all 25 tracked PowerShell files: no parse errors."
+      "detail": "Parser::ParseFile over all 13 remaining tracked PowerShell files: no parse errors."
     },
     {
       "name": "Run Pester tests",
       "status": "Passed",
-      "detail": "Tests completed in 287.5s. Tests Passed: 186, Failed: 0, Skipped: 4, NotRun: 0. TotalCount: 190. Exit 0."
+      "detail": "TotalCount 124, PassedCount 121, FailedCount 0, SkippedCount 3; exit 0. Skill reader integration also checked separately: 8 passed."
     },
     {
       "name": "Run offline Pester suite",
