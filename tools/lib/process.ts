@@ -13,6 +13,8 @@ export interface ProcessOptions {
   timeout?: number;
   stdio?: 'inherit';
   windowsHide?: boolean;
+  // Only for cmd.exe, whose own parser needs the command line exactly as written.
+  windowsVerbatimArguments?: boolean;
 }
 export type Runner = (command: string, args: string[], options?: ProcessOptions) => ProcessResult;
 
