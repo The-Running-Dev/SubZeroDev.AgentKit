@@ -120,6 +120,19 @@ git push origin refs/tags/vYYYY.MM.DD
 
 Then exercise the fresh bootstrap without `--version` and confirm its reported commit is the release SHA. Tagging and publishing are the maintainer's release step.
 
+For post-merge branch cleanup, run the housekeeping script from the target repository. In bash or zsh:
+
+```bash
+node "${AGENTKIT_HOME:-$HOME/.agent-kit}/tools/invoke-housekeeping.ts"
+```
+
+In Windows PowerShell:
+
+```powershell
+$kitHome = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }
+node (Join-Path $kitHome 'tools/invoke-housekeeping.ts')
+```
+
 Once the kit is installed, work in a target repository and use `/install <path>` when that repository needs its project-owned files seeded or reconciled. The command reads [`INSTALL.md`](INSTALL.md) from the installed kit.
 
 Installing is a **reconciliation, not a copy**. A repository that already has agent instructions has them for a reason, usually a better-informed one than this kit's defaults. The installer classifies every artifact as absent, identical, divergent, or occupied; proposes a resolution for each; and stops for sign-off before writing. Re-running it upgrades, with the target winning wherever it has since been edited.
