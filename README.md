@@ -9,7 +9,7 @@ AGENTS.shared.md              binding contract every repo using the kit shares
 AGENTS.md                     this repo's project rules on top of it, read by Codex
 CLAUDE.md                     imports both, read by Claude Code
 agent.md                      lessons learned the hard way
-setup.ps1                     global front door — bootstrap, update, roll back the shared checkout
+setup.ts                      global front door — bootstrap, update, roll back the shared checkout
 INSTALL.md                    how the kit installs into a repo
 skills/<name>/SKILL.md        slash commands, owned by the kit
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
@@ -31,40 +31,33 @@ design/                       the kit's own design. Never installed
 
 ## Installing
 
-Quick-install AgentKit once for the machine, then use its skills from any project. PowerShell 7 and Git are required. The checkout is `$env:AGENTKIT_HOME` when that variable is set, otherwise `$HOME/.agent-kit`.
+Quick-install AgentKit once for the machine, then use its skills from any project. Git and Node >= 22.18 are required; merging also needs an authenticated GitHub CLI (`gh`). Users do not need npm install. The checkout is `AGENTKIT_HOME` when set, otherwise `$HOME/.agent-kit`.
 
-**Quick install**, run it yourself in `pwsh` — it verifies an existing checkout's origin before advancing it, so one quietly pointed at a fork or a mirror is refused rather than silently installed from:
+**Windows**, in the built-in Windows PowerShell 5.1 or a newer shell. This verifies the checkout's origin before running setup:
 
 ```powershell
-if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'AgentKit requires PowerShell 7. Run this in pwsh.' }
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'AgentKit requires Git on PATH.' }
+$ErrorActionPreference = 'Stop'
+node -e "const [a,b]=process.versions.node.split('.').map(Number); if(a<22||(a===22&&b<18))process.exit(2)"
+if ($LASTEXITCODE -ne 0) { throw 'AgentKit requires Node >= 22.18 on PATH.' }
 $kitHome = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }
 $source = 'https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git'
-
 if (-not (Test-Path -LiteralPath (Join-Path $kitHome '.git'))) {
-    if ((Test-Path -LiteralPath $kitHome) -and (Get-ChildItem -LiteralPath $kitHome -Force -ErrorAction SilentlyContinue)) {
-        throw "'$kitHome' exists and is not empty, and is not an AgentKit checkout. Choose an empty path or set AGENTKIT_HOME."
-    }
     git clone $source $kitHome
-    if ($LASTEXITCODE -ne 0) { throw 'AgentKit clone failed; setup was not run.' }
+    if ($LASTEXITCODE -ne 0) { throw 'AgentKit clone failed.' }
 }
-
-$origin = (git -C $kitHome remote get-url origin).Trim()
-if ($origin -ne $source) {
-    throw "'$kitHome' has origin '$origin', not the canonical AgentKit source '$source'."
-}
-
+$origin = git -C $kitHome remote get-url origin
+if ($LASTEXITCODE -ne 0 -or $origin -ne $source) { throw 'AgentKit origin is not the canonical source.' }
 $bootstrapHome = $null
 try {
     $entryRoot = $kitHome
-    if (-not (Test-Path -LiteralPath (Join-Path $entryRoot 'setup.ps1'))) {
-        # A managed checkout from an older release has no front door yet.
+    if (-not (Test-Path -LiteralPath (Join-Path $entryRoot 'setup.ts'))) {
         $bootstrapHome = Join-Path ([IO.Path]::GetTempPath()) ('agentkit-bootstrap-' + [guid]::NewGuid())
         git clone --depth 1 $source $bootstrapHome
         if ($LASTEXITCODE -ne 0) { throw 'AgentKit bootstrap clone failed.' }
         $entryRoot = $bootstrapHome
     }
-    & (Join-Path $entryRoot 'setup.ps1')
+    node (Join-Path $entryRoot 'setup.ts')
+    if ($LASTEXITCODE -ne 0) { throw 'AgentKit setup failed; read the diagnostic above.' }
 } finally {
     if ($bootstrapHome -and (Test-Path -LiteralPath $bootstrapHome)) {
         Remove-Item -LiteralPath $bootstrapHome -Recurse -Force
@@ -72,60 +65,60 @@ try {
 }
 ```
 
-Paste the same intent into an agent instead when you want a guided run with a reported version, commit, registrations and collisions: **Bootstrap the public AgentKit checkout globally in `AGENTKIT_HOME` or `$HOME/.agent-kit`; verify an existing checkout's origin is `https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git`; then run its on-disk `setup.ps1` for the newest stable release. Detect and register every supported host, verify the result, and report the version, commit, registrations and collisions. Do not modify the current project or use `iex`, implicit `main`, or an unverified origin.**
-
-**Fast install**, one line, skips the origin check — reach for this only when you already trust whatever checkout sits at `AGENTKIT_HOME` (a scripted or CI install, say), since it fast-forwards it without asking first:
-
-```powershell
-$k = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }; if (Test-Path (Join-Path $k '.git')) { if ((git -C $k rev-parse --is-shallow-repository) -eq 'true') { git -C $k fetch --unshallow origin } else { git -C $k fetch origin main }; git -C $k merge --ff-only origin/main } else { git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git $k }; & (Join-Path $k 'setup.ps1')
-```
-
-macOS or Linux, PowerShell 7 (`pwsh`) still required — this line clones with `git`, then hands off to `pwsh`:
+**macOS or Linux**, in bash or zsh:
 
 ```bash
-command -v pwsh >/dev/null 2>&1 || { echo 'AgentKit requires PowerShell 7 (pwsh) on PATH. Install: https://aka.ms/pwsh'; exit 1; }
-k="${AGENTKIT_HOME:-$HOME/.agent-kit}"; if [ -d "$k/.git" ]; then if [ "$(git -C "$k" rev-parse --is-shallow-repository)" = "true" ]; then git -C "$k" fetch --unshallow origin; else git -C "$k" fetch origin main; fi && git -C "$k" merge --ff-only origin/main; else git clone --depth 1 https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git "$k"; fi && pwsh "$k/setup.ps1"
+(
+set -eu
+node -e 'const [a,b]=process.versions.node.split(".").map(Number); if(a<22||(a===22&&b<18))process.exit(2)'
+kit="${AGENTKIT_HOME:-$HOME/.agent-kit}"
+source='https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git'
+if [ ! -e "$kit/.git" ]; then git clone "$source" "$kit"; fi
+[ "$(git -C "$kit" remote get-url origin)" = "$source" ] || { echo 'AgentKit origin is not the canonical source.' >&2; exit 1; }
+entry="$kit"
+if [ ! -f "$entry/setup.ts" ]; then
+    bootstrap="$(mktemp -d)"
+    trap 'rm -rf -- "$bootstrap"' EXIT
+    git clone --depth 1 "$source" "$bootstrap"
+    entry="$bootstrap"
+fi
+node "$entry/setup.ts"
+)
 ```
 
-Both fast-install lines skip the origin check: a checkout pointed at a fork or a mirror is silently advanced from it.
+For a guided run, ask an agent to bootstrap the canonical checkout, verify its origin, run `node setup.ts`, and report the selected version, commit, registrations and collisions.
 
-The default installs the newest valid stable tag named `vYYYY.MM.DD` (with an optional `.N` release suffix). It never falls back to `main`: pass `-Version main` only when you deliberately want that branch. Omit `-Hosts` to detect available host CLI executables and their personal directories: Claude uses `~/.claude`, Codex uses `$CODEX_HOME` when set or `~/.codex` otherwise, and Copilot uses `~/.copilot` (with `~/.agents` also counted for detection). Select a host explicitly when you want only that host refreshed.
+The default selects the newest valid stable `vYYYY.MM.DD` tag, with an optional numeric `.N` suffix. It never falls back to `main`. Omit `--hosts` to detect available host executables and personal directories: Claude uses `~/.claude`, Codex uses `CODEX_HOME` or `~/.codex`, and Copilot uses `~/.copilot` (`~/.agents` also counts for detection).
 
-To update, roll back, select a branch or SHA, change names, preview, or remove the checkout, run the same checked-out entry point:
+Run the same front door for updates and removal. In these shell-neutral examples, replace `<kit-root>` with the checkout's absolute path:
 
-```powershell
-$kitHome = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME '.agent-kit' }
-& (Join-Path $kitHome 'setup.ps1') # Update to latest stable; also the idempotent re-run
-& (Join-Path $kitHome 'setup.ps1') -Hosts codex
-& (Join-Path $kitHome 'setup.ps1') -Hosts claude
-& (Join-Path $kitHome 'setup.ps1') -Version 'vYYYY.MM.DD' # Replace with an existing front-door-capable release
-& (Join-Path $kitHome 'setup.ps1') -Version '<commit-sha>' # Replace with a full commit SHA
-& (Join-Path $kitHome 'setup.ps1') -Version main
-& (Join-Path $kitHome 'setup.ps1') -Prefix ak-
-& (Join-Path $kitHome 'setup.ps1') -DryRun
-& (Join-Path $kitHome 'setup.ps1') -Uninstall
-& (Join-Path $kitHome 'setup.ps1') -Uninstall -Force
+```text
+node "<kit-root>/setup.ts"
+node "<kit-root>/setup.ts" --hosts codex
+node "<kit-root>/setup.ts" --hosts claude --hosts copilot
+node "<kit-root>/setup.ts" --version vYYYY.MM.DD
+node "<kit-root>/setup.ts" --version <commit-sha>
+node "<kit-root>/setup.ts" --version main
+node "<kit-root>/setup.ts" --prefix ak-
+node "<kit-root>/setup.ts" --dry-run
+node "<kit-root>/setup.ts" --verify
+node "<kit-root>/setup.ts" --uninstall
+node "<kit-root>/setup.ts" --uninstall --force
 ```
 
-`-Prefix ak-` installs names such as `$ak-next` and `$ak-next-routed`. Existing foreign or modified skill entries are collisions: the installer warns, skips, and preserves them. `-Uninstall` removes only unchanged registrations, hooks, and pointers the manifest records; `-Uninstall -Force` additionally deletes the validated canonical checkout.
+`--prefix ak-` installs names such as `$ak-next` and `$ak-next-routed`. Foreign or edited registrations are preserved and reported as collisions. Uninstall removes only unchanged owned registrations, pointers and hooks; adding `--force` also removes the validated checkout. Verify is read-only. Dry runs make no checkout or host changes; the initial bootstrap clone itself is a write.
 
-Any selected tag, branch, or SHA that lacks `setup.ps1` is unsupported and is refused before checkout. Rollback is therefore limited to front-door-capable releases. The bootstrap always runs the script from disk; it does not fetch and execute text with `iex`.
+Rollback to an older release such as `v2026.09.24`, which has only `setup.ps1`, needs PowerShell 7 (`pwsh`) on PATH. The Node installer checks that prerequisite before checkout, then runs that release's own installer. A release with neither front door is refused. The two remaining PowerShell files are compatibility forwarders for upgrades from old installs; new installs use Node directly.
 
-On a fresh machine, cloning is the one necessary write before `-DryRun` can inspect an installed checkout. Once the checkout exists, `-DryRun` makes no bootstrap, registration, or version-selection changes.
+Create a stable release only after the merged SHA passes its required workflow gates. Choose an unused `vYYYY.MM.DD` tag, or `vYYYY.MM.DD.N` above every revision already published for that date. Stable selection sorts by date, then numeric revision; the bare tag is revision zero. Substitute the chosen tag and verified SHA:
 
-`v2026.09.18` is the first published release carrying `setup.ps1`; `v2026.09.15`, `v2026.09.16` and `v2026.09.17` predate it and a default bootstrap — which selects the newest stable tag — refuses those with *"predates the global front door"*. Pass `-Version main` only to bootstrap unreleased work deliberately.
-
-Create a stable release only after the merged SHA has passed its required workflow gates. A repository maintainer then chooses a `vYYYY.MM.DD` tag — or `vYYYY.MM.DD.N` when that date already carries one — and points it at that merged SHA. The tag must be unused **and rank above every tag already published for that date**; `Resolve-StableTag` in [`tools/Install-AgentKit.ps1`](tools/Install-AgentKit.ps1) orders by date and then by numeric revision, counting a bare tag as revision 0, so a revision below one already published is never selected as newest and the release silently reaches no installation. Then run (substitute the verified SHA and chosen tag):
-
-```powershell
+```text
 git fetch origin main --tags
-$releaseCommit = '<verified-merged-sha>'
-$releaseTag = 'vYYYY.MM.DD' # Or vYYYY.MM.DD.N, N above every revision already published for that date
-git tag -a $releaseTag $releaseCommit -m "AgentKit $releaseTag: global native and routed skills"
-git push origin "refs/tags/$releaseTag"
+git tag vYYYY.MM.DD <verified-merged-sha>
+git push origin refs/tags/vYYYY.MM.DD
 ```
 
-Then exercise the fresh bootstrap block above without `-Version` and confirm the reported commit includes the global-install work. Tagging still requires the maintainer's authorization.
+Then exercise the fresh bootstrap without `--version` and confirm its reported commit is the release SHA. Tagging and publishing are the maintainer's release step.
 
 Once the kit is installed, work in a target repository and use `/install <path>` when that repository needs its project-owned files seeded or reconciled. The command reads [`INSTALL.md`](INSTALL.md) from the installed kit.
 
@@ -135,7 +128,7 @@ Installing is a **reconciliation, not a copy**. A repository that already has ag
 
 `/install-all` runs the same reconciliation unattended, across every `SubZeroDev.*` sibling repository in one pass. It applies only the resolutions `INSTALL.md` already states as deterministic; anything that would otherwise stop for sign-off is skipped per repository and reported as needing a decision, not guessed.
 
-Use the same global `setup.ps1` command to update or roll back the shared checkout. `/sync` updates that checkout to the newest stable release (or an explicitly requested version), then reconciles the current target repository.
+Use the same global `node setup.ts` command to update or roll back the shared checkout. `/sync` updates that checkout to the newest stable release (or an explicitly requested version), then reconciles the current target repository.
 
 **Update checks are automatic, and on by default.** The first AgentKit command you run in a session checks whether the installed runtime is behind what it tracks — the newest stable release, or `origin/<branch>` for a branch install — and, when it is, the agent runs the command anyway and ends its report with the upgrade command to run, so a check never stops the work to ask. Nothing is fetched into the working tree until you run that command, a pinned tag or SHA is never offered an update, and a check that cannot reach the origin stays silent. Turn it off with `node tools/get-agentkit-skill.ts --set-auto-update Off` (stored in `~/.agent-kit-state/config.json`; `--set-auto-update On` restores it), or for one shell with `AGENTKIT_AUTO_UPDATE=0`.
 
@@ -178,7 +171,7 @@ Effort tracks irreversibility. Schemas and public interfaces are expensive to ch
 
 ## Invocation
 
-**Claude Code** — the bootstrap installs the commands as one plugin, `~/.claude/skills/agentkit`, which Claude Code loads in every session with no marketplace or install step. Every command is namespaced under it: `/agentkit:interview`, `/agentkit:brief`, `/agentkit:design`, `/agentkit:redteam`, `/agentkit:plan`, `/agentkit:next`, `/agentkit:fix`, `/agentkit:align`. The namespace is not optional. Bare `/plan` is Claude Code's own command, and `/design` is a skill it bundles. An install that predates the plugin had bare per-command folders under `~/.claude/skills/`; re-running `setup.ps1` moves them into the plugin and removes the bare folders, unless you edited one. Set the model per session with `/model`.
+**Claude Code** — the bootstrap installs the commands as one plugin, `~/.claude/skills/agentkit`, which Claude Code loads in every session with no marketplace or install step. Every command is namespaced under it: `/agentkit:interview`, `/agentkit:brief`, `/agentkit:design`, `/agentkit:redteam`, `/agentkit:plan`, `/agentkit:next`, `/agentkit:fix`, `/agentkit:align`. The namespace is not optional. Bare `/plan` is Claude Code's own command, and `/design` is a skill it bundles. An install that predates the plugin had bare per-command folders under `~/.claude/skills/`; re-running `node setup.ts` moves them into the plugin and removes the bare folders, unless you edited one. Set the model per session with `/model`.
 
 **Codex** — the bootstrap creates two explicit skills per command. `$<command>` is the native mode: it reads the canonical skill from the installed checkout and works in the current Codex session. It uses that session's model and approval context. `$<command>-routed` runs `start-agentkit-codex.ts` with `--new-window`, which opens a visible terminal and launches the command through the existing profile, approval, and sandbox routing. Approvals and interaction happen in that visible terminal; opening it is not proof the command has completed.
 
@@ -192,7 +185,7 @@ node "$kitHome/tools/start-agentkit-codex.ts" --command next --arguments-file ./
 
 **Copilot** — the bootstrap writes one native adapter per command to `~/.copilot/skills/<name>/SKILL.md`, plus the pointer file `~/.copilot/copilot-instructions.md`. There is no routed mode: the `-routed` pair is Codex-only, because routing means launching a session under a profile and only the Codex launcher does that. Each adapter reads the same canonical skill through `get-agentkit-skill.ts` and executes it under this host's normal model policy — nothing selects a model for you, so pick one by [`AGENTS.shared.md`](AGENTS.shared.md), *Models*.
 
-Two limits worth knowing before you rely on it. The bootstrap path is exercised by `tools/Install-AgentKit.Tests.ps1` — adapters are written, and uninstall removes them — but nothing here exercises *invoking* a command under Copilot, so treat host parity as unproven rather than established. And unlike the Claude adapters, Copilot's carry no `disable-model-invocation` flag, so the only thing discouraging the host from starting a command on its own initiative is the adapter description's "Use only when the user requests this command."
+Two limits worth knowing before you rely on it. The bootstrap path is exercised by `tools/install-agentkit.test.ts` — adapters are written, and uninstall removes them — but nothing here exercises *invoking* a command under Copilot, so treat host parity as unproven rather than established. And unlike the Claude adapters, Copilot's carry no `disable-model-invocation` flag, so the only thing discouraging the host from starting a command on its own initiative is the adapter description's "Use only when the user requests this command."
 
 ## Cross-vendor red team
 
@@ -225,7 +218,7 @@ It reports the four input classes separately because they are priced differently
 
 A global `SessionEnd` hook in `~/.claude/settings.json` runs the same script automatically. It appends one row per session to the current project's `.claude/session-costs.tsv`, which is gitignored — a convenience, not the record, since transcripts are durable and a session that ends without the hook firing is recovered by running the script again.
 
-That second hook exists because measurement found session cost is roughly **quadratic in turn count** — per-call context grows with conversation length, and you pay it again every turn. Context compaction keeps a long `/next` run going; the warning is there so the cost stays visible. These are global Claude settings managed by setup.ps1, not target-repository settings.
+That second hook exists because measurement found session cost is roughly **quadratic in turn count** — per-call context grows with conversation length, and you pay it again every turn. Context compaction keeps a long `/next` run going; the warning is there so the cost stays visible. These are global Claude settings managed by setup.ts, not target-repository settings.
 
 ## When to skip most of this
 

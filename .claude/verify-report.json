@@ -18,7 +18,7 @@
     {
       "name": "Run Node tests",
       "status": "Passed",
-      "detail": "Node 25.3.0: tests 222, pass 215, fail 0, cancelled 0, skipped 7 (sh unavailable), todo 0; exit 0. Final reader and meter checks: 8 + 24 passed."
+      "detail": "Node 25.3.0: tests 280, pass 272, fail 0, cancelled 0, skipped 8 (7 require sh; isolated PATH install proof is Linux CI-only), todo 0; exit 0. Installer parity: 38 original cases plus missing-pwsh rollback; shared contract: 18 cases."
     },
     {
       "name": "Check commits carry no AI attribution",
@@ -26,19 +26,9 @@
       "detail": "Node attribution check: State Passed, CommitCount 0, Offenders []; branch has no commits beyond main yet."
     },
     {
-      "name": "Parse-check PowerShell scripts",
-      "status": "Passed",
-      "detail": "Parser::ParseFile over all 5 remaining PowerShell files: no parse errors."
-    },
-    {
-      "name": "Run Pester tests",
-      "status": "Passed",
-      "detail": "TotalCount 56, PassedCount 56, FailedCount 0, SkippedCount 0; 194.4 seconds."
-    },
-    {
-      "name": "Run offline Pester suite",
+      "name": "Fresh install without PowerShell",
       "status": "DidNotRun",
-      "reason": "This workstation has gh credentials; the Linux CI job verifies the unauthenticated suite."
+      "reason": "Linux CI runs the isolated PATH install proof; this workstation is Windows."
     },
     {
       "name": "Typecheck videos/",

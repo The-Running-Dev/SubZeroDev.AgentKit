@@ -92,7 +92,7 @@ No narration of what was read or tried. Link durable things — pull requests, i
 
 ## House conventions
 
-- Windows host, projects under `D:\Dropbox\Projects\`. PowerShell Core for scripts; scripts never prompt, and destructive operations gate on a `-Force`-style flag.
+- Windows host, projects under `D:\Dropbox\Projects\`. Node >= 22.18 and TypeScript for scripts; scripts never prompt, and destructive operations gate on `--force`.
 - UTF-8, LF endings. Metric units and Celsius throughout. Raster assets as PNG or JPG, not WebP.
 - Commit messages state what changed. A repository with an established commit style keeps it.
 - **Kit files resolve from the kit root**, in this order: the script's own checkout when it has a `.git` folder; `$env:AGENTKIT_HOME`; `$HOME/.agent-kit`. A path that fails all three throws, naming each location checked. Files belonging to the calling project (`design/`, `.claude/`) stay relative to that project.

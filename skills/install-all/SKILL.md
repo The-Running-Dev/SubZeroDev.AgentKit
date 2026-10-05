@@ -6,7 +6,7 @@ disable-model-invocation: true
 ---
 
 Home install (`INSTALL.md` phase 4) stopped copying kit-owned files into a target repository at
-all — `AGENTS.shared.md`, `skills/<name>/SKILL.md`, `.claude/COMPANIONS.md` and `tools/*.ps1` are
+all — `AGENTS.shared.md`, `skills/<name>/SKILL.md`, `.claude/COMPANIONS.md` and `tools/*.ts` are
 read from the installed kit now, never from a per-repo copy. Every `SubZeroDev.*` repository
 installed before that change still carries a copy of each. **This command is the one-time
 migration that removes them** — and only them: `skills/<name>/SKILL-local.md` files are the
@@ -53,7 +53,7 @@ Check the target for each of these, present or absent:
   copied one, so it is never a candidate here, and this command does not open it, hash it, or
   report on it.
 - `.claude/COMPANIONS.md` — retired from the kit, but an older install copied it
-- `tools/*.ps1`
+- `tools/*.ps1` (legacy) and `tools/*.ts`
 
 For each one **present** in the target, ask whether its exact content was ever, at any point,
 actually shipped by the kit — not whether it matches the kit's *current* copy, since a target

@@ -13,7 +13,7 @@ Include what you can of:
 
 - what an attacker can do, and what they need first (a fork, a crafted repository, local access)
 - the steps to reproduce, and the commit or release tag you tested
-- the platform and PowerShell version
+- the platform and Node version
 
 ## What to expect
 
