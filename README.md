@@ -15,7 +15,7 @@ skills/<name>/SKILL.md        slash commands, owned by the kit
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
 tools/merge-pull-request.ts   merges only when every check on the exact head passed
 tools/invoke-housekeeping.ts post-merge branch cleanup, no model call
-tools/Measure-Session.ps1     what a session actually cost, from the transcript
+tools/measure-session.ts     what a session actually cost, from the transcript
 codex/PROFILES.md             Codex profile definitions
 templates/design/*.md         seed copied into a target's design/
 reports/                      one-off verification and planning reports, kept for evidence
@@ -137,7 +137,7 @@ Installing is a **reconciliation, not a copy**. A repository that already has ag
 
 Use the same global `setup.ps1` command to update or roll back the shared checkout. `/sync` updates that checkout to the newest stable release (or an explicitly requested version), then reconciles the current target repository.
 
-**Update checks are automatic, and on by default.** The first AgentKit command you run in a session checks whether the installed runtime is behind what it tracks — the newest stable release, or `origin/<branch>` for a branch install — and, when it is, the agent runs the command anyway and ends its report with the upgrade command to run, so a check never stops the work to ask. Nothing is fetched into the working tree until you run that command, a pinned tag or SHA is never offered an update, and a check that cannot reach the origin stays silent. Turn it off with `tools/Get-AgentKitSkill.ps1 -SetAutoUpdate Off` (stored in `~/.agent-kit-state/config.json`; `-SetAutoUpdate On` restores it), or for one shell with `AGENTKIT_AUTO_UPDATE=0`.
+**Update checks are automatic, and on by default.** The first AgentKit command you run in a session checks whether the installed runtime is behind what it tracks — the newest stable release, or `origin/<branch>` for a branch install — and, when it is, the agent runs the command anyway and ends its report with the upgrade command to run, so a check never stops the work to ask. Nothing is fetched into the working tree until you run that command, a pinned tag or SHA is never offered an update, and a check that cannot reach the origin stays silent. Turn it off with `node tools/get-agentkit-skill.ts --set-auto-update Off` (stored in `~/.agent-kit-state/config.json`; `--set-auto-update On` restores it), or for one shell with `AGENTKIT_AUTO_UPDATE=0`.
 
 Design docs install at `design/` in the repository root, deliberately — `docs/` is usually occupied by a documentation site, and a design directory inside its build context gets baked into the published image. `INSTALL.md` still checks the path before creating anything.
 
@@ -180,17 +180,17 @@ Effort tracks irreversibility. Schemas and public interfaces are expensive to ch
 
 **Claude Code** — the bootstrap installs the commands as one plugin, `~/.claude/skills/agentkit`, which Claude Code loads in every session with no marketplace or install step. Every command is namespaced under it: `/agentkit:interview`, `/agentkit:brief`, `/agentkit:design`, `/agentkit:redteam`, `/agentkit:plan`, `/agentkit:next`, `/agentkit:fix`, `/agentkit:align`. The namespace is not optional. Bare `/plan` is Claude Code's own command, and `/design` is a skill it bundles. An install that predates the plugin had bare per-command folders under `~/.claude/skills/`; re-running `setup.ps1` moves them into the plugin and removes the bare folders, unless you edited one. Set the model per session with `/model`.
 
-**Codex** — the bootstrap creates two explicit skills per command. `$<command>` is the native mode: it reads the canonical skill from the installed checkout and works in the current Codex session. It uses that session's model and approval context. `$<command>-routed` runs `Start-AgentKitCodex.ps1` with `-NewWindow`, which opens a visible Windows terminal and launches the command through the existing profile, approval, and sandbox routing. Approvals and interaction happen in that visible terminal; opening it is not proof the command has completed.
+**Codex** — the bootstrap creates two explicit skills per command. `$<command>` is the native mode: it reads the canonical skill from the installed checkout and works in the current Codex session. It uses that session's model and approval context. `$<command>-routed` runs `start-agentkit-codex.ts` with `--new-window`, which opens a visible terminal and launches the command through the existing profile, approval, and sandbox routing. Approvals and interaction happen in that visible terminal; opening it is not proof the command has completed.
 
 Use native mode when the current session is the one you want to work in. Use routed mode when command routing and its profiles must select the session. Both read the same canonical skill and preserve the command arguments.
 
 For direct automation, call the routed launcher rather than rebuilding a prompt manually:
 
 ```powershell
-& (Join-Path $kitHome 'tools/Start-AgentKitCodex.ps1') -Command next -ArgumentsFile .\agentkit-arguments.json -NewWindow
+node "$kitHome/tools/start-agentkit-codex.ts" --command next --arguments-file ./agentkit-arguments.json --new-window
 ```
 
-**Copilot** — the bootstrap writes one native adapter per command to `~/.copilot/skills/<name>/SKILL.md`, plus the pointer file `~/.copilot/copilot-instructions.md`. There is no routed mode: the `-routed` pair is Codex-only, because routing means launching a session under a profile and only the Codex launcher does that. Each adapter reads the same canonical skill through `Get-AgentKitSkill.ps1` and executes it under this host's normal model policy — nothing selects a model for you, so pick one by [`AGENTS.shared.md`](AGENTS.shared.md), *Models*.
+**Copilot** — the bootstrap writes one native adapter per command to `~/.copilot/skills/<name>/SKILL.md`, plus the pointer file `~/.copilot/copilot-instructions.md`. There is no routed mode: the `-routed` pair is Codex-only, because routing means launching a session under a profile and only the Codex launcher does that. Each adapter reads the same canonical skill through `get-agentkit-skill.ts` and executes it under this host's normal model policy — nothing selects a model for you, so pick one by [`AGENTS.shared.md`](AGENTS.shared.md), *Models*.
 
 Two limits worth knowing before you rely on it. The bootstrap path is exercised by `tools/Install-AgentKit.Tests.ps1` — adapters are written, and uninstall removes them — but nothing here exercises *invoking* a command under Copilot, so treat host parity as unproven rather than established. And unlike the Claude adapters, Copilot's carry no `disable-model-invocation` flag, so the only thing discouraging the host from starting a command on its own initiative is the adapter description's "Use only when the user requests this command."
 
@@ -213,10 +213,10 @@ You hit limits across all three subscriptions, so the allocation matters more th
 
 A wrong architecture costs several full re-implementations. A thin spec costs a few thousand tokens. Spend accordingly.
 
-Those are estimates. `tools/Measure-Session.ps1` reports what a session actually cost, read from the transcript rather than guessed:
+Those are estimates. `tools/measure-session.ts` reports what a session actually cost, read from the transcript rather than guessed:
 
 ```powershell
-pwsh ./tools/Measure-Session.ps1 -Detail
+node ./tools/measure-session.ts --detail
 ```
 
 It reports the four input classes separately because they are priced differently and behave differently. On the first sessions measured here, cache reads ran roughly fifty times cache creation — a single "tokens in" figure would have hidden the only term that was growing.

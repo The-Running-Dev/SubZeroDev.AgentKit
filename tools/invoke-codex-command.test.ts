@@ -1,0 +1,44 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { buildInvocation, commandProfiles, listCommands, profileConfig, profileTiers, projectDocByteBudget, skillPrompt } from './invoke-codex-command.ts';
+import { resolveKitRoot } from './lib/kit-root.ts';
+import { put, repo, temp } from './lib/fixtures.ts';
+const launch = (command: string, effort?: string) => buildInvocation({ command, effort });
+const shared = readFileSync(new URL('../AGENTS.shared.md', import.meta.url), 'utf8');
+const docs = readFileSync(new URL('../codex/PROFILES.md', import.meta.url), 'utf8');
+function rows(text: string) { return text.split(/\r?\n/).flatMap(line => { const cells = line.split('|').slice(1, -1).map(c => c.trim()); if (!cells[0]?.includes('`/') || cells[0].includes('→')) return []; const names = [...cells[0].matchAll(/`\/([a-z-]+)`/g)].map(m => m[1]); if (!names.length) return []; return [{ names, alias: /`(opus|sonnet)`/.exec(cells.slice(1).join('|'))?.[1] || cells[1] }]; }); }
+function mismatches(text: string) { const found = rows(text); return Object.entries(commandProfiles).flatMap(([name, profile]) => { const matches = found.filter(r => r.names.includes(name)); if (matches.length !== 1) return [`${name}: coverage ${matches.length}`]; const tier = ({ opus: 'Deep reasoning', sonnet: 'Implementation' } as Record<string, string>)[matches[0].alias]; return tier !== profileTiers[profile] ? [`${name}: ${matches[0].alias} does not match ${profileTiers[profile]}`] : []; }); }
+function documented(text: string) { const profiles: Record<string, Record<string, string>> = {}; for (const m of text.matchAll(/~\/\.codex\/(\w+)\.config\.toml[^\n]*\n```toml\n([\s\S]*?)```/g)) profiles[m[1]] = Object.fromEntries([...m[2].matchAll(/^(\w+)\s*=\s*"([^"]*)"/gm)].map(x => [x[1], x[2]])); return profiles; }
+test('maps every supported command', () => { assert.equal(listCommands().length, 12); for (const name of Object.keys(commandProfiles)) assert.equal(launch(name).Environment.AGENTKIT_COMMAND, '/' + name); });
+test('rejects an unknown command', () => assert.throws(() => launch('unknown'), /No profile mapping/));
+test('stamps the architect tier', () => assert.equal(launch('brief').Environment.AGENTKIT_TIER, 'Deep reasoning'));
+test('stamps the builder tier', () => assert.equal(launch('next').Environment.AGENTKIT_TIER, 'Implementation'));
+test('stamps an explicit effort override', () => assert.equal(launch('next', 'high').Environment.AGENTKIT_EFFORT, 'high'));
+test('stamps all five environment values', () => assert.deepEqual(launch('next').Environment, { AGENTKIT_TIER: 'Implementation', AGENTKIT_MODEL: 'gpt-5.6-terra', AGENTKIT_EFFORT: 'medium', AGENTKIT_COMMAND: '/next', AGENTKIT_PROFILE: 'builder' }));
+test('uses high rather than xhigh for every deep reasoning command', () => { for (const c of ['brief', 'interview', 'design', 'plan', 'redteam', 'align']) assert.equal(launch(c).Environment.AGENTKIT_EFFORT, 'high'); });
+test('uses medium for implementation commands', () => { for (const c of ['next', 'fix', 'sync']) assert.equal(launch(c).Environment.AGENTKIT_EFFORT, 'medium'); });
+test('keeps brief and redteam read only', () => { for (const c of ['brief', 'redteam']) assert.equal(launch(c).Arguments.at(-1), 'read-only'); });
+test('gives author commands a writable workspace', () => { for (const c of ['interview', 'design', 'plan', 'align']) assert.equal(launch(c).Arguments.at(-1), 'workspace-write'); });
+test('prefers a self hosted checkout over AGENTKIT_HOME', () => { const r = repo(), env = temp(); assert.equal(resolveKitRoot(pathToFileURL(join(r, 'tools/script.ts')).href, { AGENTKIT_HOME: env }), r); });
+test('falls back to AGENTKIT_HOME outside a checkout', () => { const r = temp(), env = temp(); assert.equal(resolveKitRoot(pathToFileURL(join(r, 'tools/script.ts')).href, { AGENTKIT_HOME: env }), env); });
+test('falls back to the home installation', () => { const r = temp(), home = temp(); mkdirSync(join(home, '.agent-kit')); assert.equal(resolveKitRoot(pathToFileURL(join(r, 'tools/script.ts')).href, {}, home), join(home, '.agent-kit')); });
+test('names all attempted roots when none exists', () => { const r = temp(), home = temp(), env = join(home, 'absent'); assert.throws(() => resolveKitRoot(pathToFileURL(join(r, 'tools/script.ts')).href, { AGENTKIT_HOME: env }, home), e => { const s = String(e); return [r, env, join(home, '.agent-kit')].every(x => s.includes(x)); }); });
+test('finds shared command routing rows', () => assert.ok(rows(shared).length >= 6));
+test('maps shared model aliases to the named tiers', () => { assert.match(shared, /\*\*Deep reasoning\*\*.*`opus`.*`architect`/); assert.match(shared, /\*\*Implementation\*\*.*`sonnet`.*`builder`/); });
+test('covers each launch command exactly once in the shared table', () => { for (const c of Object.keys(commandProfiles)) assert.equal(rows(shared).filter(r => r.names.includes(c)).length, 1, c); });
+test('agrees with the shared tier table', () => assert.deepEqual(mismatches(shared), []));
+const fixture = '| `/brief`, `/redteam` | `opus`, `high` | note |\n| `/next` | `sonnet`, `medium` | `high` when difficult |';
+test('parses tier aliases without confusing notes and effort', () => assert.deepEqual(rows(fixture), [{ names: ['brief', 'redteam'], alias: 'opus' }, { names: ['next'], alias: 'sonnet' }]));
+test('accepts a corresponding routing fixture', () => assert.deepEqual(mismatches(shared), []));
+test('detects a wrong routing tier', () => assert.ok(mismatches(shared.replace('| `/next` | `sonnet`', '| `/next` | `opus`')).some(x => x.startsWith('next:'))));
+test('detects an unrecognized model alias', () => assert.ok(mismatches(shared.replace('| `/next` | `sonnet`', '| `/next` | `unknown`')).some(x => x.startsWith('next:'))));
+test('detects a missing command row', () => assert.ok(mismatches(shared.split('\n').filter(l => !l.startsWith('| `/next`')).join('\n')).some(x => x === 'next: coverage 0')));
+test('documents every configured profile', () => assert.deepEqual(Object.keys(documented(docs)).sort(), Object.keys(profileConfig).sort()));
+test('documents the exact launcher profile fields', () => { for (const [name, p] of Object.entries(profileConfig)) assert.deepEqual(documented(docs)[name], { model: p.Model, model_reasoning_effort: p.Effort, approval_policy: p.Approval, sandbox_mode: p.Sandbox }); });
+test('detects an incorrect profile document without normalizing the value', () => { const bad = documented(docs.replace('model = "gpt-5.6-sol"', 'model = "wrong"')); assert.equal(bad.architect.model, 'wrong'); assert.notEqual(bad.architect.model, profileConfig.architect.Model); });
+test('inlines canonical skill content and preserves JSON arguments', () => { const args = ['space value', 'quote"', 'line\nbreak', '-switch'], prompt = skillPrompt('next', args, 'exact skill body'); assert.match(prompt, /exact skill body/); assert.deepEqual(JSON.parse(prompt.split('exactly):\n')[1]), args); });
+test('distinguishes explicit empty skill arguments and computes the project doc budget', () => { const r = repo(), sub = join(r, 'sub'); mkdirSync(sub); put(r, 'AGENTS.md', 'parent'); put(sub, 'AGENTS.override.md', 'child'); put(sub, 'AGENTS.md', 'ignored'); assert.equal(projectDocByteBudget(sub), 11); const inv = buildInvocation({ command: 'next', skillArguments: [], skill: 'body', cwd: sub }); assert.match(inv.Arguments.at(-1)!, /\[\]$/); assert.ok(inv.Arguments.includes('project_doc_max_bytes=11')); });
+test('passes legacy Codex arguments without injecting the canonical prompt', () => { const inv = buildInvocation({ command: 'next', codexArgs: ['--resume', 'hello world'] }); assert.deepEqual(inv.Arguments.slice(-2), ['--resume', 'hello world']); assert.doesNotMatch(inv.Arguments.join('\n'), /canonical skills/); });

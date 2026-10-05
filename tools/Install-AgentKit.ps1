@@ -292,10 +292,13 @@ function Update-Hooks([switch] $Remove) {
     $path = Join-Path $HOME '.claude/settings.json'
     $settings = if (Test-Path -LiteralPath $path) { Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable } else { @{} }
     if (-not $settings.ContainsKey('hooks')) { $settings.hooks = @{} }
-    $measure = (Join-Path $installRoot 'tools/Measure-Session.ps1').Replace('\','/')
-    $entry = [ordered]@{ hooks = @([ordered]@{ type='command'; command='pwsh'; args=@('-NoProfile','-File',$measure,'-Hook'); timeout=30 }) }
+    $measure = (Join-Path $installRoot 'tools/measure-session.ts').Replace('\','/')
+    $legacyMeasure = (Join-Path $installRoot 'tools/Measure-Session.ps1').Replace('\','/')
+    $entry = [ordered]@{ hooks = @([ordered]@{ type='command'; command='node'; args=@($measure,'--hook'); timeout=30 }) }
+    $legacy = [ordered]@{ hooks = @([ordered]@{ type='command'; command='pwsh'; args=@('-NoProfile','-File',$legacyMeasure,'-Hook'); timeout=30 }) }
+    $legacySerialized = ConvertTo-Json -InputObject $legacy -Depth 10 -Compress
     $serialized = ConvertTo-Json -InputObject $entry -Depth 10 -Compress
-    $kept = @($settings.hooks['SessionEnd'] | Where-Object { $_ -and (ConvertTo-Json -InputObject $_ -Depth 10 -Compress) -cne $serialized })
+    $kept = @($settings.hooks['SessionEnd'] | Where-Object { $_ -and (ConvertTo-Json -InputObject $_ -Depth 10 -Compress) -cnotin @($serialized,$legacySerialized) })
     # [object[]] cast guards against PowerShell unrolling a one-element array back to
     # a scalar when captured from an if/else block, which serialized this key as a
     # bare object instead of a single-element array.
@@ -306,7 +309,7 @@ function Update-Hooks([switch] $Remove) {
     if ($settings.hooks.ContainsKey('UserPromptSubmit')) {
         $watch = @($settings.hooks['UserPromptSubmit'] | Where-Object {
             $text = ConvertTo-Json -InputObject $_ -Depth 10 -Compress
-            -not ($text.Contains($measure) -and $text.Contains('-Watch'))
+            -not ($text.Contains($legacyMeasure) -and $text.Contains('-Watch'))
         })
         if ($watch.Count) { $settings.hooks['UserPromptSubmit'] = [object[]]$watch } else { $settings.hooks.Remove('UserPromptSubmit') }
     }
@@ -365,7 +368,7 @@ function Invoke-Doctor {
             $issues.Add("Hooks are managed but '$hooksPath' does not exist.")
         } else {
             $settings = Get-Content -LiteralPath $hooksPath -Raw | ConvertFrom-Json -AsHashtable
-            $expected = [ordered]@{ hooks = @([ordered]@{ type='command'; command='pwsh'; args=@('-NoProfile','-File',(Join-Path $installRoot 'tools/Measure-Session.ps1').Replace('\','/'),'-Hook'); timeout=30 }) }
+            $expected = [ordered]@{ hooks = @([ordered]@{ type='command'; command='node'; args=@((Join-Path $installRoot 'tools/measure-session.ts').Replace('\','/'),'--hook'); timeout=30 }) }
             $serialized = ConvertTo-Json -InputObject $expected -Depth 10 -Compress
             $present = $settings.ContainsKey('hooks') -and $settings.hooks.ContainsKey('SessionEnd') -and
                 @($settings.hooks['SessionEnd'] | Where-Object { $_ -and (ConvertTo-Json -InputObject $_ -Depth 10 -Compress) -ceq $serialized }).Count -gt 0
@@ -452,7 +455,7 @@ if (-not $RegisterOnly) {
 
 # Verify canonical dependencies before writing host state. A download of SKILL.md alone
 # cannot satisfy this boundary.
-foreach ($relative in @('AGENTS.shared.md','templates','tools/Invoke-CodexCommand.ps1','tools/Start-AgentKitCodex.ps1','tools/Get-AgentKitSkill.ps1')) {
+foreach ($relative in @('AGENTS.shared.md','templates','tools/invoke-codex-command.ts','tools/start-agentkit-codex.ts','tools/get-agentkit-skill.ts')) {
     if (-not (Test-Path -LiteralPath (Join-Path $installRoot $relative))) { throw "Incomplete runtime: missing '$relative'." }
 }
 $skills = @(Get-ChildItem -LiteralPath (Join-Path $installRoot 'skills') -Directory | Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md') } | Sort-Object Name)
@@ -474,13 +477,13 @@ function New-Adapter([string] $Name, [string] $RegistrationName, [string] $HostN
 This is an explicit routed invocation. Do not execute the command in this session.
 Write the user's command arguments verbatim as a UTF-8 JSON array of strings to a
 unique temporary file outside the project. Do not interpolate arguments into shell code.
-Invoke the following in PowerShell, substituting only the temporary file's literal path:
+Invoke the following with Node, substituting only the temporary file's literal path:
 
-``````powershell
-& '$escaped/tools/Start-AgentKitCodex.ps1' -Command '$Name' -ArgumentsFile '<temporary JSON path>' -NewWindow
+``````text
+node "$root/tools/start-agentkit-codex.ts" --command $Name --arguments-file "<temporary JSON path>" --new-window
 ``````
 
-This opens a visible Windows terminal. The user interacts with that terminal for
+This opens a visible terminal. The user interacts with that terminal for
 approvals and session completion. Report that it launched; do not claim the command
 completed. Never substitute headless codex exec or auto-answer child approvals.
 "@
@@ -493,11 +496,11 @@ completed. Never substitute headless codex exec or auto-answer child approvals.
 $native
 
 Load the complete canonical command through this reader, then execute the returned
-body with the user's arguments. The reader resolves kit dependencies to absolute
+JSON object's Content with the user's arguments. The reader resolves kit dependencies to absolute
 paths without moving project files:
 
-``````powershell
-& '$escaped/tools/Get-AgentKitSkill.ps1' -Command '$Name'
+``````text
+node "$root/tools/get-agentkit-skill.ts" --command $Name
 ``````
 
 The source is [$root/skills/$Name/SKILL.md]($root/skills/$Name/SKILL.md).

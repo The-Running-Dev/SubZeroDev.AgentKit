@@ -94,13 +94,13 @@ That list is what the upgrade actually consists of. Without it, "is this repo cu
 
 **Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately.
 
-**One exception, bounded to one event.** `tools/Measure-Session.ps1` runs as a `SessionEnd` hook, which can only live in `settings.json`. Installing it is permitted under all of these, together:
+**One exception, bounded to one event.** `tools/measure-session.ts` runs as a `SessionEnd` hook, which can only live in `settings.json`. Installing it is permitted under all of these, together:
 
 - **Only the `hooks.SessionEnd` key**, and only this script's hook. Every other key is untouchable — `permissions` and `model` especially, which are the deliberate pins the rule above exists to protect.
 - **Propose the exact JSON and wait.** This is not covered by any carve-out; it is a write to a file that controls how the target's sessions behave.
 - **If a hook already exists on that event, stop and report it.** Do not append to it, do not merge into it. A second hook on one event is a behaviour the target did not ask for.
 - **Absent `settings.json`** may be created containing only these hooks, under the same sign-off.
-- **Needs PowerShell 7 on `PATH`.** Check with `Get-Command pwsh`; if it is missing, skip the hooks, install the script, and say which you did.
+- **Needs Node ≥ 22.18 on `PATH`.** Check with `node --version`; if it is missing, skip the hooks, install the script, and say which you did.
 - **A `UserPromptSubmit` hook running `Measure-Session.ps1 -Watch` is retired.** Propose removing it under the same sign-off; the script no longer accepts `-Watch`, so the hook fails on every prompt.
 
 Nothing else about the target's configuration is yours, and this exception does not generalise to another event later. Widening it is a decision, not an install detail. `.claude/kit.json` **is** yours: it is this procedure's own record, written in phase 4. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
