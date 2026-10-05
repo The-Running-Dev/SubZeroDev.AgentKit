@@ -20,23 +20,27 @@ export function windowFiles(command: string, argumentsFile: string, cwd = proces
   writeFileSync(loader, `const fs = require('node:fs');\nconst path = require('node:path');\n(async () => {\n  const p = JSON.parse(fs.readFileSync(path.join(__dirname, 'payload.json'), 'utf8'));\n  process.chdir(p.cwd);\n  const m = await import(p.launcher);\n  process.exitCode = m.invokeCodex({command:p.command, skillArguments:m.readArgumentsFile(p.argumentsFile), cwd:p.cwd});\n})().catch(e => { console.error(e.message); process.exitCode = 2; });\n`, { mode: 0o600 });
   return { payload, loader, directory };
 }
+// cmd start is necessary to create a visible console. Its command contains only
+// controlled, quoted executable/file paths; refuse shell metacharacters. Spawn it
+// verbatim: Node's default quoting escapes inner quotes as \" and cmd.exe cannot
+// parse that. /s then strips only the outer pair of quotes.
+export function windowsStartArgs(node: string, loader: string, startFlags: string[] = []) {
+  for (const path of [node, loader]) if (/["%!\r\n&|<>^]/.test(path)) throw new Error('Terminal launch paths contain shell metacharacters. Run without --new-window for foreground mode.');
+  return ['/d', '/s', '/c', `"start "" ${startFlags.map(flag => flag + ' ').join('')}"${node}" "${loader}""`];
+}
 export function startWindow(command: string, argumentsFile: string, config: { cwd?: string; platform?: NodeJS.Platform; env?: NodeJS.ProcessEnv; runner?: Runner; node?: string; terminal?: string } = {}) {
   const platform = config.platform || process.platform, env = config.env || process.env, runner = config.runner || run, node = config.node || process.execPath;
   const terminal = config.terminal || (platform === 'win32' ? env.ComSpec || 'cmd.exe' : platform === 'darwin' ? findExecutable('open', env, platform) : platform === 'linux' ? findExecutable('x-terminal-emulator', env, platform) : undefined);
   if (!terminal) throw new Error(`No supported terminal available on ${platform}. Run without --new-window for foreground mode.`);
   const files = windowFiles(command, argumentsFile, config.cwd);
   let args: string[];
-  if (platform === 'win32') {
-    // cmd start is necessary to create a visible console. Its command contains
-    // only controlled, quoted executable/file paths; refuse shell metacharacters.
-    for (const path of [node, files.loader]) if (/["%!\r\n&|<>^]/.test(path)) throw new Error('Terminal launch paths contain shell metacharacters. Run without --new-window for foreground mode.');
-    args = ['/d', '/s', '/c', `start "" "${node}" "${files.loader}"`];
-  } else if (platform === 'darwin') {
+  if (platform === 'win32') args = windowsStartArgs(node, files.loader);
+  else if (platform === 'darwin') {
     const quote = (path: string) => "'" + path.replaceAll("'", "'\\''") + "'", script = join(files.directory, 'launch.command');
     writeFileSync(script, `#!/bin/sh\nexec ${quote(node)} ${quote(files.loader)}\n`, { mode: 0o700 }); chmodSync(script, 0o700);
     args = ['-a', 'Terminal', script];
   } else args = ['-e', node, files.loader];
-  const result = runner(terminal, args, { cwd: config.cwd, env, windowsHide: false });
+  const result = runner(terminal, args, { cwd: config.cwd, env, windowsHide: false, windowsVerbatimArguments: platform === 'win32' });
   if (!result.found || result.code !== 0) throw new Error(`Could not open terminal: ${result.stderr || terminal}. Run without --new-window for foreground mode.`);
   return { Started: true, Payload: files.payload };
 }
