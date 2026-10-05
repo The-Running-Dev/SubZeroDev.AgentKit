@@ -18,7 +18,7 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) { throw 'AgentKit req
 $nodeArgs = @((Join-Path $PSScriptRoot 'setup.ts'))
 $names = @{Version='version';Source='source';Prefix='prefix';PreviousCommit='previous-commit';RequestedVersion='requested-version'}
 foreach ($key in $names.Keys) {
-    if ($PSBoundParameters.ContainsKey($key) -and [string]$PSBoundParameters[$key] -ne '') { $nodeArgs += @('--' + $names[$key], [string]$PSBoundParameters[$key]) }
+    if ($PSBoundParameters.ContainsKey($key) -and [string]$PSBoundParameters[$key] -ne '') { $nodeArgs += @(('--' + $names[$key]), [string]$PSBoundParameters[$key]) }
 }
 $flags = @{DryRun='dry-run';Uninstall='uninstall';Force='force';Verify='verify';RegisterOnly='register-only'}
 foreach ($key in $flags.Keys) { if ($PSBoundParameters[$key]) { $nodeArgs += '--' + $flags[$key] } }
