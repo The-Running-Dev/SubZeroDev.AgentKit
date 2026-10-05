@@ -35,6 +35,8 @@ const forward = (path: string) => path.replaceAll('\\', '/');
 export const hash = (text: string | Buffer) => createHash('sha256').update(text).digest('hex').toUpperCase();
 const stat = (path: string) => { try { return lstatSync(path); } catch { return undefined; } };
 const read = (path: string) => readFileSync(path, 'utf8').replace(/^\uFEFF/, '');
+// PowerShell's pipeline serialized one hook group as an object in older releases.
+const hookGroups = (value: unknown): unknown[] => value == null ? [] : Array.isArray(value) ? value : [value];
 export function normalizeOrigin(value: string) {
   const m = /^(?:https:\/\/github\.com\/|git@github\.com:)(.+?)(?:\.git)?\/?$/i.exec(value);
   return m ? 'github:' + m[1].replace(/\/$/, '').toLowerCase() : existsSync(value) ? resolve(value).replace(/[\\/]+$/, '') : value.replace(/\/+$/, '');
@@ -168,10 +170,10 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     const settings = existsSync(hooksPath) ? JSON.parse(read(hooksPath)) : {};
     settings.hooks ||= {};
     const signatures = [hook(root), hook(root, true)].map(h => JSON.stringify(h));
-    const kept = (settings.hooks.SessionEnd || []).filter((h: unknown) => h && !signatures.includes(JSON.stringify(h)));
+    const kept = hookGroups(settings.hooks.SessionEnd).filter(h => h && !signatures.includes(JSON.stringify(h)));
     settings.hooks.SessionEnd = remove ? kept : [...kept, hook(root)];
     if (settings.hooks.UserPromptSubmit) {
-      const watch = settings.hooks.UserPromptSubmit.filter((h: unknown) => { const text = JSON.stringify(h); return !(text.includes(forward(join(root, 'tools/Measure-Session.ps1'))) && text.includes('-Watch')); });
+      const watch = hookGroups(settings.hooks.UserPromptSubmit).filter(h => { const text = JSON.stringify(h); return !(text.includes(forward(join(root, 'tools/Measure-Session.ps1'))) && text.includes('-Watch')); });
       if (watch.length) settings.hooks.UserPromptSubmit = watch; else delete settings.hooks.UserPromptSubmit;
     }
     const json = JSON.stringify(settings, null, 2);
@@ -204,7 +206,7 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     }
     if (manifest.hooksManaged) {
       if (!existsSync(hooksPath)) Issues.push(`Hooks are managed but '${hooksPath}' does not exist.`);
-      else if (!JSON.parse(read(hooksPath)).hooks?.SessionEnd?.some((h: unknown) => JSON.stringify(h) === JSON.stringify(hook(root)))) Issues.push(`Expected SessionEnd hook entry missing from '${hooksPath}'.`);
+      else if (!hookGroups(JSON.parse(read(hooksPath)).hooks?.SessionEnd).some(h => JSON.stringify(h) === JSON.stringify(hook(root)))) Issues.push(`Expected SessionEnd hook entry missing from '${hooksPath}'.`);
     }
     return result(Issues.length ? 'Unhealthy' : 'OK', { Issues, Notes });
   }

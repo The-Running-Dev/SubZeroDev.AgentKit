@@ -92,6 +92,16 @@ it('install strips the retired Watch hook and keeps foreign prompt hooks', f => 
   settings.hooks.UserPromptSubmit = [{ hooks: [{ type: 'command', command: `pwsh -NoProfile -File ${measure} -Watch`, timeout: 10 }] }, { hooks: [{ type: 'command', command: 'pwsh', args: ['-NoProfile', '-File', measure, '-Watch'], timeout: 10 }] }, foreign];
   writeFileSync(f.settings, JSON.stringify(settings)); success(f); assert.deepEqual(json(f.settings).hooks.UserPromptSubmit, [foreign]); assert.deepEqual(json(f.settings).hooks.SessionEnd, [hook(f.root)]);
 });
+it('upgrades singleton hook objects emitted by the old PowerShell installer', f => {
+  success(f);
+  const watch = { hooks: [{ ...hook(f.root, true).hooks[0], args: [...hook(f.root, true).hooks[0].args.slice(0, -1), '-Watch'], timeout: 10 }] };
+  writeFileSync(f.settings, JSON.stringify({ hooks: { SessionEnd: hook(f.root, true), UserPromptSubmit: watch } }));
+  assert.deepEqual(success(f).Collisions, []);
+  assert.deepEqual(json(f.settings).hooks.SessionEnd, [hook(f.root)]);
+  assert.equal(json(f.settings).hooks.UserPromptSubmit, undefined);
+  success(f, { uninstall: true });
+  assert.deepEqual(json(f.settings).hooks.SessionEnd, []);
+});
 it('uninstall Force removes only the validated canonical checkout', f => { success(f); success(f, { uninstall: true, force: true }); assert.ok(!existsSync(f.root)); assert.ok(existsSync(join(f.project, 'keep.txt'))); });
 it('updating after a removed core cleans stale managed registrations', f => { success(f); git(f.origin, 'rm', 'skills/next/SKILL.md'); git(f.origin, 'commit', '-qm', 'remove next'); git(f.origin, 'tag', 'v2026.09.18'); success(f); for (const path of [cskill(f), cskill(f, 'next-routed'), join(f.plugin, 'skills/next')]) assert.ok(!existsSync(path)); });
 it('retargeted legacy manifest links survive refresh and uninstall', f => {
