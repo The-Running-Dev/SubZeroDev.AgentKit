@@ -12,11 +12,11 @@ heading — this preamble, the `## Landed` table — is never a slice and is nev
 
 ## S33 — A design check the agent runs and keeps passing itself
 Status: done
-Delivers: `tools/Test-Design.ps1`, a read-only check that the facts `design/`, the command files
+Delivers: `tools/test-design.ts` (first written as `Test-Design.ps1`, ported in S34), a read-only check that the facts `design/`, the command files
 and the agent contract state about the tree are true. CI runs it on every pull request, and
 `/next` runs it before each pull request and once more when the plan is finished, so keeping it
 green is part of the agent's normal work and never the user's.
-Touches: `tools/Test-Design.ps1`, `tools/Test-Design.Tests.ps1`, `.github/workflows/verify.yml`,
+Touches: `tools/test-design.ts`, `tools/test-design.test.ts`, `.github/workflows/verify.yml`,
 `skills/next/SKILL.md`, `.claude/verify-report.json`
 Depends on: none
 Acceptance:
@@ -46,6 +46,32 @@ Acceptance:
 Out of scope: editing `design/` to clear a finding (that is `/align`); judging whether prose
 describes behaviour correctly; restoring the design-state records, projections or per-slice
 issues.
+
+## S34 — The kit runs on Node and TypeScript, with no PowerShell
+Status: done
+Delivers: every script under `tools/` and the installer (`setup.ts`, `tools/install-agentkit.ts`)
+ported from PowerShell to Node >= 22.18 running TypeScript directly, with no runtime
+dependencies, verified on Windows, Linux and macOS. Recorded after the fact (#444–#456, released
+as `v2026.10.06`); this slice was commissioned directly and not built through `/next`.
+Touches: `tools/`, `setup.ts`, `.github/workflows/verify.yml`, `README.md`, `INSTALL.md`,
+`skills/`, `design/`.
+Depends on: S33
+Acceptance:
+  - S34.1 Every script in the contract's *Scripts* table is a `.ts` file under `tools/` (or
+    `setup.ts`) with a test beside it, and no `.ps1` file remains in the tree.
+  - S34.2 `verify.yml` runs typecheck, the no-runtime-dependency check, the Node tests and the
+    no-attribution check on `node-windows`, `node-linux` and `node-macos`, and Windows and Linux
+    on both Node 22.18 and 24. The `videos` job still runs.
+  - S34.3 A fresh `node setup.ts` with no `--version` resolves the newest stable tag and its
+    reported commit is the release commit (checked for `v2026.10.06`: Claude, Codex and Copilot,
+    no collisions, `--verify` returns `OK`).
+  - S34.4 An old Node is refused with the AgentKit message before any TypeScript loads.
+  - S34.5 The installer no longer rolls a failed install back and carries no PowerShell bridge or
+    legacy-upgrade path; an install whose root is not a current AgentKit checkout is refused
+    ("not an AgentKit checkout").
+Out of scope: changing what any script reports beyond the parity fixes in #454; the
+`design/20-contract.md` text of S33's done criteria, which still names `Test-Design.ps1` and the
+`powershell` CI job and is left as written.
 
 ## Landed
 
