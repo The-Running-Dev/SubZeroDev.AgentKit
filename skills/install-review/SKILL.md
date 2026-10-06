@@ -19,7 +19,7 @@ This installs three things, and only one of them is this command's to do:
 
 ## Check prerequisites
 
-```powershell
+```sh
 gh auth status
 ```
 
@@ -27,9 +27,7 @@ Not authenticated, or `gh` missing entirely — stop and report. This command do
 
 ## Classify the workflow file
 
-```powershell
-Test-Path <target>/.github/workflows/claude-code-review.yml
-```
+Check whether `<target>/.github/workflows/claude-code-review.yml` exists.
 
 - **Absent** — proceed to *Choose a mode*.
 - **Present** — read it. If its `uses:` line already pins `anthropics/claude-code-action`, report **Identical** (or note a version difference) and stop; re-running this command is not how an existing installation is upgraded. If it is a different workflow that happens to occupy this filename, this is **Occupied** — stop and ask, the same as `INSTALL.md` phase 1 treats any other occupied artifact. Never overwrite a workflow file this command did not write.

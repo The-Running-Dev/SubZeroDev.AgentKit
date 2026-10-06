@@ -15,7 +15,7 @@ const json = (path: string) => JSON.parse(read(path));
 function fixture() {
   const base = temp(), origin = join(base, 'local origin'), home = join(base, 'temporary home'), project = join(base, 'project'), codex = join(base, 'custom codex home'), root = join(home, '.agent-kit');
   for (const dir of [origin, home, project]) mkdirSync(dir, { recursive: true });
-  const files = ['setup.ts', 'setup.ps1', 'package.json', 'AGENTS.shared.md', 'tools/Install-AgentKit.ps1'];
+  const files = ['setup.ts', 'setup.ps1', 'package.json', 'tools/package.json', 'AGENTS.shared.md', 'tools/Install-AgentKit.ps1'];
   for (const dir of ['tools', 'tools/lib']) for (const name of readdirSync(join(kit, dir))) if (name.endsWith('.ts') && !name.endsWith('.test.ts')) files.push(dir + '/' + name);
   for (const name of ['next', 'fix', 'align']) files.push(`skills/${name}/SKILL.md`);
   for (const path of files) put(origin, path, read(join(kit, path)));
@@ -117,8 +117,8 @@ it('upgrades exact legacy pointers but preserves recognizable customized legacy 
 it('upgrades an exact legacy pointer even with schemaVersion 2 and no pointers key', f => {
   git(f.origin, 'clone', '-q', f.origin, f.root); const path = put(f.home, '.claude/CLAUDE.md', legacy(f)); saveState(f, { schemaVersion: 2, installRoot: f.root, source: f.origin, registrations: [], pointerBlocks: {} }); success(f); assert.equal(read(path), pointer); assert.ok(state(f).pointerBlocks![path]);
 });
-it('failed setup after checkout reports previous commit and recovery without resetting', f => {
-  success(f); const previous = state(f).commit; git(f.origin, 'rm', 'tools/get-agentkit-skill.ts'); git(f.origin, 'commit', '-qm', 'incomplete runtime'); git(f.origin, 'tag', 'v2026.09.18'); const r = failure(f, /Recovery:/); assert.ok(r.stderr.includes(`Previous commit: ${previous}`)); assert.equal(git(f.root, 'rev-parse', 'HEAD'), git(f.origin, 'rev-parse', 'HEAD'));
+it('failed setup after checkout restores the previous commit and names it', f => {
+  success(f); const previous = state(f).commit; git(f.origin, 'rm', 'tools/get-agentkit-skill.ts'); git(f.origin, 'commit', '-qm', 'incomplete runtime'); git(f.origin, 'tag', 'v2026.09.18'); const r = failure(f, /restored the checkout/); assert.ok(r.stderr.includes(`previous commit ${previous}`)); assert.equal(git(f.root, 'rev-parse', 'HEAD'), previous);
 });
 it('a selected-host update retains ownership of other installed hosts', f => { success(f); success(f, { hosts: ['codex'] }); assert.equal(state(f).registrations!.length, 13); success(f, { uninstall: true }); assert.ok(!existsSync(f.plugin)); });
 it('Verify reports OK and changes nothing after a healthy install', f => { success(f); const before = snapshot(f); assert.equal(success(f, { verify: true }).State, 'OK'); assert.deepEqual(snapshot(f), before); });
@@ -147,4 +147,28 @@ it('rollback without pwsh refuses before checkout or host state changes', f => {
   // Git uses the real runner; only executable discovery sees an empty PATH.
   assert.throws(() => install({ source: f.origin }, { env: { ...f.env, PATH: '', Path: '' }, runner: (command, args, options) => run(command, args, { ...options, env: f.env }) }), /requires missing pwsh/);
   assert.deepEqual(snapshot(f), before);
+});
+
+// Review follow-ups: a failed run leaves no partial state behind, so a plain re-run succeeds.
+const breakSettings = (f: Fixture) => put(f.home, '.claude/settings.json', '{ not json');
+it('a failed fresh install removes what it wrote and a re-run reports no collisions', f => {
+  breakSettings(f); const before = snapshot(f); failure(f, /rolled back/);
+  const after = snapshot(f); delete after.HEAD; delete after.status; assert.deepEqual(after, before);
+  put(f.home, '.claude/settings.json', '{}'); const r = success(f); assert.deepEqual(r.Collisions, []); assert.equal(success(f, { verify: true }).State, 'OK');
+});
+it('a failed upgrade restores registrations and checkout so the same upgrade then succeeds', f => {
+  success(f); put(f.origin, 'skills/plan/SKILL.md', 'plan'); git(f.origin, 'add', 'skills/plan/SKILL.md'); git(f.origin, 'commit', '-qm', 'new skill'); git(f.origin, 'tag', 'v2026.09.18');
+  breakSettings(f); const before = snapshot(f); failure(f, /rolled back/); assert.deepEqual(snapshot(f), before);
+  put(f.home, '.claude/settings.json', '{}'); const r = success(f); assert.deepEqual(r.Collisions, []); assert.equal(state(f).version, 'v2026.09.18');
+  assert.ok(existsSync(cskill(f, 'plan'))); assert.equal(success(f, { verify: true }).State, 'OK');
+});
+it('a failed branch update puts the local branch and HEAD back where they were', f => {
+  success(f, { version: 'main' }); const previous = git(f.root, 'rev-parse', 'HEAD');
+  writeFileSync(join(f.origin, 'AGENTS.shared.md'), 'next'); git(f.origin, 'commit', '-qam', 'next'); breakSettings(f);
+  failure(f, /rolled back/, { version: 'main' }); assert.equal(git(f.root, 'rev-parse', 'refs/heads/main'), previous); assert.equal(git(f.root, 'symbolic-ref', '--short', 'HEAD'), 'main');
+  put(f.home, '.claude/settings.json', '{}'); success(f, { version: 'main' }); assert.equal(git(f.root, 'rev-parse', 'HEAD'), git(f.origin, 'rev-parse', 'HEAD'));
+});
+test('setup refuses with the AgentKit message when Node cannot load TypeScript', () => {
+  const r = run(process.execPath, ['--no-experimental-strip-types', front, '--verify']);
+  assert.equal(r.code, 2, r.stderr); assert.equal(r.stdout, ''); assert.match(r.stderr, /^AgentKit needs Node's TypeScript type stripping/);
 });

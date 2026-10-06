@@ -6,7 +6,7 @@ disable-model-invocation: true
 ---
 
 Install the project-owned part of AgentKit. In a global skill invocation the adapter names the
-canonical kit root; otherwise resolve `$env:AGENTKIT_HOME`, then `$HOME/.agent-kit`. Read that
+canonical kit root; otherwise resolve the `AGENTKIT_HOME` environment variable, then `.agent-kit` in the home directory. Read that
 runtime's `INSTALL.md`. The kit itself is not the target repository.
 
 **$1** is the target repository path. When invoked from a target with the canonical kit path as

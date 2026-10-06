@@ -79,7 +79,11 @@ export function readSession(file: string, idleThresholdMinutes = 5) {
   return { id: basename(file, '.jsonl'), started: stamps.length ? new Date(stamps[0]).toISOString().slice(0, 19) : null, span: stamps.length >= 2 ? (stamps.at(-1)! - stamps[0]) / 1000 : 0, active: active / 1000, models: [...models].sort((a, b) => a.localeCompare(b)), segments: segments.filter(s => s.calls > 0) };
 }
 function total(segments: Usage[]): Usage { const sum = usageSum(); for (const segment of segments) add(sum, segment); return sum; }
-function jsonlFiles(directory: string): string[] { return readdirSync(directory, { withFileTypes: true }).filter(e => e.isFile() && /\.jsonl$/i.test(e.name)).map(e => join(directory, e.name)); }
+// Like Get-ChildItem in the PowerShell original, a path to one .jsonl file lists just that file.
+function jsonlFiles(directory: string): string[] {
+  if (statSync(directory).isFile()) return /\.jsonl$/i.test(directory) ? [directory] : [];
+  return readdirSync(directory, { withFileTypes: true }).filter(e => e.isFile() && /\.jsonl$/i.test(e.name)).map(e => join(directory, e.name));
+}
 function subagents(directory: string, id: string, threshold: number): Usage {
   const path = join(directory, id, 'subagents'), sum = usageSum();
   if (existsSync(path)) for (const file of jsonlFiles(path)) if (transcriptVendor(file) === 'claude') add(sum, total(readSession(file, threshold).segments));

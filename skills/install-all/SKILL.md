@@ -27,13 +27,13 @@ eighteen repositories at once rather than one.
 
 ## Phase 0 — Discover
 
-```powershell
-$kitRoot = git rev-parse --show-toplevel
-Get-ChildItem (Split-Path $kitRoot -Parent) -Directory -Filter 'SubZeroDev.*'
+```sh
+git rev-parse --show-toplevel
 ```
 
-Run this from the repository that holds the installed kit; `$kitRoot` is that repository's
-resolved Git root, and it is also the kit history Phase 1's check reads from.
+Run this from the repository that holds the installed kit. The path it prints is the kit root,
+`<kit-root>` below, and it is also the kit history Phase 1's check reads from. The candidates are
+the directories beside it, in its parent directory, whose names start with `SubZeroDev.`.
 
 - Drop the kit itself.
 - **Resolve every candidate's real root** with `git -C <candidate> rev-parse --show-toplevel`
@@ -59,10 +59,12 @@ For each one **present** in the target, ask whether its exact content was ever, 
 actually shipped by the kit — not whether it matches the kit's *current* copy, since a target
 installed two years ago legitimately carries an older one:
 
-```powershell
-$blobSha = git hash-object <target-file>
-git -C $kitRoot cat-file -e $blobSha 2>$null
+```sh
+git hash-object <target-file>
+git -C <kit-root> cat-file -e <blob-sha>
 ```
+
+The first prints the blob sha; the second checks it against the kit's history.
 
 - **Exit 0 — Deletable.** That exact byte content exists as a blob object somewhere in the kit's
   own git history, which is the kit's only record of what it ever released (`.claude/kit.json`'s
