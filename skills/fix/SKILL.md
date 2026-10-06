@@ -29,7 +29,7 @@ Read the source the defect lives in, and the parts of `design/20-contract.md` th
 
 Derive `fix/<issue>-<slug>` from the issue number and title, **after the issue exists** — never before, since the branch name needs a real number.
 
-Branch off the up-to-date default branch. Uncommitted work that is not this defect's is left alone — never staged, stashed or discarded — and named in the report.
+Branch off the up-to-date default branch, and run `node tools/ensure-project-files.ts --repo-root . --hook` so the commit-message hook is in place before the first commit. Uncommitted work that is not this defect's is left alone — never staged, stashed or discarded — and named in the report.
 
 ## Name the cause before writing the patch
 
