@@ -29,3 +29,5 @@ test('skills reference no removed tool', () => { for (const s of skills) for (co
 test('skills invoke no removed command', () => { for (const s of skills) for (const name of commands) assert.doesNotMatch(s.text, new RegExp('`/' + name + '[` ]'), s.name); });
 test('skills cite COMPANIONS.md only to migrate it away', () => { for (const s of skills.filter(s => s.name !== 'install-all')) assert.doesNotMatch(s.text, /COMPANIONS\.md/, s.name); });
 test('guard detects a removed tool and command when cited', () => { assert.match('run tools/Test-DesignState.ps1', /Test-DesignState/); assert.match('then run `/track` to sync', /`\/track[` ]/); });
+test('next appends its decisions to 90-decisions.md in the slice pull request', () => { assert.match(next, /Record the slice's decisions in `design\/90-decisions\.md` in this same branch/); assert.match(next, /Never edit or remove an existing entry/); });
+test('shared keeps the decision log current and append-only', () => assert.match(shared, /The one part kept current is `90-decisions\.md`\.[^\n]*only appends/));
