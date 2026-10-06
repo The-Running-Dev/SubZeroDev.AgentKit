@@ -51,6 +51,15 @@ export function owned(entry: Registration, root: string): boolean {
 export function hook(root: string) {
   return { hooks: [{ type: 'command', command: 'node', args: [forward(join(root, 'tools/measure-session.ts')), '--hook'], timeout: 30 }] };
 }
+// The PowerShell hook an install before the Node port wrote; its script is gone, so the entry fails at every session end.
+export function legacyHook(group: unknown, root: string) {
+  const script = forward(join(root, 'tools/Measure-Session.ps1')).toLowerCase();
+  const hooks = (group as { hooks?: unknown })?.hooks;
+  return Array.isArray(hooks) && hooks.length > 0 && hooks.every(h => {
+    const { command, args } = (h ?? {}) as { command?: unknown; args?: unknown };
+    return [command, ...(Array.isArray(args) ? args : [])].join(' ').replaceAll('\\', '/').toLowerCase().includes(script);
+  });
+}
 export function adapter(root: string, name: string, registrationName: string, host: Host, routed: boolean) {
   root = forward(root);
   const mode = routed ? 'routed, separate terminal' : host === 'codex' ? 'native, current session' : 'native';
@@ -173,7 +182,7 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     const settings = existsSync(hooksPath) ? JSON.parse(read(hooksPath)) : {};
     settings.hooks ||= {};
     const signatures = [JSON.stringify(hook(root))];
-    const kept = hookGroups(settings.hooks.SessionEnd).filter(h => h && !signatures.includes(JSON.stringify(h)));
+    const kept = hookGroups(settings.hooks.SessionEnd).filter(h => h && !signatures.includes(JSON.stringify(h)) && !legacyHook(h, root));
     settings.hooks.SessionEnd = remove ? kept : [...kept, hook(root)];
     const json = JSON.stringify(settings, null, 2);
     if (existsSync(hooksPath) && read(hooksPath) !== json && !input.dryRun) {
