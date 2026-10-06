@@ -53,22 +53,29 @@ why). No AI attribution anywhere.
 
 ## Scripts (`tools/`)
 
-| Script | Parameters | Result |
+Node >= 22.18, TypeScript run directly (`node tools/<name>.ts`), no runtime dependencies, no
+PowerShell. Options are `--kebab-case`; the parser is strict, so an unknown option is an error.
+Scripts never prompt and write JSON to stdout. Rewritten 2026-10-06 (#444–#456); the PowerShell
+surface is `git show v2026.09.24:design/20-contract.md`.
+
+| Script | Options | Result |
 |---|---|---|
-| `Wait-PullRequestCheck.ps1` | `-PullRequest`, `-HeadSha`, `[-Repository -TimeoutSeconds -PollSeconds -Quiet]` | `State` Passed / Failed / TimedOut / HeadMoved, with the checks bucketed |
-| `Merge-PullRequest.ps1` | `-PullRequest`, `-HeadSha`, `[-Repository -Method -TimeoutSeconds -PollSeconds -DeleteBranch -DryRun]` | `State` Merged or Refused with `Refusal`; never merges unless every check on the head passed and no thread is unresolved |
-| `Invoke-Housekeeping.ps1` | `[-RepoRoot -DefaultBranch -SkipPull]` | Switches to the default branch, pulls, deletes confirmed-merged branches; `Escalate` is true when a judgement case remains. Never stashes |
-| `Invoke-DoneHousekeeping.ps1` | `[-RepoRoot -DefaultBranch -SkipPull -DeleteBranches -ForceDeleteBranches -AutoStash -KeepDirty]` | Discovery and (when given a list) deletion; `-KeepDirty` proceeds on a dirty tree without touching it; `-AutoStash` stashes and reports the ref |
-| `Test-GatesCache.ps1` | `[-RepoRoot -Write -GatesJson]` | Reads or writes `.claude/gates.json`, keyed to a hash of the files that decide the gate list |
-| `Test-VerifyReport.ps1` | `[-Path -Quiet]` | Validates `.claude/verify-report.json` |
-| `Test-NoAttribution.ps1` | `-BaseSha`, `-HeadSha` | `RESULT=PASSED` or `FAILED` naming the commits |
-| `New-DesignDocs.ps1` | `[-TargetRepo -KitRoot -Force -Quiet]` | Seeds `design/` from `templates/design/` |
-| `Install-AgentKit.ps1` / `setup.ps1` | see the script | Installs, verifies (`-Verify`) or removes the home checkout and registrations |
-| `Get-AgentKitSkill.ps1`, `Invoke-CodexCommand.ps1`, `Start-AgentKitCodex.ps1` | see the script | Skill reading, Codex profile routing, Codex launch |
-| `Get-NextSlice.ps1` | `[-RepoRoot -DefaultBranch -Slice -PullRequestsJson -Quiet]` | `State` Resume / Start / Finished / Blocked with `Slice`, `Branch`, `PullRequest`, `Base`, `DirtyFiles`, `Reason`; reads the plan from `origin/<default>` after a fetch; read-only otherwise; exit 0 / 1 (Blocked) |
-| `Test-Design.ps1` | `[-RepoRoot -Quiet]` | `State` Passed / Failed / NotEvaluated with `Findings` (`Check`, `File`, `Line`, `Message`); read-only; exit 0 / 1 / 2 |
-| `RepoAliases.ps1` | see the script | Dot-sourced from a profile; a by-hand wrapper over `Invoke-Housekeeping.ps1` |
-| `Measure-Session.ps1` | `[-Project -TranscriptPath -SessionId -IdleThresholdMinutes -Detail -Human -Hook]` | Per-session cost report; `-Hook` appends a row on `SessionEnd` |
+| `wait-pull-request-check.ts` | `--pull-request`, `--head-sha`, `[--repository --timeout-seconds --poll-seconds --quiet]` | `State` Passed / Failed / TimedOut / HeadMoved, with the checks bucketed |
+| `merge-pull-request.ts` | `--pull-request`, `--head-sha`, `[--repository --method --timeout-seconds --poll-seconds --delete-branch --dry-run]` | `State` Merged or Refused with `Refusal`; never merges unless every check on the head passed and no thread is unresolved |
+| `invoke-housekeeping.ts` | `[--repo-root --default-branch --skip-pull]` | Switches to the default branch, pulls, deletes confirmed-merged branches; `Escalate` is true when a judgement case remains. Never stashes |
+| `invoke-done-housekeeping.ts` | `[--repo-root --default-branch --skip-pull --delete-branches --force-delete-branches --auto-stash --keep-dirty]`, each branch passed as its own flag value | Discovery and (when given a list) deletion; `--keep-dirty` proceeds on a dirty tree without touching it; `--auto-stash` stashes and reports the ref |
+| `test-gates-cache.ts` | `[--repo-root --write --gates-json]` | Reads or writes `.claude/gates.json`, keyed to a hash of the files that decide the gate list |
+| `test-verify-report.ts` | `[--path --quiet]` | Validates `.claude/verify-report.json` |
+| `test-no-attribution.ts` | `--base-sha`, `--head-sha` | `RESULT=PASSED` or `FAILED` naming the commits |
+| `new-design-docs.ts` | `[--target-repo --kit-root --force --quiet]` | Seeds `design/` from `templates/design/` |
+| `install-agentkit.ts` | `[--version --source --hosts --prefix --dry-run --uninstall --force --verify --register-only --previous-commit --requested-version]` | Installs, verifies or removes the home checkout and registrations; `State` Installed / DryRun / OK. Default version is the newest stable `vYYYY.MM.DD[.N]` tag, never `main`. A failed install is not rolled back |
+| `setup.ts` | the same options | The front door: refuses an old Node before loading TypeScript, then runs `install-agentkit.ts`. A checkout that is not a current AgentKit one is refused ("not an AgentKit checkout") |
+| `get-agentkit-skill.ts`, `invoke-codex-command.ts`, `start-agentkit-codex.ts` | see the script | Skill reading and update check, Codex profile routing, Codex launch |
+| `get-next-slice.ts` | `[--repo-root --default-branch --slice --pull-requests-json --quiet]` | `State` Resume / Start / Finished / Blocked with `Slice`, `Branch`, `PullRequest`, `Base`, `DirtyFiles`, `Reason`; reads the plan from `origin/<default>` after a fetch; read-only otherwise; exit 0 / 1 (Blocked) |
+| `test-design.ts` | `[--repo-root --quiet]` | `State` Passed / Failed / NotEvaluated with `Findings` (`Check`, `File`, `Line`, `Message`); read-only; exit 0 / 1 / 2 |
+| `measure-session.ts` | `[--project --transcript-path --session-id --idle-threshold-minutes --detail --human --hook]` | Per-session cost report; `--hook` appends a row on `SessionEnd` |
+
+`RepoAliases.ps1` is gone; there is no by-hand wrapper.
 
 ## Files the kit reads and writes in a repository
 
@@ -78,7 +85,7 @@ why). No AI attribution anywhere.
 ## Invariants
 
 - No command ends by asking the user to run another command or open a new session.
-- A merge happens only through `Merge-PullRequest.ps1`.
+- A merge happens only through `tools/merge-pull-request.ts`.
 - Housekeeping never stashes, resets or cleans a working tree.
 - The default branch is never committed to directly.
 - `design/` is never edited to match the code outside `/align`; `/next` edits only a slice's

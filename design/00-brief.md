@@ -21,7 +21,7 @@ one session, and stops only when the plan is finished or on a genuine blocker.
 ## Who it is for
 
 One developer working across several repositories on a Windows host, with Claude Code, Codex or
-Copilot as the agent. The kit installs once, machine-wide (`setup.ps1`), and each repository
+Copilot as the agent. The kit installs once, machine-wide (`setup.ts`), and each repository
 gets only its own `design/` and `AGENTS.md`.
 
 ## Done when
@@ -31,7 +31,7 @@ gets only its own `design/` and `AGENTS.md`.
 - No command ends by telling the user to start a new session or run another command.
 - `design/` is written during design and then left alone; where building departs from it, the
   pull request says so in a *Differs from design* section and nothing stops.
-- Merging happens only through `tools/Merge-PullRequest.ps1`, which fails closed.
+- Merging happens only through `tools/merge-pull-request.ts`, which fails closed.
 
 ## Non-goals
 
@@ -45,5 +45,5 @@ gets only its own `design/` and `AGENTS.md`.
 
 ## Environment
 
-Windows host, PowerShell Core, projects under `D:\Dropbox\Projects\`. Concurrency is
+Windows host (Node >= 22.18 and TypeScript for scripts; the kit also runs on macOS and Linux), projects under `D:\Dropbox\Projects\`. Concurrency is
 sequential by policy, not by lock: one build session per repository at a time.
