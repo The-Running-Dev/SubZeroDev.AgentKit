@@ -192,8 +192,14 @@ Use native mode when the current session is the one you want to work in. Use rou
 
 For direct automation, call the routed launcher rather than rebuilding a prompt manually:
 
+```sh
+node "${AGENTKIT_HOME:-$HOME/.agent-kit}/tools/start-agentkit-codex.ts" --command next --arguments-file ./agentkit-arguments.json --new-window
+```
+
+In Windows PowerShell, with `$kitHome` set as in the housekeeping example:
+
 ```powershell
-node "$kitHome/tools/start-agentkit-codex.ts" --command next --arguments-file ./agentkit-arguments.json --new-window
+node (Join-Path $kitHome 'tools/start-agentkit-codex.ts') --command next --arguments-file ./agentkit-arguments.json --new-window
 ```
 
 **Copilot** — the bootstrap writes one native adapter per command to `~/.copilot/skills/<name>/SKILL.md`, plus the pointer file `~/.copilot/copilot-instructions.md`. There is no routed mode: the `-routed` pair is Codex-only, because routing means launching a session under a profile and only the Codex launcher does that. Each adapter reads the same canonical skill through `get-agentkit-skill.ts` and executes it under this host's normal model policy — nothing selects a model for you, so pick one by [`AGENTS.shared.md`](AGENTS.shared.md), *Models*.
@@ -221,7 +227,7 @@ A wrong architecture costs several full re-implementations. A thin spec costs a 
 
 Those are estimates. `tools/measure-session.ts` reports what a session actually cost, read from the transcript rather than guessed:
 
-```powershell
+```sh
 node ./tools/measure-session.ts --detail
 ```
 

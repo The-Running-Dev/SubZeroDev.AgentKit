@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmdirSync, rmSync, unlinkSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { resolve, join, dirname, parse, relative, isAbsolute } from 'node:path';
 import { homedir, tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
@@ -107,9 +107,27 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
   };
   const gitOK = (args: string[]) => runner('git', ['-C', root, ...args], { env }).code === 0;
   const plan = (message: string) => operations.push((input.dryRun ? '[DryRun] ' : '') + message);
+  // Every write is journaled so a failed run can put back exactly what it changed;
+  // otherwise its unrecorded writes read as foreign collisions on the next run.
+  const undo: (() => void)[] = [];
+  const makeDirectory = (dir: string) => {
+    const created: string[] = []; for (let d = dir; !existsSync(d); d = dirname(d)) created.push(d);
+    mkdirSync(dir, { recursive: true }); undo.push(() => created.forEach(d => rmdirSync(d)));
+  };
+  const write = (path: string, text: string | Buffer) => {
+    makeDirectory(dirname(path));
+    const before = existsSync(path) ? readFileSync(path) : undefined;
+    writeFileSync(path, text); undo.push(() => before ? writeFileSync(path, before) : unlinkSync(path));
+  };
+  const rollback = () => {
+    const failed: string[] = [];
+    for (const step of undo.splice(0).reverse()) try { step(); } catch (error) { failed.push(error instanceof Error ? error.message : String(error)); }
+    return failed;
+  };
+  const rolledBack = (failed: string[]) => failed.length ? ` Rollback was incomplete: ${failed.join('; ')}` : ' Changes from this run were rolled back.';
   const save = (path: string, text: string) => {
     if (input.dryRun || (existsSync(path) && readFileSync(path, 'utf8') === text)) return;
-    mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text);
+    write(path, text);
   };
   const collision = (path: string) => { if (!collisions.includes(path)) collisions.push(path); plan(`Foreign or modified entry '${path}' already exists - skipped and left unchanged.`); };
   const result = (State: string, details: Record<string, unknown> = {}): InstallResult => ({ State, Root: root, Collisions: collisions, Operations: operations, ...details });
@@ -146,10 +164,16 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     if (!owned(entry, root)) { collision(entry.path); return; }
     plan(`Remove managed registration '${entry.path}'.`);
     if (input.dryRun) return;
-    if (entry.kind === 'link') unlinkSync(entry.path);
-    else { for (const file of Object.keys(entry.files!)) unlinkSync(join(entry.path, file)); rmdirSync(entry.path); }
+    if (entry.kind === 'link') {
+      const target = resolve(dirname(entry.path), readlinkSync(entry.path));
+      unlinkSync(entry.path); undo.push(() => symlinkSync(target, entry.path, 'junction'));
+    } else {
+      const files = Object.keys(entry.files!).map(file => [join(entry.path, file), readFileSync(join(entry.path, file))] as const);
+      for (const [path] of files) unlinkSync(path);
+      rmdirSync(entry.path); undo.push(() => { mkdirSync(entry.path, { recursive: true }); for (const [path, bytes] of files) writeFileSync(path, bytes); });
+    }
     const stop = join(hostRoot(entry.host), 'skills'); let parent = dirname(entry.path);
-    while (parent !== stop && !relative(stop, parent).startsWith('..') && !isAbsolute(relative(stop, parent)) && stat(parent)?.isDirectory() && !readdirSync(parent).length) { rmdirSync(parent); parent = dirname(parent); }
+    while (parent !== stop && !relative(stop, parent).startsWith('..') && !isAbsolute(relative(stop, parent)) && stat(parent)?.isDirectory() && !readdirSync(parent).length) { const dir = parent; rmdirSync(dir); undo.push(() => mkdirSync(dir)); parent = dirname(parent); }
   };
   const pointerBlocks = { ...manifest.pointerBlocks };
   const pattern = /<!-- agentkit-pointer:start -->.*?<!-- agentkit-pointer:end -->/gs;
@@ -179,7 +203,7 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     const json = JSON.stringify(settings, null, 2);
     if (existsSync(hooksPath) && read(hooksPath) !== json && !input.dryRun) {
       const old = readFileSync(hooksPath, 'utf8'), backup = `${hooksPath}.agentkit-${hash(old)}.bak`;
-      if (!existsSync(backup)) writeFileSync(backup, old);
+      if (!existsSync(backup)) write(backup, old);
     }
     save(hooksPath, json);
   };
@@ -220,6 +244,7 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
   }
   if (!input.registerOnly) {
     const previous = exists ? git(['rev-parse', 'HEAD']) : '';
+    const previousBranch = exists ? runner('git', ['-C', root, 'symbolic-ref', '-q', '--short', 'HEAD'], { env }).stdout.trim() : '';
     if (exists) {
       if (git(['status', '--porcelain'])) {
         if (!input.force) throw new Error(`'${root}' has uncommitted changes. Commit, stash, or explicitly use --force to discard them.`);
@@ -249,6 +274,13 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     if (isBranch && gitOK(['show-ref', '--verify', '--quiet', `refs/heads/${version}`]) && !gitOK(['merge-base', '--is-ancestor', `refs/heads/${version}`, sha])) throw new Error(`Local branch '${version}' has unpublished or divergent commits; not resetting it. Previous commit: ${previous}.`);
     plan(`Requested: ${input.version || 'latest stable'}; resolved: ${version} (${sha}).`);
     if (input.dryRun) return result('DryRun', { Version: version, Commit: sha, Detail: 'Checkout and refresh selected managed registrations, hooks and shared pointers; no files written.' });
+    const branchTip = isBranch && gitOK(['show-ref', '--verify', '--quiet', `refs/heads/${version}`]) ? git(['rev-parse', `refs/heads/${version}`]) : '';
+    // Puts HEAD, and any local branch this run created or advanced, back where they were.
+    const restore = () => {
+      git(['checkout', '--detach', previous]);
+      if (isBranch) { if (branchTip) git(['update-ref', `refs/heads/${version}`, branchTip]); else git(['branch', '-D', version]); }
+      if (previousBranch) git(['checkout', previousBranch]);
+    };
     if (isBranch) { git(['checkout', version]); git(['merge', '--ff-only', sha]); } else git(['checkout', '--detach', sha]);
     const selected: InstallOptions = { version, source, prefix, registerOnly: true, previousCommit: previous, requestedVersion: input.version || 'latest stable', ...(input.hosts ? { hosts: input.hosts } : {}) };
     try {
@@ -270,45 +302,55 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
       if (!nodeTarget) return result('Installed', { Version: version, Commit: sha, LegacyOutput: child.stdout });
       const installed: InstallResult = JSON.parse(child.stdout);
       return { ...installed, Operations: [...operations, ...installed.Operations] };
-    } catch (error) { throw new Error(`Setup failed after selecting ${sha}. Previous commit: ${previous}. No automatic reset. Recovery: node "${forward(root)}/setup.ts" --version "${previous}". Error: ${error instanceof Error ? error.message : error}`); }
-  }
-  for (const path of ['AGENTS.shared.md', 'templates', 'tools/invoke-codex-command.ts', 'tools/start-agentkit-codex.ts', 'tools/get-agentkit-skill.ts']) if (!existsSync(join(root, path))) throw new Error(`Incomplete runtime: missing '${path}'.`);
-  const skills = readdirSync(join(root, 'skills'), { withFileTypes: true }).filter(s => s.isDirectory() && existsSync(join(root, 'skills', s.name, 'SKILL.md'))).map(s => s.name).sort();
-  const hosts = [...new Set(input.hosts?.length ? input.hosts : (['claude', 'codex', 'copilot'] as Host[]).filter(h => existsSync(hostRoot(h)) || findExecutable(h, env) || (h === 'copilot' && existsSync(join(home, '.agents')))))];
-  if (!hosts.length) plan('No supported host detected. Pass --hosts claude, codex, or copilot explicitly.');
-  registrations.push(...oldRegistrations.filter(r => !hosts.includes(r.host)));
-  const registerFiles = (host: Host, name: string, path: string, content: Record<string, string>) => {
-    const files = { ...content, '.agentkit-owner': `AgentKit registration\nRoot: ${root}\nHost: ${host}\nName: ${name}\n` };
-    plan(`Register ${host}/${name} -> ${root}`);
-    for (const [name, text] of Object.entries(files)) save(join(path, name), text);
-    registrations.push({ host, name, path, root, kind: 'files', files: Object.fromEntries(Object.entries(files).map(([name, text]) => [name, hash(text)])) });
-  };
-  for (const host of hosts) {
-    const desired: string[] = [];
-    if (host === 'claude') {
-      const path = join(pluginRoot, '.claude-plugin'), old = oldRegistrations.find(r => r.path === path);
-      if (existsSync(pluginRoot) && !(old && owned(old, root))) {
-        collision(pluginRoot); registrations.push(...oldRegistrations.filter(r => r.host === host)); updatePointer(rulesPath(host)); continue;
+    } catch (error) {
+      // The selected installer rolls back its own writes (from this release on); this process undoes its own and the checkout.
+      const failed = rollback(), detail = `${failed.length ? rolledBack(failed).trim() + ' ' : ''}Error: ${error instanceof Error ? error.message : error}`;
+      if (!previous) throw new Error(`Setup failed after cloning ${sha}. The new checkout stays at '${root}' and a re-run reuses it. ${detail}`);
+      try { restore(); } catch (failure) {
+        throw new Error(`Setup failed after selecting ${sha}, and restoring previous commit ${previous} also failed: ${failure instanceof Error ? failure.message : failure} Restore it by hand with: git -C "${forward(root)}" checkout --detach ${previous}. ${detail}`);
       }
-      desired.push(path);
-      registerFiles(host, 'agentkit', path, { 'plugin.json': JSON.stringify({ name: 'agentkit', description: "AgentKit commands, namespaced /agentkit:<command> so they never reach Claude Code's own commands. Generated by tools/install-agentkit.ts; edit the canonical kit, not these files." }, null, 2) + '\n' });
+      throw new Error(`Setup failed after selecting ${sha}; restored the checkout to previous commit ${previous}. ${detail}`);
     }
-    for (const skill of skills) for (const routed of host === 'codex' ? [false, true] : [false]) {
-      const name = prefix + skill + (routed ? '-routed' : ''), path = join(host === 'claude' ? pluginRoot : hostRoot(host), 'skills', name);
-      desired.push(path); const old = oldRegistrations.find(r => r.path === path), item = stat(path);
-      if (item && !(old && owned(old, root))) { collision(path); if (old) registrations.push(old); continue; }
-      if (item && old?.kind === 'link') removeRegistration(old);
-      registerFiles(host, name, path, { 'SKILL.md': adapter(root, skill, name, host, routed) });
-    }
-    oldRegistrations.filter(r => r.host === host && !desired.includes(r.path)).forEach(removeRegistration);
-    updatePointer(rulesPath(host));
   }
-  if (hosts.includes('claude')) updateHooks();
-  const sha = git(['rev-parse', 'HEAD']);
-  const next: Manifest = { schemaVersion: 2, installRoot: root, source, requestedVersion: input.requestedVersion || '', version: input.version || '', commit: sha, previousCommit: manifest.commit === sha ? manifest.previousCommit || '' : input.previousCommit || '', registrations, hooksManaged: hosts.includes('claude') || !!manifest.hooksManaged, pointerBlocks };
-  save(manifestPath, JSON.stringify(next, null, 2));
-  if (!input.dryRun) for (const entry of registrations) if (!collisions.includes(entry.path) && !owned(entry, root)) throw new Error(`Registration verification failed: ${entry.path}`);
-  return result(input.dryRun ? 'DryRun' : 'Installed', { Source: source, RequestedVersion: next.requestedVersion, Version: next.version, Commit: sha, Hosts: hosts, Registrations: registrations, Verified: 'Canonical runtime dependencies and owned registration bytes. Restart hosts for discovery; host execution is not claimed by setup.' });
+  try {
+    for (const path of ['AGENTS.shared.md', 'templates', 'tools/invoke-codex-command.ts', 'tools/start-agentkit-codex.ts', 'tools/get-agentkit-skill.ts']) if (!existsSync(join(root, path))) throw new Error(`Incomplete runtime: missing '${path}'.`);
+    const skills = readdirSync(join(root, 'skills'), { withFileTypes: true }).filter(s => s.isDirectory() && existsSync(join(root, 'skills', s.name, 'SKILL.md'))).map(s => s.name).sort();
+    const hosts = [...new Set(input.hosts?.length ? input.hosts : (['claude', 'codex', 'copilot'] as Host[]).filter(h => existsSync(hostRoot(h)) || findExecutable(h, env) || (h === 'copilot' && existsSync(join(home, '.agents')))))];
+    if (!hosts.length) plan('No supported host detected. Pass --hosts claude, codex, or copilot explicitly.');
+    registrations.push(...oldRegistrations.filter(r => !hosts.includes(r.host)));
+    const registerFiles = (host: Host, name: string, path: string, content: Record<string, string>) => {
+      const files = { ...content, '.agentkit-owner': `AgentKit registration\nRoot: ${root}\nHost: ${host}\nName: ${name}\n` };
+      plan(`Register ${host}/${name} -> ${root}`);
+      for (const [name, text] of Object.entries(files)) save(join(path, name), text);
+      registrations.push({ host, name, path, root, kind: 'files', files: Object.fromEntries(Object.entries(files).map(([name, text]) => [name, hash(text)])) });
+    };
+    for (const host of hosts) {
+      const desired: string[] = [];
+      if (host === 'claude') {
+        const path = join(pluginRoot, '.claude-plugin'), old = oldRegistrations.find(r => r.path === path);
+        if (existsSync(pluginRoot) && !(old && owned(old, root))) {
+          collision(pluginRoot); registrations.push(...oldRegistrations.filter(r => r.host === host)); updatePointer(rulesPath(host)); continue;
+        }
+        desired.push(path);
+        registerFiles(host, 'agentkit', path, { 'plugin.json': JSON.stringify({ name: 'agentkit', description: "AgentKit commands, namespaced /agentkit:<command> so they never reach Claude Code's own commands. Generated by tools/install-agentkit.ts; edit the canonical kit, not these files." }, null, 2) + '\n' });
+      }
+      for (const skill of skills) for (const routed of host === 'codex' ? [false, true] : [false]) {
+        const name = prefix + skill + (routed ? '-routed' : ''), path = join(host === 'claude' ? pluginRoot : hostRoot(host), 'skills', name);
+        desired.push(path); const old = oldRegistrations.find(r => r.path === path), item = stat(path);
+        if (item && !(old && owned(old, root))) { collision(path); if (old) registrations.push(old); continue; }
+        if (item && old?.kind === 'link') removeRegistration(old);
+        registerFiles(host, name, path, { 'SKILL.md': adapter(root, skill, name, host, routed) });
+      }
+      oldRegistrations.filter(r => r.host === host && !desired.includes(r.path)).forEach(removeRegistration);
+      updatePointer(rulesPath(host));
+    }
+    if (hosts.includes('claude')) updateHooks();
+    const sha = git(['rev-parse', 'HEAD']);
+    const next: Manifest = { schemaVersion: 2, installRoot: root, source, requestedVersion: input.requestedVersion || '', version: input.version || '', commit: sha, previousCommit: manifest.commit === sha ? manifest.previousCommit || '' : input.previousCommit || '', registrations, hooksManaged: hosts.includes('claude') || !!manifest.hooksManaged, pointerBlocks };
+    save(manifestPath, JSON.stringify(next, null, 2));
+    if (!input.dryRun) for (const entry of registrations) if (!collisions.includes(entry.path) && !owned(entry, root)) throw new Error(`Registration verification failed: ${entry.path}`);
+    return result(input.dryRun ? 'DryRun' : 'Installed', { Source: source, RequestedVersion: next.requestedVersion, Version: next.version, Commit: sha, Hosts: hosts, Registrations: registrations, Verified: 'Canonical runtime dependencies and owned registration bytes. Restart hosts for discovery; host execution is not claimed by setup.' });
+  } catch (error) { throw new Error(`${error instanceof Error ? error.message : error}${rolledBack(rollback())}`); }
 }
 export function installArguments(input: InstallOptions): string[] {
   const args: string[] = [];

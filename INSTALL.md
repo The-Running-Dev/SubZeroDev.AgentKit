@@ -12,9 +12,9 @@ The kit's own `AGENTS.shared.md` binds you while you do this. In particular: rea
 
 Establish both ends before touching anything.
 
-```powershell
+```sh
 # the kit
-Get-ChildItem <kit-root> -Recurse -File | Where-Object FullName -notmatch '\\\.git\\'
+git -C <kit-root> ls-files
 
 # the target
 git -C <target> rev-parse --absolute-git-dir --show-toplevel
@@ -84,7 +84,7 @@ The artifacts:
 
 The kit's commit **is** its version — a hand-maintained `VERSION` file would drift from the tree it claims to describe, and this one cannot. On a re-install, read the recorded commit first and report how far behind the target is:
 
-```powershell
+```sh
 git -C <kit> log --oneline <recorded>..HEAD
 ```
 
@@ -146,7 +146,7 @@ Never delete a rule you do not understand. An instruction with no obvious reason
 `AGENTS.shared.md` is kit-owned and is never copied into the target (see phase 1). The file that holds content (`AGENTS.md` or `CLAUDE.md`, per the direction just established) instead carries a short, hand-written section naming where to read it from:
 
 ```markdown
-**Read `AGENTS.shared.md` completely before this file.** It holds the rules every repository using the kit shares, resolved from `$env:AGENTKIT_HOME` if set, else `$HOME/.agent-kit`.
+**Read `AGENTS.shared.md` completely before this file.** It holds the rules every repository using the kit shares, resolved from the `AGENTKIT_HOME` environment variable if set, else `.agent-kit` in the home directory.
 ```
 
 **Write that resolution instruction, not a resolved path.** A concrete absolute path (or an `@`-import of one) bakes in the installing machine's home directory or account name — correct for the machine that ran the install, and wrong the moment the target is cloned onto another machine or account, or `AGENTKIT_HOME` moves (#406). The instruction above is the same order `AGENTS.shared.md` § *House conventions* → Home-install convention defines for a script, kept short enough to stand on its own before the target has a local copy of `AGENTS.shared.md` to read that convention from — every session that reads it resolves the location itself, at read time, rather than trusting a value baked in at install time.
