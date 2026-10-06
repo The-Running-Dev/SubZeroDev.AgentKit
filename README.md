@@ -13,9 +13,19 @@ setup.ts                      global front door — bootstrap and update the sha
 INSTALL.md                    how the kit installs into a repo
 skills/<name>/SKILL.md        slash commands, owned by the kit
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
-tools/merge-pull-request.ts   merges only when every check on the exact head passed
-tools/invoke-housekeeping.ts post-merge branch cleanup, no model call
-tools/measure-session.ts     what a session actually cost, from the transcript
+tools/*.ts                    Node scripts the commands call; no PowerShell needed
+  merge-pull-request.ts       merges only when every check on the exact head passed
+  wait-pull-request-check.ts  waits for checks on an exact head SHA
+  invoke-housekeeping.ts      post-merge branch cleanup, no model call
+  invoke-done-housekeeping.ts confirmed-merged branch deletion
+  measure-session.ts          what a session actually cost, from the transcript
+  get-next-slice.ts           the first unfinished slice in 30-slices.md
+  new-design-docs.ts          seeds design/ from templates/design
+  install-agentkit.ts         host registrations behind setup.ts
+  get-agentkit-skill.ts       resolves a command's skill body and update check
+  start-agentkit-codex.ts     routed Codex launcher
+  test-*.ts                   gate, verify-report and contract checks
+tools/git-hooks/commit-msg    rejects AI attribution in commit messages
 codex/PROFILES.md             Codex profile definitions
 templates/design/*.md         seed copied into a target's design/
 reports/                      one-off verification and planning reports, kept for evidence
