@@ -24,9 +24,15 @@ export function writeJson(value: object): void {
 export async function main(action: () => void | Promise<void>): Promise<void> {
   try {
     requireNode();
+  } catch (error) {
+    process.stderr.write(`${(error as Error).message}\n`);
+    process.exitCode = 2;
+    return;
+  }
+  try {
     await action();
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-    process.exitCode = 2;
+    process.exitCode = 1;
   }
 }

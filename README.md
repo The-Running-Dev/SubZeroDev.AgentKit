@@ -114,7 +114,7 @@ Create a stable release only after the merged SHA passes its required workflow g
 
 ```text
 git fetch origin main --tags
-git tag vYYYY.MM.DD <verified-merged-sha>
+git tag -a vYYYY.MM.DD <verified-merged-sha> -m "AgentKit vYYYY.MM.DD"
 git push origin refs/tags/vYYYY.MM.DD
 ```
 

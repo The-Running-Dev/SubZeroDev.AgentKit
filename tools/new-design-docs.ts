@@ -39,5 +39,5 @@ if (isMain(import.meta.url)) await main(() => {
   if (!o.quiet) process.stderr.write(report.map(r => `${r.Name}: ${r.Status}`).join('\n') + '\n');
   const divergent = report.filter(r => r.Status === 'Divergent-Skipped').length;
   if (divergent) process.stderr.write(`${divergent} file(s) have real content and were left alone. Re-run with --force only if you mean to discard it.\n`);
-  writeJson({ Report: report });
+  writeJson(report);
 });

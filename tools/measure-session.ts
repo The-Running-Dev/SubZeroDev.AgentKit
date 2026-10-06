@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { integerOption, parseOptions } from './lib/options.ts';
@@ -36,7 +36,8 @@ export function projectSlug(path: string): string { return path.replace(/[\\/]+$
 export function resolveTranscriptDirectory(project: string, home = process.env.HOME || process.env.USERPROFILE || homedir()): string {
   const root = join(home, '.claude/projects');
   if (!existsSync(root)) throw new Error(`No transcript store at ${root}. Nothing to measure.`);
-  const full = realpathSync(project).replace(/[\\/]+$/, ''), derived = join(root, projectSlug(full));
+  if (!existsSync(project)) throw new Error(`Cannot find path '${project}' because it does not exist.`);
+  const full = resolve(project).replace(/[\\/]+$/, ''), derived = join(root, projectSlug(full));
   if (existsSync(derived)) return derived;
   const leaf = basename(full).replace(/[^A-Za-z0-9]/g, '-');
   const candidates = readdirSync(root, { withFileTypes: true }).filter(e => e.isDirectory() && e.name.toLowerCase().endsWith(leaf.toLowerCase()));
@@ -91,6 +92,8 @@ function subagents(directory: string, id: string, threshold: number): Usage {
 }
 // .NET Math.Round defaults to ties-to-even; JSON parity includes fractional timestamps.
 function round(value: number): number { const floor = Math.floor(value); return value - floor === 0.5 ? floor + floor % 2 : Math.round(value); }
+// PowerShell formatted the human report from the unrounded span, so keep it out of the JSON.
+const rawTimes = new WeakMap<object, { span: number; active: number }>();
 type ReportSession = { id: string; started: string | null; spanSeconds: number; activeSeconds: number; models: string[]; total: Usage; subagents: Usage; segments?: Segment[] };
 export interface SessionReport { idleThresholdMinutes: number; sessions: ReportSession[]; allSessions?: Usage; allSubagents?: Usage }
 export function measureSession(input: { project?: string; transcriptPath?: string; sessionId?: string; detail?: boolean; idleThresholdMinutes?: number } = {}): SessionReport {
@@ -105,7 +108,9 @@ export function measureSession(input: { project?: string; transcriptPath?: strin
     if (vendor !== 'claude') throw new Error(`${basename(file)} is not a Claude Code transcript (detected: ${vendor}). ${vendor === 'codex' ? "Codex records usage as 'token_count' events under payload.info, not as 'message.usage'. No Codex reader is implemented, and its per-turn counts are not the same unit as Claude's per-call ones." : 'No known agent writes this shape.'}`);
     const session = readSession(file, threshold); if (!session.segments.length) continue;
     const sum = total(session.segments), sub = subagents(directory, session.id, threshold); add(totals, sum); add(subs, sub);
-    report.sessions.push({ id: session.id.slice(0, 8), started: session.started, spanSeconds: round(session.span), activeSeconds: round(session.active), models: session.models, total: sum, subagents: sub, ...(input.detail ? { segments: session.segments } : {}) });
+    const entry: ReportSession = { id: session.id.slice(0, 8), started: session.started, spanSeconds: round(session.span), activeSeconds: round(session.active), models: session.models, total: sum, subagents: sub, ...(input.detail ? { segments: session.segments } : {}) };
+    rawTimes.set(entry, { span: session.span, active: session.active });
+    report.sessions.push(entry);
   }
   if (!report.sessions.length) throw new Error('No Claude Code usage records found in the matched transcripts. Nothing to measure.');
   if (files.length > 1) { report.allSessions = totals; report.allSubagents = subs; }
@@ -129,7 +134,8 @@ export function humanReport(report: SessionReport, threshold = 5): string {
   const rows: string[] = [], row = (label: string, s: Usage) => `${label.padEnd(28)} ${String(s.calls).padStart(6)} ${s.input.toLocaleString('en-US').padStart(10)} ${s.cacheCreate.toLocaleString('en-US').padStart(12)} ${s.cacheRead.toLocaleString('en-US').padStart(13)} ${s.output.toLocaleString('en-US').padStart(10)}`;
   const header = row('Segment', { calls: 'calls', input: 'input', cacheCreate: 'cache_new', cacheRead: 'cache_read', output: 'output' } as unknown as Usage);
   for (const s of report.sessions) {
-    rows.push('', `Session ${s.id}   ${s.models.join(' ')}`, `  started ${(s.started || '').replace('T', ' ').slice(0, 16)}   span ${duration(s.spanSeconds)}   active ${duration(s.activeSeconds)} (gaps over ${threshold} min excluded)`, '', header, '-'.repeat(header.length));
+    const raw = rawTimes.get(s) ?? { span: s.spanSeconds, active: s.activeSeconds };
+    rows.push('', `Session ${s.id}   ${s.models.join(', ')}`, `  started ${(s.started || '').replace('T', ' ').slice(0, 16)}   span ${duration(raw.span)}   active ${duration(raw.active)} (gaps over ${threshold} min excluded)`, '', header, '-'.repeat(header.length));
     for (const segment of s.segments || []) rows.push(row(segment.label, segment));
     if (s.segments) rows.push('-'.repeat(header.length));
     const n = (value: number) => value.toLocaleString('en-US');

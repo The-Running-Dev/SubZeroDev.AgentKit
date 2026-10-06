@@ -44,7 +44,7 @@ export interface LaunchInput { command: string; effort?: string; skillArguments?
 export function buildInvocation(input: LaunchInput) {
   const normalized = input.command.replace(/^\/+/, '').toLowerCase();
   if (!Object.hasOwn(commandProfiles, normalized)) throw new Error(`No profile mapping for '/${normalized}'. Known commands: ${Object.keys(commandProfiles).sort().map(c => '/' + c).join(', ')}. Pass --profile to codex directly for anything else.`);
-  const profile = commandProfiles[normalized as keyof typeof commandProfiles], config = profileConfig[profile], effort = input.effort || config.Effort;
+  const profile = commandProfiles[normalized as keyof typeof commandProfiles], config = profileConfig[profile], effort = (input.effort || config.Effort).toLowerCase();
   if (!['low', 'medium', 'high', 'xhigh', 'max'].includes(effort)) throw new Error('Invalid effort. Use low, medium, high, xhigh, or max.');
   const args = ['-m', config.Model, '-c', `model_reasoning_effort=${effort}`, '-c', `project_doc_max_bytes=${projectDocByteBudget(input.cwd)}`, '-a', config.Approval, '-s', config.Sandbox];
   if (input.skillArguments !== undefined) args.push(skillPrompt(normalized, input.skillArguments, input.skill)); else args.push(...input.codexArgs || []);

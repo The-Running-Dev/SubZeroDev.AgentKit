@@ -18,7 +18,7 @@ export function manifestHash(root: string): string {
   const projects: string[] = [];
   function walk(dir: string, depth: number) {
     for (const f of readdirSync(dir, { withFileTypes: true })) {
-      if (f.name.startsWith('.')) continue;
+      if (f.name === '.git') continue; // PowerShell skipped hidden entries; .git is the one every platform hides
       const path = join(dir, f.name);
       if (f.isFile() && /\.(sln|csproj)$/i.test(f.name)) projects.push(path.slice(root.length));
       else if (f.isDirectory() && depth < 2) walk(path, depth + 1);
