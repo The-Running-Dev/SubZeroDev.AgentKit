@@ -78,6 +78,13 @@ it('upgrades a previously installed resolved-path pointer without collision', f 
 it('foreign same-named skill survives byte-for-byte and is reported', f => { put(f.codex, 'skills/next/SKILL.md', 'foreign bytes'); assert.ok(success(f).Collisions.includes(dirname(cskill(f)))); assert.equal(read(cskill(f)), 'foreign bytes'); assert.ok(!existsSync(join(dirname(cskill(f)), '.agentkit-owner'))); });
 it('edited managed skills survive refresh and uninstall', f => { success(f); writeFileSync(cskill(f), 'my edited core'); success(f); assert.equal(read(cskill(f)), 'my edited core'); success(f, { uninstall: true }); assert.equal(read(cskill(f)), 'my edited core'); });
 it('prefix change removes only unchanged previous managed registrations', f => { success(f); writeFileSync(cskill(f), 'keep customized'); success(f, { prefix: 'ak-' }); assert.ok(existsSync(cskill(f))); assert.ok(!existsSync(cskill(f, 'fix'))); assert.ok(existsSync(cskill(f, 'ak-fix'))); assert.ok(existsSync(cskill(f, 'ak-fix-routed'))); });
+it('removes the legacy PowerShell SessionEnd hooks for this install and keeps foreign ones', f => {
+  success(f); const settings = json(f.settings), script = join(f.root, 'tools/Measure-Session.ps1').replaceAll('\\', '/');
+  const legacy = [{ hooks: [{ type: 'command', command: `pwsh -NoProfile -File ${script} -Hook`, timeout: 30 }] }, { hooks: [{ type: 'command', command: 'pwsh', args: ['-NoProfile', '-File', script, '-Hook'], timeout: 30 }] }];
+  const foreign = { hooks: [{ type: 'command', command: 'pwsh -File "tools/Measure-Session.ps1"' }] };
+  settings.hooks.SessionEnd = [...legacy, foreign, ...settings.hooks.SessionEnd]; writeFileSync(f.settings, JSON.stringify(settings));
+  success(f); assert.deepEqual(json(f.settings).hooks.SessionEnd, [foreign, hook(f.root)]);
+});
 it('uninstall removes managed entries and leaves unrelated hooks and rules text', f => {
   success(f); const settings = json(f.settings), foreign = { hooks: [{ type: 'command', command: 'node', args: ['/foreign/hook.js'] }] }; settings.hooks.SessionEnd.push(foreign); writeFileSync(f.settings, JSON.stringify(settings));
   writeFileSync(join(f.codex, 'AGENTS.md'), read(join(f.codex, 'AGENTS.md')) + 'keep user rules'); success(f, { uninstall: true });
