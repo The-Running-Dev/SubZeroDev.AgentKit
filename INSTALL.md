@@ -101,7 +101,6 @@ That list is what the upgrade actually consists of. Without it, "is this repo cu
 - **If a hook already exists on that event, stop and report it.** Do not append to it, do not merge into it. A second hook on one event is a behaviour the target did not ask for.
 - **Absent `settings.json`** may be created containing only these hooks, under the same sign-off.
 - **Needs Node ≥ 22.18 on `PATH`.** Check with `node --version`; if it is missing, skip the hooks, install the script, and say which you did.
-- **A `UserPromptSubmit` hook running `Measure-Session.ps1 -Watch` is retired.** Propose removing it under the same sign-off; the script no longer accepts `-Watch`, so the hook fails on every prompt.
 
 Nothing else about the target's configuration is yours, and this exception does not generalise to another event later. Widening it is a decision, not an install detail. `.claude/kit.json` **is** yours: it is this procedure's own record, written in phase 4. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
 

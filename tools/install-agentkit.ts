@@ -1,6 +1,6 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve, join, dirname, parse, relative, isAbsolute } from 'node:path';
-import { homedir, tmpdir } from 'node:os';
+import { homedir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { run } from './lib/process.ts';
 import type { Runner } from './lib/process.ts';
@@ -35,7 +35,6 @@ const forward = (path: string) => path.replaceAll('\\', '/');
 export const hash = (text: string | Buffer) => createHash('sha256').update(text).digest('hex').toUpperCase();
 const stat = (path: string) => { try { return lstatSync(path); } catch { return undefined; } };
 const read = (path: string) => readFileSync(path, 'utf8').replace(/^\uFEFF/, '');
-// PowerShell's pipeline serialized one hook group as an object in older releases.
 const hookGroups = (value: unknown): unknown[] => value == null ? [] : Array.isArray(value) ? value : [value];
 export function normalizeOrigin(value: string) {
   const m = /^(?:https:\/\/github\.com\/|git@github\.com:)(.+?)(?:\.git)?\/?$/i.exec(value);
@@ -49,8 +48,8 @@ export function owned(entry: Registration, root: string): boolean {
   const files = readdirSync(entry.path, { withFileTypes: true });
   return files.length === Object.keys(entry.files).length && files.every(file => file.isFile() && Object.hasOwn(entry.files!, file.name) && hash(readFileSync(join(entry.path, file.name))) === entry.files![file.name]);
 }
-export function hook(root: string, legacy = false) {
-  return { hooks: [{ type: 'command', command: legacy ? 'pwsh' : 'node', args: legacy ? ['-NoProfile', '-File', forward(join(root, 'tools/Measure-Session.ps1')), '-Hook'] : [forward(join(root, 'tools/measure-session.ts')), '--hook'], timeout: 30 }] };
+export function hook(root: string) {
+  return { hooks: [{ type: 'command', command: 'node', args: [forward(join(root, 'tools/measure-session.ts')), '--hook'], timeout: 30 }] };
 }
 export function adapter(root: string, name: string, registrationName: string, host: Host, routed: boolean) {
   root = forward(root);
@@ -107,24 +106,7 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
   };
   const gitOK = (args: string[]) => runner('git', ['-C', root, ...args], { env }).code === 0;
   const plan = (message: string) => operations.push((input.dryRun ? '[DryRun] ' : '') + message);
-  // Every write is journaled so a failed run can put back exactly what it changed;
-  // otherwise its unrecorded writes read as foreign collisions on the next run.
-  const undo: (() => void)[] = [];
-  const makeDirectory = (dir: string) => {
-    const created: string[] = []; for (let d = dir; !existsSync(d); d = dirname(d)) created.push(d);
-    mkdirSync(dir, { recursive: true }); undo.push(() => created.forEach(d => rmdirSync(d)));
-  };
-  const write = (path: string, text: string | Buffer) => {
-    makeDirectory(dirname(path));
-    const before = existsSync(path) ? readFileSync(path) : undefined;
-    writeFileSync(path, text); undo.push(() => before ? writeFileSync(path, before) : unlinkSync(path));
-  };
-  const rollback = () => {
-    const failed: string[] = [];
-    for (const step of undo.splice(0).reverse()) try { step(); } catch (error) { failed.push(error instanceof Error ? error.message : String(error)); }
-    return failed;
-  };
-  const rolledBack = (failed: string[]) => failed.length ? ` Rollback was incomplete: ${failed.join('; ')}` : ' Changes from this run were rolled back.';
+  const write = (path: string, text: string | Buffer) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text); };
   const save = (path: string, text: string) => {
     if (input.dryRun || (existsSync(path) && readFileSync(path, 'utf8') === text)) return;
     write(path, text);
@@ -139,7 +121,7 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
   if (existsSync(root)) {
     if (!exists) {
       if (!stat(root)?.isDirectory() || readdirSync(root).length) throw new Error(`Install root '${root}' is occupied and is not an AgentKit checkout.`);
-    } else if ((!existsSync(join(root, 'tools/install-agentkit.ts')) && !existsSync(join(root, 'tools/Install-AgentKit.ps1'))) || !existsSync(join(root, 'AGENTS.shared.md'))) throw new Error(`Install root '${root}' is not an AgentKit checkout.`);
+    } else if (!existsSync(join(root, 'tools/install-agentkit.ts')) || !existsSync(join(root, 'AGENTS.shared.md'))) throw new Error(`Install root '${root}' is not an AgentKit checkout.`);
   }
   if (exists && !input.verify) {
     const origin = git(['remote', 'get-url', 'origin']);
@@ -165,15 +147,13 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     plan(`Remove managed registration '${entry.path}'.`);
     if (input.dryRun) return;
     if (entry.kind === 'link') {
-      const target = resolve(dirname(entry.path), readlinkSync(entry.path));
-      unlinkSync(entry.path); undo.push(() => symlinkSync(target, entry.path, 'junction'));
+      unlinkSync(entry.path);
     } else {
-      const files = Object.keys(entry.files!).map(file => [join(entry.path, file), readFileSync(join(entry.path, file))] as const);
-      for (const [path] of files) unlinkSync(path);
-      rmdirSync(entry.path); undo.push(() => { mkdirSync(entry.path, { recursive: true }); for (const [path, bytes] of files) writeFileSync(path, bytes); });
+      for (const file of Object.keys(entry.files!)) unlinkSync(join(entry.path, file));
+      rmdirSync(entry.path);
     }
     const stop = join(hostRoot(entry.host), 'skills'); let parent = dirname(entry.path);
-    while (parent !== stop && !relative(stop, parent).startsWith('..') && !isAbsolute(relative(stop, parent)) && stat(parent)?.isDirectory() && !readdirSync(parent).length) { const dir = parent; rmdirSync(dir); undo.push(() => mkdirSync(dir)); parent = dirname(parent); }
+    while (parent !== stop && !relative(stop, parent).startsWith('..') && !isAbsolute(relative(stop, parent)) && stat(parent)?.isDirectory() && !readdirSync(parent).length) { rmdirSync(parent); parent = dirname(parent); }
   };
   const pointerBlocks = { ...manifest.pointerBlocks };
   const pattern = /<!-- agentkit-pointer:start -->.*?<!-- agentkit-pointer:end -->/gs;
@@ -183,8 +163,7 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     let updated: string;
     if (matches.length) {
       const block = matches[0][0];
-      const legacy = `${pointerStart}\nAgentKit shared rules, installed at '${root}'. Regenerated by tools/Install-AgentKit.ps1 -\nedit outside this block, never inside it.\n\n@${forward(root)}/AGENTS.md\n${pointerEnd}`;
-      if (block !== manifest.pointerBlocks?.[path] && block.replaceAll('\r\n', '\n') !== legacy) { collision(path); return; }
+      if (block !== manifest.pointerBlocks?.[path]) { collision(path); return; }
       updated = text.slice(0, matches[0].index) + (remove ? '' : pointer) + text.slice(matches[0].index! + block.length);
     } else { if (remove) return; updated = text + (text && !text.endsWith('\n') ? '\n' : '') + pointer + '\n'; }
     save(path, updated); if (!remove) pointerBlocks[path] = pointer;
@@ -193,13 +172,9 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
   const updateHooks = (remove = false) => {
     const settings = existsSync(hooksPath) ? JSON.parse(read(hooksPath)) : {};
     settings.hooks ||= {};
-    const signatures = [hook(root), hook(root, true)].map(h => JSON.stringify(h));
+    const signatures = [JSON.stringify(hook(root))];
     const kept = hookGroups(settings.hooks.SessionEnd).filter(h => h && !signatures.includes(JSON.stringify(h)));
     settings.hooks.SessionEnd = remove ? kept : [...kept, hook(root)];
-    if (settings.hooks.UserPromptSubmit) {
-      const watch = hookGroups(settings.hooks.UserPromptSubmit).filter(h => { const text = JSON.stringify(h); return !(text.includes(forward(join(root, 'tools/Measure-Session.ps1'))) && text.includes('-Watch')); });
-      if (watch.length) settings.hooks.UserPromptSubmit = watch; else delete settings.hooks.UserPromptSubmit;
-    }
     const json = JSON.stringify(settings, null, 2);
     if (existsSync(hooksPath) && read(hooksPath) !== json && !input.dryRun) {
       const old = readFileSync(hooksPath, 'utf8'), backup = `${hooksPath}.agentkit-${hash(old)}.bak`;
@@ -244,7 +219,6 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
   }
   if (!input.registerOnly) {
     const previous = exists ? git(['rev-parse', 'HEAD']) : '';
-    const previousBranch = exists ? runner('git', ['-C', root, 'symbolic-ref', '-q', '--short', 'HEAD'], { env }).stdout.trim() : '';
     if (exists) {
       if (git(['status', '--porcelain'])) {
         if (!input.force) throw new Error(`'${root}' has uncommitted changes. Commit, stash, or explicitly use --force to discard them.`);
@@ -266,53 +240,19 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     const isBranch = !isTag && gitOK(['show-ref', '--verify', '--quiet', `refs/remotes/origin/${version}`]);
     const ref = isTag ? `refs/tags/${version}` : isBranch ? `refs/remotes/origin/${version}` : version;
     const sha = git(['rev-parse', '--verify', `${ref}^{commit}`]);
-    const nodeTarget = gitOK(['cat-file', '-e', `${sha}:setup.ts`]);
-    if (!nodeTarget && !gitOK(['cat-file', '-e', `${sha}:setup.ps1`])) throw new Error(`Version '${version}' (${sha}) predates the global front door. Publish a release containing this change after merge, or explicitly use --version main for unreleased work.`);
-    // Probe BEFORE checkout: a rollback must not leave a PowerShell-only runtime on a Node-only machine.
-    const legacyShell = nodeTarget ? null : findExecutable('pwsh', env);
-    if (!nodeTarget && !legacyShell) throw new Error(`Version '${version}' requires missing pwsh on PATH. Install PowerShell to roll back to this older release; checkout and registrations were not changed.`);
+    if (!gitOK(['cat-file', '-e', `${sha}:setup.ts`])) throw new Error(`Version '${version}' (${sha}) predates the global front door. Publish a release containing this change after merge, or explicitly use --version main for unreleased work.`);
     if (isBranch && gitOK(['show-ref', '--verify', '--quiet', `refs/heads/${version}`]) && !gitOK(['merge-base', '--is-ancestor', `refs/heads/${version}`, sha])) throw new Error(`Local branch '${version}' has unpublished or divergent commits; not resetting it. Previous commit: ${previous}.`);
     plan(`Requested: ${input.version || 'latest stable'}; resolved: ${version} (${sha}).`);
     if (input.dryRun) return result('DryRun', { Version: version, Commit: sha, Detail: 'Checkout and refresh selected managed registrations, hooks and shared pointers; no files written.' });
-    const branchTip = isBranch && gitOK(['show-ref', '--verify', '--quiet', `refs/heads/${version}`]) ? git(['rev-parse', `refs/heads/${version}`]) : '';
-    // Puts HEAD, and any local branch this run created or advanced, back where they were.
-    const restore = () => {
-      git(['checkout', '--detach', previous]);
-      if (isBranch) { if (branchTip) git(['update-ref', `refs/heads/${version}`, branchTip]); else git(['branch', '-D', version]); }
-      if (previousBranch) git(['checkout', previousBranch]);
-    };
     if (isBranch) { git(['checkout', version]); git(['merge', '--ff-only', sha]); } else git(['checkout', '--detach', sha]);
     const selected: InstallOptions = { version, source, prefix, registerOnly: true, previousCommit: previous, requestedVersion: input.version || 'latest stable', ...(input.hosts ? { hosts: input.hosts } : {}) };
-    try {
-      let child;
-      if (nodeTarget) child = runner(process.execPath, [join(root, 'tools/install-agentkit.ts'), ...installArguments(selected)], { env });
-      else {
-        // Older installers cannot recognize the Node hook. Retire our owned
-        // entry before letting that release register its own runtime hooks.
-        if (manifest.hooksManaged) updateHooks(true);
-        // A constant loader and JSON data preserve Hosts arrays and quotes at the process boundary.
-        const temp = mkdtempSync(join(tmpdir(), 'agentkit-rollback-')), payload = join(temp, 'arguments.json'), loader = join(temp, 'load.ps1');
-        writeFileSync(payload, JSON.stringify({ root, home, selected }));
-        writeFileSync(loader, `$ErrorActionPreference = 'Stop'\n$data = Get-Content -LiteralPath $env:AGENTKIT_ROLLBACK_ARGUMENTS -Raw | ConvertFrom-Json\nSet-Variable HOME -Value $data.home -Force\n$p = @{Version=$data.selected.version; Source=$data.selected.source; Prefix=$data.selected.prefix; RegisterOnly=$true; PreviousCommit=$data.selected.previousCommit; RequestedVersion=$data.selected.requestedVersion}\nif ($data.selected.hosts) { $p.Hosts = [string[]]$data.selected.hosts }\n& (Join-Path $data.root 'tools/Install-AgentKit.ps1') @p\nif (-not $?) { exit 1 }\n`);
-        try { child = runner(legacyShell!, ['-NoProfile', '-File', loader], { env: { ...env, AGENTKIT_ROLLBACK_ARGUMENTS: payload } }); }
-        finally { rmSync(temp, { recursive: true, force: true }); }
-      }
-      if (child.code !== 0) throw new Error(child.stderr || child.stdout || `Selected installer exited ${child.code}.`);
-      if (child.stderr) process.stderr.write(child.stderr);
-      if (!nodeTarget) return result('Installed', { Version: version, Commit: sha, LegacyOutput: child.stdout });
-      const installed: InstallResult = JSON.parse(child.stdout);
-      return { ...installed, Operations: [...operations, ...installed.Operations] };
-    } catch (error) {
-      // The selected installer rolls back its own writes (from this release on); this process undoes its own and the checkout.
-      const failed = rollback(), detail = `${failed.length ? rolledBack(failed).trim() + ' ' : ''}Error: ${error instanceof Error ? error.message : error}`;
-      if (!previous) throw new Error(`Setup failed after cloning ${sha}. The new checkout stays at '${root}' and a re-run reuses it. ${detail}`);
-      try { restore(); } catch (failure) {
-        throw new Error(`Setup failed after selecting ${sha}, and restoring previous commit ${previous} also failed: ${failure instanceof Error ? failure.message : failure} Restore it by hand with: git -C "${forward(root)}" checkout --detach ${previous}. ${detail}`);
-      }
-      throw new Error(`Setup failed after selecting ${sha}; restored the checkout to previous commit ${previous}. ${detail}`);
-    }
+    const child = runner(process.execPath, [join(root, 'tools/install-agentkit.ts'), ...installArguments(selected)], { env });
+    if (child.code !== 0) throw new Error(`Setup failed after selecting ${sha}${previous ? `; the checkout was left there (previous commit ${previous})` : ''}. ${child.stderr || child.stdout || `Selected installer exited ${child.code}.`}`);
+    if (child.stderr) process.stderr.write(child.stderr);
+    const installed: InstallResult = JSON.parse(child.stdout);
+    return { ...installed, Operations: [...operations, ...installed.Operations] };
   }
-  try {
+  {
     for (const path of ['AGENTS.shared.md', 'templates', 'tools/invoke-codex-command.ts', 'tools/start-agentkit-codex.ts', 'tools/get-agentkit-skill.ts']) if (!existsSync(join(root, path))) throw new Error(`Incomplete runtime: missing '${path}'.`);
     const skills = readdirSync(join(root, 'skills'), { withFileTypes: true }).filter(s => s.isDirectory() && existsSync(join(root, 'skills', s.name, 'SKILL.md'))).map(s => s.name).sort();
     const hosts = [...new Set(input.hosts?.length ? input.hosts : (['claude', 'codex', 'copilot'] as Host[]).filter(h => existsSync(hostRoot(h)) || findExecutable(h, env) || (h === 'copilot' && existsSync(join(home, '.agents')))))];
@@ -350,7 +290,7 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     save(manifestPath, JSON.stringify(next, null, 2));
     if (!input.dryRun) for (const entry of registrations) if (!collisions.includes(entry.path) && !owned(entry, root)) throw new Error(`Registration verification failed: ${entry.path}`);
     return result(input.dryRun ? 'DryRun' : 'Installed', { Source: source, RequestedVersion: next.requestedVersion, Version: next.version, Commit: sha, Hosts: hosts, Registrations: registrations, Verified: 'Canonical runtime dependencies and owned registration bytes. Restart hosts for discovery; host execution is not claimed by setup.' });
-  } catch (error) { throw new Error(`${error instanceof Error ? error.message : error}${rolledBack(rollback())}`); }
+  }
 }
 export function installArguments(input: InstallOptions): string[] {
   const args: string[] = [];
