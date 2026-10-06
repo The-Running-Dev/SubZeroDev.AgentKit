@@ -1,0 +1,26 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ensureProjectFiles, pointerText } from './ensure-project-files.ts';
+import { git, put, repo, temp } from './lib/fixtures.ts';
+
+const kit = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const text = (root: string, file: string) => readFileSync(join(root, file), 'utf8');
+const hookPath = (root: string) => join(root, '.git/hooks/commit-msg');
+
+test('creates only the named design seeds, from templates/design', () => { const r = temp(); const report = ensureProjectFiles(r, kit, { design: ['00-brief.md'] }); assert.deepEqual(report.Design, [{ Path: 'design/00-brief.md', Status: 'Created' }]); assert.equal(text(r, 'design/00-brief.md'), text(kit, 'templates/design/00-brief.md')); assert.equal(existsSync(join(r, 'design/10-design.md')), false); assert.deepEqual(report.Written, ['design/00-brief.md']); });
+test('leaves an existing design document alone', () => { const r = temp(); put(r, 'design/00-brief.md', 'mine\n'); assert.equal(ensureProjectFiles(r, kit, { design: ['00-brief.md'] }).Design[0].Status, 'Present'); assert.equal(text(r, 'design/00-brief.md'), 'mine\n'); });
+test('reports design/ used for something else as occupied and writes nothing', () => { const r = temp(); put(r, 'design/logo.svg', '<svg/>'); assert.equal(ensureProjectFiles(r, kit, { design: ['00-brief.md'] }).Design[0].Status, 'Occupied'); assert.equal(existsSync(join(r, 'design/00-brief.md')), false); });
+test('refuses a name that is not a seed', () => { assert.throws(() => ensureProjectFiles(temp(), kit, { design: ['99-other.md'] }), /not a design seed/); });
+test('creates AGENTS.md with the pointer and a CLAUDE.md importing it when neither exists', () => { const r = temp(); const report = ensureProjectFiles(r, kit, { pointer: true }); assert.equal(report.Pointer?.Status, 'Created'); assert.ok(text(r, 'AGENTS.md').includes(pointerText)); assert.equal(text(r, 'CLAUDE.md'), '@AGENTS.md\n'); assert.deepEqual(report.Written, ['AGENTS.md', 'CLAUDE.md']); });
+test('inserts the pointer under the title of the file that holds content, keeping every line', () => { const r = temp(); put(r, 'CLAUDE.md', '@AGENTS.md\n'); put(r, 'AGENTS.md', '# Project\n\nOwn rule.\n'); const report = ensureProjectFiles(r, kit, { pointer: true }); assert.deepEqual(report.Pointer, { Path: 'AGENTS.md', Status: 'Inserted' }); assert.equal(text(r, 'AGENTS.md'), `# Project\n\n## Shared contract\n\n${pointerText}\n\nOwn rule.\n`); assert.equal(text(r, 'CLAUDE.md'), '@AGENTS.md\n'); });
+test('keeps an inverted arrangement: content in CLAUDE.md, AGENTS.md a pointer', () => { const r = temp(); put(r, 'AGENTS.md', 'See CLAUDE.md.\n'); put(r, 'CLAUDE.md', 'Own rule.\n'); assert.equal(ensureProjectFiles(r, kit, { pointer: true }).Pointer?.Path, 'CLAUDE.md'); assert.ok(text(r, 'CLAUDE.md').startsWith(`## Shared contract\n\n${pointerText}\n\nOwn rule.`)); });
+test('leaves a file that already names AGENTS.shared.md alone', () => { const r = temp(); put(r, 'AGENTS.md', 'Read AGENTS.shared.md first.\n'); assert.equal(ensureProjectFiles(r, kit, { pointer: true }).Pointer?.Status, 'Present'); assert.equal(text(r, 'AGENTS.md'), 'Read AGENTS.shared.md first.\n'); });
+test('writes no pointer when both files hold content', () => { const r = temp(), long = 'rule\n'.repeat(300); put(r, 'AGENTS.md', long); put(r, 'CLAUDE.md', long); assert.equal(ensureProjectFiles(r, kit, { pointer: true }).Pointer?.Status, 'Ambiguous'); assert.equal(text(r, 'AGENTS.md'), long); });
+test('installs the commit-msg hook, then reports it present', () => { const r = repo(); assert.equal(ensureProjectFiles(r, kit, { hook: true }).Hook?.Status, 'Created'); assert.equal(text(r, '.git/hooks/commit-msg'), text(kit, 'tools/git-hooks/commit-msg')); assert.equal(ensureProjectFiles(r, kit, { hook: true }).Hook?.Status, 'Present'); });
+test('updates an older kit hook but never a hook the kit did not write', () => { const r = repo(); put(r, '.git/hooks/commit-msg', '#!/bin/sh\n# Reject AI attribution\nexit 1\n'); assert.equal(ensureProjectFiles(r, kit, { hook: true }).Hook?.Status, 'Updated'); put(r, '.git/hooks/commit-msg', '#!/bin/sh\nnpx commitlint --edit "$1"\n'); assert.equal(ensureProjectFiles(r, kit, { hook: true }).Hook?.Status, 'Occupied'); assert.equal(text(r, '.git/hooks/commit-msg'), '#!/bin/sh\nnpx commitlint --edit "$1"\n'); });
+test('skips the hook where core.hooksPath points elsewhere', () => { const r = repo(); git(r, 'config', 'core.hooksPath', '.husky'); const hook = ensureProjectFiles(r, kit, { hook: true }).Hook; assert.equal(hook?.Status, 'Skipped'); assert.match(hook?.Detail ?? '', /\.husky/); assert.equal(existsSync(hookPath(r)), false); });
+test('skips the hook outside a git repository', () => { assert.equal(ensureProjectFiles(temp(), kit, { hook: true }).Hook?.Status, 'Skipped'); });
+test('writes nothing it was not asked for', () => { const r = temp(); const report = ensureProjectFiles(r, kit, {}); assert.deepEqual(report, { Design: [], Pointer: null, Hook: null, Written: [] }); assert.equal(existsSync(join(r, 'AGENTS.md')), false); });

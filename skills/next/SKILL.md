@@ -11,6 +11,7 @@ With `$1` set to a slice id, start there. With `$1` set to `one`, stop after one
 
 ## 0. Start clean
 
+- `node tools/ensure-project-files.ts --repo-root . --hook` installs the commit-message hook if it is missing. It writes only inside `.git/`, so the tree stays as it was.
 - `git status --short --branch`. Uncommitted work that is not yours: leave it, never stage, discard or stash it, and mention it in the report. It rides across every branch switch, so the files it touches are guarded for the whole run (step 2).
 - If the current branch's pull request has merged, run `node tools/invoke-housekeeping.ts --repo-root .`: it switches to the default branch, pulls, and deletes every branch confirmed merged. It never stashes: uncommitted work rides across the switch untouched, and if git refuses the switch because that work would be overwritten, the run carries on from `origin/<default branch>` (step 2) and names the files in the report. Anything it escalates (`Escalate`) is left alone and named in the report; it does not stop the run.
 
@@ -33,7 +34,7 @@ The rule it applies, for reading the plan by hand: a slice is a `## S<n>` headin
 - For each acceptance criterion, write a test that fails first where the criterion can be tested, then implement until it passes. Stay inside the slice's `Out of scope:` line.
 - Where the code and the design disagree, do what works, keep going, and note it for the pull request (`AGENTS.shared.md` § *The design is the spec*).
 - Set the slice's `Status:` line to `done` in `design/30-slices.md` in this same branch.
-- Record the slice's decisions in `design/90-decisions.md` in this same branch: one entry for each material-ambiguity call (`AGENTS.shared.md` § *When to stop*) and each place the slice deliberately departs from the design. Ordinary implementation choices get no entry, and a slice with no such decision adds none. Each entry goes directly above the newest existing `### ` entry (at the end of the file when there is none), in the log's own shape:
+- Record the slice's decisions in `design/90-decisions.md` in this same branch: one entry for each material-ambiguity call (`AGENTS.shared.md` § *When to stop*) and each place the slice deliberately departs from the design. Ordinary implementation choices get no entry, and a slice with no such decision adds none. Where the file does not exist yet, `node tools/ensure-project-files.ts --repo-root . --design 90-decisions.md` creates it from the template first. Each entry goes directly above the newest existing `### ` entry (at the end of the file when there is none), in the log's own shape:
 
   ```
   ### <YYYY-MM-DD> — S<n>: <the decision, in one line>

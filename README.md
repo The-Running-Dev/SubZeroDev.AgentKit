@@ -21,6 +21,7 @@ tools/*.ts                    Node scripts the commands call; no PowerShell need
   measure-session.ts          what a session actually cost, from the transcript
   get-next-slice.ts           the first unfinished slice in 30-slices.md
   new-design-docs.ts          seeds design/ from templates/design
+  ensure-project-files.ts     creates a command's repo files on first use
   install-agentkit.ts         host registrations behind setup.ts
   get-agentkit-skill.ts       resolves a command's skill body and update check
   start-agentkit-codex.ts     routed Codex launcher
@@ -141,7 +142,9 @@ $kitHome = if ($env:AGENTKIT_HOME) { $env:AGENTKIT_HOME } else { Join-Path $HOME
 node (Join-Path $kitHome 'tools/invoke-housekeeping.ts')
 ```
 
-Once the kit is installed, work in a target repository and use `/install <path>` when that repository needs its project-owned files seeded or reconciled. The command reads [`INSTALL.md`](INSTALL.md) from the installed kit.
+Once the kit is installed, a repository needs no install step of its own. Each command creates the files it uses the first time it runs there — `/interview` the brief, `/design` the design, contract and decision log, `/plan` the slice list, plus the shared-contract pointer in `AGENTS.md` and the `commit-msg` hook — and leaves anything already there alone (`tools/ensure-project-files.ts`). Nothing records which kit version a repository was set up with, so a kit release changes no repository.
+
+Use `/install <path>` when a repository already has agent instructions, issue templates or a `design/` of its own that the kit's need reconciling with. The command reads [`INSTALL.md`](INSTALL.md) from the installed kit.
 
 Installing is a **reconciliation, not a copy**. A repository that already has agent instructions has them for a reason, usually a better-informed one than this kit's defaults. The installer classifies every artifact as absent, identical, divergent, or occupied; proposes a resolution for each; and stops for sign-off before writing. Re-running it upgrades, with the target winning wherever it has since been edited.
 
@@ -149,11 +152,11 @@ Installing is a **reconciliation, not a copy**. A repository that already has ag
 
 `/install-all` runs the same reconciliation unattended, across every `SubZeroDev.*` sibling repository in one pass. It applies only the resolutions `INSTALL.md` already states as deterministic; anything that would otherwise stop for sign-off is skipped per repository and reported as needing a decision, not guessed.
 
-Use the same global `node setup.ts` command to update the shared checkout. `/sync` updates that checkout to the newest stable release (or an explicitly requested version), then reconciles the current target repository.
+Use the same global `node setup.ts` command to update the shared checkout. `/sync` does the same — the newest stable release, or an explicitly requested version — and writes nothing in the current repository.
 
 **Update checks are automatic, and on by default.** The first AgentKit command you run in a session checks whether the installed runtime is behind what it tracks — the newest stable release, or `origin/<branch>` for a branch install — and, when it is, the agent runs the command anyway and ends its report with the upgrade command to run, so a check never stops the work to ask. Nothing is fetched into the working tree until you run that command, a pinned tag or SHA is never offered an update, and a check that cannot reach the origin stays silent. Turn it off with `node tools/get-agentkit-skill.ts --set-auto-update Off` (stored in `~/.agent-kit-state/config.json`; `--set-auto-update On` restores it), or for one shell with `AGENTKIT_AUTO_UPDATE=0`.
 
-Design docs install at `design/` in the repository root, deliberately — `docs/` is usually occupied by a documentation site, and a design directory inside its build context gets baked into the published image. `INSTALL.md` still checks the path before creating anything.
+Design docs install at `design/` in the repository root, deliberately — `docs/` is usually occupied by a documentation site, and a design directory inside its build context gets baked into the published image. Both `INSTALL.md` and the first-use seeding check the path, and leave a `design/` that holds something else alone.
 
 The installer owns the shared adapters and pointers. A target retains only its project rules, design, lessons, and issue templates.
 
@@ -184,7 +187,7 @@ A rule with no cost attached is an instruction, not a lesson. A lesson that recu
 
 **The design is the spec, not a mirror.** `design/` is written once and left alone. When building shows the design was wrong somewhere, `/next` does what works, lists the mismatch in that pull request's *Differs from design* section, and appends the call to `design/90-decisions.md` in the same pull request — the decision log is the one design file kept current as you build. Nothing stops on drift, and the design holds still while slices are built against it. When the plan is finished, `/next` reconciles the design in one last pull request: it gathers those *Differs from design* notes, the new decision-log entries and the design check's findings, corrects `10-design.md` and `20-contract.md` wherever the answer is already settled, and merges it like a slice. Anything that needs your judgement — the code and the design disagree about meaning and no decision records why — goes into one GitHub issue, with a recommendation each; run `/align` to settle those.
 
-**Outside the plan:** `/fix` reproduces and fixes a bug, files it as an issue, and ships the fix the same way. Anything you tell the agent directly — "just do this", a pasted spec — is done directly, with no brief or slice first. `/install` reconciles a target repository's project-owned files, `/install-all` does it across sibling repositories, `/install-review` writes the GitHub Actions workflow for automated Claude review, and `/sync` updates the shared checkout before reconciling the current target.
+**Outside the plan:** `/fix` reproduces and fixes a bug, files it as an issue, and ships the fix the same way. Anything you tell the agent directly — "just do this", a pasted spec — is done directly, with no brief or slice first. `/install` reconciles a target repository's project-owned files, `/install-all` does it across sibling repositories, `/install-review` writes the GitHub Actions workflow for automated Claude review, and `/sync` updates the shared checkout.
 
 **Which model suits which command is in [`AGENTS.shared.md`](AGENTS.shared.md), *Models*.** It is guidance, never a gate.
 

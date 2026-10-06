@@ -2,6 +2,8 @@
 
 You are an agent. The normal case: you are working **in the kit** and have been told to run it against a target repository. It also works in reverse — opened in the target, pointed at the kit. Either way this file is the procedure. Follow it in order.
 
+**Most repositories never need this procedure.** `/interview`, `/design`, `/plan`, `/next` and `/fix` each run `tools/ensure-project-files.ts`, which creates what that command needs — the design documents it writes, the pointer section, the `commit-msg` hook — where each is absent, and leaves anything already there alone. A repository with no agent instructions of its own is set up by its first command. This procedure is for the case that needs judgement: a target that already has `AGENTS.md`/`CLAUDE.md`, issue templates, a `design/` or a `commit-msg` hook of its own.
+
 **Installing is a reconciliation, not a copy.** A target repository that already has agent instructions has them for a reason, and those reasons are usually better informed than this kit's defaults — they were written against a real codebase. Where the kit and the target disagree, that is a finding to report, not a file to overwrite.
 
 The kit's own `AGENTS.shared.md` binds you while you do this. In particular: read completely before editing, present findings one at a time for sign-off, stage by named path, and do not write anything in phases 0–2.
@@ -57,7 +59,7 @@ The artifacts:
 | `AGENTS.md` | The target's project contract. Most often divergent. **The kit's own `AGENTS.md` is its project part, not a seed** |
 | `CLAUDE.md` | Pointer to `AGENTS.md` in the kit's arrangement — but see below |
 | Pointer section | A short, hand-written section inside whichever of `AGENTS.md`/`CLAUDE.md` holds content, naming the path to read `AGENTS.shared.md` from. See *The pointer section*, phase 2 |
-| `agent.md` | Lessons. Seeded, then pruned |
+| `agent.md` | Lessons. **Opt-in**: installed only when the user asks for it, then pruned. Otherwise report it as skipped |
 | `templates/design/*.md` | Five seed design docs, written to `design/` in the target. Check phase 2 before creating the directory |
 | `.github/ISSUE_TEMPLATE/*.md` | `bug.md`, `story.md`. **If the target already has templates, stop and report** — do not overwrite or merge. A repository with its own templates has a triage process, and replacing it silently changes how every future issue is filed |
 | `codex/PROFILES.md` | **Skip by default**, and report it as skipped. Install only if the target shows evidence of Codex use — a `.codex/` directory, a profile reference, or the user saying so. Asking in every install is noise |
@@ -72,25 +74,11 @@ The artifacts:
 
 **It also needs the target's `core.hooksPath` unset or pointing at `.git/hooks`.** A repository that has redirected it — Husky and lefthook both do — runs its hooks from somewhere else, so a file written to `.git/hooks/commit-msg` there is inert while looking installed. Check with `git -C <target> config --get core.hooksPath`; if it names anywhere else, skip the hook and report the path it names rather than writing into a directory the kit does not own.
 
-**`AGENTS.shared.md`, `skills/<name>/SKILL.md` and `tools/*.ts` are not installed into the target at all.** They are kit-owned and live once, machine-wide, at the installed kit root (`AGENTS.shared.md` § *House conventions*, kit files resolve from the kit root) — a repository never holds its own copy, so there is nothing here to classify, reconcile, or update on a re-install. The pointer section (phase 2) is what lets a target's `AGENTS.md`/`CLAUDE.md` reach `AGENTS.shared.md` without copying it. A `skills/<name>/SKILL-local.md` or `.claude/COMPANIONS.md` left by an older install is no longer read by anything; report it, and leave deleting it to the user.
+**`AGENTS.shared.md`, `skills/<name>/SKILL.md` and `tools/*.ts` are not installed into the target at all.** They are kit-owned and live once, machine-wide, at the installed kit root (`AGENTS.shared.md` § *House conventions*, kit files resolve from the kit root) — a repository never holds its own copy, so there is nothing here to classify, reconcile, or update on a re-install. The pointer section (phase 2) is what lets a target's `AGENTS.md`/`CLAUDE.md` reach `AGENTS.shared.md` without copying it. A `skills/<name>/SKILL-local.md` or `.claude/COMPANIONS.md` left by an older install is no longer read by anything; list it under *Leftovers* in phase 3, and delete it only on sign-off.
 
 `INSTALL.md` itself is **not** installed into targets. It is the kit's procedure, and a copy in the target is a copy that drifts.
 
-**Record which kit commit was installed.** Write `.claude/kit.json` in the target:
-
-```json
-{ "source": "https://github.com/The-Running-Dev/SubZeroDev.AgentKit", "commit": "<kit HEAD sha>", "installed": "YYYY-MM-DD" }
-```
-
-The kit's commit **is** its version — a hand-maintained `VERSION` file would drift from the tree it claims to describe, and this one cannot. On a re-install, read the recorded commit first and report how far behind the target is:
-
-```sh
-git -C <kit> log --oneline <recorded>..HEAD
-```
-
-That list is what the upgrade actually consists of. Without it, "is this repo current?" is answerable only by hashing every file, which is what the first three installs had to do.
-
-**`branch` is an optional fourth field, written only by `/sync`** (`skills/sync/SKILL.md`), recording which branch of the kit that command last synced from. Plain `/install` neither reads nor writes it. A `kit.json` without it is not stale — it just means `/sync` has never run here.
+**No install record is written.** An earlier version wrote `.claude/kit.json`, naming the kit commit a target was last reconciled against. Nothing reads it any more: commands, scripts and `AGENTS.shared.md` all resolve from the machine-wide kit, so a repository has no kit version of its own to fall behind, and a stamp that changes on every kit release only produced a pull request per repository per release. Where a target still has one, list it under *Leftovers* in phase 3 and delete it on sign-off.
 
 **Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately.
 
@@ -102,7 +90,7 @@ That list is what the upgrade actually consists of. Without it, "is this repo cu
 - **Absent `settings.json`** may be created containing only these hooks, under the same sign-off.
 - **Needs Node ≥ 22.18 on `PATH`.** Check with `node --version`; if it is missing, skip the hooks, install the script, and say which you did.
 
-Nothing else about the target's configuration is yours, and this exception does not generalise to another event later. Widening it is a decision, not an install detail. `.claude/kit.json` **is** yours: it is this procedure's own record, written in phase 4. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
+Nothing else about the target's configuration is yours, and this exception does not generalise to another event later. Widening it is a decision, not an install detail. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
 
 **The seed is `templates/design/`; the kit's own `design/` is never installed.** The seed holds a brief template, three empty documents, and a decision log carrying only its heading, preamble and `## Open` section. The kit's `design/` holds the kit's own design and its decision entries, which are decisions about *building the kit* and mean nothing in a target. Copy from `templates/design/` and never from `design/`.
 
@@ -156,7 +144,7 @@ A first install writes this section fresh, next to (or inside) the project-ident
 
 The kit ships this seeded with lessons harvested from other projects. It says so in its own header, and it says to delete what does not apply.
 
-- **Absent** — install the seed, then **prune it as part of the install and propose the deletions.** The file loads into context every session, so a lesson kept for a stack the target does not use is a cost paid forever. A docs-only repository does not need the CI-permissions lesson; a repository with no container build does not need the image-digest one.
+- **Absent** — skip it and say so, unless the user asked for it. When they did, install the seed, then **prune it as part of the install and propose the deletions.** The file loads into context every session, so a lesson kept for a stack the target does not use is a cost paid forever. A docs-only repository does not need the CI-permissions lesson; a repository with no container build does not need the image-digest one.
 - **Present, with content** — **the target's file wins wholesale. Do not merge the seed into it.** Offer individual kit lessons only where one is both demonstrably absent and demonstrably applicable, one at a time. A lessons file that has been maintained is the most expensive artifact in the repository to have earned and the cheapest to dilute.
 - **Present under another name** — same rule, and keep the target's name.
 
@@ -183,7 +171,8 @@ Divergent (proposed):     <path> — <what differs, what I propose, why>
 Occupied (blocked):       <path> — <what holds it>
 Pointer section:          <resolved path written, or unchanged if already correct>
 Already satisfied:        <target rule> covers <kit rule>
-Pruning from agent.md:    <lesson> — <why it cannot apply here>
+agent.md:                 <skipped — opt-in | installed, pruning: <lesson> — <why it cannot apply here>>
+Leftovers (propose delete): <.claude/kit.json, SKILL-local.md, .claude/COMPANIONS.md — whichever exist>
 Decisions needing you:    <the forks, one at a time, recommendation first>
 Commit-msg hook:          <installed | skipped — core.hooksPath names <path> | skipped — occupied by <what>>
 Dirty files, untouched:   <paths from phase 0>
@@ -203,7 +192,7 @@ Only after sign-off.
    this kit assumes. Say in the closing report that you created it.
 
 2. **Re-check the target's state first.** Phase 0's snapshot is stale by now — a long reconciliation gives the user time to commit, branch, or edit the very file you are about to move. Re-run `git status --short --branch` and diff your source-of-truth for any moved content against `HEAD`, not against what you read in phase 0.
-3. Write the approved files. Preserve UTF-8 and LF. This is only ever `AGENTS.md`/`CLAUDE.md` (including the pointer section), `agent.md`, the `design/` seed, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md`, `.claude/kit.json`, and `.git/hooks/commit-msg` — nothing under `skills/` or `tools/` is ever written here. The hook is the one path in that list outside the working tree, and it is written here and then deliberately not staged in step 8.
+3. Write the approved files. Preserve UTF-8 and LF. This is only ever `AGENTS.md`/`CLAUDE.md` (including the pointer section), `agent.md`, the `design/` seed, `.github/ISSUE_TEMPLATE/*.md`, `codex/PROFILES.md`, and `.git/hooks/commit-msg` — nothing under `skills/` or `tools/` is ever written here. The hook is the one path in that list outside the working tree, and it is written here and then deliberately not staged in step 8.
 4. **Record every fork that had a real alternative** — the relocation, the `AGENTS.md`/`CLAUDE.md` direction, anything the target overrode, anything skipped. **Rejected alternatives included**; without them the next install relitigates the same choices, and the commonest question a re-install faces is "why is it set up this way here?"
 
    The log's home, in this order — the first that applies:
@@ -220,7 +209,7 @@ Only after sign-off.
    - **No rule appears twice.** Search the target for the distinctive phrase of each rule you added — not for the rule's topic. You are looking for your own duplicates, and you will have made some: this install's own verification caught two that careful authoring did not.
    - **No stale paths.** If you relocated anything, search for the old path. Hits in the decision log are correct; hits anywhere else are not.
    - **The pointer section resolves.** The path it names actually exists on this machine and is the installed kit's `AGENTS.shared.md` — not a stale path left over from a prior install or a different `AGENTKIT_HOME`.
-6. **Write `.claude/kit.json`**'s `commit` field with the kit's current HEAD sha and today's date — now, after the work succeeded, not before it. This is this repository's own install-marker, recording which kit commit its per-repo files (the pointer section, the seed, the templates) were last reconciled against.
+6. **Delete the leftovers the user approved deleting** (phase 3), with `git rm` on each named path so the deletion is staged with the rest. Nothing the user did not approve is removed.
 7. `git -C <target> status --short` and `git diff --check`.
 8. **Deliver on a feature branch, and open the pull request.** Branch from the target's default branch,
    stage **by named path**, commit, push, and open a pull request against the default branch. Never commit
@@ -269,7 +258,7 @@ Installing again upgrades. The classification in phase 1 is what makes it safe: 
 
 **Command files are not part of this at all.** They are never copied into the target, so a re-install neither reconciles nor upgrades them — the installed kit at `AGENTKIT_HOME` (or wherever it resolves) is always current, and `/sync` is what advances it. Re-running `/install` here only ever refreshes this repository's own per-repo files and the pointer section.
 
-**Open by reading `.claude/kit.json` and naming the gap.** `git -C <kit> log --oneline <recorded>..HEAD` is the upgrade, stated as commits rather than as a diff of files. Report it before phase 1, because it tells the user what they are about to get. Update the recorded commit only in phase 4, after the install actually succeeds — a version marker written ahead of the work claims an upgrade that did not happen.
+**Nothing is remembered between runs.** Every run classifies from scratch against the tree as it stands, and a kit release on its own gives a re-run nothing to do — the kit's commands already run from the updated machine-wide checkout.
 
 ## What installing must not do
 

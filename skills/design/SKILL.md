@@ -7,6 +7,8 @@ disable-model-invocation: true
 
 Read `design/00-brief.md`. Write `design/10-design.md`, then `design/20-contract.md`.
 
+Before the first write, run `node tools/ensure-project-files.ts --repo-root . --design 10-design.md --design 20-contract.md --design 90-decisions.md --pointer --hook`. It creates whichever of those is missing from the kit's templates and leaves the rest alone, so no install step has to come first. Anything it reports `Occupied` or `Ambiguous` goes in the report, untouched.
+
 This is the stage where irreversible decisions get made. Data model, module boundaries and error semantics are expensive to change later; code is not. Spend the reasoning here.
 
 ## Premises, before anything is designed

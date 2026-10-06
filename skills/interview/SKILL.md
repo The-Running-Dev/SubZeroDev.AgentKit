@@ -10,7 +10,7 @@ Ask the questions that turn **$ARGUMENTS** — or an idea that so far exists onl
 ## Stop first
 
 - **`design/00-brief.md` already has real content** — this is a re-run. Read *Re-run* below before asking anything.
-- **No `design/` at all** — that is the ordinary starting state. Copy `templates/design/00-brief.md` into place when you write, and leave the rest of the seed to `/install`.
+- **No `design/` at all** — that is the ordinary starting state. No install step comes first: when you write, `node tools/ensure-project-files.ts --repo-root . --design 00-brief.md --pointer --hook` puts the brief template in place, adds the shared-contract pointer to `AGENTS.md` (creating it, with a `CLAUDE.md` that imports it, where neither exists), and installs the commit-message hook. Each is left alone where it already exists; anything it reports `Occupied` or `Ambiguous` goes in the report, untouched.
 
 ## What this command is not
 
@@ -116,11 +116,11 @@ Then draft the three fields the questions did not ask for directly, and put them
 - **`## Definition of done`** — checkable statements, not aspirations. Each one has to be something that can be run, read, or counted.
 - **`## Environment`** — scale, data volume, platform, single-user or not, online or offline. Usually the cheapest section, and the one whose absence a design silently invents an answer for.
 
-Only then write `design/00-brief.md`, from `templates/design/00-brief.md`, and show what was written.
+Only then write `design/00-brief.md`, into the template `ensure-project-files.ts` put in place (*Stop first*), and show what was written.
 
 ## Never
 
-- Never write anything but `design/00-brief.md`. Not `10-design.md`, not `90-decisions.md`. Architecture is `/design`'s, and proposing it here anchors the design to whatever happened to come to mind during an interview.
+- Never write anything but `design/00-brief.md` and what `ensure-project-files.ts` creates. Not `10-design.md`, not `90-decisions.md`. Architecture is `/design`'s, and proposing it here anchors the design to whatever happened to come to mind during an interview.
 - Never name a technology, a library, or a file format. The brief describes the problem; a tool named at this stage is a decision made before there was anything to decide it against.
 - Never fill a field the user did not answer. Empty and labelled is a finding; filled and plausible is a fiction that survives the whole pipeline.
 - Never ask a second round of questions after writing. `/brief` is the next stage and its four lists are the second pass — that is the boundary, and running it here would make one session both the author and the judge.

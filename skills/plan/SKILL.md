@@ -4,7 +4,7 @@ description: Break the contract into vertical slices with acceptance criteria
 disable-model-invocation: true
 ---
 
-Read `design/10-design.md` and `design/20-contract.md`. Write `design/30-slices.md`.
+Read `design/10-design.md` and `design/20-contract.md`. Write `design/30-slices.md`, after `node tools/ensure-project-files.ts --repo-root . --design 30-slices.md --pointer --hook` has put the template in place where it is missing.
 
 Slices are **vertical**: each one goes from entry point to persistence and leaves the system runnable. A slice that only adds a layer ("build the data access layer") is wrong — it cannot be run, so it cannot be verified, so it accumulates undetected error.
 

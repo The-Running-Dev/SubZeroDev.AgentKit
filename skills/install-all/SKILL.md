@@ -67,9 +67,8 @@ git -C <kit-root> cat-file -e <blob-sha>
 The first prints the blob sha; the second checks it against the kit's history.
 
 - **Exit 0 — Deletable.** That exact byte content exists as a blob object somewhere in the kit's
-  own git history, which is the kit's only record of what it ever released (`.claude/kit.json`'s
-  `commit` field already treats a git sha as the kit's version; a blob's hash needs nothing more to
-  say which commit shipped it). Safe to delete — nothing is lost, because the kit itself still
+  own git history, which is the kit's only record of what it ever released (a blob's hash needs
+  nothing more to say which commit shipped it). Safe to delete — nothing is lost, because the kit itself still
   holds this content, reachably, forever.
 - **Anything else — refuses to delete.** The kit's history does not account for this content: a
   target's own edit to what was once a copy, or hand-authored content that happens to sit at a
@@ -161,13 +160,13 @@ twice.
   test.
 - **No write, read for classification, or report on `skills/*/SKILL-local.md`**, in any target.
 - No `git add -A`, `git add .`, or bare-directory add.
-- No write to a target's `settings.json`, `settings.local.json`, `launch.json`, or `.claude/kit.json`
-  — this command does not run `INSTALL.md`'s reconciliation and touches none of the per-repo files
+- No write to a target's `settings.json`, `settings.local.json`, `launch.json`, or a leftover
+  `.claude/kit.json` (deleting that is `/install`'s, on sign-off) — this command does not run `INSTALL.md`'s reconciliation and touches none of the per-repo files
   that procedure owns, beyond the pointer section named above.
 - **No write to a target's `.git/hooks/`**, including the `commit-msg` hook `INSTALL.md` phase 1
   installs. `git status` does not report writes inside `.git/` at all, so this is the one artifact
   whose install this command's own write-surface check cannot see —
   and an unattended pass does not write what it cannot verify it wrote. Report it as skipped;
-  `/install` is where it is installed, attended.
+  the target's next `/next`, `/fix` or design command installs it (`tools/ensure-project-files.ts`).
 - **No commit, push, or pull request on a dry run** — `--apply`'s absence means exactly that nothing
   is written, not "written but not pushed."
