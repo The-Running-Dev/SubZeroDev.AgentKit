@@ -94,7 +94,8 @@ export function getNextSlice(input: NextInput = {}, runner: Runner = run) {
       if (r.code) throw new Error(`gh pr list failed: ${[r.stdout, r.stderr].filter(Boolean).join('\n').trim()}`);
       json = r.stdout;
     }
-    prs = JSON.parse(json);
+    const parsed = JSON.parse(json);
+    prs = Array.isArray(parsed) ? parsed : [parsed];
   } catch (e) { return complete('Blocked', 'PullRequestsUnavailable', String(e instanceof Error ? e.message : e)); }
   prs = prs.filter(p => p.isCrossRepository === false && p.baseRefName?.toLowerCase() === branch!.toLowerCase());
   const flights = new Map<string, boolean>();
@@ -140,6 +141,11 @@ export function getNextSlice(input: NextInput = {}, runner: Runner = run) {
 if (isMain(import.meta.url)) await main(() => {
   const o = parseOptions(options);
   const r = getNextSlice({ repoRoot: o['repo-root'], defaultBranch: o['default-branch'], slice: o.slice, pullRequestsJson: o['pull-requests-json'] });
-  if (!o.quiet) process.stderr.write(`${r.State}: ${r.Detail}\n`);
+  if (!o.quiet) {
+    const what = [r.Slice, r.Branch, r.PullRequest ? `#${r.PullRequest}` : null].filter(Boolean);
+    process.stderr.write(`Next slice: ${r.State}${what.length ? ` ${what.join(' ')}` : ''} - ${r.Detail}`
+      + `${r.GuardedFiles.length ? ` Uncommitted, never stage: ${r.GuardedFiles.join(', ')}.` : ''}`
+      + `${r.OwnFiles.length ? ` Uncommitted slice work to carry on: ${r.OwnFiles.join(', ')}.` : ''}\n`);
+  }
   writeJson(r); process.exitCode = r.State === 'Blocked' ? 1 : 0;
 });

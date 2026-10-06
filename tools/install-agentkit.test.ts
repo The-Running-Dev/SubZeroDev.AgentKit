@@ -33,7 +33,7 @@ const saveState = (f: Fixture, value: Manifest) => put(f.home, '.agent-kit-state
 const cskill = (f: Fixture, name = 'next') => join(f.codex, 'skills', name, 'SKILL.md');
 function snapshot(f: Fixture) {
   const files: Record<string, string> = {};
-  const walk = (path: string) => { if (!existsSync(path)) return; for (const item of readdirSync(path, { withFileTypes: true })) { const p = join(path, item.name); if (item.isDirectory()) walk(p); else if (item.isFile()) files[p] = hash(readFileSync(p)); } };
+  const walk = (path: string) => { if (!existsSync(path)) return; for (const item of readdirSync(path, { withFileTypes: true })) { const p = join(path, item.name); if (item.isDirectory()) { files[p + '/'] = 'dir'; walk(p); } else if (item.isFile()) files[p] = hash(readFileSync(p)); } };
   for (const path of [join(f.home, '.claude'), join(f.home, '.copilot'), join(f.home, '.agent-kit-state'), f.codex, f.project]) walk(path);
   if (existsSync(join(f.root, '.git'))) { files.HEAD = git(f.root, 'rev-parse', 'HEAD'); files.status = git(f.root, 'status', '--porcelain'); }
   return files;
@@ -129,6 +129,11 @@ it('migrates bare Claude skill registrations from an earlier install into the pl
   success(f, { hosts: ['claude'] }); const s = state(f); s.registrations = s.registrations!.filter(r => r.files?.['SKILL.md']).map(r => { const path = join(f.home, '.claude/skills', r.name); cpSync(r.path, path, { recursive: true }); return { ...r, path }; });
   rmSync(f.plugin, { recursive: true }); saveState(f, s); assert.deepEqual(success(f, { hosts: ['claude'] }).Collisions, []);
   for (const name of ['next', 'fix', 'align']) { assert.ok(!existsSync(join(f.home, '.claude/skills', name))); assert.ok(existsSync(join(f.plugin, 'skills', name, 'SKILL.md'))); } success(f, { verify: true });
+});
+it('a failed migration from bare registrations rolls back to the same files and folders', f => {
+  success(f, { hosts: ['claude'] }); const s = state(f); s.registrations = s.registrations!.filter(r => r.files?.['SKILL.md']).map(r => { const path = join(f.home, '.claude/skills', r.name); cpSync(r.path, path, { recursive: true }); return { ...r, path }; });
+  rmSync(f.plugin, { recursive: true }); saveState(f, s); breakSettings(f); const before = snapshot(f); failure(f, /rolled back/, { hosts: ['claude'] });
+  const after = snapshot(f); delete after.HEAD; delete after.status; delete before.HEAD; delete before.status; assert.deepEqual(after, before);
 });
 it('leaves a foreign agentkit folder and earlier Claude registrations untouched', f => {
   const path = put(f.plugin, 'SKILL.md', 'my own agentkit skill'); assert.ok(success(f).Collisions.includes(f.plugin)); assert.equal(read(path), 'my own agentkit skill'); assert.ok(!existsSync(join(f.plugin, '.claude-plugin'))); assert.equal(state(f).registrations!.filter(r => r.host === 'claude').length, 0); success(f, { uninstall: true }); assert.equal(read(path), 'my own agentkit skill');

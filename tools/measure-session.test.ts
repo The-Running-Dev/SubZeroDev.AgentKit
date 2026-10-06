@@ -34,3 +34,8 @@ test('writes a worktree session beside the main checkout', () => { const r = rep
 test('writes beside the calling project rather than the installed script', () => { const r = repo(), path = file(temp(), 'hook', [message()]), before = process.env.CLAUDE_PROJECT_DIR; try { process.env.CLAUDE_PROJECT_DIR = r; sessionHook(JSON.stringify({ transcript_path: path })); assert.ok(existsSync(join(r, '.claude/session-costs.tsv'))); } finally { if (before === undefined) delete process.env.CLAUDE_PROJECT_DIR; else process.env.CLAUDE_PROJECT_DIR = before; } });
 test('replaces a repeated session row rather than appending another', () => { const r = temp(), path = file(r, 'hook', [message()]); sessionHook(JSON.stringify({ transcript_path: path }), r); file(r, 'hook', [message(), message(2)]); sessionHook(JSON.stringify({ transcript_path: path }), r); const rows = readFileSync(join(r, '.claude/session-costs.tsv'), 'utf8').trimEnd().split('\n'); assert.equal(rows.length, 2); assert.equal(rows[1].split('\t')[3], '2'); });
 test('slugs both Windows and POSIX project paths with the original character mapping', () => { assert.equal(projectSlug('D:\\Dropbox\\Projects\\My.Project\\'), 'D--Dropbox-Projects-My-Project'); assert.equal(projectSlug('/home/ben/My_Project/'), '-home-ben-My-Project'); });
+test('human report truncates times and joins models with a comma as PowerShell did', () => {
+  const root = temp(); file(root, 'session', [message(1, 1, {}, '2026-01-01T10:00:00Z'), message(1, 1, {}, '2026-01-01T10:00:59.600Z')]);
+  const r = report(root); assert.equal(r.sessions[0].spanSeconds, 60);
+  const text = humanReport(r); assert.match(text, /span 00:00:59/); assert.match(text, /active 00:00:59/);
+});

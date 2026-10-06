@@ -96,10 +96,10 @@ test('type stripping and diagnostics leave stdout as exactly one JSON object', (
   assert.equal(result.stdout, '{"State":"Ready"}\n');
   assert.ok(result.stderr === '' || result.stderr.includes('ExperimentalWarning'), result.stderr);
 });
-test('entry failures are diagnostics on stderr with exit code 2', () => {
+test('entry failures are diagnostics on stderr with exit code 1, as PowerShell threw', () => {
   const runtime = new URL('./runtime.ts', import.meta.url).href;
   const result = run(process.execPath, ['--input-type=module', '-e', `import { main } from ${JSON.stringify(runtime)}; await main(() => { throw new Error('bad option'); });`]);
-  assert.equal(result.code, 2);
+  assert.equal(result.code, 1);
   assert.equal(result.stdout, '');
   assert.match(result.stderr, /bad option/);
 });
