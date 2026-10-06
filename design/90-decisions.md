@@ -2,6 +2,12 @@
 
 Append-only. Newest at the top. The rejected alternatives are the point — without them, every future session relitigates the same choice.
 
+### 2026-10-06 — `/next` reconciles the design once the plan is finished
+Context: with `design/` write-once, the documents drifted from the code until the user remembered to run `/align`, and the user did not want to keep them current by hand. Since #458 every slice records its calls in this log, so most divergences are already settled by the time the plan finishes.
+Chosen: **When `get-next-slice.ts` returns `Finished`, `/next` gathers the merged pull requests' *Differs from design* notes, the new decision entries and the design check's findings; corrects `10-design.md` and `20-contract.md` where the divergence is a transcription or a recorded decision; ships that as one pull request merged like a slice; and files whatever needs the user's judgement as one issue for `/align`.** The spec still holds still while slices are built against it.
+Rejected: **Update the design in every slice's pull request** — moves the spec under the build, which #436 removed on purpose. **A scheduled `/align` in CI** — needs a model credential in Actions and opens pull requests unattended, for the same result. **Restore the pre-#436 state files and drift checkers** — the user chose deleting them when the redesign was commissioned. **Ask the user mid-run about meaning-level divergences** — `/next` never asks mid-run; one issue at the end keeps the build autonomous.
+Reversibility: cheap. Instruction text and three contract tests.
+
 ### 2026-10-06 — `/next` appends its decisions to `90-decisions.md`; the rest of `design/` stays write-once
 Context: since #436 the material-ambiguity calls `/next` made lived only in its end-of-run report and the slices' *Differs from design* sections, so the decision log fell behind the code and catching it up meant running `/align` by hand.
 Chosen: **Each slice's pull request appends one entry per material-ambiguity call or deliberate design departure, directly above the newest entry, in the log's existing shape; existing entries are never edited.** The log is append-only, so writing it while building cannot rewrite the spec, and the entry merges with the code it explains.

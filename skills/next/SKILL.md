@@ -20,7 +20,7 @@ Run `node tools/get-next-slice.ts --repo-root .` (add `--slice $1` when `$1` is 
 
 - **`Resume`** — work from an earlier run is in flight: an open pull request (`PullRequest`), or a branch with no pull request yet (`Branch`), with commits or, if the run stopped before its first commit, without. Check out `Branch` (step 2) and continue: from step 3 if its work is complete, otherwise finish it in step 2 first. `OwnFiles` are that run's uncommitted edits: carry on with them. `AGENTS.shared.md` § *Git and delivery* applies: continue that branch, never a new one.
 - **`Start`** — build `Slice` from `Base` in step 2.
-- **`Finished`** — the plan is done: report it and stop.
+- **`Finished`** — the plan is done: reconcile the design (step 7), then report and stop.
 - **`Blocked`** — `Detail` says why (a failed fetch with git's error, a dependency cycle or gap, two branches or two open pull requests for one slice, `gh` unavailable). Report it and stop.
 
 The rule it applies, for reading the plan by hand: a slice is a `## S<n>` heading and the lines under it; the next is the first, in document order, whose `Status:` is not `done` and whose `Depends on:` slices are all `done`; a slice with no `Status:` line is not done. Slices named in a `## Landed` table, or any other index of slices retired by an earlier version of the kit, are history: they count as `done`, and none is ever rebuilt.
@@ -51,7 +51,7 @@ Run the repository's gates: the steps marked `# verification: true` in `.github/
 Then run the design check, which is advisory and never a gate: `node tools/test-design.ts --repo-root .`. It is read-only and checks that what `design/`, the command files and `AGENTS.md` state about the tree is true — cited scripts and commands exist, the contract's tables match the scripts and skills, every slice has a `Status:` line. Exit 2 means there is no `design/` and nothing to check.
 
 - A reference **outside `design/`** that this slice broke — a skill citing a script the slice renamed — is the slice's own bug: fix it in this branch.
-- Every other finding goes in the pull request's *Differs from design* section, one line each, and never stops the run. Never edit `design/` to clear one; that is `/align`, when the user asks.
+- Every other finding goes in the pull request's *Differs from design* section, one line each, and never stops the run. Never edit `design/` to clear one in a slice; step 7 reconciles them once the plan is finished.
 
 ## 4. Open the pull request
 
@@ -90,13 +90,26 @@ Three failed attempts to fix the same CI failure or review defect is a blocker: 
 
 Return to step 1 for the next slice. Do not pause between slices, do not ask whether to continue, and do not suggest a new session — context compaction is handled by the host.
 
-When the plan is finished, run the design check once more on the default branch. If it still reports findings, open one GitHub issue listing them (check, `file:line`, message), so `/align` has them in one place, and link it in the report. Do not fix them in this run.
+When step 1 returns `Finished`, go to step 7.
+
+## 7. Reconcile the design
+
+The spec holds still while slices are built against it; once the plan is finished, bring it up to date with what was built, in this same session. This is `/align` without the questions: it changes the documents only where the answer is already settled.
+
+1. **Gather**, from the default branch: the *Differs from design* section of every pull request merged since `design/10-design.md` or `design/20-contract.md` last changed (`gh pr list --state merged --search "merged:>=<date>" --json number,title,body`); the `90-decisions.md` entries added since that date; and the findings of `node tools/test-design.ts --repo-root .`. If all three are empty, there is nothing to reconcile: skip to the report.
+2. **Sort** each divergence, checking it against the code (`path:line`) rather than trusting the note:
+   - **Transcription** — a renamed script, field or option, a moved file, a changed count, a contract table that no longer matches the tree. Correct the document.
+   - **Already decided** — a `90-decisions.md` entry records the call (the ones step 2 appended). Make the document say what the entry chose, citing it.
+   - **Needs the user** — the code and the design disagree about meaning and no entry settles it. Change nothing; it goes in the report.
+   - **Already in agreement** — the document already says it. Nothing to do.
+3. **Ship** what was corrected as one pull request on `align/<YYYY-MM-DD>`, through steps 3 to 5 like a slice. Edit only `10-design.md` and `20-contract.md`, and the text of slices that are not `done`; never the brief, never a `done` slice's acceptance criteria, never an existing `90-decisions.md` entry. The description lists each correction (document section ← `path:line` or decision entry) under *What*, and each *Needs the user* item under *Differs from design*. With nothing to correct, open no pull request.
+4. **Hand over** the *Needs the user* items: open one GitHub issue listing each with its `path:line`, the document section and a recommendation (change the document or change the code, and why), and link it in the report. They are the only part left for `/align`. This step never stops the run and never asks mid-run.
 
 ## Report
 
 Once, when the run stops, in the `AGENTS.shared.md` § *Reporting* shape:
 
-- `Result:` — which slices merged in this run (with pull request links), and either "the plan is complete" or exactly what stopped it.
-- `Next:` — `Nothing — this is complete.`, or the one decision or action the blocker needs from the user.
+- `Result:` — which slices merged in this run (with pull request links), and either "the plan is complete" with the reconciliation pull request (or "design already current") or exactly what stopped it.
+- `Next:` — `Nothing — this is complete.`, the one decision or action the blocker needs from the user, or the *Needs the user* issue from step 7.
 - `Verified:` — the gates and CI results for the last pull request, and anything that did not run.
 - `Decisions:` — the material-ambiguity calls made along the way, one line each, if any mattered; each is already in `design/90-decisions.md`.

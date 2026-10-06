@@ -7,17 +7,17 @@ The shared rules for every agent session in a repository that uses the kit, what
 ## How work flows
 
 1. **Design — user-driven.** `/interview` writes `design/00-brief.md`. `/design` writes `design/10-design.md` and `design/20-contract.md`. `/plan` writes `design/30-slices.md`. `/redteam` is optional, run when asked; a different vendor than the design's author is best, and it is never a gate.
-2. **Build — autonomous.** `/next` takes the first unfinished slice in `design/30-slices.md` and builds it through to merge — tests, pull request, CI, review comments, merge, branch cleanup — marks it done, then takes the next one, in the same session. It stops only when the plan is finished or on a genuine blocker (below).
-3. **Outside the plan.** `/fix` handles a bug. `/align` compares `design/` against the tree, only when asked.
+2. **Build — autonomous.** `/next` takes the first unfinished slice in `design/30-slices.md` and builds it through to merge — tests, pull request, CI, review comments, merge, branch cleanup — marks it done, then takes the next one, in the same session. When the plan is finished it reconciles `design/` with what was built in one more pull request. It stops only when the plan is finished or on a genuine blocker (below).
+3. **Outside the plan.** `/fix` handles a bug. `/align` compares `design/` against the tree when asked, and settles what `/next`'s reconciliation left for the user.
 
 Any instruction the user gives directly — "just do this", a pasted spec, an issue to implement — is done directly. No brief, no slice, no tracker entry first.
 
 ## The design is the spec
 
-`design/` is written during the design phase and then left alone. It describes what to build; it is not kept in sync with the code afterwards.
+`design/` is written during the design phase and then left alone while the plan is built. It describes what to build; it is not kept in sync slice by slice. Once the plan is finished, `/next` brings it up to date in one pull request.
 
 - Build against `20-contract.md` and the slice's acceptance criteria.
-- **When the code and the design disagree, do what works and say so** in that pull request's description, one line per mismatch. Do not stop on it, and do not edit `design/` to match. `/align` reconciles them when the user asks.
+- **When the code and the design disagree, do what works and say so** in that pull request's description, one line per mismatch. Do not stop on it, and do not edit `design/` to match in that pull request. When the plan is finished, `/next` corrects the documents wherever the answer is settled — a transcription, or a call `90-decisions.md` records — and hands the rest to the user as one issue for `/align`.
 - **The one part kept current is `90-decisions.md`.** `/next` appends an entry for each material-ambiguity call and each deliberate departure from the design, in the same pull request as the slice. It only appends; an existing entry is never edited.
 - A slice's scope is its own text. Something worth doing nearby goes in the report or a GitHub issue, not into the same pull request.
 

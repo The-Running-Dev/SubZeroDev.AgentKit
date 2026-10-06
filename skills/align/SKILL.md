@@ -4,7 +4,7 @@ description: On request only — compare the design docs against the tree, then 
 disable-model-invocation: true
 ---
 
-Runs only when the user asks. `design/` is a write-once spec (`AGENTS.shared.md` § *The design is the spec*); this command is how it is refreshed when the user wants it refreshed, not a step any other command waits on.
+Runs only when the user asks. `design/` holds still while a plan is built (`AGENTS.shared.md` § *The design is the spec*), and `/next` step 7 reconciles it once the plan is finished, correcting only what is already settled and filing the rest as one issue. This command settles that rest, or refreshes the design at any other time the user wants it; it is not a step any other command waits on. When a `/next` reconciliation issue is open, start from its items.
 
 ## Gather
 
