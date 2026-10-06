@@ -9,7 +9,7 @@ AGENTS.shared.md              binding contract every repo using the kit shares
 AGENTS.md                     this repo's project rules on top of it, read by Codex
 CLAUDE.md                     imports both, read by Claude Code
 agent.md                      lessons learned the hard way
-setup.ts                      global front door — bootstrap, update, roll back the shared checkout
+setup.ts                      global front door — bootstrap and update the shared checkout
 INSTALL.md                    how the kit installs into a repo
 skills/<name>/SKILL.md        slash commands, owned by the kit
 .github/ISSUE_TEMPLATE/*.md   bug and story templates, human-first shape
@@ -108,8 +108,6 @@ node "<kit-root>/setup.ts" --uninstall --force
 
 `--prefix ak-` installs names such as `$ak-next` and `$ak-next-routed`. Foreign or edited registrations are preserved and reported as collisions. Uninstall removes only unchanged owned registrations, pointers and hooks; adding `--force` also removes the validated checkout. Verify is read-only. Dry runs make no checkout or host changes; the initial bootstrap clone itself is a write.
 
-Rollback to an older release such as `v2026.09.24`, which has only `setup.ps1`, needs PowerShell 7 (`pwsh`) on PATH. The Node installer checks that prerequisite before checkout, then runs that release's own installer. A release with neither front door is refused. The two remaining PowerShell files are compatibility forwarders for upgrades from old installs; new installs use Node directly.
-
 Create a stable release only after the merged SHA passes its required workflow gates. Choose an unused `vYYYY.MM.DD` tag, or `vYYYY.MM.DD.N` above every revision already published for that date. Stable selection sorts by date, then numeric revision; the bare tag is revision zero. Substitute the chosen tag and verified SHA:
 
 ```text
@@ -141,7 +139,7 @@ Installing is a **reconciliation, not a copy**. A repository that already has ag
 
 `/install-all` runs the same reconciliation unattended, across every `SubZeroDev.*` sibling repository in one pass. It applies only the resolutions `INSTALL.md` already states as deterministic; anything that would otherwise stop for sign-off is skipped per repository and reported as needing a decision, not guessed.
 
-Use the same global `node setup.ts` command to update or roll back the shared checkout. `/sync` updates that checkout to the newest stable release (or an explicitly requested version), then reconciles the current target repository.
+Use the same global `node setup.ts` command to update the shared checkout. `/sync` updates that checkout to the newest stable release (or an explicitly requested version), then reconciles the current target repository.
 
 **Update checks are automatic, and on by default.** The first AgentKit command you run in a session checks whether the installed runtime is behind what it tracks — the newest stable release, or `origin/<branch>` for a branch install — and, when it is, the agent runs the command anyway and ends its report with the upgrade command to run, so a check never stops the work to ask. Nothing is fetched into the working tree until you run that command, a pinned tag or SHA is never offered an update, and a check that cannot reach the origin stays silent. Turn it off with `node tools/get-agentkit-skill.ts --set-auto-update Off` (stored in `~/.agent-kit-state/config.json`; `--set-auto-update On` restores it), or for one shell with `AGENTKIT_AUTO_UPDATE=0`.
 

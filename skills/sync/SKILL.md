@@ -18,7 +18,7 @@ Resolve the kit root from `AGENTKIT_HOME`, otherwise the home directory's `.agen
 - Run `node "<kit-root>/setup.ts"`, adding `--version "<requested-version>"` only when the user supplied a version. Substitute absolute paths and quote them for the calling shell.
 - If the installed checkout predates `setup.ts`, use README's temporary bootstrap clone procedure. Do not advance the old checkout by hand.
 
-The default selects the newest valid stable `vYYYY.MM.DD` tag, including an optional `.N` suffix. It never falls back to `main`; that branch requires an explicit request. Rollback to a release with only the old front door needs `pwsh`; setup refuses before checkout when it is unavailable.
+The default selects the newest valid stable `vYYYY.MM.DD` tag, including an optional `.N` suffix. It never falls back to `main`; that branch requires an explicit request.
 
 ## Reconcile
 
