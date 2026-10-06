@@ -18,6 +18,7 @@ Any instruction the user gives directly — "just do this", a pasted spec, an is
 
 - Build against `20-contract.md` and the slice's acceptance criteria.
 - **When the code and the design disagree, do what works and say so** in that pull request's description, one line per mismatch. Do not stop on it, and do not edit `design/` to match. `/align` reconciles them when the user asks.
+- **The one part kept current is `90-decisions.md`.** `/next` appends an entry for each material-ambiguity call and each deliberate departure from the design, in the same pull request as the slice. It only appends; an existing entry is never edited.
 - A slice's scope is its own text. Something worth doing nearby goes in the report or a GitHub issue, not into the same pull request.
 
 ## When to stop

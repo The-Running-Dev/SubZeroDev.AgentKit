@@ -32,7 +32,17 @@ The rule it applies, for reading the plan by hand: a slice is a `## S<n>` headin
 - Read the slice, `design/20-contract.md`, and the parts of `design/10-design.md` it touches. Read the code you are about to change in full.
 - For each acceptance criterion, write a test that fails first where the criterion can be tested, then implement until it passes. Stay inside the slice's `Out of scope:` line.
 - Where the code and the design disagree, do what works, keep going, and note it for the pull request (`AGENTS.shared.md` § *The design is the spec*).
-- Set the slice's `Status:` line to `done` in `design/30-slices.md` in this same branch. Change nothing else in `design/`.
+- Set the slice's `Status:` line to `done` in `design/30-slices.md` in this same branch.
+- Record the slice's decisions in `design/90-decisions.md` in this same branch: one entry for each material-ambiguity call (`AGENTS.shared.md` § *When to stop*) and each place the slice deliberately departs from the design. Ordinary implementation choices get no entry, and a slice with no such decision adds none. Each entry goes directly above the newest existing `### ` entry (at the end of the file when there is none), in the log's own shape:
+
+  ```
+  ### <YYYY-MM-DD> — S<n>: <the decision, in one line>
+  Context: <what in the design or the code left it open>
+  Chosen: <what was built>
+  Rejected: <each reading not taken, and why>
+  ```
+
+  Never edit or remove an existing entry. Change nothing else in `design/`.
 
 ## 3. Check it locally
 
@@ -89,4 +99,4 @@ Once, when the run stops, in the `AGENTS.shared.md` § *Reporting* shape:
 - `Result:` — which slices merged in this run (with pull request links), and either "the plan is complete" or exactly what stopped it.
 - `Next:` — `Nothing — this is complete.`, or the one decision or action the blocker needs from the user.
 - `Verified:` — the gates and CI results for the last pull request, and anything that did not run.
-- `Decisions:` — the material-ambiguity calls made along the way, one line each, if any mattered.
+- `Decisions:` — the material-ambiguity calls made along the way, one line each, if any mattered; each is already in `design/90-decisions.md`.
