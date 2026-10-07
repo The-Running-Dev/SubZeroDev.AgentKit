@@ -14,19 +14,22 @@ Under Claude Code each is typed `/agentkit:<name>`; Codex and Copilot use the ba
 | Command | Does | Writes |
 |---|---|---|
 | `interview` | Interrogates the idea | `design/00-brief.md` |
-| `brief` | Challenges an existing brief | `design/00-brief.md` |
+| `brief` | Challenges an existing brief | nothing; the findings go in the conversation |
 | `design` | Produces the design and contract from the brief | `design/10-design.md`, `design/20-contract.md` |
 | `plan` | Breaks the contract into vertical slices | `design/30-slices.md` |
-| `redteam` | Optional adversarial review of the design | a report; never a gate |
-| `next` | Builds every unfinished slice through merge and cleanup | code, tests, PRs, `Status: done` |
+| `redteam` | Optional adversarial review of the design | `design/redteam/<YYYY-MM-DD>-<target>.md`; never a gate |
+| `next` | Builds every unfinished slice through merge and cleanup, then reconciles `design/` once | code, tests, PRs, `Status: done`, `design/90-decisions.md` entries, the reconciliation PR |
 | `fix` | Reproduces and fixes a defect outside the plan | code, tests, a PR |
 | `align` | On request, reconciles `design/` with the tree | `design/` |
-| `install` | Installs or upgrades the kit in a repository | `design/` seed, `AGENTS.md`, `.claude/kit.json` |
+| `install` | Reconciles a repository that already holds kit files | `AGENTS.md`/`CLAUDE.md` pointer section, `design/` seed, issue templates, `commit-msg` hook |
 | `install-all` | Migrates repositories off pre-home-install copies | one PR per repository |
 | `install-review` | Installs the Claude Code GitHub review action | a workflow file |
-| `sync` | Updates the machine-wide checkout, then reconciles this repository | the checkout |
+| `sync` | Updates the machine-wide checkout | the checkout; nothing in the repository |
 
 `/next` argument: a slice id to start from, or `one` to stop after one slice.
+
+No command needs `/install` first. `/interview`, `/design`, `/plan`, `/next` and `/fix` create
+the repository files they use, where missing, with `tools/ensure-project-files.ts`.
 
 ## Slice format (`design/30-slices.md`)
 
@@ -67,11 +70,12 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 | `test-gates-cache.ts` | `[--repo-root --write --gates-json]` | Reads or writes `.claude/gates.json`, keyed to a hash of the files that decide the gate list |
 | `test-verify-report.ts` | `[--path --quiet]` | Validates `.claude/verify-report.json` |
 | `test-no-attribution.ts` | `--base-sha`, `--head-sha` | `RESULT=PASSED` or `FAILED` naming the commits |
+| `ensure-project-files.ts` | `[--repo-root --design (repeatable) --pointer --hook --kit-root --quiet]` | `Design`, `Pointer` and `Hook` entries with `Status` Created / Present / Inserted / Occupied / Ambiguous / Skipped, and `Written`; creates what is missing, never overwrites |
 | `new-design-docs.ts` | `[--target-repo --kit-root --force --quiet]` | Seeds `design/` from `templates/design/` |
 | `install-agentkit.ts` | `[--version --source --hosts --prefix --dry-run --uninstall --force --verify --register-only --previous-commit --requested-version]` | Installs, verifies or removes the home checkout and registrations; `State` Installed / DryRun / OK. Default version is the newest stable `vYYYY.MM.DD[.N]` tag, never `main`. A failed install is not rolled back |
 | `setup.ts` | the same options | The front door: refuses an old Node before loading TypeScript, then runs `install-agentkit.ts`. A checkout that is not a current AgentKit one is refused ("not an AgentKit checkout") |
 | `get-agentkit-skill.ts`, `invoke-codex-command.ts`, `start-agentkit-codex.ts` | see the script | Skill reading and update check, Codex profile routing, Codex launch |
-| `get-next-slice.ts` | `[--repo-root --default-branch --slice --pull-requests-json --quiet]` | `State` Resume / Start / Finished / Blocked with `Slice`, `Branch`, `PullRequest`, `Base`, `DirtyFiles`, `Reason`; reads the plan from `origin/<default>` after a fetch; read-only otherwise; exit 0 / 1 (Blocked) |
+| `get-next-slice.ts` | `[--repo-root --default-branch --slice --pull-requests-json --quiet]` | `State` Resume / Start / Finished / Blocked with `Slice`, `Branch`, `PullRequest`, `Base`, `DirtyFiles`, `GuardedFiles`, `OwnFiles`, `Reason`, `Detail`; reads the plan from `origin/<default>` after a fetch; read-only otherwise; exit 0 / 1 (Blocked) |
 | `test-design.ts` | `[--repo-root --quiet]` | `State` Passed / Failed / NotEvaluated with `Findings` (`Check`, `File`, `Line`, `Message`); read-only; exit 0 / 1 / 2 |
 | `measure-session.ts` | `[--project --transcript-path --session-id --idle-threshold-minutes --detail --human --hook]` | Per-session cost report; `--hook` appends a row on `SessionEnd` |
 
@@ -79,8 +83,11 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 
 ## Files the kit reads and writes in a repository
 
-`design/` (the five documents above plus `90-decisions.md`), `AGENTS.md`, `.claude/kit.json`,
-`.claude/gates.json`, `.claude/verify-report.json`, `.claude/session-costs.tsv`. Nothing else.
+`design/` (`00-brief.md`, `10-design.md`, `20-contract.md`, `30-slices.md`, `90-decisions.md`,
+`redteam/`), `AGENTS.md` and `CLAUDE.md` (the shared-contract pointer section only),
+`.github/ISSUE_TEMPLATE/` (`/install` only), `.git/hooks/commit-msg`, `.claude/gates.json`,
+`.claude/verify-report.json`, `.claude/session-costs.tsv` (appended by the global `SessionEnd`
+hook). Nothing else; in particular, no repository `settings.json` and no version stamp.
 
 ## Invariants
 
@@ -88,5 +95,6 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 - A merge happens only through `tools/merge-pull-request.ts`.
 - Housekeeping never stashes, resets or cleans a working tree.
 - The default branch is never committed to directly.
-- `design/` is never edited to match the code outside `/align`; `/next` edits only a slice's
-  `Status:` line.
+- While a plan is being built, `/next` edits `design/` only to set a slice's `Status:` line and
+  to append to `90-decisions.md`. Once the plan is finished it corrects the documents where the
+  answer is settled, in one pull request, and leaves the rest to `/align`.

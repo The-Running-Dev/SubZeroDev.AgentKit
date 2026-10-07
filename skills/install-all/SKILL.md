@@ -22,7 +22,7 @@ always took it — see *Phase 0*), and the literal `--apply` flag. Bare (`/insta
 run** across every discovered repository — it reports exactly what it would delete and what it
 refuses to delete, and writes, commits, pushes and opens nothing. `--apply` is what actually does
 those things. This is the house convention for a destructive operation (`AGENTS.shared.md` §
-*House conventions*: "gate on an explicit flag, not a prompt") applied to a run that touches
+*House conventions*: "scripts never prompt, and destructive operations gate on `--force`") applied to a run that touches
 eighteen repositories at once rather than one.
 
 ## Phase 0 — Discover
@@ -108,10 +108,9 @@ Phase 2's classification either way.
    `AGENTS.md`, `CLAUDE.md` or `AGENTS.shared.md`'s removal. **Anything else aborts that target's
    apply** — do not commit or push a target carrying a change this migration did not make. Record
    it under *Aborted* in the phase 4 report and continue to the next target.
-3. **Commit, push a feature branch, and open a pull request** — the one place this command departs
-   from the general "no separate ask" delegation's usual shape (`AGENTS.shared.md` § *Git and
-   delivery*): here the pull request is opened **per repository**, not per session, and that is
-   this command's own carve-out of the general rule, not a session-level exception. Commit message
+3. **Commit, push a feature branch, and open a pull request** — delegated, as everywhere
+   (`AGENTS.shared.md` § *Git and delivery*); the one difference is that the pull request is opened
+   **per repository**, not per session. Commit message
    states plainly that this is the copy-removal migration and names the repository. The pull
    request body is Phase 1 and Phase 2's findings for that repository — every path deleted, every
    path refused and why, and the pointer-section result.
@@ -135,9 +134,8 @@ Then one summary line: how many repositories are already migrated, how many were
 this run, how many have at least one refused file or a pointer-section decision pending, and how
 many were aborted.
 
-**On a dry run, this report is the deliverable** (`AGENTS.shared.md` § *Verification*: "a schema or
-validator change is not done until it has rejected something" — the refused-file list is this
-migration's own proof that it can tell a real copy from an edited one, before it is ever pointed at
+**On a dry run, this report is the deliverable** (`AGENTS.shared.md` § *Verification*: "verify, don't
+assert" — the refused-file list is this migration's own proof that it can tell a real copy from an edited one, before it is ever pointed at
 eighteen repositories with `--apply`).
 
 ## Re-run

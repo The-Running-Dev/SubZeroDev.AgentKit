@@ -1,5 +1,10 @@
 # Cost
 
+> **A measurement record, kept as measured.** The sessions below ran under the PowerShell kit and
+> its removed `/slice` command and `design/state/` machinery, so the commands are quoted as they
+> were run. Today's equivalent of `./tools/Measure-Session.ps1 -SessionId <id> -Detail` is
+> `node tools/measure-session.ts --session-id <id> --detail`.
+
 `tools/Measure-Session.ps1` reads real per-call usage from a Claude Code session's own
 transcript. It measures; it does not estimate. **Claude Code only** — Codex writes a different
 transcript schema this has no reader for, and Copilot records no token usage at all, so neither

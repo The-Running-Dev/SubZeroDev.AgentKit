@@ -16,6 +16,7 @@ design phase (user-driven)         build phase (autonomous)            outside t
 /design    -> 10-design.md                  -> PR -> CI -> review      /align on request only
              20-contract.md                 -> merge -> cleanup -> Status: done
 /plan      -> 30-slices.md                  -> next slice (same session)
+                                            -> plan finished: reconcile design/
 /redteam   optional, never a gate
 ```
 
@@ -28,10 +29,17 @@ of the kit — is history and counts as done. Bugs and follow-ups are GitHub iss
 
 ## The design is the spec
 
-`design/` is written once and not kept in sync with the code. When code and design disagree the
-agent does what works and records the mismatch in the pull request's *Differs from design*
-section. `/align` brings the documents back into agreement when the user asks; it is the
-on-demand audit.
+`design/` is written once and not kept in sync with the code slice by slice. When code and design
+disagree the agent does what works and records the mismatch in the pull request's *Differs from
+design* section. The one document kept current is `90-decisions.md`: each slice's pull request
+appends an entry for every material-ambiguity call and deliberate departure, and never edits an
+existing one.
+
+When the plan is finished, `/next` reconciles once, in one more pull request merged like a slice:
+it gathers the *Differs from design* notes, the new decision entries and `tools/test-design.ts`'s
+findings, and corrects `10-design.md` and `20-contract.md` wherever the answer is settled. What
+needs the user's judgement goes into one GitHub issue, and `/align` settles it — `/align` is also
+the on-demand audit at any other time.
 
 ## Delivery
 
@@ -50,16 +58,21 @@ on-demand audit.
 
 `setup.ts` / `tools/install-agentkit.ts` keep one checkout at `$HOME/.agent-kit` and register
 the commands with Claude Code (a skills-directory plugin, `/agentkit:<name>`), Codex and
-Copilot. `/install` seeds a repository (`new-design-docs.ts`, `AGENTS.md`, pointer blocks);
-`/sync` updates the checkout; `/install-all` migrates repositories off pre-home-install copies.
-The only `settings.json` entry the kit writes is the `SessionEnd` cost-log hook.
+Copilot. A repository needs no install step: each command creates the files it uses on first
+run (`tools/ensure-project-files.ts` — the design documents it writes, the pointer section in
+`AGENTS.md`, the `commit-msg` hook) and never overwrites one. Nothing records a kit version in a
+repository, so a release changes none. `/install` is for a repository whose own agent
+instructions, templates or `design/` need reconciling with the kit's; `/sync` updates the
+checkout and writes nothing in the repository; `/install-all` migrates repositories off
+pre-home-install copies. The only `settings.json` entry the kit writes is the `SessionEnd`
+cost-log hook, in the global `~/.claude/settings.json`.
 
 ## Models
 
 Guidance, never a gate. Deep reasoning (`opus`, `architect`) for the design commands and
 `/redteam`/`/align`; implementation tier (`sonnet`, `builder`) for `/next`, `/fix` and the
-install commands. The table in `AGENTS.shared.md` § *Models* is read by
-`tools/invoke-codex-command.ts` to route Codex profiles.
+install commands. `tools/invoke-codex-command.ts` routes Codex profiles from its own table, and
+its tests hold that table to the one in `AGENTS.shared.md` § *Models*.
 
 ## Alternatives rejected
 
@@ -68,4 +81,5 @@ install commands. The table in `AGENTS.shared.md` § *Models* is read by
 - **Per-slice GitHub issues as the tracker.** A second copy of state that had to be synchronised
   by a dedicated command; the `Status:` line is the state.
 - **A drift checker as a CI gate.** It turned every design edit into a repair task and was the
-  largest source of the friction this redesign removes. Reconciliation is `/align`, on request.
+  largest source of the friction this redesign removes. Reconciliation is once, at the end of the
+  plan, plus `/align` on request.

@@ -36,7 +36,8 @@ gets only its own `design/` and `AGENTS.md`.
 ## Non-goals
 
 - **No drift or design-state machinery.** No unit records, projections, closures, ceilings or
-  per-slice issues. `/align` reconciles `design/` with the tree, on request only.
+  per-slice issues. `/next` reconciles `design/` with the tree once, when the plan is finished;
+  `/align` settles what that leaves, on request only.
 - **No mandatory gate on the design's freshness.** A stale design is a fact to report, not a
   reason to stop.
 - **No model-tier or session-length gating.** Model choice is guidance; session length is not a
