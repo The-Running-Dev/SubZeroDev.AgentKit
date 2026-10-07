@@ -86,7 +86,7 @@ Each question names the brief field it fills, because that is the whole reason i
 
 **Push until you have** one of those three and a reason. Not a preference — a reason: something that changes, or does not, in the world the tool sits in.
 
-**Red flags:** *"maintained for years"* given by default. It is the expensive answer and it is the one everybody picks. Ask what will still be true in two years that makes it worth the whole pipeline; if nothing comes back, the honest answer is one season, and `README.md` § *Skipping most of it* is what that answer buys.
+**Red flags:** *"maintained for years"* given by default. It is the expensive answer and it is the one everybody picks. Ask what will still be true in two years that makes it worth the whole pipeline; if nothing comes back, the honest answer is one season, and `README.md` § *When to skip most of this* is what that answer buys.
 
 **Skip a question an earlier answer already covered.** Say which you are skipping and why. Do not ask for something already on the table just to complete the set.
 

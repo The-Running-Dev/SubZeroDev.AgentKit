@@ -82,8 +82,9 @@ and preferences belong in the agent contract.
   invoke one you will actually use.
 - **Prefer targeted search and offset reads for routine work**; a large spec can cost 30K
   tokens per full read. Full reads are for the drift pass, not for lookups.
-- **Start a fresh session at phase boundaries.** The agent contract, this file, and the design
-  docs re-prime a new session cheaply — which is the reason for keeping all three tight.
+- **A fresh session between design and build is cheap.** The agent contract, this file, and the
+  design docs re-prime a new session — which is the reason for keeping all three tight. Within a
+  `/next` run, stay in the session; compaction carries it.
 - **Knowledge-graph tooling is cheap on code and expensive on prose.** Code extracts
   structurally via AST with no model call; prose does not, and a full rebuild on a small
   prose corpus cost ~200K tokens and found fewer issues than reading the documents did.

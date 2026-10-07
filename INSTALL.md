@@ -6,7 +6,7 @@ You are an agent. The normal case: you are working **in the kit** and have been 
 
 **Installing is a reconciliation, not a copy.** A target repository that already has agent instructions has them for a reason, and those reasons are usually better informed than this kit's defaults — they were written against a real codebase. Where the kit and the target disagree, that is a finding to report, not a file to overwrite.
 
-The kit's own `AGENTS.shared.md` binds you while you do this. In particular: read completely before editing, present findings one at a time for sign-off, stage by named path, and do not write anything in phases 0–2.
+The kit's own `AGENTS.shared.md` binds you while you do this — staging by named path above all. This procedure adds its own rules on top: read completely before editing, write nothing in phases 0–2, and present the decisions one at a time for sign-off (phase 3).
 
 ---
 
@@ -65,7 +65,7 @@ The artifacts:
 | `codex/PROFILES.md` | **Skip by default**, and report it as skipped. Install only if the target shows evidence of Codex use — a `.codex/` directory, a profile reference, or the user saying so. Asking in every install is noise |
 | `.git/hooks/commit-msg` | A copy of the kit's `tools/git-hooks/commit-msg`, which rejects a commit message carrying AI attribution. **Not repository content** — see below |
 
-**`.git/hooks/commit-msg` is installed, and it is the one artifact that is not repository content.** `tools/git-hooks/commit-msg` rejects a commit message carrying AI attribution (`AGENTS.shared.md` § *House conventions*), and a rule enforced only by a document is a rule enforced only when someone remembers it — installing a copy is what makes it mechanical in the target. Four things follow from `.git/` being machine-local and untracked, and none are optional:
+**`.git/hooks/commit-msg` is installed, and it is the one artifact that is not repository content.** `tools/git-hooks/commit-msg` rejects a commit message carrying AI attribution (`AGENTS.shared.md` § *Git and delivery*), and a rule enforced only by a document is a rule enforced only when someone remembers it — installing a copy is what makes it mechanical in the target. Four things follow from `.git/` being machine-local and untracked, and none are optional:
 
 - **The four states above still apply, and Occupied is the interesting one.** Absent — write it. Identical — skip. Divergent, meaning a copy of an older kit hook — reconcile as usual. **Occupied, meaning a `commit-msg` hook the kit did not write, stops this artifact and is reported.** Do not append to it, do not merge into it, do not rename it aside. A repository with its own `commit-msg` hook has a commit convention, and replacing it silently changes what every future commit is checked against. The rest of the install still proceeds; saying which artifact you skipped is the point.
 - **It is never staged, committed, or pushed.** `.git/` is not in the working tree, so the hook is absent from phase 4 step 8's branch and from the pull request. A target's collaborators do not receive it by merging — they receive it by running `/install` themselves.
@@ -80,17 +80,11 @@ The artifacts:
 
 **No install record is written.** An earlier version wrote `.claude/kit.json`, naming the kit commit a target was last reconciled against. Nothing reads it any more: commands, scripts and `AGENTS.shared.md` all resolve from the machine-wide kit, so a repository has no kit version of its own to fall behind, and a stamp that changes on every kit release only produced a pull request per repository per release. Where a target still has one, list it under *Leftovers* in phase 3 and delete it on sign-off.
 
-**Two things under `.claude/` are not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately.
+**The target's `.claude/` configuration is not yours.** `settings.json`, `settings.local.json` and `launch.json` are the target's — report what is there and never write them; a tracked `settings.json` pins the model and permission mode deliberately.
 
-**One exception, bounded to one event.** `tools/measure-session.ts` runs as a `SessionEnd` hook, which can only live in `settings.json`. Installing it is permitted under all of these, together:
+**That includes the session-cost hook.** `tools/measure-session.ts` runs as a `SessionEnd` hook, and the kit's installer (`setup.ts`) registers it once, machine-wide, in `~/.claude/settings.json`; it appends to the target's `.claude/session-costs.tsv` from there. A copy in the target's own `settings.json` would only run it a second time at every session end, so none is written. An earlier version of this file carried a bounded exception for writing one; a target that still has it lists it under *Leftovers* in phase 3, removed on sign-off.
 
-- **Only the `hooks.SessionEnd` key**, and only this script's hook. Every other key is untouchable — `permissions` and `model` especially, which are the deliberate pins the rule above exists to protect.
-- **Propose the exact JSON and wait.** This is not covered by any carve-out; it is a write to a file that controls how the target's sessions behave.
-- **If a hook already exists on that event, stop and report it.** Do not append to it, do not merge into it. A second hook on one event is a behaviour the target did not ask for.
-- **Absent `settings.json`** may be created containing only these hooks, under the same sign-off.
-- **Needs Node ≥ 22.18 on `PATH`.** Check with `node --version`; if it is missing, skip the hooks, install the script, and say which you did.
-
-Nothing else about the target's configuration is yours, and this exception does not generalise to another event later. Widening it is a decision, not an install detail. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
+Nothing else about the target's configuration is yours. `.claude/worktrees/` holds full checkouts, **including copies of the very instruction files you are installing**. Classify against the repository root only. A glob that reaches into a worktree writes into a throwaway checkout and reports success.
 
 **The seed is `templates/design/`; the kit's own `design/` is never installed.** The seed holds a brief template, three empty documents, and a decision log carrying only its heading, preamble and `## Open` section. The kit's `design/` holds the kit's own design and its decision entries, which are decisions about *building the kit* and mean nothing in a target. Copy from `templates/design/` and never from `design/`.
 
@@ -119,7 +113,7 @@ The kit's arrangement is: `AGENTS.md` holds the contract, `CLAUDE.md` is a point
 
 **Work out which file holds content before touching either.** A file of a few hundred bytes that links to the other is a pointer, and a pointer is a deliberate arrangement, not an empty file waiting to be filled. Merging the kit's sections into one is the single most destructive thing this install can do.
 
-- **Neither exists** — install the kit's `AGENTS.shared.md`, and write an `AGENTS.md` that points to it the way the kit's own does, with a project identity section at the top: what the repository owns, what it does not, and its companions. Get that from the target's `README.md` and existing instructions rather than inventing it. `CLAUDE.md` becomes the pointer.
+- **Neither exists** — write an `AGENTS.md` carrying the pointer section (below), with a project identity section at the top: what the repository owns, what it does not, and its companions. Get that from the target's `README.md` and existing instructions rather than inventing it. `CLAUDE.md` becomes the pointer.
 - **One holds content, the other is a pointer** — **keep the direction as it stands.** Install the kit's sections into the file that holds content and leave the pointer alone. Do not flip it to match the kit. If the pointer file states *why* it is a pointer, read that reason before proposing anything — at least one repository's pointer exists because an earlier mechanical copy rewrote nine real references into paths that do not exist.
 - **One holds content, the other is absent** — present the fork: move the content into `AGENTS.md` and reduce the other to a pointer, or leave the content where it is and make `AGENTS.md` the pointer. Recommend keeping the existing direction; it is the smaller change and it is what the project's history refers to.
 - **Both hold content** — stop and report. The target already has the failure the kit exists to prevent, and resolving it is the user's call, not a side effect of installing.
@@ -136,7 +130,7 @@ Never delete a rule you do not understand. An instruction with no obvious reason
 **Read `AGENTS.shared.md` completely before this file.** It holds the rules every repository using the kit shares, resolved from the `AGENTKIT_HOME` environment variable if set, else `.agent-kit` in the home directory.
 ```
 
-**Write that resolution instruction, not a resolved path.** A concrete absolute path (or an `@`-import of one) bakes in the installing machine's home directory or account name — correct for the machine that ran the install, and wrong the moment the target is cloned onto another machine or account, or `AGENTKIT_HOME` moves (#406). The instruction above is the same order `AGENTS.shared.md` § *House conventions* → Home-install convention defines for a script, kept short enough to stand on its own before the target has a local copy of `AGENTS.shared.md` to read that convention from — every session that reads it resolves the location itself, at read time, rather than trusting a value baked in at install time.
+**Write that resolution instruction, not a resolved path.** A concrete absolute path (or an `@`-import of one) bakes in the installing machine's home directory or account name — correct for the machine that ran the install, and wrong the moment the target is cloned onto another machine or account, or `AGENTKIT_HOME` moves (#406). The instruction above is the same order `AGENTS.shared.md` § *House conventions* ("Kit files resolve from the kit root") defines for a script, kept short enough to stand on its own before the target has a local copy of `AGENTS.shared.md` to read that convention from — every session that reads it resolves the location itself, at read time, rather than trusting a value baked in at install time.
 
 A first install writes this section fresh, next to (or inside) the project-identity content described above. A re-install leaves it alone once it already carries this resolution instruction — there is no machine-specific value left in it to go stale. Where a target still carries an earlier install's literal resolved path, rewrite it to the instruction above.
 
@@ -169,10 +163,10 @@ Absent (will create):     <paths>
 Identical (skipping):     <paths>
 Divergent (proposed):     <path> — <what differs, what I propose, why>
 Occupied (blocked):       <path> — <what holds it>
-Pointer section:          <resolved path written, or unchanged if already correct>
+Pointer section:          <written | unchanged | rewritten from a literal path>
 Already satisfied:        <target rule> covers <kit rule>
 agent.md:                 <skipped — opt-in | installed, pruning: <lesson> — <why it cannot apply here>>
-Leftovers (propose delete): <.claude/kit.json, SKILL-local.md, .claude/COMPANIONS.md — whichever exist>
+Leftovers (propose delete): <.claude/kit.json, SKILL-local.md, .claude/COMPANIONS.md, a per-repo measure-session hook — whichever exist>
 Decisions needing you:    <the forks, one at a time, recommendation first>
 Commit-msg hook:          <installed | skipped — core.hooksPath names <path> | skipped — occupied by <what>>
 Dirty files, untouched:   <paths from phase 0>
@@ -208,7 +202,7 @@ Only after sign-off.
    - **Nothing was lost in a move.** Every non-blank line of the file you moved content out of must appear in the file you moved it into. Diff it mechanically; do not eyeball it. Expect exactly the lines you deliberately changed, and be able to name each one.
    - **No rule appears twice.** Search the target for the distinctive phrase of each rule you added — not for the rule's topic. You are looking for your own duplicates, and you will have made some: this install's own verification caught two that careful authoring did not.
    - **No stale paths.** If you relocated anything, search for the old path. Hits in the decision log are correct; hits anywhere else are not.
-   - **The pointer section resolves.** The path it names actually exists on this machine and is the installed kit's `AGENTS.shared.md` — not a stale path left over from a prior install or a different `AGENTKIT_HOME`.
+   - **The pointer section resolves.** Following its resolution order on this machine reaches the installed kit's `AGENTS.shared.md`, and the section carries no literal path left over from a prior install.
 6. **Delete the leftovers the user approved deleting** (phase 3), with `git rm` on each named path so the deletion is staged with the rest. Nothing the user did not approve is removed.
 7. `git -C <target> status --short` and `git diff --check`.
 8. **Deliver on a feature branch, and open the pull request.** Branch from the target's default branch,
@@ -244,8 +238,8 @@ Only after sign-off.
      the repository.
 
    **The pull request body is the phase 3 report plus what step 4 recorded** — what was created, what was
-   reconciled and how, which forks were decided and what was rejected, and what is left for the user. Not a
-   placeholder deferring to `/pr`, and not a summary of one; `/pr` does not run here.
+   reconciled and how, which forks were decided and what was rejected, and what is left for the user. It is
+   written in full here, not left as a placeholder for another command to fill.
 
 Name the branch and link the pull request — its body already carries what was created and reconciled, so the
 chat report adds only what remains for the user to decide (`AGENTS.shared.md`, *Reporting*).

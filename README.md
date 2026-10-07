@@ -24,18 +24,22 @@ tools/*.ts                    Node scripts the commands call; no PowerShell need
   ensure-project-files.ts     creates a command's repo files on first use
   install-agentkit.ts         host registrations behind setup.ts
   get-agentkit-skill.ts       resolves a command's skill body and update check
+  invoke-codex-command.ts     maps a command to its Codex profile
   start-agentkit-codex.ts     routed Codex launcher
-  test-*.ts                   gate, verify-report and contract checks
+  test-*.ts                   gate, verify-report, attribution and design checks
+  lib/                        shared option parsing, process and kit-root helpers
 tools/git-hooks/commit-msg    rejects AI attribution in commit messages
 codex/PROFILES.md             Codex profile definitions
 templates/design/*.md         seed copied into a target's design/
 reports/                      one-off verification and planning reports, kept for evidence
+videos/                       Videowright explainer videos; not the kit's own code
 design/                       the kit's own design. Never installed
   00-brief.md                 the problem, typed by /interview or by hand
   10-design.md                /design
   20-contract.md              /design
   30-slices.md                /plan; each slice's Status: line is the tracker
   90-decisions.md             append-only
+  redteam/                    /redteam reports
   cost.md                     measured session and output costs
 ```
 
@@ -195,7 +199,7 @@ Effort tracks irreversibility. Schemas and public interfaces are expensive to ch
 
 ## Invocation
 
-**Claude Code** — the bootstrap installs the commands as one plugin, `~/.claude/skills/agentkit`, which Claude Code loads in every session with no marketplace or install step. Every command is namespaced under it: `/agentkit:interview`, `/agentkit:brief`, `/agentkit:design`, `/agentkit:redteam`, `/agentkit:plan`, `/agentkit:next`, `/agentkit:fix`, `/agentkit:align`. The namespace is not optional. Bare `/plan` is Claude Code's own command, and `/design` is a skill it bundles. An install that predates the plugin had bare per-command folders under `~/.claude/skills/`; re-running `node setup.ts` moves them into the plugin and removes the bare folders, unless you edited one. Set the model per session with `/model`.
+**Claude Code** — the bootstrap installs the commands as one plugin, `~/.claude/skills/agentkit`, which Claude Code loads in every session with no marketplace or install step. Every command is namespaced under it: `/agentkit:interview`, `/agentkit:brief`, `/agentkit:design`, `/agentkit:redteam`, `/agentkit:plan`, `/agentkit:next`, `/agentkit:fix`, `/agentkit:align`, and `/agentkit:install`, `/agentkit:install-all`, `/agentkit:install-review`, `/agentkit:sync`. The namespace is not optional. Bare `/plan` is Claude Code's own command, and `/design` is a skill it bundles. An install that predates the plugin had bare per-command folders under `~/.claude/skills/`; re-running `node setup.ts` moves them into the plugin and removes the bare folders, unless you edited one. Set the model per session with `/model`.
 
 **Codex** — the bootstrap creates two explicit skills per command. `$<command>` is the native mode: it reads the canonical skill from the installed checkout and works in the current Codex session. It uses that session's model and approval context. `$<command>-routed` runs `start-agentkit-codex.ts` with `--new-window`, which opens a visible terminal and launches the command through the existing profile, approval, and sandbox routing. Approvals and interaction happen in that visible terminal; opening it is not proof the command has completed.
 
@@ -248,7 +252,7 @@ It reports the four input classes separately because they are priced differently
 
 A global `SessionEnd` hook in `~/.claude/settings.json` runs the same script automatically. It appends one row per session to the current project's `.claude/session-costs.tsv`, which is gitignored — a convenience, not the record, since transcripts are durable and a session that ends without the hook firing is recovered by running the script again.
 
-That second hook exists because measurement found session cost is roughly **quadratic in turn count** — per-call context grows with conversation length, and you pay it again every turn. Context compaction keeps a long `/next` run going; the warning is there so the cost stays visible. These are global Claude settings managed by setup.ts, not target-repository settings.
+The hook exists because measurement found session cost is roughly **quadratic in turn count** — per-call context grows with conversation length, and you pay it again every turn. Context compaction keeps a long `/next` run going; the log is there so the cost stays visible. It is the only hook the kit registers, a global Claude setting managed by `setup.ts`, and never written into a target repository's settings.
 
 ## When to skip most of this
 
