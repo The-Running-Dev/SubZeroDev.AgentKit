@@ -47,7 +47,7 @@ The rule it applies, for reading the plan by hand: a slice is a `## S<n>` headin
 
 ## 3. Check it locally
 
-Run the repository's gates: the steps marked `# verification: true` in `.github/workflows/*.yml` (`node tools/test-gates-cache.ts --repo-root .` caches that list), or, where none are marked, the test suite, linter and type checker the repository uses. Fix failures before pushing. A gate that cannot run here is named as not run, with the reason — never reported as passed.
+Run the repository's gates. `node tools/test-gates-cache.ts --repo-root .` reads them first from `.github/gates.json`, the list a repository commits and its CI keeps equal to the workflows: on `Committed`, run exactly those commands from the repository root; `Invalid` means the file is malformed — fix it in this branch, since CI fails on it too. Without that file the gates are the steps marked `# verification: true` in `.github/workflows/*.yml` (the same script caches that list in `.claude/gates.json`), or, where none are marked, the test suite, linter and type checker the repository uses. Fix failures before pushing. A gate that cannot run here is named as not run, with the reason — never reported as passed.
 
 Then run the design check, which is advisory and never a gate: `node tools/test-design.ts --repo-root .`. It is read-only and checks that what `design/`, the command files and `AGENTS.md` state about the tree is true — cited scripts and commands exist, the contract's tables match the scripts and skills, every slice has a `Status:` line. Exit 2 means there is no `design/` and nothing to check.
 

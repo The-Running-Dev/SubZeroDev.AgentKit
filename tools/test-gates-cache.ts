@@ -32,9 +32,24 @@ export function validGates(gates: unknown): gates is { name: string; command: st
   return Array.isArray(gates) && gates.length > 0 && gates.every(g => g && !Array.isArray(g) &&
     ['name', 'command'].every(p => typeof g[p] === 'string' && g[p].trim()));
 }
-export function testGatesCache(repoRoot = process.cwd(), write = false, gatesJson?: string) {
+// A repository may commit its gates in .github/gates.json (CI checks it against the workflows),
+// and then that list is the answer and the cache is not used.
+export const committedPath = '.github/gates.json';
+export type GatesResult = {
+  Status: 'Committed' | 'Invalid' | 'Written' | 'Fresh' | 'Stale' | 'Missing'; Path?: string; Detail?: string;
+  ManifestHash?: string; Generated?: string; GateCount?: number; Gates?: { name: string; command: string }[];
+};
+export function testGatesCache(repoRoot = process.cwd(), write = false, gatesJson?: string): GatesResult {
   if (write && !gatesJson) throw new Error('--write requires --gates-json.');
   const root = realpathSync(repoRoot); const path = join(root, '.claude/gates.json'); const hash = manifestHash(root);
+  const committed = join(root, committedPath);
+  if (existsSync(committed)) {
+    if (write) throw new Error(`${committedPath} is committed; update that file instead of the cache.`);
+    let file;
+    try { file = JSON.parse(readFileSync(committed, 'utf8').replace(/^﻿/, '')); } catch { file = undefined; }
+    if (file && !Array.isArray(file) && validGates(file.gates)) return { Status: 'Committed', Path: committedPath, Gates: file.gates };
+    return { Status: 'Invalid', Path: committedPath, Gates: [], Detail: `${committedPath} must be an object whose 'gates' is a nonempty array of objects with nonblank string name and command.` };
+  }
   if (write) {
     const gates = JSON.parse(gatesJson!);
     if (!validGates(gates)) throw new Error('--gates-json must be a nonempty array of objects with nonblank string name and command.');
@@ -43,7 +58,7 @@ export function testGatesCache(repoRoot = process.cwd(), write = false, gatesJso
     writeFileSync(path, JSON.stringify({ manifestHash: hash, generated, gates }, null, 2));
     return { Status: 'Written', ManifestHash: hash, GateCount: gates.length };
   }
-  const stale = { Status: existsSync(path) ? 'Stale' : 'Missing', ManifestHash: hash, Gates: [] };
+  const stale: GatesResult = { Status: existsSync(path) ? 'Stale' : 'Missing', ManifestHash: hash, Gates: [] };
   if (!existsSync(path)) return stale;
   let cache;
   try { cache = JSON.parse(readFileSync(path, 'utf8').replace(/^\uFEFF/, '')); } catch { return stale; }
