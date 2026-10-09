@@ -67,7 +67,7 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 | `merge-pull-request.ts` | `--pull-request`, `--head-sha`, `[--repository --method --timeout-seconds --poll-seconds --delete-branch --dry-run]` | `State` Merged or Refused with `Refusal`; never merges unless every check on the head passed and no thread is unresolved |
 | `invoke-housekeeping.ts` | `[--repo-root --default-branch --skip-pull]` | Switches to the default branch, pulls, deletes confirmed-merged branches; `Escalate` is true when a judgement case remains. Never stashes |
 | `invoke-done-housekeeping.ts` | `[--repo-root --default-branch --skip-pull --delete-branches --force-delete-branches --auto-stash --keep-dirty]`, each branch passed as its own flag value | Discovery and (when given a list) deletion; `--keep-dirty` proceeds on a dirty tree without touching it; `--auto-stash` stashes and reports the ref |
-| `test-gates-cache.ts` | `[--repo-root --write --gates-json]` | Reads or writes `.claude/gates.json`, keyed to a hash of the files that decide the gate list |
+| `test-gates-cache.ts` | `[--repo-root --write --gates-json]` | Returns a committed `.github/gates.json` as `Committed` (`Invalid` when malformed), and refuses `--write` beside it; otherwise reads or writes `.claude/gates.json`, keyed to a hash of the files that decide the gate list |
 | `test-verify-report.ts` | `[--path --quiet]` | Validates `.claude/verify-report.json` |
 | `test-no-attribution.ts` | `--base-sha`, `--head-sha` | `RESULT=PASSED` or `FAILED` naming the commits |
 | `ensure-project-files.ts` | `[--repo-root --design (repeatable) --pointer --hook --kit-root --quiet]` | `Design`, `Pointer` and `Hook` entries with `Status` Created / Present / Inserted / Occupied / Ambiguous / Skipped, and `Written`; creates what is missing, never overwrites |
@@ -85,7 +85,8 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 
 `design/` (`00-brief.md`, `10-design.md`, `20-contract.md`, `30-slices.md`, `90-decisions.md`,
 `redteam/`), `AGENTS.md` and `CLAUDE.md` (the shared-contract pointer section only),
-`.github/ISSUE_TEMPLATE/` (`/install` only), `.git/hooks/commit-msg`, `.claude/gates.json`,
+`.github/ISSUE_TEMPLATE/` (`/install` only), `.git/hooks/commit-msg`, `.github/gates.json` (read only),
+`.claude/gates.json`,
 `.claude/verify-report.json`, `.claude/session-costs.tsv` (appended by the global `SessionEnd`
 hook). Nothing else; in particular, no repository `settings.json` and no version stamp.
 
