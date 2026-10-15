@@ -40,6 +40,19 @@ export function declaredOptions(text: string): string[] {
   const literal = end < 0 ? rest : rest.slice(0, end);
   return [...literal.matchAll(/(?:^|[,\n])\s*(?:'([^']+)'|"([^"]+)"|([\w-]+))\s*:\s*\{/g)].map(m => m[1] ?? m[2] ?? m[3]);
 }
+const httpMethods = 'GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS';
+// A `/name` the documents themselves show as an HTTP route is the product's vocabulary, not a command (#466):
+// a path written after a method, a backticked path of two or more segments, or a path on a table row with a
+// method cell. Every segment of such a path counts, so `/api/posts` vouches for a later `/posts`.
+function routes(texts: string[]) {
+  const paths: string[] = [], methodCell = new RegExp(`\\|\\s*\`?(?:${httpMethods})\`?\\s*(?=\\|)`);
+  for (const text of texts) {
+    for (const m of text.matchAll(new RegExp(`\\b(?:${httpMethods})\\s+(\\/[^\\s\`|]*)`, 'g'))) paths.push(m[1]);
+    for (const m of text.matchAll(/`(\/[^`\s]*\/[^`\s]*)`/g)) paths.push(m[1]);
+    for (const row of text.match(/^\|.*$/gm) ?? []) if (methodCell.test(row)) for (const m of row.matchAll(/`(\/[^`\s]*)`/g)) paths.push(m[1]);
+  }
+  return new Set(paths.flatMap(p => p.split('/').filter(s => /^[a-z][a-z0-9-]*$/.test(s))));
+}
 export interface Finding { Check: string; File: string; Line: number; Message: string }
 export function designCheck(repoRoot = process.cwd(), kitRoot = resolveKitRoot(import.meta.url)) {
   const root = realpathSync(repoRoot), findings: Finding[] = [];
@@ -48,13 +61,15 @@ export function designCheck(repoRoot = process.cwd(), kitRoot = resolveKitRoot(i
     'design/00-brief.md', 'design/10-design.md', 'design/20-contract.md', 'design/30-slices.md'].filter(f => existsSync(join(root, f)));
   const add = (Check: string, File: string, Line: number, Message: string) => findings.push({ Check, File, Line, Message });
   const known = new Set([...skills(root), ...skills(kitRoot), ...hostCommands]);
-  for (const file of files) {
-    const text = livePart(readFileSync(join(root, file), 'utf8'));
+  const texts = new Map(files.map(f => [f, livePart(readFileSync(join(root, f), 'utf8'))])), routeNames = routes([...texts.values()]);
+  for (const [file, text] of texts) {
     for (const m of text.matchAll(/(?<![\w./-])tools\/[A-Za-z0-9._/-]*[A-Za-z0-9_/-]/g)) {
+      // A script or directory reference has an extension or a trailing slash; `tools/list` is an MCP method (#466).
+      if (!/(\.[A-Za-z0-9]+|\/)$/.test(m[0])) continue;
       if (!existsSync(join(root, m[0])) && !existsSync(join(kitRoot, m[0]))) add('MissingTool', file, lineNumber(text, m.index!), `${m[0]} exists neither in the repository nor in the kit`);
     }
     for (const m of text.matchAll(/`\/(?:agentkit:)?([a-z][a-z0-9-]*)(?=[`\s:\]])/g)) {
-      if (m[1] !== 'agentkit' && !known.has(m[1])) add('UnknownCommand', file, lineNumber(text, m.index!), `${m[0].slice(1)} is neither a skill nor a host command`);
+      if (m[1] !== 'agentkit' && !known.has(m[1]) && !routeNames.has(m[1])) add('UnknownCommand', file, lineNumber(text, m.index!), `${m[0].slice(1)} is neither a skill nor a host command`);
     }
   }
   const contractFile = 'design/20-contract.md';
