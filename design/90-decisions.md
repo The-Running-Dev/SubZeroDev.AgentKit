@@ -2,6 +2,12 @@
 
 Append-only. Newest at the top. The rejected alternatives are the point — without them, every future session relitigates the same choice.
 
+### 2026-10-15 — The design check reads a repository's own MCP methods and HTTP routes as vocabulary, not kit references
+Context: #466. In a repository whose product is an MCP server with an HTTP API, S33.1 and S33.2 as written matched the product's own names — `tools/list` as a missing script, `/healthz` as an unknown command — and SubZeroDev.Git carried 36 false findings on every run, so the check read as permanently failed.
+Chosen: **S33.1 narrows to a `tools/` reference with a file extension or a trailing slash. S33.2 exempts a `/name` the checked documents themselves show as an HTTP route** — written after a method, a segment of a backticked path of two or more segments, or on a table row with a method cell. Both are inferred from the text; nothing new is declared.
+Rejected: **A per-repository vocabulary list in `AGENTS.md` or a companion** — a new declared surface for every product repository to keep current, when the documents already say which names are routes. **Exempt only a `/name` followed by `/` or preceded by a method** — leaves the routes named alone in prose or in a table cell, which were most of the 20. **Drop `UnknownCommand` for anything not on a skill-like line** — loses the check's one real catch, a renamed command still cited.
+Reversibility: cheap. One function and two conditions in `tools/test-design.ts`, and their tests.
+
 ### 2026-10-09 — A repository may commit its gates in `.github/gates.json`, and `/next` runs that list first
 Context: `/next` found a repository's gates from `# verification: true` markers and cached them, untracked, in `.claude/gates.json`. Repositories moving to the reusable workflows of `The-Running-Dev/GitHub-ActionTemplates` (`node-ci`, `pwsh-ci`, `npm-package`) run their checks inside the library, where a marker in the calling workflow cannot reach, and the caches already in use held commands as vague as `pwsh`.
 Chosen: **`tools/test-gates-cache.ts` returns a committed `.github/gates.json` (`{"gates":[{name, command}]}`) as `Committed`, or `Invalid` when it is malformed, and refuses to write the cache beside it; without the file, markers and the cache work as before.** The library's `gates` action derives the same list from the workflows and fails CI when the committed file drifts, so the list is the commands CI runs.
