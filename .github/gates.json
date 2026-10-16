@@ -1,0 +1,40 @@
+{
+  "gates": [
+    {
+      "name": "node / install",
+      "command": "npm ci"
+    },
+    {
+      "name": "node / typecheck",
+      "command": "npm run typecheck"
+    },
+    {
+      "name": "node / check:no-runtime-dependencies",
+      "command": "npm run check:no-runtime-dependencies"
+    },
+    {
+      "name": "node / test",
+      "command": "npm run test"
+    },
+    {
+      "name": "checks / Install Node development dependencies",
+      "command": "npm ci"
+    },
+    {
+      "name": "checks / Fresh install without PowerShell",
+      "command": "node --test tools/install-without-powershell.test.ts"
+    },
+    {
+      "name": "checks / Check commits carry no AI attribution",
+      "command": "node tools/test-no-attribution.ts"
+    },
+    {
+      "name": "videos / Typecheck videos/",
+      "command": "cd videos && npx tsc --noEmit"
+    },
+    {
+      "name": "videos / Lint videos/",
+      "command": "cd videos && npx @biomejs/biome lint segments components styles videos videowright.config.ts scripts"
+    }
+  ]
+}

@@ -5,41 +5,44 @@ on:
     branches: [main]
   pull_request:
 
-permissions:
-  contents: read
-  issues: read
+permissions: {}
 
 jobs:
-  node-windows:
-    name: node-windows
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ["22.18.0", "24"]
+  # Typecheck, the no-runtime-dependency check and the Node tests on every OS and on both the
+  # Node floor and the current release, through the shared library. Its `node / Result` check
+  # is the one a ruleset requires.
+  node:
+    uses: The-Running-Dev/GitHub-ActionTemplates/.github/workflows/node-ci.yml@v0
+    permissions:
+      contents: read
+    with:
+      os: '["windows-latest", "ubuntu-latest", "macos-latest"]'
+      node-versions: '["22.18.0", "24"]'
+      scripts: typecheck check:no-runtime-dependencies test
+
+  # The checks that run once rather than per OS and Node: they need the whole history, a runner
+  # without PowerShell, or a Node below the floor.
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: ${{ matrix.node }}
+          node-version: "22.18.0"
       # verification: true
       - name: Install Node development dependencies
         shell: bash
         run: npm ci
       # verification: true
-      - name: Typecheck tools
+      - name: Fresh install without PowerShell
         shell: bash
-        run: npx tsc --noEmit
-      # verification: true
-      - name: Check no runtime dependencies
-        shell: bash
-        run: node --input-type=module -e "import fs from 'node:fs'; const p = JSON.parse(fs.readFileSync('package.json', 'utf8')); if (Object.keys(p.dependencies ?? {}).length) throw new Error('Runtime dependencies are forbidden');"
-      # verification: true
-      - name: Run Node tests
-        shell: bash
-        run: node --test tools/
+        env:
+          AGENTKIT_PROVE_NO_PWSH: '1'
+        run: node --test tools/install-without-powershell.test.ts
       # verification: true
       - name: Check commits carry no AI attribution
         shell: bash
@@ -47,120 +50,18 @@ jobs:
           ATTRIBUTION_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           ATTRIBUTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: node tools/test-no-attribution.ts
-
-  node-linux:
-    name: node-linux
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ["22.18.0", "24"]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Last: switches to a Node below the floor to prove setup.ts refuses it by name.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ matrix.node }}
-      # verification: true
-      - name: Install Node development dependencies
-        shell: bash
-        run: npm ci
-      # verification: true
-      - name: Typecheck tools
-        shell: bash
-        run: npx tsc --noEmit
-      # verification: true
-      - name: Check no runtime dependencies
-        shell: bash
-        run: node --input-type=module -e "import fs from 'node:fs'; const p = JSON.parse(fs.readFileSync('package.json', 'utf8')); if (Object.keys(p.dependencies ?? {}).length) throw new Error('Runtime dependencies are forbidden');"
-      # verification: true
-      - name: Run Node tests
-        shell: bash
-        run: node --test tools/
-      # verification: true
-      - name: Fresh install without PowerShell
-        shell: bash
-        env:
-          AGENTKIT_PROVE_NO_PWSH: '1'
-        run: node --test tools/install-without-powershell.test.ts
-      # Last: switches this leg to a Node below the floor to prove setup.ts refuses it by name.
-      # Not a local gate, since it needs that older Node installed.
-      - if: matrix.node == '24'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22.17.0"
       - name: Old Node gets the AgentKit refusal
-        if: matrix.node == '24'
         shell: bash
-        run: |
-          set +e
-          output=$(node setup.ts --verify 2>&1); code=$?
-          echo "$output"
-          [ "$code" = 2 ] && grep -q '^AgentKit requires Node >= 22.18; found 22.17' <<< "$output"
-
-  node-macos:
-    name: node-macos
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ["22.18.0", "24"]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ matrix.node }}
-      # verification: true
-      - name: Install Node development dependencies
-        shell: bash
-        run: npm ci
-      # verification: true
-      - name: Typecheck tools
-        shell: bash
-        run: npx tsc --noEmit
-      # verification: true
-      - name: Check no runtime dependencies
-        shell: bash
-        run: node --input-type=module -e "import fs from 'node:fs'; const p = JSON.parse(fs.readFileSync('package.json', 'utf8')); if (Object.keys(p.dependencies ?? {}).length) throw new Error('Runtime dependencies are forbidden');"
-      # verification: true
-      - name: Run Node tests
-        shell: bash
-        run: node --test tools/
-
-  node-windows-required:
-    name: node-windows
-    needs: node-windows
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require both Node versions to pass
-        env:
-          MATRIX_RESULT: ${{ needs.node-windows.result }}
-        run: test "$MATRIX_RESULT" = success
-
-  node-linux-required:
-    name: node-linux
-    needs: node-linux
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require both Node versions to pass
-        env:
-          MATRIX_RESULT: ${{ needs.node-linux.result }}
-        run: test "$MATRIX_RESULT" = success
-
-  node-macos-required:
-    name: node-macos
-    needs: node-macos
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require both Node versions to pass
-        env:
-          MATRIX_RESULT: ${{ needs.node-macos.result }}
-        run: test "$MATRIX_RESULT" = success
+        run: .github/scripts/test-old-node-refusal.sh
 
   videos:
     runs-on: windows-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: videos
