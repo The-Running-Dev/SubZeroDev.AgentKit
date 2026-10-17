@@ -1,139 +1,108 @@
 ---
 name: interview
-description: Conduct the interview that produces design/00-brief.md. Usage - /interview, or /interview a tool that renames my raw photo imports
+description: Clarify an idea into design/00-brief.md. Usage - /interview, or /interview a tool that renames my raw photo imports
 argument-hint: "[one line about the idea, or nothing]"
 disable-model-invocation: true
 ---
 
-Ask the questions that turn **$ARGUMENTS** — or an idea that so far exists only in the user's head — into `design/00-brief.md`. You conduct the interview and you type the file. You do not supply what goes in it.
+Turn **$ARGUMENTS** — together with whatever the user has already said in this conversation and whatever the repository already shows — into `design/00-brief.md`. You resolve what is still uncertain about what to build, and you type the file. The requirements are the user's.
 
 ## Stop first
 
 - **`design/00-brief.md` already has real content** — this is a re-run. Read *Re-run* below before asking anything.
 - **No `design/` at all** — that is the ordinary starting state. No install step comes first: when you write, `node tools/ensure-project-files.ts --repo-root . --design 00-brief.md --pointer --hook` puts the brief template in place, adds the shared-contract pointer to `AGENTS.md` (creating it, with a `CLAUDE.md` that imports it, where neither exists), and installs the commit-message hook. Each is left alone where it already exists; anything it reports `Occupied` or `Ambiguous` goes in the report, untouched.
 
-## What this command is not
+## What this is for
 
-The brief is the one artifact a model must not originate. Models elaborate well and originate badly — handed a one-line idea, a model returns something competent, unsurprising, and not the user's problem. That is why stage 0 had no command for as long as it did.
+The brief records what the user wants built: the problem or outcome, who it is for, and what done looks like. This interview clarifies that. It does not test whether the thing should be built.
 
-What transfers is the **interrogation**, not the authorship. The questions a good advisor asks before letting anyone build are known ones, and asking them costs almost nothing; what the pipeline was missing was somebody to ask them, in order, without letting a vague answer through. The user supplies every answer. You supply the pressure and the typing.
+**The user's stated reason is enough.** Automating something done by hand, preventing a mistake before it happens, saving time, or simply wanting the tool are each complete reasons. Never ask for — or hold the brief back for — a past incident or damage, how often something happens, a quantified cost, demand from other people, or proof that the current workaround falls short. Preventive work (backups, validation, safeguards) needs no incident first. Detail the user volunteers is recorded; its absence is not a gap.
 
-Concretely: **never invent the problem, a non-goal, or a definition-of-done criterion.** Where an answer is missing, ask again, or leave the field empty and say which field you left empty. An empty `## Non-goals` is an honest brief for `/brief` to attack; an invented one is a constraint binding every later session that nobody chose.
+Take answers at face value. Never treat a first answer as hiding a "real" one, and never assess whether the idea is a good one.
 
-## Posture
+## Before asking anything
 
-Be direct to the point of discomfort. Comfort means the question did not land. Take a position on every answer and say what evidence would change it — that is rigour, not hedging, and it is the opposite of both flattery and false certainty.
+1. **Collect what is already supplied** — `$ARGUMENTS`, the conversation so far, an existing `design/00-brief.md`, any spec, issue or document the user pointed at. Each is an answer already given; do not ask for it again.
+2. **Look before asking.** Where the repository can settle a question — existing configuration, scripts, templates, a standards file, conventions in use — read it instead. Asked to provision repositories with "my standard settings", read the settings and templates already in use before asking which ones are wanted.
+3. **Keep only material unknowns.** An unknown is material when different answers would change behaviour, scope, constraints, interfaces, or how done is judged. Everything else is either a reversible assumption (below) or not needed.
 
-**Do not say, at any point in the interview:**
+## Asking
 
-- *"That's an interesting approach"* — take a position instead.
-- *"There are many ways to think about this"* — pick one and name the evidence that would move you off it.
-- *"You might want to consider…"* — say *this will not work, because* or *this works, because*.
-- *"That could work"* — say whether it will, on the evidence in hand, and name the evidence that is missing.
-- *"I can see why you'd think that"* — if the answer is wrong, say it is wrong and why.
+How much to ask depends on what arrived:
 
-**Do:**
+- **A formed request** — the outcome and enough constraints to build against — goes straight to the draft, with any small gaps written as assumptions. Asking nothing is a normal outcome.
+- **A partly formed request** — ask only about the consequential gaps.
+- **A vague idea** — explore. Ask the focused question that most narrows what to build: what should exist when this is done, what it acts on, who uses it. Never one that asks the user to defend wanting it.
 
-- Push once, then push again. The first answer to any of these questions is the polished version; the real one arrives on the second or third push.
-- Challenge the strongest reading of what the user said, never a weaker one you can dispose of.
-- Acknowledge a good answer by naming what was good about it and asking a harder question. Do not linger on it.
-- Name a failure pattern when you see it — *a solution looking for a problem*, *hypothetical users*, *the workaround is fine and nobody will switch*, *this is three projects*.
-- Gloss any term of this repository's own vocabulary the first time you use it. Someone writing their first brief does not yet know what a slice or a closure is, and an interview is the worst possible place to start using them unexplained.
+For each question:
 
-A claimed impossibility is a claim like any other and needs evidence before it is allowed to shape the brief — the user's as much as yours (`AGENTS.shared.md`, *Verification*). Where a cheap check settles it, run the check before asking anything further.
+- Ask it only if its answer changes the work, and where it is not obvious, say what it changes.
+- Offer a recommended answer where you have one, so a "yes" settles it.
+- Ask one at a time where answers depend on each other; a short batch of independent ones is fine.
 
-## The five questions
+Stop asking once what remains is immaterial or cheap enough to assume and correct later. There are no fixed rounds and no required count of questions.
 
-Ask them **one at a time**. Stop after each and wait. Push on the answer until it is specific enough to write down, then move on. Do not batch them, do not preview the list, and do not proceed to the next one because the answer was nearly good enough.
+### Prompts by field
 
-Each question names the brief field it fills, because that is the whole reason it is being asked.
+Reach for these only where a field is unknown and matters. Skip any already covered without announcing that you are skipping it — this is not a questionnaire to complete.
 
-### 1 — What breaks today → `## Problem`
+- **`## Problem`** — what the user wants to stop doing, fix, prevent, or be able to do. A desired outcome is a complete problem statement: *"new repositories should start with my standard settings"*.
+- **`## What we do instead today (and what it costs)`** — optional. Record the current way where the user mentioned it or where it shapes the work — a manual checklist whose steps become the spec. Never press for a cost.
+- **`## Who it is for`** — who uses it and how technical they are, where that affects the interface. *"Me"* is complete.
+- **`## Narrowest useful version`** — the first thing worth having. Ask only where the request is large enough that the starting point is unclear; `/plan` reads it as the first slice's centre of gravity.
+- **`## Environment`** — platform, scale, single- or multi-user, online or offline, the services or accounts it must work with. Often answerable from the repository.
+- **`## Lifespan`** — throwaway, one season, or maintained. Ask only where it is unclear and would change how much of the pipeline is worth running (`README.md` § *When to skip most of this*). The user's answer stands.
+- **`## Definition of done`** — checkable statements, each something that can be run, read, or counted. Criteria the user stated are requirements; criteria you derived from their request are assumptions until they say otherwise.
+- **`## Non-goals`** — only what the user ruled out.
 
-*"What goes wrong right now? Not the thing you want to build — the thing that is already going wrong without it."*
+Gloss any term of this repository's own vocabulary — a slice, the contract — the first time you use it.
 
-**Push until you have** a specific failure that has actually happened: a task that took an afternoon, a file lost, a number that came out wrong, a step done by hand every week. A date or a count is worth more than an adjective.
+## Technical scrutiny
 
-**Red flags:** an answer phrased as the absence of the solution (*"there's no good tool for this"*), a category rather than an event (*"managing photos is a mess"*), or a problem that turns out to be someone else's.
+Clarifying is not the same as agreeing with everything. Raise, once and with the evidence:
 
-### 2 — What you do instead today, and what it costs → `## What we do instead today (and what it costs)`
+- two requirements that cannot both hold;
+- a technical claim — the user's or yours — that a cheap check contradicts, and run the check before raising it (`AGENTS.shared.md` § *Verification*);
+- a constraint the named platform cannot meet, citing the documentation, the error text, or a probe;
+- a material risk — data loss, an irreversible action, a security exposure.
 
-*"What are you doing about it right now, even badly? And what does that cost you — in hours, in errors, in money?"*
+State the concrete consequence, recommend a resolution, and settle that one point. It never reopens why the project exists.
 
-**Push until you have** the actual workaround: the spreadsheet, the folder of scripts, the manual step, the thing done twice because the first way is unreliable. Then its cost, as a number where one exists.
+## When the user says stop
 
-**Red flags:** *"nothing"*. If there is genuinely no workaround and nobody has bothered improvising one, the problem may not be worth the pipeline — say so plainly and ask whether that is right, rather than writing it down and moving on. The status quo is the real competitor for anything built here, and a workaround that is already good enough is the most common reason a finished tool goes unused.
+*"Skip the interview"*, *"just write it"*, *"stop asking"*, *"draft the brief"*, or anything meaning the same, ends the interview **on the first request**. No defence of the process, no remaining questions, no second request needed. Write the brief from what is available, label what is unknown (below), and list the open items in the report, a line each.
 
-### 3 — Who exactly → `## Who it is for`
+If the user redirects to building it instead, do that within what they authorised — `AGENTS.shared.md` has direct instructions done directly, and the brief is not a toll gate in front of them.
 
-*"Who has this problem? Name them. If it is you, say so, and say how often you hit it."*
+## Stated, assumed, open
 
-**Push until you have** a person or a specific role, a count, and their skill level. *"Me, most weekends"* is a complete answer. *"Me, plus two colleagues who will not touch a command line"* is a better one, because it has just constrained the design.
+A model must not originate the user's requirements: handed a one-line idea, it returns something competent and not the user's problem. So keep three kinds of content apart in the brief:
 
-**Red flags:** a category — *"developers"*, *"small teams"*, *"anyone with a camera"*. A category cannot be asked afterwards whether the thing worked.
+- **Stated** — what the user said, or what a document they supplied says. Plain content in its field.
+- **Assumed** — a reasonable, reversible reading you proceeded on: a default, an inferred environment, a derived done criterion. Written under `## Assumptions and open questions` as `Assumed: …`.
+- **Open** — a consequential choice nobody has made yet. `Open: …` in the same section, with what it affects.
 
-### 4 — The narrowest useful version → `## Narrowest useful version`
+Never invent a motive, an experience, a history, a non-goal, or a binding criterion. A non-goal in `## Non-goals` binds every later session, so an inferred one goes in as `Assumed:` and stays there until the user confirms it. Where a field has nothing stated and nothing worth assuming, leave it empty and name it in the report — empty and labelled is honest; filled and plausible survives the whole pipeline as fiction.
 
-*"What is the smallest version of this that would be worth having by the end of the week? Not the demo — the version you would actually use."*
+Do not introduce a technology, library, or file format the user did not name — that is a decision made before there is anything to decide it against, and it is `/design`'s. One the user requires, or the repository already fixes, is a stated constraint and goes in `## Environment`.
 
-**Push until you have** one thing: a single operation, a single report, one kind of file transformed. The user should be able to describe something that could exist in days.
+## Writing
 
-**Red flags:** *"the whole thing has to exist before any of it is useful"*. Occasionally true, and usually a sign the value is not located yet; say which you think it is. This answer does not narrow the brief — the brief still describes the whole thing — it records where to start, and `/plan` reads it as the first slice's centre of gravity.
-
-### 5 — Does it still matter in a year → `## Lifespan`
-
-*"Is this throwaway, one season, or something you will still be maintaining in two years?"*
-
-**Push until you have** one of those three and a reason. Not a preference — a reason: something that changes, or does not, in the world the tool sits in.
-
-**Red flags:** *"maintained for years"* given by default. It is the expensive answer and it is the one everybody picks. Ask what will still be true in two years that makes it worth the whole pipeline; if nothing comes back, the honest answer is one season, and `README.md` § *When to skip most of this* is what that answer buys.
-
-**Skip a question an earlier answer already covered.** Say which you are skipping and why. Do not ask for something already on the table just to complete the set.
-
-## Escape hatch
-
-If the user pushes back — *"just write it"*, *"skip the questions"*:
-
-- Say once that the questions are the value here, and that skipping them writes a brief every later stage then inherits. Then ask the **two** whose answers are still genuinely missing, and move on.
-- **If the user pushes back a second time, stop asking.** Draft the brief from what you have, mark every field you could not fill as empty, and say which they are. Do not ask a third time.
-- A full skip is legitimate only where the user has already supplied a formed answer to all five. Even then, the premises step below still runs.
-
-## Premises, then the brief
-
-Before writing anything, state what you now believe — including what the user did not say outright but the answers imply. Numbered, one line each, for agreement or disagreement:
-
-```
-PREMISES:
-1. <statement> — agree/disagree?
-2. <statement> — agree/disagree?
-```
-
-This is where an assumption gets caught while catching it is still free. Four to six premises; if there are ten, the interview did not converge, and saying so is more useful than listing them.
-
-Then draft the three fields the questions did not ask for directly, and put them up **one at a time for sign-off**:
-
-- **`## Non-goals`** — the adjacent things this must not become. Draft them from what the user ruled out while answering, say which answer each came from, and change any the user corrects. **Every non-goal binds every later session permanently**, so say that out loud when presenting the list. A non-goal the user did not agree to is the worst single output this command can produce.
-- **`## Definition of done`** — checkable statements, not aspirations. Each one has to be something that can be run, read, or counted.
-- **`## Environment`** — scale, data volume, platform, single-user or not, online or offline. Usually the cheapest section, and the one whose absence a design silently invents an answer for.
-
-Only then write `design/00-brief.md`, into the template `ensure-project-files.ts` put in place (*Stop first*), and show what was written.
+There is no premise round and no section-by-section sign-off. When the draft is ready, write it into the template `ensure-project-files.ts` put in place (*Stop first*), show what was written, and point at the `Assumed:` and `Open:` items. A correction from the user replaces the assumption it corrects.
 
 ## Never
 
-- Never write anything but `design/00-brief.md` and what `ensure-project-files.ts` creates. Not `10-design.md`, not `90-decisions.md`. Architecture is `/design`'s, and proposing it here anchors the design to whatever happened to come to mind during an interview.
-- Never name a technology, a library, or a file format. The brief describes the problem; a tool named at this stage is a decision made before there was anything to decide it against.
-- Never fill a field the user did not answer. Empty and labelled is a finding; filled and plausible is a fiction that survives the whole pipeline.
-- Never ask a second round of questions after writing. `/brief` is the next stage and its four lists are the second pass — that is the boundary, and running it here would make one session both the author and the judge.
-- Never assess whether the idea is a good one. This interview establishes what the idea *is*.
+- Never write anything but `design/00-brief.md` and what `ensure-project-files.ts` creates. Not `10-design.md`, not `90-decisions.md`. Architecture is `/design`'s, and proposing it here anchors the design to whatever came to mind during an interview.
+- Never start a fresh round of questions after writing. `/brief` is the next stage's pass over the result, and running it here would make one session both the author and the judge.
 
 ## When done
 
-Report in the `AGENTS.shared.md` § *Reporting* shape. `Result:` names any field left empty — an unanswered field is this command's finding, not an oversight. `Next:` is `/brief`, which writes nothing and lists what the brief is missing, then `/design`.
+Report in the `AGENTS.shared.md` § *Reporting* shape. `Result:` names any field left empty and each `Open:` item. `Next:` is the `Open:` item that blocks `/design`, if one does; otherwise `/brief`, which writes nothing and lists what the brief is missing, then `/design`.
 
 ## Re-run
 
-**Stateful, and destructive if run carelessly** — it is the only command that writes `design/00-brief.md`.
+**Stateful** — this is the only command that writes `design/00-brief.md`.
 
-Where the file already has content, treat every filled field as an answer already given: read it, say which fields are filled, and ask only about the ones that are empty or self-contradictory. Do not re-ask the five questions from the top, and do not rewrite a field the user wrote by hand — a hand-written `## Problem` outranks anything this interview would produce for it.
+Where the file already has content, every filled field is an answer already given: read it, and ask only about fields that are empty or self-contradictory and that matter. Do not restart from the top, and do not rewrite a field the user wrote by hand — a hand-written `## Problem` outranks anything this interview would produce for it.
 
-Before writing, show the fields that would change, old and new, and get agreement. A re-run that silently replaces a brief has destroyed the one artifact in the pipeline nobody else can reconstruct.
+Before writing, show any filled field that would change, old and new, and get agreement; a re-run that silently replaces a brief has destroyed the one artifact nobody else can reconstruct. Under *When the user says stop*, fill only the empty fields and the assumptions section, and list proposed changes to filled fields in the report instead of making them.
