@@ -11,8 +11,9 @@ Issues and pull requests are welcome.
 
    ```sh
    npm ci
-   npx tsc --noEmit
-   node --test tools/
+   npm run typecheck
+   npm run check:no-runtime-dependencies
+   npm test
    ```
 
 4. **Open the pull request against `main`.** CI (`.github/workflows/verify.yml`) must pass before it

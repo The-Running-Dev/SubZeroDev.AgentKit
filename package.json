@@ -2,6 +2,11 @@
   "name": "agentkit",
   "private": true,
   "engines": { "node": ">=22.18" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check:no-runtime-dependencies": "node tools/test-no-runtime-dependencies.ts",
+    "test": "node --test tools/"
+  },
   "devDependencies": {
     "@types/node": "^22.18.0",
     "typescript": "^5.9.3"
