@@ -13,7 +13,7 @@ Under Claude Code each is typed `/agentkit:<name>`; Codex and Copilot use the ba
 
 | Command | Does | Writes |
 |---|---|---|
-| `interview` | Interrogates the idea | `design/00-brief.md` |
+| `interview` | Clarifies the idea into a brief | `design/00-brief.md` |
 | `brief` | Challenges an existing brief | nothing; the findings go in the conversation |
 | `design` | Produces the design and contract from the brief | `design/10-design.md`, `design/20-contract.md` |
 | `plan` | Breaks the contract into vertical slices | `design/30-slices.md` |

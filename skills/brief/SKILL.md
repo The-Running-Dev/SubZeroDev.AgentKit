@@ -19,6 +19,8 @@ Rules:
 - No architecture. No technology names. No solutions.
 - Do not rewrite the brief. Output the lists only.
 - If a list is empty, say so. Do not manufacture entries.
+- The user's stated problem is accepted as given. Never list a missing incident, frequency, cost, or proof that the current way falls short as a gap.
+- `## Assumptions and open questions` entries are already known. List one only where its resolution changes cost materially, and say so.
 
 ## Re-run
 

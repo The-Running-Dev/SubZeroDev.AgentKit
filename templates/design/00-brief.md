@@ -4,10 +4,10 @@
 > file (`/brief`) or type it from my answers (`/interview`). It may not originate it from an idea.
 
 ## Problem
-<What is wrong now. Observable, not abstract.>
+<What should change: the thing to stop doing, fix, prevent, or be able to do. A desired outcome is a complete answer.>
 
 ## What we do instead today (and what it costs)
-<The current workaround, even a bad one, and what it costs in hours, errors, or money. "Nothing" is an answer, and a warning: a problem nobody has improvised around may not be worth the pipeline.>
+<Optional. The current way, where it shapes the work — a manual checklist whose steps become the spec. Nothing here, or no cost, is a complete answer.>
 
 ## Who it is for
 <Me / a specific other. Number of users. Skill level.>
@@ -31,3 +31,6 @@
 
 ## Lifespan
 <Throwaway / one season / maintained for years. This determines how much of the pipeline below is worth running.>
+
+## Assumptions and open questions
+<Not binding. `Assumed: …` — a reversible reading the brief proceeds on, until confirmed or corrected. `Open: …` — a consequential choice nobody has made yet, and what it affects. An assumed non-goal lives here, not under Non-goals.>
