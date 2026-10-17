@@ -24,6 +24,7 @@ Under Claude Code each is typed `/agentkit:<name>`; Codex and Copilot use the ba
 | `install` | Reconciles a repository that already holds kit files | `AGENTS.md`/`CLAUDE.md` pointer section, `design/` seed, issue templates, `commit-msg` hook |
 | `install-all` | Migrates repositories off pre-home-install copies | one PR per repository |
 | `install-review` | Installs the Claude Code GitHub review action | a workflow file |
+| `setup-project` | Scaffolds a project, creates its GitHub repository with the standard settings and the `Main` ruleset, and pushes it, by running SubZeroDev.GitHub's scripts in that checkout | the new project; `repositories/<Name>.yaml` and its pull request in SubZeroDev.GitHub |
 | `sync` | Updates the machine-wide checkout | the checkout; nothing in the repository |
 
 `/next` argument: a slice id to start from, or `one` to stop after one slice.
