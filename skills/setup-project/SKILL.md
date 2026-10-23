@@ -47,10 +47,11 @@ Check all of these before writing anything. Report each failure; never fix one o
 - **Branch and pull.** The checkout is on `main` and `git status --porcelain` is empty (ignored files do not count). `git pull --ff-only` succeeds.
 - **No pending setup pull request.** `gh pr list --repo The-Running-Dev/SubZeroDev.GitHub --state open --json number,headRefName,url` shows no head starting `add-repository/`. If one does, stop and name it: an unmerged definition makes the next plan archive that repository, and the script refuses that plan but leaves the new YAML behind.
 - **Tools.** `tofu` is on PATH (install with `winget install OpenTofu.Tofu`), and `gh auth status` succeeds. `New-Repository.ps1` takes `GITHUB_TOKEN` from `gh auth token` itself; never read, print or pass the token.
+- **Scoped publisher.** For any publishing or "plan only" run, `(Get-Command ./scripts/New-Repository.ps1).Parameters.ContainsKey('TargetScoped')` must be true. If false, stop before scaffolding and report that the canonical checkout needs the target-scoped publisher update. Never fall back to an older script or to preview-only scope checking.
 - **Passphrase.** `TF_VAR_state_passphrase` is set and at least 16 characters. **Check only its length, and never print, echo or log the value** — `pwsh -NoProfile -Command "($env:TF_VAR_state_passphrase ?? '').Length -ge 16"` answers `True` or `False`. If the process does not have it, check the User scope the same way with `[Environment]::GetEnvironmentVariable('TF_VAR_state_passphrase','User')`; when it is only there, Step 3's commands load it into their own process from that scope. If it is in neither, ask the user to set it. Never set or write it anywhere.
 - **Fresh target.** The project path does not exist, and `repositories/<Name>.yaml` does not exist in the checkout.
 
-For "local only", skip the tofu, gh and passphrase checks.
+For "local only", skip the tofu, gh, scoped-publisher and passphrase checks.
 
 ## 3. Run the scripts
 
@@ -59,11 +60,10 @@ Run each script with `pwsh -NoProfile -Command`, working directory the SubZeroDe
 **Never preview with `New-Project.ps1 -PlanOnly`.** It scaffolds the path, and the real run then refuses because the path exists.
 
 1. **Scaffold.** `./scripts/New-Project.ps1 -Name <Name> -Language <language> <options> -LocalOnly`. It scaffolds, initialises git on `main`, validates the build and tests unless told to skip, and makes one commit. Note whether it printed that the build and tests passed, that they did not, or nothing because validation was skipped — Step 5 reports it. For "local only", stop here and report.
-2. **Plan.** `./scripts/New-Repository.ps1 -Name <Name> -Path <project path> <repository options> -PlanOnly`. It writes the definition, plans, and puts the definition back. For "plan only", stop here and report the plan.
-3. **Check the plan's scope.** Every resource change in the plan output (`# <address> will be created`, `will be updated in-place`, `must be replaced`, `will be destroyed`) must be a create, at an address beginning `module.repository["<Name>"]`; the summary line must read `0 to change, 0 to destroy`. Anything else — any update, replacement or destruction, or a create outside that module instance — is drift, and drift is the user's to resolve: stop and report those addresses.
-4. **Apply.** `./scripts/New-Repository.ps1 -Name <Name> -Path <project path> <repository options>`. It applies with the ruleset disabled, adds `origin` and pushes `main`, then applies again to enable the ruleset.
+2. **Plan.** `./scripts/New-Repository.ps1 -Name <Name> -Path <project path> <repository options> -TargetScoped -PlanOnly`. It writes the definition, checks the saved plan with the executable scope guard, and puts the definition back. A refusal stops setup. For "plan only", stop here and report the plan.
+3. **Apply.** `./scripts/New-Repository.ps1 -Name <Name> -Path <project path> <repository options> -TargetScoped`. The script generates fresh plans and validates each exact saved plan immediately before applying it. Creation permits only the requested repository and its `Main` ruleset with enforcement disabled. After pushing `main`, activation permits only that ruleset's disabled-to-active enforcement change; every other attribute must stay unchanged and known. Unrelated no-ops are allowed; unrelated changes and unexpected target mutations are refused. The earlier preview is informational and does not constrain or authorize these later plans.
 
-**Never pass `-Force` to either script**, and never run `tofu` directly — no bare `tofu apply`, no `tofu` outside the canonical checkout. The scripts are the only path, because they hold the refusal of destroy and replace plans.
+**Always pass `-TargetScoped` to `New-Repository.ps1`, including previews. Never pass `-Force` to either script**, and never run `tofu` directly — no bare `tofu apply`, no `tofu` outside the canonical checkout. The scripts are the only path, because they hold the executable scope guard and the refusal of destroy and replace plans. Never retry a refused plan without the guard.
 
 Invoking this command authorizes creating that one repository and pushing its first `main`. It authorizes nothing broader.
 
@@ -79,7 +79,7 @@ The apply leaves `repositories/<Name>.yaml` uncommitted. If it never reaches `ma
 
 This command never merges. Merging follows the kit's normal rule, `tools/merge-pull-request.ts`.
 
-If Step 3 failed after the definition was written — the apply stopped partway — leave the YAML uncommitted and do not delete it. Report its path and say it needs this pull request or deleting by hand.
+If the publishing invocation in Step 3.3 failed after the definition was written, leave the YAML uncommitted and do not delete it or proceed with this section. A first-plan refusal means no apply ran; an activation-plan refusal can leave the repository created and `main` pushed, with activation incomplete. Report the script's completed-stage message and the definition path. A failed apply may be partial. Verify remote state before describing the repository or ruleset as created, active or absent; never infer rollback. The retained definition needs manual reconciliation before another setup. A preview refusal in Step 3.2 restores the definition and applies nothing.
 
 ## 5. Report
 
@@ -93,10 +93,13 @@ Lead with the kit's report shape, and include each of these:
 
 For "local only" and "plan only", report what ran and where the project is, and name the command that publishes it later.
 
+For a stopped setup, report only completed steps and verified remote state, plus the refusal and any retained definition requiring reconciliation. Do not present the normal success report or claim that nothing changed merely because the last plan was refused.
+
 ## Never
 
 - Copy SubZeroDev.GitHub's scripts, templates or logic into AgentKit.
 - Clone SubZeroDev.GitHub, or run `tofu` outside its canonical checkout.
 - Pass `-Force` to either script.
+- Publish or preview without `New-Repository.ps1 -TargetScoped`.
 - Print the passphrase or the token.
 - Run a bare `tofu apply`.
