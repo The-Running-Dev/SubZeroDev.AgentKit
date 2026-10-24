@@ -1481,3 +1481,11 @@ Context: `/setup-project` demanded a language, so a project whose stack is still
 Chosen: **Name required, language optional.** An omitted or explicitly deferred language is accepted without asking again, `-Language` is left out, and the report says `Implementation language: deferred`, `Language-specific validation: not applicable`, `Next: /agentkit:interview`. A precondition checks that the checkout's `New-Project.ps1` has an optional `-Language` and stops otherwise. Discovery adds `D:\Dropbox\Projects\SubZeroDev.GitHub` as a third candidate, verified like the other two and never cloned. Publishing rules are unchanged.
 Rejected: **Default to a language** — that is the decision `/interview` exists to make. **Ask until the user names one** — refuses the deferral the user stated. **Copy the language-neutral scaffold into AgentKit** — the 2026-10-17 entry's reason, two owners of one procedure.
 Reversibility: cheap. The skill text and its tests.
+
+---
+
+### 2026-10-25 — `/setup-project` drives SubZeroDev.GitHub's TypeScript scripts
+Context: SubZeroDev.GitHub #13 ported its scripts from PowerShell to TypeScript on Node and removed `New-Project.ps1` and `New-Repository.ps1`. `/setup-project` named those files in its checkout verification, preconditions and invocations, so every run stopped at Step 1.
+Chosen: **Point the skill at `scripts/new-project.ts` and `scripts/new-repository.ts`, run with `node`, with their kebab-case options.** The checkout check looks for `scripts/new-project.ts`; the scoped-publisher precondition reads `node scripts/new-repository.ts --capabilities` for `targetScoped: true`; the optional-language precondition looks for `scripts/add-project-language.ts`, which ships with the `new-project.ts` that takes `--language` as optional. Every publishing safeguard is unchanged: `--target-scoped` on preview and apply, never `--force`, never `tofu` directly, never clone.
+Rejected: **Fall back to the `.ps1` scripts when present** — two code paths for one procedure, and the older one lacks nothing the newer one needs. **Probe the optional language by parsing `new-project.ts`** — brittle against any edit to its option handling.
+Reversibility: cheap. The skill text and its tests.
