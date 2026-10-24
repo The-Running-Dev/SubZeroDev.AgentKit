@@ -31,6 +31,7 @@ The rule it applies, for reading the plan by hand: a slice is a `## S<n>` headin
 - Branch in this worktree: `git switch -c slice/S<n>-<short-name> <Base>` for `Start`, `git switch <Branch>` for `Resume`. If git refuses the switch because uncommitted work would be overwritten, that is a blocker: stop and name the files.
 - `GuardedFiles` from step 1 are someone else's work in progress, guarded for the whole slice: never stage, commit, revert or reformat them. If the slice has to change one of them, that is a blocker: stop and name the file, rather than mixing that work into the slice. Every other file you change is the slice's: `get-next-slice.ts` recorded what was already dirty when the slice started, so after an interruption it hands your edits back as `OwnFiles` rather than guarding them.
 - Read the slice, `design/20-contract.md`, and the parts of `design/10-design.md` it touches. Read the code you are about to change in full.
+- Set the slice's risk — `LOW`, `MEDIUM` or `HIGH` (`AGENTS.shared.md` § *Review budget*) — from what it touches, not from its size. It goes in the pull request's *Verified* section and decides step 5's review.
 - For each acceptance criterion, write a test that fails first where the criterion can be tested, then implement until it passes. Stay inside the slice's `Out of scope:` line.
 - Where the code and the design disagree, do what works, keep going, and note it for the pull request (`AGENTS.shared.md` § *The design is the spec*).
 - Set the slice's `Status:` line to `done` in `design/30-slices.md` in this same branch.
@@ -48,6 +49,8 @@ The rule it applies, for reading the plan by hand: a slice is a `## S<n>` headin
 ## 3. Check it locally
 
 Run the repository's gates. `node tools/test-gates-cache.ts --repo-root .` reads them first from `.github/gates.json`, the list a repository commits and its CI keeps equal to the workflows: on `Committed`, run exactly those commands from the repository root; `Invalid` means the file is malformed — fix it in this branch, since CI fails on it too. Without that file the gates are the steps marked `# verification: true` in `.github/workflows/*.yml` (the same script caches that list in `.claude/gates.json`), or, where none are marked, the test suite, linter and type checker the repository uses. Fix failures before pushing. A gate that cannot run here is named as not run, with the reason — never reported as passed.
+
+Then run the slice's entry point — what a user runs: the command, the installer, the script through its `main` — against a mock or a sandbox where it is destructive. Passing unit tests do not stand in for it, and a slice whose entry point was not run is not ready for review; say in *Verified* which of the five levels ran (`AGENTS.shared.md` § *Verification*).
 
 Then run the design check, which is advisory and never a gate: `node tools/test-design.ts --repo-root .`. It is read-only and checks that what `design/`, the command files and `AGENTS.md` state about the tree is true — cited scripts and commands exist, the contract's tables match the scripts and skills, every slice has a `Status:` line. Exit 2 means there is no `design/` and nothing to check.
 
@@ -71,17 +74,23 @@ Commit by named path — never a guarded file (step 2) — `git diff --check`, p
 
 ## Verified
 <each gate: passed / failed with its output / not run and why>
+Risk: <LOW | MEDIUM | HIGH> — <what it touches>
+Entry point: <the command run and its result, or not run and why>
 ```
 
 ## 5. Get it merged
 
 1. Wait for CI on the pushed head: `node tools/wait-pull-request-check.ts --pull-request <n> --head-sha <sha>`.
 2. If a check failed, read its log (`gh run view --log-failed`), fix it, push, and wait again.
-3. Read the review threads (`gh api graphql` on `pullRequest.reviewThreads`, paginated; fields `id isResolved isOutdated path line comments`). For each unresolved thread:
-   - **A real defect** — fix it, push, wait for CI, then resolve the thread (`resolveReviewThread`).
+3. Read the review threads (`gh api graphql` on `pullRequest.reviewThreads`, paginated; fields `id isResolved isOutdated path line comments`). The review budget (`AGENTS.shared.md` § *Review budget*) holds here: the first review round is triaged in full and its fixes go out as one consolidated push; every later thread — including those a review action posts again on the new head — is a re-review, acted on only for a new `BLOCKING` defect with evidence. For each unresolved thread:
+   - **A real defect** (`BLOCKING`) — fix it with the round's other fixes, push once, wait for CI, then resolve the thread (`resolveReviewThread`).
+   - **A repeat of a resolved thread** (`DUPLICATE`) — reply with the link to the original and resolve it.
+   - **Non-blocking or speculative** — collect it into one follow-up issue for the pull request, reply with the link, resolve it.
    - **Wrong, or already handled** — reply with the evidence (`path:line`) and resolve it.
    - **Real but outside this slice** — open a GitHub issue for it, reply with the link, resolve it.
    - **Needs the user's judgement** (a product decision, not a code question) — leave it open; this is a blocker.
+
+   A `MEDIUM` or `HIGH` slice that no reviewer has looked at — no review action installed, none posted — gets one independent review before merge, in a fresh context (a subagent where the host has one), triaged the same way. A new evidenced `BLOCKING` finding after the re-review is spent is a blocker: the slice ends `BLOCKED`, never merged as complete.
 4. Merge: `node tools/merge-pull-request.ts --pull-request <n> --head-sha <sha>`. It waits for checks itself and refuses on anything unconfirmed. **A refusal stands** — never `--admin`, never merge another way. Fix what it names and retry; if it cannot be fixed, that is a blocker.
 5. Prune with `tools/invoke-housekeeping.ts`, as in step 0.
 
@@ -110,7 +119,8 @@ The spec holds still while slices are built against it; once the plan is finishe
 
 Once, when the run stops, in the `AGENTS.shared.md` § *Reporting* shape:
 
-- `Result:` — which slices merged in this run (with pull request links), and either "the plan is complete" with the reconciliation pull request (or "design already current") or exactly what stopped it.
+- `Result:` — the end state (`AGENTS.shared.md` § *Review budget*), then which slices merged in this run (with pull request links), and either "the plan is complete" with the reconciliation pull request (or "design already current") or exactly what stopped it.
 - `Next:` — `Nothing — this is complete.`, the one decision or action the blocker needs from the user, or the *Needs the user* issue from step 7.
 - `Verified:` — the gates and CI results for the last pull request, and anything that did not run.
 - `Decisions:` — the material-ambiguity calls made along the way, one line each, if any mattered; each is already in `design/90-decisions.md`.
+- `Improvement:` — at most three, only where this run's evidence earns one (`AGENTS.shared.md` § *Reporting*).
