@@ -86,7 +86,7 @@ Never use `max` effort unless the user asks for it by name. Name model families,
 | `/align` | `opus`, `high` | Runs only when asked |
 | `/next` | `sonnet`, `medium` | `high` for a difficult slice |
 | `/fix` | `sonnet`, `medium` | — |
-| `/install`, `/install-all`, `/install-review`, `/sync` | `sonnet`, `medium` | — |
+| `/install`, `/install-all`, `/install-review`, `/setup-project`, `/sync` | `sonnet`, `medium` | — |
 
 Under Claude Code, a command named for the user to type is written `/agentkit:<name>` — the kit ships as the `agentkit` plugin, and bare `/plan` or `/design` reach Claude Code's own commands instead. Codex and Copilot keep the bare form.
 
