@@ -1,15 +1,15 @@
 ---
 name: setup-project
-description: Start a new project end to end - scaffold it, create its GitHub repository with the standard settings and the Main ruleset, push it, and open the SubZeroDev.GitHub pull request that records the definition. Usage - /setup-project SubZeroDev.Thing node, or /setup-project SubZeroDev.Thing python private, topics tooling,cli
-argument-hint: "<Name> <language> [options]"
+description: Start a new project end to end - scaffold it, create its GitHub repository with the standard settings and the Main ruleset, push it, and open the SubZeroDev.GitHub pull request that records the definition. Usage - /setup-project SubZeroDev.Thing node, /setup-project SubZeroDev.Thing python private, topics tooling,cli, or /setup-project SubZeroDev.Thing with the language deferred
+argument-hint: "<Name> [language] [options]"
 disable-model-invocation: true
 ---
 
-Start a new project: scaffold it, create its GitHub repository, apply the standard settings and the `Main` ruleset, push, and record the definition. **$1** is the project name, **$2** the language, and anything after them is plain-language options.
+Start a new project: scaffold it, create its GitHub repository, apply the standard settings and the `Main` ruleset, push, and record the definition. **$1** is the project name, **$2** the language when one is given, and anything after them is plain-language options.
 
 **This command is a thin driver.** Every step already lives in `The-Running-Dev/SubZeroDev.GitHub`: `scripts/New-Project.ps1` scaffolds, and `scripts/New-Repository.ps1` writes `repositories/<Name>.yaml` and runs OpenTofu. That repository's `README.md` owns the instructions, in *Prerequisites*, *Create a project*, *Create a repository* and *Test*. Read those and the two scripts' `param` blocks in the checkout before running anything; they are the authority for parameter names, allowed values and defaults, and this file does not restate them. This command owns only locating the checkout, its own preconditions, and committing the new definition.
 
-If the name or the language is missing, ask. Guess neither.
+The name is required; if it is missing, ask. The language is optional. When **$2** is one of `New-Project.ps1`'s languages, use it. When the user leaves it out, or says it is deferred, undecided or not chosen yet, the language is **deferred**: accept that, do not ask again, and never choose, suggest or default one. A word that is neither a language nor an option is a question for the user, not a guess.
 
 ## Options
 
@@ -17,7 +17,7 @@ Map the plain-language options onto the scripts' parameters:
 
 - A description, `private`/`public`, topics, and required checks map to `-Description`, `-Visibility`, `-Topics` and `-RequiredCheck`. These go to both scripts.
 - A required check is `"context"` or `"context@integration_id"`; GitHub Actions is integration id 15368. `require check "build / Result"` from Actions becomes `-RequiredCheck 'build / Result@15368'`.
-- A client choice, a project folder, "no starter" and "skip validation" map to `-Client`, `-Path`, `-SkipLanguageStarter` and `-SkipValidation`. These go to `New-Project.ps1` only.
+- A client choice, a project folder, "no starter" and "skip validation" map to `-Client`, `-Path`, `-SkipLanguageStarter` and `-SkipValidation`. These go to `New-Project.ps1` only. With the language deferred there is no starter and no validation, so the last two do not apply.
 - `-Path` defaults, inside `New-Project.ps1`, to a sibling of the SubZeroDev.GitHub checkout named after the project. Resolve the same path yourself; Step 2 and `New-Repository.ps1 -Path` need it.
 - **"local only"** — scaffold and commit, then stop.
 - **"plan only"** — scaffold, commit and show the plan, then stop.
@@ -29,9 +29,10 @@ An option that maps to nothing in the `param` blocks is a question for the user,
 Take the first that exists:
 
 1. the path in `$env:SUBZERODEV_GITHUB_HOME`;
-2. a `SubZeroDev.GitHub` folder that is a sibling of the current repository.
+2. a `SubZeroDev.GitHub` folder that is a sibling of the current repository;
+3. the canonical checkout, `D:\Dropbox\Projects\SubZeroDev.GitHub`, which need not be a sibling of the current repository.
 
-Then verify every one of these, and stop naming the first that fails:
+Then verify every one of these, and stop naming the first that fails. If none of the three exists, stop and ask for the path:
 
 - the folder is a git repository;
 - its `origin` is `The-Running-Dev/SubZeroDev.GitHub`;
@@ -48,10 +49,11 @@ Check all of these before writing anything. Report each failure; never fix one o
 - **No pending setup pull request.** `gh pr list --repo The-Running-Dev/SubZeroDev.GitHub --state open --json number,headRefName,url` shows no head starting `add-repository/`. If one does, stop and name it: an unmerged definition makes the next plan archive that repository, and the script refuses that plan but leaves the new YAML behind.
 - **Tools.** `tofu` is on PATH (install with `winget install OpenTofu.Tofu`), and `gh auth status` succeeds. `New-Repository.ps1` takes `GITHUB_TOKEN` from `gh auth token` itself; never read, print or pass the token.
 - **Scoped publisher.** For any publishing or "plan only" run, `(Get-Command ./scripts/New-Repository.ps1).Parameters.ContainsKey('TargetScoped')` must be true. If false, stop before scaffolding and report that the canonical checkout needs the target-scoped publisher update. Never fall back to an older script or to preview-only scope checking.
+- **Optional language.** When the language is deferred, `-not ((Get-Command ./scripts/New-Project.ps1).Parameters['Language'].Attributes | Where-Object Mandatory)` must be true. If false, stop before scaffolding and report that the canonical checkout needs the language-neutral `New-Project.ps1`. Never pick a language to get past it.
 - **Passphrase.** `TF_VAR_state_passphrase` is set and at least 16 characters. **Check only its length, and never print, echo or log the value** — `pwsh -NoProfile -Command "($env:TF_VAR_state_passphrase ?? '').Length -ge 16"` answers `True` or `False`. If the process does not have it, check the User scope the same way with `[Environment]::GetEnvironmentVariable('TF_VAR_state_passphrase','User')`; when it is only there, Step 3's commands load it into their own process from that scope. If it is in neither, ask the user to set it. Never set or write it anywhere.
 - **Fresh target.** The project path does not exist, and `repositories/<Name>.yaml` does not exist in the checkout.
 
-For "local only", skip the tofu, gh, scoped-publisher and passphrase checks.
+For "local only", skip the tofu, gh, scoped-publisher and passphrase checks. The optional-language check applies whenever the language is deferred.
 
 ## 3. Run the scripts
 
@@ -59,7 +61,7 @@ Run each script with `pwsh -NoProfile -Command`, working directory the SubZeroDe
 
 **Never preview with `New-Project.ps1 -PlanOnly`.** It scaffolds the path, and the real run then refuses because the path exists.
 
-1. **Scaffold.** `./scripts/New-Project.ps1 -Name <Name> -Language <language> <options> -LocalOnly`. It scaffolds, initialises git on `main`, validates the build and tests unless told to skip, and makes one commit. Note whether it printed that the build and tests passed, that they did not, or nothing because validation was skipped — Step 5 reports it. For "local only", stop here and report.
+1. **Scaffold.** `./scripts/New-Project.ps1 -Name <Name> -Language <language> <options> -LocalOnly`. It scaffolds, initialises git on `main`, validates the build and tests unless told to skip, and makes one commit. Note whether it printed that the build and tests passed, that they did not, or nothing because validation was skipped — Step 5 reports it. With the language deferred, leave out `-Language` entirely: it writes the common files with no starter and no commands, runs no validation, and prints that the language is deferred. For "local only", stop here and report.
 2. **Plan.** `./scripts/New-Repository.ps1 -Name <Name> -Path <project path> <repository options> -TargetScoped -PlanOnly`. It writes the definition, checks the saved plan with the executable scope guard, and puts the definition back. A refusal stops setup. For "plan only", stop here and report the plan.
 3. **Apply.** `./scripts/New-Repository.ps1 -Name <Name> -Path <project path> <repository options> -TargetScoped`. The script generates fresh plans and validates each exact saved plan immediately before applying it. Creation permits only the requested repository and its `Main` ruleset with enforcement disabled. After pushing `main`, activation permits only that ruleset's disabled-to-active enforcement change; every other attribute must stay unchanged and known. Unrelated no-ops are allowed; unrelated changes and unexpected target mutations are refused. The earlier preview is informational and does not constrain or authorize these later plans.
 
@@ -86,12 +88,21 @@ If the publishing invocation in Step 3.3 failed after the definition was written
 Lead with the kit's report shape, and include each of these:
 
 - the project path;
+- its git state, read from `git -C <project path> status --short --branch` and `git -C <project path> log --oneline`;
 - the repository URL and visibility, from `gh repo view The-Running-Dev/<Name> --json url,visibility`;
 - whether the `Main` ruleset is active, read back from `gh api repos/The-Running-Dev/<Name>/rulesets` (its `enforcement` is `active`), never inferred from the script's output;
 - whether the build and tests passed, failed, or were skipped;
 - the SubZeroDev.GitHub pull request URL, and that it must merge before the next apply.
 
-For "local only" and "plan only", report what ran and where the project is, and name the command that publishes it later.
+With the language deferred, report these three lines in place of the build and tests, exactly:
+
+- `Implementation language: deferred`
+- `Language-specific validation: not applicable`
+- `Next: /agentkit:interview`
+
+A deferred project has no build or tests yet; that is not a failure, and no command is to be reported for it.
+
+For "local only" and "plan only", report what ran and where the project is, that it is not published, and name the command that publishes it later.
 
 For a stopped setup, report only completed steps and verified remote state, plus the refusal and any retained definition requiring reconciliation. Do not present the normal success report or claim that nothing changed merely because the last plan was refused.
 
@@ -103,3 +114,4 @@ For a stopped setup, report only completed steps and verified remote state, plus
 - Publish or preview without `New-Repository.ps1 -TargetScoped`.
 - Print the passphrase or the token.
 - Run a bare `tofu apply`.
+- Choose, suggest or default a language the user did not give, or invent install, build, test, lint or run commands for a deferred project.
