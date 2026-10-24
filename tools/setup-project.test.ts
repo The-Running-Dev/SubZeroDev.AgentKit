@@ -5,16 +5,22 @@ import { readFileSync } from 'node:fs';
 const driver = readFileSync(new URL('../skills/setup-project/SKILL.md', import.meta.url), 'utf8');
 
 test('setup-project requires scoped publishing for both preview and apply', () => {
-  const invocations = [...driver.matchAll(/`(\.\/scripts\/New-Repository\.ps1 [^`]+)`/g)].map(match => match[1]);
+  const run = driver.slice(driver.indexOf('## 3. Run the scripts'), driver.indexOf('## 4. Commit the definition'));
+  const invocations = [...run.matchAll(/`(node scripts\/new-repository\.ts [^`]+)`/g)].map(match => match[1]);
   assert.equal(invocations.length, 2, 'the preview and publishing invocations must both be checked');
-  for (const command of invocations) assert.match(command, /(?:^|\s)-TargetScoped(?:\s|$)/);
-  assert.equal(invocations.filter(command => /-PlanOnly(?:\s|$)/.test(command)).length, 1);
+  for (const command of invocations) assert.match(command, /(?:^|\s)--target-scoped(?:\s|$)/);
+  assert.equal(invocations.filter(command => /--plan-only(?:\s|$)/.test(command)).length, 1);
 });
 
 test('setup-project checks publisher capability before scaffolding', () => {
   const preconditions = driver.slice(driver.indexOf('## 2. Preconditions'), driver.indexOf('## 3. Run the scripts'));
-  assert.ok(preconditions.includes("(Get-Command ./scripts/New-Repository.ps1).Parameters.ContainsKey('TargetScoped')"));
+  assert.ok(preconditions.includes('`node scripts/new-repository.ts --capabilities` must print JSON whose `targetScoped` is `true`'));
   assert.match(preconditions, /stop before scaffolding/);
+});
+
+test('setup-project drives only the TypeScript scripts', () => {
+  assert.doesNotMatch(driver, /\.ps1\b/);
+  assert.doesNotMatch(driver, /(?:^|[\s`])-(?:TargetScoped|PlanOnly|LocalOnly|Language|Force)\b/m);
 });
 
 const section = (start: string, end: string) => driver.slice(driver.indexOf(start), driver.indexOf(end));
@@ -27,12 +33,12 @@ test('setup-project requires the name but not the language', () => {
 
 test('setup-project keeps a deferred language deferred', () => {
   assert.match(driver, /the language is \*\*deferred\*\*: accept that, do not ask again, and never choose, suggest or default one/);
-  assert.match(section('## 3. Run the scripts', '## 4. Commit the definition'), /With the language deferred, leave out `-Language` entirely/);
+  assert.match(section('## 3. Run the scripts', '## 4. Commit the definition'), /With the language deferred, leave out `--language` entirely/);
 });
 
 test('setup-project passes a given language as before', () => {
-  const scaffolds = [...driver.matchAll(/`(\.\/scripts\/New-Project\.ps1 [^`]+)`/g)].map(match => match[1]);
-  assert.deepEqual(scaffolds, ['./scripts/New-Project.ps1 -Name <Name> -Language <language> <options> -LocalOnly']);
+  const scaffolds = [...driver.matchAll(/`(node scripts\/new-project\.ts [^`]+)`/g)].map(match => match[1]);
+  assert.deepEqual(scaffolds, ['node scripts/new-project.ts --name <Name> --language <language> <options> --local-only']);
 });
 
 test('setup-project finds the canonical checkout outside sibling folders, and never clones it', () => {
@@ -41,16 +47,16 @@ test('setup-project finds the canonical checkout outside sibling folders, and ne
   const positions = candidates.map(candidate => locate.indexOf(candidate));
   for (const [index, position] of positions.entries()) assert.ok(position >= 0, `missing candidate: ${candidates[index]}`);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, 'candidates are tried in this order');
-  for (const check of ['is a git repository', 'The-Running-Dev/SubZeroDev.GitHub', 'scripts/New-Project.ps1', 'terraform.tfstate']) assert.ok(locate.includes(check), check);
+  for (const check of ['is a git repository', 'The-Running-Dev/SubZeroDev.GitHub', 'scripts/new-project.ts', 'terraform.tfstate']) assert.ok(locate.includes(check), check);
   assert.match(locate, /\*\*Never clone it\.\*\*/);
 });
 
 test('setup-project keeps the publishing safeguards for a deferred language', () => {
   const preconditions = section('## 2. Preconditions', '## 3. Run the scripts');
-  assert.ok(preconditions.includes("-not ((Get-Command ./scripts/New-Project.ps1).Parameters['Language'].Attributes | Where-Object Mandatory)"));
-  assert.match(preconditions, /needs the language-neutral `New-Project\.ps1`\. Never pick a language to get past it\./);
+  assert.ok(preconditions.includes('When the language is deferred, `scripts/add-project-language.ts` must exist'));
+  assert.match(preconditions, /needs the language-neutral `new-project\.ts`\. Never pick a language to get past it\./);
   const never = driver.slice(driver.indexOf('## Never'));
-  for (const rule of ['Pass `-Force` to either script.', 'Publish or preview without `New-Repository.ps1 -TargetScoped`.', 'Clone SubZeroDev.GitHub']) assert.ok(never.includes(rule), rule);
+  for (const rule of ['Pass `--force` to either script.', 'Publish or preview without `new-repository.ts --target-scoped`.', 'Clone SubZeroDev.GitHub']) assert.ok(never.includes(rule), rule);
 });
 
 test('setup-project reports a deferred project without inventing decisions', () => {
