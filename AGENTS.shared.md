@@ -33,6 +33,17 @@ Three tiers, and only the third stops:
 
 When the user has given a direction and you think it is wrong, say so once, in a line, with the evidence, and carry on unless they answer.
 
+## Asking the user
+
+Where a command does ask — a design choice, a divergence, a finding to classify, a missing value — the question is a card, not a paragraph:
+
+- **One decision per question**, in one line, with two to four options. Each option is a short label and one line on what picking it does. The recommended option comes first, marked as recommended, so accepting it is one answer. A free-text answer is always open.
+- **Independent questions go together**, at most four at a time; a question whose answer depends on another waits for it.
+- **Under Claude Code, use the `AskUserQuestion` tool** — it draws exactly this: a header of at most twelve characters, the recommended label ending `(Recommended)`, and "Other" added for you. Under Codex, Copilot, or any host without such a tool, write the same card as text — the question, then the options as a numbered list, recommended first — and wait for a number or an answer.
+- A card is how to ask, never a reason to. A command asks only what its own text says to ask, and `/next` still never asks mid-run.
+
+The one question no command text names is the update card the skill reader can print ahead of a command, at most once a day; that card's own text says how to ask it and what each answer runs.
+
 ## Verification
 
 - **Never say a check passed that did not run.** If a tool is unavailable, say so and name what was not checked. A failure is reported with its error text in full.

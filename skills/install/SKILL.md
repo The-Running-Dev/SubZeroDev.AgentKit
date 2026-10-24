@@ -11,7 +11,7 @@ runtime's `INSTALL.md`. The kit itself is not the target repository.
 
 **$1** is the target repository path. When invoked from a target with the canonical kit path as
 `$1` (the legacy reverse invocation), keep the current repository as the target. If the target is
-omitted, use the current repository. If both ends are kits, stop and ask. If no runtime exists,
+omitted, use the current repository. If both ends are kits, stop and ask, as a card (`AGENTS.shared.md` § *Asking the user*). If no runtime exists,
 follow README.md's public clone-and-setup instructions; never require a developer checkout or
 copy kit-owned cores and scripts into the target.
 

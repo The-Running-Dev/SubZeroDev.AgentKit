@@ -37,8 +37,9 @@ How much to ask depends on what arrived:
 For each question:
 
 - Ask it only if its answer changes the work, and where it is not obvious, say what it changes.
-- Offer a recommended answer where you have one, so a "yes" settles it.
-- Ask one at a time where answers depend on each other; a short batch of independent ones is fine.
+- Offer a recommended answer where you have one, first and marked, so one answer settles it.
+- Ask one at a time where answers depend on each other; up to four independent ones can go together.
+- Put each as a card — `AGENTS.shared.md` § *Asking the user* has the shape and the fallback for hosts without one.
 
 Stop asking once what remains is immaterial or cheap enough to assume and correct later. There are no fixed rounds and no required count of questions.
 

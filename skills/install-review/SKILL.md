@@ -34,7 +34,7 @@ Check whether `<target>/.github/workflows/claude-code-review.yml` exists.
 
 ## Choose a mode
 
-Ask which mode, recommending automatic review first:
+Ask which mode as one card (`AGENTS.shared.md` § *Asking the user*), recommending automatic review first:
 
 - **Automatic review (recommended)** — triggers on `pull_request` (`opened`, `synchronize`, `ready_for_review`, `reopened`) and runs `/code-review:code-review --comment` against the PR, posting findings as inline comments. This is what "install the code review agent" means in the common case.
 - **Mention-only** — triggers on `issue_comment` and `pull_request_review_comment` containing `@claude`, and only acts when someone asks.

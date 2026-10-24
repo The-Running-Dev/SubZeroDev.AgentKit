@@ -16,6 +16,8 @@ Resolve the kit root from `AGENTKIT_HOME`, otherwise the home directory's `.agen
 - Run `node "<kit-root>/setup.ts"`, adding `--version "<requested-version>"` only when the user supplied a version. Substitute absolute paths and quote them for the calling shell.
 - If the installed checkout predates `setup.ts`, use README's temporary bootstrap clone procedure. Do not advance the old checkout by hand.
 
+Whether a command asks before upgrading, upgrades on its own, or never checks is a separate setting: `node tools/get-agentkit-skill.ts --update-policy ask|auto|off`. Change it only when the user asks.
+
 The default selects the newest valid stable `vYYYY.MM.DD` tag, including an optional `.N` suffix. It never falls back to `main`; that branch requires an explicit request.
 
 ## This repository
