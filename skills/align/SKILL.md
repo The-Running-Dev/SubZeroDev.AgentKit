@@ -26,7 +26,7 @@ Each item cites the `path:line` in the code and the section of the document. Pla
 
 ## Then resolve
 
-Ask the user to decide the divergences, one at a time, each with a recommendation: the document changes to match the code, or the code changes to match the document, and why that one. A passing test proves the code does what it does, not that it does what was agreed — do not assume the code is right because it runs.
+Ask the user to decide the divergences, one at a time, each as a card with a recommendation (`AGENTS.shared.md` § *Asking the user*): the document changes to match the code, or the code changes to match the document, and why that one. A passing test proves the code does what it does, not that it does what was agreed — do not assume the code is right because it runs.
 
 A difference that is plainly a transcription — a renamed field, a moved file, a changed count — needs no question: correct the document and list it in the report.
 

@@ -78,7 +78,7 @@ Cost: <cheap to fix now / expensive to fix later, and why>
 
 - One invocation authorizes **exactly one complete pass**. At most one pass per materially changed design revision.
 - **Never automatically recommend or start another pass.** Repeat only when I ask and the design has materially changed since the last one.
-- After a pass, stop. Present findings **one at a time** for adjudication, and classify each as I rule on it: **defect**, **accepted risk**, **brief conflict**, or **not sustained**.
+- After a pass, stop. Present findings **one at a time** for adjudication, and classify each as I rule on it: **defect**, **accepted risk**, **brief conflict**, or **not sustained**. Each finding is one card (`AGENTS.shared.md` § *Asking the user*) with those four as its options.
 - **Recommend a classification for each, but never a fix.** Naming a fix invites me to accept your framing of the problem — naming a *severity and category* does not.
 - **A known-and-retained decision is not a new defect.** It becomes one only if new evidence shows it contradicts a higher-precedence source, or creates a consequence not already recorded. Name that evidence or consequence — without one, it is the same finding again.
 - For a local correction, verify the correction. Do not reread and re-attack the whole design because wording changed.

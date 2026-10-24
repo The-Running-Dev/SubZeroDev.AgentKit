@@ -49,6 +49,10 @@ carrying on, so that by the time anyone reads the document the choice is already
 six sections and expensive to revisit. Where one approach is obviously right, say so in a line,
 and still stop.
 
+Put the choice to the user as one card (`AGENTS.shared.md` § *Asking the user*): each approach an
+option, labelled by name with its one-line cost, the recommended one first. The paragraphs above
+are what the card stands on, so write them first.
+
 Stop means stop: emit the approaches and end the turn.
 
 Required sections, in this order:

@@ -22,7 +22,7 @@ Map the plain-language options onto the scripts' options:
 - **"local only"** — scaffold and commit, then stop.
 - **"plan only"** — scaffold, commit and show the plan, then stop.
 
-An option that maps to nothing in the option tables is a question for the user, not a guess.
+An option that maps to nothing in the option tables is a question for the user, not a guess. Ask it, and a missing name, as a card (`AGENTS.shared.md` § *Asking the user*).
 
 ## 1. Locate the checkout
 
