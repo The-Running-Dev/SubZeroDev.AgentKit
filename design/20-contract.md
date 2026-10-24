@@ -17,7 +17,7 @@ Under Claude Code each is typed `/agentkit:<name>`; Codex and Copilot use the ba
 | `brief` | Challenges an existing brief | nothing; the findings go in the conversation |
 | `design` | Produces the design and contract from the brief | `design/10-design.md`, `design/20-contract.md` |
 | `plan` | Breaks the contract into vertical slices | `design/30-slices.md` |
-| `redteam` | Optional adversarial review of the design | `design/redteam/<YYYY-MM-DD>-<target>.md`; never a gate |
+| `redteam` | Optional adversarial review of the design, or of one deliverable within its review budget | `design/redteam/<YYYY-MM-DD>-<target>.md`, or `reviews/<deliverable>.md`; never a gate |
 | `next` | Builds every unfinished slice through merge and cleanup, then reconciles `design/` once | code, tests, PRs, `Status: done`, `design/90-decisions.md` entries, the reconciliation PR |
 | `fix` | Reproduces and fixes a defect outside the plan | code, tests, a PR |
 | `align` | On request, reconciles `design/` with the tree | `design/` |
@@ -69,6 +69,7 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 | `invoke-done-housekeeping.ts` | `[--repo-root --default-branch --skip-pull --delete-branches --force-delete-branches --auto-stash --keep-dirty]`, each branch passed as its own flag value | Discovery and (when given a list) deletion; `--keep-dirty` proceeds on a dirty tree without touching it; `--auto-stash` stashes and reports the ref |
 | `test-gates-cache.ts` | `[--repo-root --write --gates-json]` | Returns a committed `.github/gates.json` as `Committed` (`Invalid` when malformed), and refuses `--write` beside it; otherwise reads or writes `.claude/gates.json`, keyed to a hash of the files that decide the gate list |
 | `test-verify-report.ts` | `[--path --quiet]` | Validates `.claude/verify-report.json` |
+| `test-review-ledger.ts` | `--path`, `[--quiet]` | `State` COMPLETE / READY_FOR_EXECUTION / BLOCKED / ACCEPTED_RISK / CANCELLED / CORRECTING / VERIFYING / Invalid / NotEvaluated with `Reviews`, `Corrections`, `NextReview`, `OpenBlocking`, `Problems`; read-only; exit 0 / 1 (Invalid) / 2 (NotEvaluated) |
 | `test-no-attribution.ts` | `--base-sha`, `--head-sha` | `RESULT=PASSED` or `FAILED` naming the commits |
 | `ensure-project-files.ts` | `[--repo-root --design (repeatable) --pointer --hook --kit-root --quiet]` | `Design`, `Pointer` and `Hook` entries with `Status` Created / Present / Inserted / Occupied / Ambiguous / Skipped, and `Written`; creates what is missing, never overwrites |
 | `new-design-docs.ts` | `[--target-repo --kit-root --force --quiet]` | Seeds `design/` from `templates/design/` |
@@ -86,7 +87,7 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 `design/` (`00-brief.md`, `10-design.md`, `20-contract.md`, `30-slices.md`, `90-decisions.md`,
 `redteam/`), `AGENTS.md` and `CLAUDE.md` (the shared-contract pointer section only),
 `.github/ISSUE_TEMPLATE/` (`/install` only), `.git/hooks/commit-msg`, `.github/gates.json` (read only),
-`.claude/gates.json`,
+`.claude/gates.json`, `reviews/` (`/redteam` on a deliverable),
 `.claude/verify-report.json`, `.claude/session-costs.tsv` (appended by the global `SessionEnd`
 hook). Nothing else; in particular, no repository `settings.json` and no version stamp.
 
@@ -94,6 +95,8 @@ hook). Nothing else; in particular, no repository `settings.json` and no version
 
 - No command ends by asking the user to run another command or open a new session.
 - A merge happens only through `tools/merge-pull-request.ts`.
+- A deliverable gets at most one independent review, one consolidated correction and one
+  targeted re-review, whatever the session, model or vendor; more needs the user's authorization.
 - Housekeeping never stashes, resets or cleans a working tree.
 - The default branch is never committed to directly.
 - While a plan is being built, `/next` edits `design/` only to set a slice's `Status:` line and
