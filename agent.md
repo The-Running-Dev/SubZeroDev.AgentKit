@@ -73,6 +73,12 @@ and preferences belong in the agent contract.
   10→14 — and each staleness surfaced as a red gate on an unrelated pull request, costing a
   triage pass to re-establish that the addition was legitimate. Assert the correspondence — a
   record per named surface, and no more — not the cardinality.
+- **Green unit tests are not a run of the entry point.** A REA installer went through four
+  review rounds with 99/99, then 96/96 unit tests passing while three malformed npm calls —
+  `$NpmCli@NpmCiArgs`, `$NpmClirebuild`, `$NpmCliaudit` — sat on the top-level install path
+  that no test reached, and it was still awaiting its first end-to-end run. One mocked run of
+  the installer would have failed on the first call. Run the entry point before review; the
+  replay is `tools/fixtures/rea-installer/`.
 - **Several confident recollections were wrong.** Every claim about an external contract
   should be checked against the published spec, not remembered.
 

@@ -37,7 +37,16 @@ Branch off the up-to-date default branch, and run `node tools/ensure-project-fil
 
 **Where the cause will not come, stop and fix nothing.** Report what was traced, what was ruled out, and what evidence is missing — the same shape as a defect that will not reproduce. A patch that turns a test green with no cause stated is a guess wearing a tick, and it is worse than an open bug, because the bug stays visible and the guess does not.
 
-**Three failed attempts is a stop, not a fourth attempt.** Where three fixes have each been implemented and each failed to clear the reproduction, what is wrong is the diagnosis, and a fourth patch is being written against it. Stop and report the attempts — what each assumed, what each disproved — with a recommendation: continue on the current diagnosis, or instrument first because the state at the moment of failure is not observable. The count is **within one invocation**; *Re-run* below is unchanged, and a later invocation legitimately starts at zero, because it reproduces fresh rather than resuming.
+**Three failed attempts is a stop, not a fourth attempt.** Where three fixes have each been implemented and each failed to clear the reproduction, what is wrong is the diagnosis, and a fourth patch is being written against it. Stop and report the attempts — what each assumed, what each disproved — with a recommendation: continue on the current diagnosis, or instrument first because the state at the moment of failure is not observable. The count is **per diagnosis, across invocations**: each failed attempt is recorded the moment it fails, as a comment on the issue —
+
+```
+Fix attempt <n> — failed
+Diagnosis: <the cause, as stated before the patch>
+Assumed: <what the patch relied on>
+Disproved by: <the evidence — the reproduction's output after the patch>
+```
+
+— so a later session, model or vendor starts from the same count, not from zero. A new diagnosis restarts the count only when it names a different cause with evidence the earlier ones lacked; a disproven hypothesis is never tried again under a new name.
 
 ## Fix, then ship it
 
@@ -52,8 +61,8 @@ Implement until the reproduction passes, then verify the regression test by reve
 
 ## Re-run
 
-Each invocation is independent — this command does not resume a prior attempt at the same
-issue, and remembers nothing between runs. Given the same issue number again: reproduce fresh
-against the issue as it now stands, do not assume an earlier session's diagnosis still holds, and
-do not open a second bug issue or a second branch. If `fix/<issue>-<slug>` and its pull request
+Given the same issue number again: read its `Fix attempt` comments first — they are the count
+and the hypotheses already disproved — then reproduce fresh against the issue as it now stands. Do
+not assume an earlier diagnosis still holds, do not retry one a comment disproved, and do not open
+a second bug issue or a second branch. If `fix/<issue>-<slug>` and its pull request
 already exist, check that branch out and continue from where it stands.

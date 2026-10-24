@@ -40,6 +40,17 @@ When the user has given a direction and you think it is wrong, say so once, in a
 - A regression test is verified by reverting the fix and watching it fail.
 - Never state a deployed URL until the deploy for that exact commit reports success.
 - A claimed limitation ("the API can't", "that needs a credential") needs the error text or a probe, the same as any other claim.
+- **Run the entry point before anyone reviews the work.** Five levels are distinct: syntax, unit, integration, entry point (what the user actually runs — the installer, the command, the script's `main`), end to end. Green unit tests prove nothing about the entry point. A destructive deliverable runs its entry point against mocks or a sandbox; real execution needs the user's say-so, and until it happens the work is `READY_FOR_EXECUTION`, not `COMPLETE`.
+
+## Review budget
+
+Each deliverable gets at most one independent review, one consolidated correction, and one targeted re-review of that review's findings and their corrections only. The budget belongs to the deliverable, not to a session, model or vendor: a new session or a different reviewer does not reset it. More needs the user's authorization or a materially new requirement.
+
+- **Risk decides what the budget is spent on, inferred from the change and never asked.** `LOW` — contained and reversible: tests and targeted checks, no independent review required. `MEDIUM` — a subsystem or behaviour other work depends on: one independent review. `HIGH` — installers, migrations, security, credentials, data loss, anything irreversible: the review plus verification aimed at that risk, with the gates above. Reach and reversibility set the level, not size.
+- **A finding carries** an ID, the revision reviewed, a severity, where, the claim, the evidence, the consequence, the correction and a status. Severity is `BLOCKING` (a demonstrated defect against an acceptance criterion or safe operation), `NON-BLOCKING`, `SPECULATIVE` (no evidence) or `DUPLICATE` (names the finding it repeats). Only `BLOCKING` forces a correction; the rest go into one follow-up issue or nowhere. A finding is reopened only with new evidence, and reviewers disagreeing is not a reason for another round.
+- **A proposed improvement is taken only if** it meets an acceptance criterion, corrects a demonstrated defect, or is needed for safe operation — and is proportional to the problem. Anything else is a follow-up issue.
+- **Work ends in one state:** `COMPLETE`, `READY_FOR_EXECUTION`, `BLOCKED`, `ACCEPTED_RISK` (the user's own words accept a named finding) or `CANCELLED`. A new evidenced `BLOCKING` finding after the budget is spent ends `BLOCKED`, never `COMPLETE`.
+- **The record is what already exists:** the pull request's threads for pull request work, the issue's comments for `/fix` attempts, and `reviews/<deliverable>.md`, checked by `tools/test-review-ledger.ts`, for anything reviewed outside a pull request or across sessions and vendors.
 
 ## Git and delivery
 
@@ -84,12 +95,15 @@ Under Claude Code, a command named for the user to type is written `/agentkit:<n
 One report when the work stops, leading with the outcome:
 
 ```
-Result: <what is now true, in one plain sentence>
+Result: <the end state, then what is now true, in one plain sentence>
 Next: <the one thing the user must do or decide, or "Nothing — this is complete.">
 Verified: <the checks that ran and their results; what did not run, and why>
+Improvement: <optional, at most three — see below>
 ```
 
 No narration of what was read or tried. Link durable things — pull requests, issues, files — instead of reproducing them. Brevity never removes evidence: a failed or skipped check, and a decision only the user can make, are always stated in full.
+
+**Learn from the run, without feeding on it.** An `Improvement:` line proposes one change to the kit or the project's rules that this run's evidence shows would have saved real time or prevented a defect: the evidence, the cost it would have saved, and where the change belongs. None when nothing is material — that is the usual case. Check `agent.md`, `design/90-decisions.md` and open issues and pull requests first; a duplicate, or a proposal already rejected, is not made again. An improvement is proposed, never applied in the run that found it, and **a run never changes the rules it is judged by**: a change to the contract, skills or tools is accepted against the contract committed before it, never against itself.
 
 ## House conventions
 

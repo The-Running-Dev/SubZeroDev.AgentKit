@@ -1,10 +1,11 @@
 ---
 name: redteam
-description: Optional adversarial review of the design doc, run when asked. Best on a different vendor's model than the design's author.
+description: Optional adversarial review of the design doc — or of one deliverable, within its review budget — run when asked. Best on a different vendor's model than the author's.
+argument-hint: "[optional: a file or folder to review instead of the design]"
 disable-model-invocation: true
 ---
 
-Read `design/00-brief.md`, `design/10-design.md` and `design/20-contract.md`.
+Read `design/00-brief.md`, `design/10-design.md` and `design/20-contract.md`. With `$1` naming a file or folder, review that deliverable instead: *Reviewing a deliverable*, below.
 
 You did not write this design and you are not being asked whether it is good. You are being asked where it breaks.
 
@@ -20,7 +21,7 @@ Consequence: <what the user or operator experiences>
 Cheap to fix now / expensive to fix later: <which, and why>
 ```
 
-Severity: `BLOCKING` (design cannot ship as written), `STRUCTURAL` (works, but the fix later requires touching many modules), `LOCAL` (contained, fixable in one place).
+Severity: `BLOCKING` (design cannot ship as written), `STRUCTURAL` (works, but the fix later requires touching many modules), `LOCAL` (contained, fixable in one place). In the shared vocabulary (`AGENTS.shared.md` § *Review budget*) `STRUCTURAL` and `LOCAL` are `NON-BLOCKING`. A finding with no concrete `Breaks when` is `SPECULATIVE`, never `BLOCKING`; one that repeats a finding from an earlier pass is `DUPLICATE` and names it (`Duplicate of: <file> F<n>`).
 
 Attack these specifically:
 
@@ -81,3 +82,55 @@ Cost: <cheap to fix now / expensive to fix later, and why>
 - **Recommend a classification for each, but never a fix.** Naming a fix invites me to accept your framing of the problem — naming a *severity and category* does not.
 - **A known-and-retained decision is not a new defect.** It becomes one only if new evidence shows it contradicts a higher-precedence source, or creates a consequence not already recorded. Name that evidence or consequence — without one, it is the same finding again.
 - For a local correction, verify the correction. Do not reread and re-attack the whole design because wording changed.
+
+## Reviewing a deliverable
+
+With `$1` naming a file or folder, the target is that deliverable, and the review budget (`AGENTS.shared.md` § *Review budget*) governs it — across sessions, models and vendors, because its record is a file: `reviews/<deliverable>.md`, committed like the findings file above.
+
+1. Run `node tools/test-review-ledger.ts --path reviews/<deliverable>.md`. Exit 2 means there is no record yet: write its header (below) from the deliverable and whatever states its goal, and run the tool again. `Problems` means the record is malformed: report them and stop. `NextReview` `none` means no pass is due or the budget is spent: print `State` and `Next` and stop — no pass.
+2. **The entry point runs before any review.** If `Verification` has no `Entry point:` result, run it — against a mock or a sandbox where it is destructive — and record it first.
+3. `NextReview` `review` is one complete pass over the deliverable. `re-review` covers only the findings already recorded and the corrections made for them (`## C<n>`): a new finding there is `BLOCKING` with evidence, a defect a correction introduced, or `tracked` in one follow-up issue — nothing else is opened.
+4. Append the pass and its findings, run the tool again, and print its `State` and `Next`. The adjudicating session sets each `Status:`; a correction is recorded as one `## C<n>` naming every finding it fixes.
+
+```markdown
+# Review — <deliverable>
+
+Deliverable: <name>
+Artifact: <path>
+Goal: <one line>
+Risk: LOW | MEDIUM | HIGH — <what it touches>
+Acceptance:
+- A1 <criterion>
+Authorized: <YYYY-MM-DD> — <the user's words; each line allows one more review and one more correction>
+
+## Verification
+Syntax: passed | failed | not run | not applicable — <evidence, or the reason>
+Unit: ...
+Integration: ...
+Entry point: ...
+End to end: ...
+Risk check: ... (HIGH only — the verification aimed at that risk)
+
+## R1
+Kind: review | re-review
+Revision: <sha>
+Vendor: <vendor>
+Model: <model>
+Date: <YYYY-MM-DD>
+
+## F1
+Severity: BLOCKING | NON-BLOCKING | SPECULATIVE | DUPLICATE
+Status: open | resolved | not sustained | accepted risk | tracked
+Raised in: R1 | verification
+Where: <path:line>
+Claim: <one line>
+Evidence: <path:line, a command and its output, or a reproduction>
+Consequence: <what the user experiences>
+Correction: <filled by whoever corrects it>
+
+## C1
+Revision: <sha>
+Fixes: F1, F2
+```
+
+`Duplicate of: F<n>` marks a duplicate; `Reopened by: <new evidence>` is the only way a resolved finding comes back; `Accepted: <the user's words>` goes with `accepted risk`; `Cancelled: <the user's words>` in the header ends the record. The design-pass rules above still hold: no fixes proposed, no verdict, no summary.
