@@ -118,7 +118,7 @@ export function updateNotice(root: string, home: string, env = process.env, runn
   return ['=== AgentKit update available ===', ...head,
     'Agent: before the command body below, ask the user this one question as a card',
     '(AGENTS.shared.md § Asking the user), run what the answer says, then carry on.',
-    `  Question: AgentKit ${targetName} is available (you have ${installedName}). Upgrade now?`,
+    `  Question: AgentKit ${targetName} is available (you have ${version || installed.slice(0, 7)}). Upgrade now?`,
     '  Header: Update',
     '  Recommendation: Not now, so this session stays on the version it just loaded.',
     '  1. Not now (Recommended) — Snooze this for 24 hours and continue on the current version.',
