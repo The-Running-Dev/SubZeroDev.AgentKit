@@ -22,6 +22,10 @@ Work with this project's memories in MemoryKit for **$ARGUMENTS**. Every action 
 - **accept** — `--id <id> [--verification verified|disputed]`. Promotes a candidate so recall and context use it. The author's provenance is kept; `acceptedBy` records the accepting host. Pass `--verification` only for what the user or a check you ran actually established about the claim.
 - **context** — `[--max-bytes <n>]`: the fenced block a new session would receive, with its measured `Bytes`, `LimitBytes`, `Items` and `Omitted`. `State` Omitted means accepted memories exist but none fits the limit; `Truncated` means more exist than the 500 read, so `Omitted` is a lower bound.
 
+## Hooks
+
+When the installer registered them, two host hooks run the same script without you: SessionStart (`--action context --hook`) adds the accepted context to a new session, and PreCompact (`--action checkpoint --hook`) records the last assistant message before compaction as a candidate `handoff` whose evidence is the transcript. A checkpoint is never context until someone accepts it: `recall --include-candidates --text Checkpoint` finds them, and **accept** promotes one the user wants kept. `capture: false` or `context: false` in the config turns either hook off. Each hook run appends one line to `memorykit.log` beside the config; a `Failed` line there means that checkpoint or context did not happen. A long message is clipped to its last 4000 bytes, where its next steps usually are.
+
 ## Evidence and verification are separate
 
 Each reference is `resolved` when it exists (the file, commit, memory or transcript is there) and `unresolved` otherwise; a URL is never resolved. The memory's `evidenceStatus` is `missing`, `unresolved` or `resolved`. None of that says the claim is true: `verification` stays `unverified` until an explicit `accept --verification`. Report both as they are; never call resolved evidence "verified".

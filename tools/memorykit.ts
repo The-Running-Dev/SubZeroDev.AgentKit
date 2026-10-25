@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { integerOption, parseOptions, requiredOption } from './lib/options.ts';
 import { run } from './lib/process.ts';
 import type { Runner } from './lib/process.ts';
@@ -28,9 +28,10 @@ export const options = {
   'include-candidates': { type: 'boolean' },
   'max-bytes': { type: 'string' },
   host: { type: 'string' },
+  hook: { type: 'boolean' },
 } as const;
 
-export const ACTIONS = ['remember', 'recall', 'show', 'correct', 'accept', 'context'] as const;
+export const ACTIONS = ['remember', 'recall', 'show', 'correct', 'accept', 'context', 'checkpoint'] as const;
 export const KINDS = ['decision', 'lesson', 'handoff'];
 // Provisional: measured and enforced in UTF-8 bytes, never reported as tokens.
 export const DEFAULT_CONTEXT_BYTES = 8192;
@@ -225,6 +226,80 @@ export function context(ctx: Context, maxBytes?: number) {
   return { State: block.items ? 'Context' : found.length ? 'Omitted' : 'Empty', Namespace: ctx.namespace, Bytes: block.bytes, LimitBytes: limit, Items: block.items, Omitted: block.omitted, Truncated: found.length > CONTEXT_ITEMS, Text: block.text };
 }
 
+// Hooks. The host passes its event as JSON on stdin. SessionStart (`context`) prints only the host's
+// additionalContext JSON, or nothing; PreCompact (`checkpoint`) records a candidate handoff and
+// prints nothing. A failure goes to stderr with exit 1 and never prints context. Once opted in, every
+// run appends one line to the log beside the config: the event and its outcome, never memory content.
+export const CHECKPOINT_BYTES = 4000;
+export interface HookEvent { session_id?: string; transcript_path?: string; cwd?: string; hook_event_name?: string }
+
+// The last assistant text of a transcript. Claude Code writes {type:'assistant', message:{content:
+// [{type:'text'}]}} (sidechain lines are subagents); Codex writes {type:'response_item', payload:
+// {type:'message', role:'assistant', content:[{type:'output_text'}]}}.
+export function lastAssistantText(transcript: string): string {
+  const lines = transcript.split(/\r?\n/);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    let o: any;
+    try { o = JSON.parse(lines[i]); } catch { continue; }
+    const m = o?.type === 'assistant' && !o.isSidechain ? o.message : o?.type === 'response_item' && o.payload?.type === 'message' && o.payload.role === 'assistant' ? o.payload : null;
+    const text = typeof m?.content === 'string' ? m.content : Array.isArray(m?.content) ? m.content.filter((c: any) => (c?.type === 'text' || c?.type === 'output_text') && typeof c.text === 'string').map((c: any) => c.text).join('\n') : '';
+    if (text.trim()) return text.trim();
+  }
+  return '';
+}
+// Keeps the end of a long message, where its next steps usually are.
+const clip = (text: string, max: number) => bytes(text) <= max ? text : '… ' + Buffer.from(text, 'utf8').subarray(-(max - 4)).toString('utf8').replace(/^\uFFFD+/, '');
+
+// The operation id hashes the session, host, transcript and text, so a duplicate delivery of the same
+// event, or a second compaction with nothing new said, replays instead of adding a memory. A
+// transcript the host names but nobody can read is a failure, not an empty checkpoint.
+export function checkpoint(ctx: Context, event: HookEvent) {
+  const path = event.transcript_path;
+  if (!path || !existsSync(path)) throw new MemoryFailure({ code: 'TranscriptUnavailable', message: `The hook event's transcript '${path ?? ''}' does not exist.` });
+  const text = lastAssistantText(readFileSync(path, 'utf8'));
+  if (!text) return { State: 'Empty' as const };
+  const content = `Checkpoint before compaction (${ctx.host}, session ${event.session_id ?? 'unknown'}). The last assistant message:\n${clip(normal(text), CHECKPOINT_BYTES)}`;
+  return remember(ctx, { kind: 'handoff', content, reason: 'PreCompact checkpoint', evidence: [`transcript:${path}`], statement: 'source', extra: { session: event.session_id ?? null } });
+}
+
+export const logPath = (env: NodeJS.ProcessEnv = process.env) => join(dirname(configPath(env)), 'memorykit.log');
+export function runHook(action: 'context' | 'checkpoint', stdin: string, opts: { host?: string; env?: NodeJS.ProcessEnv; runner?: Runner; config?: MemoryConfig | null } = {}) {
+  const env = opts.env ?? process.env;
+  let event: HookEvent = {}, parsed = true;
+  try { event = JSON.parse(stdin.replace(/^\uFEFF/, '') || '{}') ?? {}; } catch { parsed = false; }
+  const host = opts.host || detectHost(env);
+  const entry: Record<string, unknown> = { at: new Date().toISOString(), event: event.hook_event_name ?? null, action, host, session: event.session_id ?? null };
+  // A machine that never opted in gets no output, no exit code and no state.
+  const config = opts.config === undefined ? readConfig(configPath(env)) : opts.config;
+  if (!config) return { stdout: '', stderr: '', exitCode: 0, entry: { ...entry, outcome: 'NotConfigured' } };
+  let stdout = '', stderr = '', exitCode = 0;
+  try {
+    if (!parsed) throw new MemoryFailure({ code: 'InvalidEvent', message: 'The hook event on stdin is not JSON.' });
+    if (typeof event !== 'object' || !event.cwd) throw new MemoryFailure({ code: 'InvalidEvent', message: 'The hook event on stdin names no cwd.' });
+    if (action === 'context' ? config.context === false : config.capture === false) entry.outcome = 'Disabled';
+    else {
+      const ctx = createContext({ project: event.cwd, host, config, env, runner: opts.runner })!;
+      entry.namespace = ctx.namespace;
+      if (action === 'context') {
+        const r = context(ctx);
+        Object.assign(entry, { outcome: r.State, bytes: r.Bytes, limitBytes: r.LimitBytes, items: r.Items, omitted: r.Omitted });
+        if (r.Text) stdout = JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: r.Text } });
+      } else {
+        const r = checkpoint(ctx, event);
+        entry.outcome = r.State;
+        if ('Memory' in r) Object.assign(entry, { id: r.Memory.id, operationId: r.OperationId });
+      }
+    }
+  } catch (error) {
+    const f: Failure = error instanceof MemoryFailure ? error.failure : { code: 'Error', message: error instanceof Error ? error.message : String(error) };
+    // Outside a repository with an origin remote there is no project to load or record.
+    if (f.code === 'NoNamespace') entry.outcome = 'NoProject';
+    else { Object.assign(entry, { outcome: 'Failed', code: f.code }); stderr = `MemoryKit ${action}: ${f.code}: ${f.message}\n`; exitCode = 1; }
+  }
+  try { mkdirSync(dirname(logPath(env)), { recursive: true }); appendFileSync(logPath(env), JSON.stringify(entry) + '\n'); } catch { /* the log is best effort */ }
+  return { stdout, stderr, exitCode, entry };
+}
+
 export function createContext(input: { project?: string; namespace?: string; host?: string; config?: MemoryConfig | null; env?: NodeJS.ProcessEnv; runner?: Runner }): Context | null {
   const env = input.env ?? process.env, runner = input.runner ?? run, config = input.config === undefined ? readConfig(configPath(env)) : input.config;
   if (!config) return null;
@@ -233,9 +308,19 @@ export function createContext(input: { project?: string; namespace?: string; hos
   return { config, runner, project, root, namespace: input.namespace || projectNamespace(project, runner), host: input.host || detectHost(env) };
 }
 
+// A host treats exit 2 from a hook as blocking, so a hook that cannot run at all (Node too old)
+// reports exit 1 instead.
+if (isMain(import.meta.url) && process.argv.includes('--hook')) process.on('exit', () => { if (process.exitCode === 2) process.exitCode = 1; });
 if (isMain(import.meta.url)) await main(() => {
   const v = parseOptions(options), action = requiredOption(v.action, 'action') as typeof ACTIONS[number];
   if (!ACTIONS.includes(action)) throw new Error(`--action takes ${ACTIONS.join(', ')}.`);
+  if (v.hook) {
+    if (action !== 'context' && action !== 'checkpoint') throw new Error('--hook takes --action context or checkpoint.');
+    const r = runHook(action, readFileSync(0, 'utf8'), { host: v.host });
+    process.stdout.write(r.stdout); process.stderr.write(r.stderr); process.exitCode = r.exitCode;
+    return;
+  }
+  if (action === 'checkpoint') throw new Error('--action checkpoint runs only as a hook (--hook).');
   try {
     const ctx = createContext({ project: v.project, namespace: v.namespace, host: v.host });
     if (!ctx) { writeJson({ State: 'NotConfigured', Config: configPath() }); process.exitCode = 2; return; }
