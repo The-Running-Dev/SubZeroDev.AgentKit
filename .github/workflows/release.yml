@@ -2,7 +2,9 @@ name: release
 
 # Publishes a stable release of main through tools/publish-release.ts: a signed tag, the source
 # archive and its checksum, and the GitHub release. The tag is signed with the release key in the
-# RELEASE_SIGNING_KEY secret, whose public half is in .github/allowed_signers. Run it from the
+# release environment's RELEASE_SIGNING_KEY secret, whose public half is in .github/allowed_signers.
+# The environment accepts only main, so no other branch's copy of this file can read the key.
+# GitHub-ActionTemplates' scripts/Initialize-ReleaseSigningKey.ps1 sets it up. Run it from the
 # Actions tab or with:
 #   gh workflow run release.yml --ref main [-f dry-run=true]
 
@@ -25,6 +27,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: release
     permissions:
       contents: write
       actions: read

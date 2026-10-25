@@ -123,7 +123,7 @@ node "<kit-root>/setup.ts" --uninstall --force
 
 `--prefix ak-` installs names such as `$ak-next` and `$ak-next-routed`. Foreign or edited registrations are preserved and reported as collisions. Uninstall removes only unchanged owned registrations, pointers and hooks; adding `--force` also removes the validated checkout. Verify is read-only. Dry runs make no checkout or host changes; the initial bootstrap clone itself is a write.
 
-Publish a stable release with the `release` workflow, which runs `tools/publish-release.ts` on `main` and signs with the release key in the `RELEASE_SIGNING_KEY` secret:
+Publish a stable release with the `release` workflow, which runs `tools/publish-release.ts` on `main` and signs with the release key in the `release` environment's `RELEASE_SIGNING_KEY` secret. The environment accepts only `main`. Set it up once with [GitHub-ActionTemplates](https://github.com/The-Running-Dev/GitHub-ActionTemplates)' `scripts/Initialize-ReleaseSigningKey.ps1 -Repository The-Running-Dev/SubZeroDev.AgentKit -BackupDirectory <offline folder>`, which keeps the passphrase-less key in `~\.keys`, backs it up, creates the environment and stores the secret:
 
 ```text
 gh workflow run release.yml --ref main -f dry-run=true
