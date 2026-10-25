@@ -18,11 +18,15 @@ export const options = {
   'allowed-signers': { type: 'string' },
   'out-dir': { type: 'string' },
   'dry-run': { type: 'boolean' },
+  'skip-unready': { type: 'boolean' },
 } as const;
 export interface ReleaseInput {
   repoRoot?: string; defaultBranch?: string; repository?: string; workflow?: string;
-  allowedSigners?: string; outDir?: string; dryRun?: boolean; now?: Date;
+  allowedSigners?: string; outDir?: string; dryRun?: boolean; skipUnready?: boolean; now?: Date;
 }
+// Under --skip-unready (the release that follows each verify run on main) these refusals mean either
+// nothing new to release or a newer main whose own verify run will release it, so they are Skipped.
+export const unreadyRefusals = ['HeadAlreadyTagged', 'HeadNotOrigin', 'VerifyNotRun', 'VerifyPending'];
 export interface ReleaseResult {
   State: string; Refusal: string; Detail: string; Tag: string; PreviousTag: string; HeadSha: string;
   Signature: string; Archive: string; Checksum: string; Sha256: string; Pushed: boolean; ReleaseUrl: string;
@@ -32,7 +36,7 @@ export interface ReleaseResult {
 // reported apart from a failure that left nothing outside this machine.
 export function releaseExitCode(state: string): number {
   switch (state) {
-    case 'Released': case 'DryRun': return 0;
+    case 'Released': case 'DryRun': case 'Skipped': return 0;
     case 'Refused': case 'Failed': return 1;
     case 'TagPushed': return 2;
     default: throw new Error('Unknown ReleaseResult state: ' + state);
@@ -91,7 +95,8 @@ export function publishRelease(input: ReleaseInput = {}, runner: Runner = run): 
     State: '', Refusal: '', Detail: '', Tag: '', PreviousTag: '', HeadSha: '', Signature: '', Archive: '',
     Checksum: '', Sha256: '', Pushed: false, ReleaseUrl: '', TagRemoved: false,
   };
-  const end = (State: string, Refusal = '', Detail = '') => ({ ...result, State, Refusal, Detail });
+  const end = (State: string, Refusal = '', Detail = '') =>
+    ({ ...result, State: State === 'Refused' && input.skipUnready && unreadyRefusals.includes(Refusal) ? 'Skipped' : State, Refusal, Detail });
   const root = realpathSync(input.repoRoot ?? process.cwd());
   const network: ProcessOptions = { timeout: 120_000, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } };
   const git = (args: string[], options: ProcessOptions = {}) => {
@@ -163,7 +168,7 @@ export function publishRelease(input: ReleaseInput = {}, runner: Runner = run): 
 if (isMain(import.meta.url)) await main(() => {
   const o = parseOptions(options);
   const result = publishRelease({ repoRoot: o['repo-root'], defaultBranch: o['default-branch'], repository: o.repository,
-    workflow: o.workflow, allowedSigners: o['allowed-signers'], outDir: o['out-dir'], dryRun: o['dry-run'] });
+    workflow: o.workflow, allowedSigners: o['allowed-signers'], outDir: o['out-dir'], dryRun: o['dry-run'], skipUnready: o['skip-unready'] });
   writeJson(result);
   process.exitCode = releaseExitCode(result.State);
 });
