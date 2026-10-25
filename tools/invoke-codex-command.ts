@@ -15,7 +15,7 @@ export const options = {
   'arguments-file': { type: 'string' },
   'codex-arg': { type: 'string', multiple: true },
 } as const;
-export const commandProfiles = { brief: 'architect', interview: 'author', design: 'author', plan: 'author', redteam: 'architect', align: 'author', next: 'builder', fix: 'builder', install: 'builder', 'install-all': 'builder', 'install-review': 'builder', 'setup-project': 'builder', sync: 'builder' } as const;
+export const commandProfiles = { brief: 'architect', interview: 'author', design: 'author', plan: 'author', redteam: 'architect', align: 'author', next: 'builder', fix: 'builder', install: 'builder', 'install-all': 'builder', 'install-review': 'builder', 'setup-project': 'builder', sync: 'builder', memory: 'builder' } as const;
 export const profileConfig = {
   architect: { Model: 'gpt-5.6-sol', Effort: 'high', Approval: 'on-request', Sandbox: 'read-only' },
   author: { Model: 'gpt-5.6-sol', Effort: 'high', Approval: 'on-request', Sandbox: 'workspace-write' },
