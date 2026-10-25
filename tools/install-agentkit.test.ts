@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, cpSync, rmSync, rmdirSync, symlinkSync, readlinkSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import { join, dirname, resolve, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { temp, put, git } from './lib/fixtures.ts';
 import { run } from './lib/process.ts';
@@ -194,15 +194,72 @@ it('MemoryKit hooks are written only on opt-in, kept on rerun, verified and remo
   const broken = json(codexHooks(f)); delete broken.hooks.PreCompact; writeFileSync(codexHooks(f), JSON.stringify(broken));
   failure(f, /MemoryKit SessionStart and PreCompact hook entries missing from .+hooks.json/, { verify: true });
   success(f, { uninstall: true });
-  assert.deepEqual(json(f.settings).hooks.SessionStart, [foreign]); assert.deepEqual(json(f.settings).hooks.PreCompact, []);
+  assert.deepEqual(json(f.settings).hooks.SessionStart, [foreign]); assert.equal(json(f.settings).hooks.PreCompact, undefined, 'an event left empty is pruned');
   assert.deepEqual(json(codexHooks(f)).hooks, { SessionStart: [foreign] });
   assert.equal(json(memoryConfig(f)).store, resolve(mk.memorykitStore), 'the config is the user\'s and stays');
 });
 it('MemoryKit opt-in fails before any change without both paths or with one missing', f => {
   const mk = memoryKit(f);
   failure(f, /given together/, { memorykitCli: mk.memorykitCli });
-  failure(f, /store '.+memory store' does not exist. Create it with the MemoryKit CLI's init command/, mk);
+  failure(f, /store '.+memory store' does not exist or is not a directory. Create it with the MemoryKit CLI's init command/, mk);
   mkdirSync(mk.memorykitStore); failure(f, /CLI '.+absent.js' does not exist/, { ...mk, memorykitCli: join(f.base, 'absent.js') });
   assert.ok(!existsSync(f.root)); assert.ok(!existsSync(memoryConfig(f))); assert.ok(!existsSync(f.settings));
 });
 it('a MemoryKit dry run writes no config or hooks', f => { const mk = memoryKit(f); mkdirSync(mk.memorykitStore); success(f); const before = snapshot(f); success(f, { ...mk, dryRun: true }); assert.deepEqual(snapshot(f), before); });
+it('the registered MemoryKit hook commands run against the installed config', f => {
+  const mk = memoryKit(f); mkdirSync(mk.memorykitStore); success(f, mk);
+  const claude = json(f.settings).hooks.SessionStart[0].hooks[0], codex = /^node "(.+?)" (.+)$/.exec(json(codexHooks(f)).hooks.PreCompact[0].hooks[0].command)!;
+  for (const args of [claude.args, [codex[1], ...codex[2].split(' ')]]) {
+    const r = run(process.execPath, args, { env: f.env, input: JSON.stringify({ cwd: f.project, session_id: 's' }) });
+    assert.deepEqual([r.code, r.stdout, r.stderr], [0, '', ''], args.join(' '));
+  }
+  assert.deepEqual(read(join(f.home, '.agent-kit-state/memorykit.log')).trim().split('\n').map(l => JSON.parse(l).outcome), ['NoProject', 'NoProject']);
+});
+it('MemoryKit options against a release that predates them fail before the checkout moves', f => {
+  success(f); const head = git(f.root, 'rev-parse', 'HEAD'), mk = memoryKit(f); mkdirSync(mk.memorykitStore);
+  put(f.origin, 'tools/install-agentkit.ts', read(join(f.origin, 'tools/install-agentkit.ts')).replaceAll("'memorykit-cli'", "'memorykit-x'"));
+  git(f.origin, 'commit', '-qam', 'older installer'); git(f.origin, 'tag', 'v2026.09.18');
+  failure(f, /predates the MemoryKit hooks. Nothing was changed/, mk);
+  assert.equal(git(f.root, 'rev-parse', 'HEAD'), head); assert.ok(!existsSync(memoryConfig(f)));
+});
+it('a malformed settings file stops the install before anything is written', f => {
+  const mk = memoryKit(f); mkdirSync(mk.memorykitStore); success(f);
+  for (const [path, text] of [[codexHooks(f), '{ not json'], [f.settings, '{"hooks": []}'], [memoryConfig(f), '[1]']] as const) {
+    const old = existsSync(path) ? read(path) : undefined; put(dirname(path), basename(path), text);
+    const before = snapshot(f); failure(f, /Fix or move it, then run setup again/, mk); assert.deepEqual(snapshot(f), before);
+    if (old === undefined) rmSync(path); else writeFileSync(path, old);
+  }
+  put(f.codex, 'hooks.json', '{ not json'); saveState(f, { ...state(f), memoryKitHooks: ['codex'] });
+  const r = failure(f, /Unhealthy/, { verify: true }); assert.match(r.stdout, /hooks.json' is not valid JSON/);
+});
+it('MemoryKit hooks are recognized after a rewrite and keep their place among foreign hooks', f => {
+  const mk = memoryKit(f); mkdirSync(mk.memorykitStore); success(f, mk);
+  const foreign = { matcher: '', hooks: [{ command: 'node /foreign/after.js', type: 'command' }] };
+  const sorted = (value: unknown): unknown => Array.isArray(value) ? value.map(sorted) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a < b ? -1 : 1).map(([k, v]) => [k, sorted(v)])) : value;
+  const codex = sorted(json(codexHooks(f))) as any; codex.hooks.SessionStart.push(foreign); writeFileSync(codexHooks(f), JSON.stringify(codex, null, 2));
+  const claude = json(f.settings); claude.hooks.PreCompact.push(foreign); claude.hooks.PreCompact[0].hooks[0].statusMessage = 'Saving'; writeFileSync(f.settings, JSON.stringify(claude, null, 2));
+  const codexBytes = read(codexHooks(f)), r = success(f);
+  assert.equal(read(codexHooks(f)), codexBytes, 'a key-sorted copy of the same hooks is not rewritten'); assert.equal(r.Notes, undefined, 'no trust note when nothing changed');
+  assert.deepEqual(json(f.settings).hooks.PreCompact, [memoryHook(f.root, 'claude', 'PreCompact'), foreign], 'replaced in place, never duplicated');
+  assert.equal(success(f, { verify: true }).State, 'OK');
+  success(f, { uninstall: true });
+  assert.deepEqual(json(codexHooks(f)).hooks, { SessionStart: [foreign] }); assert.deepEqual(json(f.settings).hooks.PreCompact, [foreign]);
+});
+it('a rerun keeps the MemoryKit opt-in to the hosts that chose it', f => {
+  const mk = memoryKit(f); mkdirSync(mk.memorykitStore);
+  failure(f, /add --hosts claude or codex/, { ...mk, hosts: ['copilot'] });
+  success(f, { ...mk, hosts: ['claude'] }); assert.deepEqual(state(f).memoryKitHooks, ['claude']);
+  success(f); assert.ok(!existsSync(codexHooks(f)), 'a later rerun with Codex does not opt it in'); assert.deepEqual(state(f).memoryKitHooks, ['claude']);
+  const claude = read(f.settings); success(f, { hosts: ['codex'] });
+  assert.equal(read(f.settings), claude); assert.deepEqual(state(f).memoryKitHooks, ['claude'], 'a host outside the run keeps its hooks');
+});
+it('Codex without a home gets no MemoryKit hooks unless it is named', f => {
+  const mk = memoryKit(f); mkdirSync(mk.memorykitStore); mkdirSync(join(f.home, '.claude'));
+  success(f, { ...mk, hosts: undefined }); assert.ok(!existsSync(codexHooks(f))); assert.ok(json(f.settings).hooks.SessionStart);
+});
+it('verify reports a MemoryKit store or CLI that no longer exists', f => {
+  const mk = memoryKit(f); mkdirSync(mk.memorykitStore); success(f, mk); assert.equal(success(f, { verify: true }).State, 'OK');
+  rmSync(mk.memorykitStore, { recursive: true });
+  const r = failure(f, /Unhealthy/, { verify: true }); assert.match(r.stdout, /MemoryKit store '.+memory store' named in '.+memorykit.json' does not exist/);
+  writeFileSync(mk.memorykitStore, 'a file'); failure(f, /store '.+memory store' does not exist or is not a directory/, mk);
+});
