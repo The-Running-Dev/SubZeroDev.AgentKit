@@ -5,7 +5,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "check:no-runtime-dependencies": "node tools/test-no-runtime-dependencies.ts",
-    "test": "node --test \"tools/**/*.test.ts\""
+    "test": "node --test tools/test-runner.ts"
   },
   "devDependencies": {
     "@types/node": "^22.18.0",
