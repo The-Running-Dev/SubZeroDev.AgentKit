@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { doneHousekeeping } from './invoke-done-housekeeping.ts';
 import type { HousekeepingInput } from './invoke-done-housekeeping.ts';
@@ -17,4 +17,20 @@ test('stops when main is checked out in another worktree', () => { const r = rep
 test('keep-dirty preserves edits without a stash', () => { const r = repo(); put(r, 'dirty.txt', 'uncommitted'); const d = done(r, { keepDirty: true }); assert.equal(d.Stopped, false); assert.equal(d.Stashed, false); assert.ok(existsSync(join(r, 'dirty.txt'))); assert.equal(git(r, 'stash', 'list'), ''); });
 test('stops on dirt without keep-dirty', () => { const r = repo(); put(r, 'dirty.txt', 'uncommitted'); assert.equal(done(r).Reason, 'DirtyTree'); });
 test('reports the stash even when default branch resolution throws', () => { const r = repo(); put(r, 'dirty.txt', 'uncommitted'); const d = doneHousekeeping({ repoRoot: r, autoStash: true }, fakeGh()); assert.equal(d.Stopped, true); assert.equal(d.Stashed, true); assert.ok(d.StashRef); assert.match(git(r, 'stash', 'list'), /Invoke-DoneHousekeeping auto-stash/); });
+test('records a stash SHA that an intervening stash from another worktree cannot move', () => {
+  const r = repo(), wt = join(temp(), 'wt'); git(r, 'worktree', 'add', '-qb', 'other', wt, 'main'); put(r, 'dirty.txt', 'mine');
+  let intervened = false;
+  const d = doneHousekeeping({ repoRoot: r, defaultBranch: 'main', skipPull: true, autoStash: true }, (cmd, args, opts) => {
+    const out = run(cmd, args, opts);
+    if (!intervened && cmd === 'git' && args.includes('stash') && args.includes('push')) { intervened = true; put(wt, 'theirs.txt', 'theirs'); git(wt, 'stash', 'push', '-u', '-m', 'another worktree'); }
+    return out;
+  });
+  assert.equal(intervened, true); assert.equal(d.Stashed, true);
+  git(r, 'stash', 'apply', d.StashRef!);
+  assert.equal(existsSync(join(r, 'theirs.txt')), false, `restoring '${d.StashRef}' brought back the other worktree's stash`);
+  assert.equal(readFileSync(join(r, 'dirty.txt'), 'utf8'), 'mine');
+  assert.match(d.StashRef!, /^[0-9a-f]{40}$/);
+  assert.match(git(r, 'show', '-s', '--format=%s', d.StashRef!), /^On main: Invoke-DoneHousekeeping auto-stash [0-9a-f-]{36}$/);
+});
+test('gives every auto-stash its own message', () => { const tags = [0, 1].map(() => { const r = repo(); put(r, 'dirty.txt', 'x'); const d = doneHousekeeping({ repoRoot: r, defaultBranch: 'main', skipPull: true, autoStash: true }, fakeGh()); return git(r, 'show', '-s', '--format=%s', d.StashRef!); }); assert.notEqual(tags[0], tags[1]); });
 test('scopes every gh query to the target repository remote', () => { const r = repo(); merged(r); unmerged(r, 'fix/other'); git(r, 'remote', 'add', 'origin', 'https://github.com/target/repo.git'); const calls: string[][] = []; done(r, {}, (cmd, args, opts) => { if (cmd === 'gh') { calls.push(args); return { code: 0, stdout: '[]', stderr: '', found: true }; } if (args.includes('fetch')) return { code: 0, stdout: '', stderr: '', found: true }; return run(cmd, args, opts); }); assert.ok(calls.length >= 2); for (const args of calls) assert.equal(args[args.indexOf('-R') + 1], 'target/repo'); });
