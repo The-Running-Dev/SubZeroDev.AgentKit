@@ -8,8 +8,8 @@ on:
 permissions: {}
 
 jobs:
-  # Typecheck, the no-runtime-dependency check and the Node tests on every OS and on both the
-  # Node floor and the current release, through the shared library. Its `node / Result` check
+  # Typecheck, the no-runtime-dependency check and the Node tests on every OS and on the
+  # Node floor, Node 24 and Node 26, through the shared library. Its `node / Result` check
   # is the one a ruleset requires.
   node:
     uses: The-Running-Dev/GitHub-ActionTemplates/.github/workflows/node-ci.yml@v1
@@ -17,7 +17,7 @@ jobs:
       contents: read
     with:
       os: '["windows-latest", "ubuntu-latest", "macos-latest"]'
-      node-versions: '["22.18.0", "26"]'
+      node-versions: '["22.18.0", "24", "26"]'
       scripts: typecheck check:no-runtime-dependencies test
 
   # The checks that run once rather than per OS and Node: they need the whole history, a runner
