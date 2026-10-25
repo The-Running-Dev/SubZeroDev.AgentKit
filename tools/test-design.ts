@@ -53,6 +53,26 @@ function routes(texts: string[]) {
   }
   return new Set(paths.flatMap(p => p.split('/').filter(s => /^[a-z][a-z0-9-]*$/.test(s))));
 }
+// A repository's own package.json `exports` subpaths (`./authoring`) are the product's vocabulary, so a documented
+// `/authoring` is not a command (#468). Read where the repository already declares them; nothing new is declared.
+function packageSubpaths(root: string) {
+  const names = new Set<string>();
+  const walk = (dir: string, depth: number) => {
+    let entries; try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (e.isFile() && e.name === 'package.json') {
+        try {
+          const exp = (JSON.parse(readFileSync(join(dir, e.name), 'utf8')) as { exports?: unknown }).exports;
+          if (exp && typeof exp === 'object') for (const k of Object.keys(exp)) for (const seg of k.split('/')) if (/^[a-z][a-z0-9-]*$/.test(seg)) names.add(seg);
+        } catch { /* not JSON: it declares nothing */ }
+      } else if (e.isDirectory() && depth < 4 && e.name !== 'node_modules' && !e.name.startsWith('.')) walk(join(dir, e.name), depth + 1);
+    }
+  };
+  walk(root, 0); return names;
+}
+// A code span runs from a backtick run to the next run of the same length, never across a blank line. Only a span
+// that *opens* with `/command` names a command: a closing backtick followed by `/word` (`auto`/choice) does not (#468).
+const codeSpan = /(?<!`)(`+)(?!`)((?:(?!\n[ \t]*\r?\n)[^])*?)(?<!`)\1(?!`)/g;
 export interface Finding { Check: string; File: string; Line: number; Message: string }
 export function designCheck(repoRoot = process.cwd(), kitRoot = resolveKitRoot(import.meta.url)) {
   const root = realpathSync(repoRoot), findings: Finding[] = [];
@@ -61,15 +81,16 @@ export function designCheck(repoRoot = process.cwd(), kitRoot = resolveKitRoot(i
     'design/00-brief.md', 'design/10-design.md', 'design/20-contract.md', 'design/30-slices.md'].filter(f => existsSync(join(root, f)));
   const add = (Check: string, File: string, Line: number, Message: string) => findings.push({ Check, File, Line, Message });
   const known = new Set([...skills(root), ...skills(kitRoot), ...hostCommands]);
-  const texts = new Map(files.map(f => [f, livePart(readFileSync(join(root, f), 'utf8'))])), routeNames = routes([...texts.values()]);
+  const texts = new Map(files.map(f => [f, livePart(readFileSync(join(root, f), 'utf8'))])), routeNames = new Set([...routes([...texts.values()]), ...packageSubpaths(root)]);
   for (const [file, text] of texts) {
     for (const m of text.matchAll(/(?<![\w./-])tools\/[A-Za-z0-9._/-]*[A-Za-z0-9_/-]/g)) {
       // A script or directory reference has an extension or a trailing slash; `tools/list` is an MCP method (#466).
       if (!/(\.[A-Za-z0-9]+|\/)$/.test(m[0])) continue;
       if (!existsSync(join(root, m[0])) && !existsSync(join(kitRoot, m[0]))) add('MissingTool', file, lineNumber(text, m.index!), `${m[0]} exists neither in the repository nor in the kit`);
     }
-    for (const m of text.matchAll(/`\/(?:agentkit:)?([a-z][a-z0-9-]*)(?=[`\s:\]])/g)) {
-      if (m[1] !== 'agentkit' && !known.has(m[1]) && !routeNames.has(m[1])) add('UnknownCommand', file, lineNumber(text, m.index!), `${m[0].slice(1)} is neither a skill nor a host command`);
+    for (const span of text.matchAll(codeSpan)) {
+      const m = /^\/(?:agentkit:)?([a-z][a-z0-9-]*)(?=[\s:\]]|$)/.exec(span[2]);
+      if (m && m[1] !== 'agentkit' && !known.has(m[1]) && !routeNames.has(m[1])) add('UnknownCommand', file, lineNumber(text, span.index!), `${m[0]} is neither a skill nor a host command`);
     }
   }
   const contractFile = 'design/20-contract.md';
