@@ -123,15 +123,14 @@ node "<kit-root>/setup.ts" --uninstall --force
 
 `--prefix ak-` installs names such as `$ak-next` and `$ak-next-routed`. Foreign or edited registrations are preserved and reported as collisions. Uninstall removes only unchanged owned registrations, pointers and hooks; adding `--force` also removes the validated checkout. Verify is read-only. Dry runs make no checkout or host changes; the initial bootstrap clone itself is a write.
 
-Create a stable release only after the merged SHA passes its required workflow gates. Choose an unused `vYYYY.MM.DD` tag, or `vYYYY.MM.DD.N` above every revision already published for that date. Stable selection sorts by date, then numeric revision; the bare tag is revision zero. Substitute the chosen tag and verified SHA:
+Publish a stable release with `tools/publish-release.ts`, from a clean `main` checkout:
 
 ```text
-git fetch origin main --tags
-git tag -a vYYYY.MM.DD <verified-merged-sha> -m "AgentKit vYYYY.MM.DD"
-git push origin refs/tags/vYYYY.MM.DD
+node tools/publish-release.ts --dry-run
+node tools/publish-release.ts
 ```
 
-Then exercise the fresh bootstrap without `--version` and confirm its reported commit is the release SHA. Tagging and publishing are the maintainer's release step.
+It refuses unless `main` is clean, equals `origin/main`, and the `verify` workflow's push run for that SHA succeeded. It picks the tag — `vYYYY.MM.DD`, then `.2`, `.3` for later releases that day; stable selection sorts by date, then numeric revision, with the bare tag as revision zero — signs it with SSH (`git tag -s`, the signer's `user.signingkey`), and refuses unless `git tag -v` verifies it against [`.github/allowed_signers`](.github/allowed_signers). It then builds the source archive with `git archive` and its SHA-256 checksum, pushes the tag, and creates the GitHub release with both as assets. `--dry-run` does all of that except the push and the release, and removes its tag again. Then exercise the fresh bootstrap without `--version` and confirm its reported commit is the release SHA. Tagging and publishing are the maintainer's release step; [SECURITY.md](SECURITY.md#verifying-a-release) says how anyone verifies one.
 
 For post-merge branch cleanup, run the housekeeping script from the target repository. In bash or zsh:
 
