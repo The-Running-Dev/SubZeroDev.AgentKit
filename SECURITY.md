@@ -23,21 +23,26 @@ Include what you can of:
 
 ## Verifying a release
 
-Release tags are signed with the maintainer's SSH key, and each release carries
+Release tags are signed with an SSH key listed in `.github/allowed_signers`, and each release carries
 `SubZeroDev.AgentKit-<tag>.tar.gz` (the source, from `git archive`) with its SHA-256 checksum in
 `SubZeroDev.AgentKit-<tag>.tar.gz.sha256`. This starts with the first release published by
 `tools/publish-release.ts`; earlier tags are unsigned and have no checksum asset.
 
 Verify the tag in a checkout (`git fetch --tags` first). It prints `Good "git" signature for
-The-Running-Dev@users.noreply.github.com` and exits 0, or fails:
+<principal>` and exits 0, or fails. The principal is `release-workflow@SubZeroDev.AgentKit` for a
+release published by the `release` workflow, and `The-Running-Dev@users.noreply.github.com` for one
+the maintainer signed locally:
 
 ```text
 git -c gpg.ssh.allowedSignersFile=.github/allowed_signers tag -v <tag>
 ```
 
-`.github/allowed_signers` comes from the repository it vouches for, so check its key once against
-the maintainer's GitHub signing keys (`gh api users/The-Running-Dev/ssh_signing_keys`); GitHub also
-marks the tag *Verified*.
+`.github/allowed_signers` comes from the repository it vouches for, so check where each key came
+from once. The maintainer's key matches their GitHub signing keys
+(`gh api users/The-Running-Dev/ssh_signing_keys`), and GitHub marks tags it signs *Verified*. The
+release workflow's key belongs to no GitHub account, so GitHub shows its tags as unverified; its
+anchor is the reviewed pull request that added it to `.github/allowed_signers`
+(`git log --follow -p -- .github/allowed_signers`).
 
 Verify a downloaded archive in the folder holding both files:
 
