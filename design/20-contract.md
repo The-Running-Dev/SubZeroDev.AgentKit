@@ -79,6 +79,7 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 | `get-agentkit-skill.ts`, `invoke-codex-command.ts`, `start-agentkit-codex.ts` | see the script | Skill reading and update check, Codex profile routing, Codex launch |
 | `get-next-slice.ts` | `[--repo-root --default-branch --slice --pull-requests-json --quiet]` | `State` Resume / Start / Finished / Blocked with `Slice`, `Branch`, `PullRequest`, `Base`, `DirtyFiles`, `GuardedFiles`, `OwnFiles`, `Reason`, `Detail`; reads the plan from `origin/<default>` after a fetch; read-only otherwise; exit 0 / 1 (Blocked) |
 | `test-design.ts` | `[--repo-root --quiet]` | `State` Passed / Failed / NotEvaluated with `Findings` (`Check`, `File`, `Line`, `Message`); read-only; exit 0 / 1 / 2 |
+| `publish-release.ts` | `[--repo-root --default-branch --repository --workflow --allowed-signers --out-dir --dry-run]` | `State` Released / DryRun / Refused / Failed / TagPushed with `Refusal`, `Tag`, `PreviousTag`, `HeadSha`, `Signature`, `Archive`, `Checksum`, `Sha256`, `Pushed`, `ReleaseUrl`, `TagRemoved`; refuses unless `main` is clean, equals `origin/main` and `verify` passed on HEAD; signs the tag with SSH and keeps it only if it verifies against `.github/allowed_signers`; `--dry-run` stops before the push; exit 0 / 1 / 2 (TagPushed) |
 | `measure-session.ts` | `[--project --transcript-path --session-id --idle-threshold-minutes --detail --human --hook]` | Per-session cost report; `--hook` appends a row on `SessionEnd` |
 
 `RepoAliases.ps1` is gone; there is no by-hand wrapper.
