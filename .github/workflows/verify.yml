@@ -17,7 +17,7 @@ jobs:
       contents: read
     with:
       os: '["windows-latest", "ubuntu-latest", "macos-latest"]'
-      node-versions: '["22.18.0", "24"]'
+      node-versions: '["22.18.0", "26"]'
       scripts: typecheck check:no-runtime-dependencies test
 
   # The checks that run once rather than per OS and Node: they need the whole history, a runner

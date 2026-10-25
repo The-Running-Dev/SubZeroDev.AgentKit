@@ -28,6 +28,23 @@ test('ignores HTTP routes the documents themselves show as routes (#466)', () =>
   const routes = '| Route | Method | Auth |\n|---|---|---|\n| `/healthz` | `GET` | none |\n\nThe harness polls `/healthz`. `GET /version` answers; so does `/version`.\nThe default is `/api/repo/status`; `/api` is a route.\nIt calls `/api/posts`, and `/posts` is its view; the `/declarations/{id}/tools` rows are `/tools`.\nThen `/track`.\n';
   const f = check(fixture({ 'AGENTS.md': routes })).Findings.filter(f => f.Check === 'UnknownCommand'); assert.equal(f.length, 1); assert.match(f[0].Message, /\/track/);
 });
+test('reads only a code span that opens with /command, not a closing backtick followed by /word (#468)', () => {
+  const prose = 'A node is `auto`/choice and `defaultRole`/tags; `Reward`/opportunity, `a` /unspaced.\nThen `/track now` and `/also-unknown`.\n';
+  const f = check(fixture({ 'AGENTS.md': prose })).Findings.filter(f => f.Check === 'UnknownCommand');
+  assert.deepEqual(f.map(x => x.Message.split(' ')[0]), ['/track', '/also-unknown']); assert.deepEqual(f.map(x => x.Line), [2, 2]);
+});
+test('a blank line ends a stray backtick, so it cannot pair across paragraphs (#468)', () => {
+  const f = check(fixture({ 'AGENTS.md': 'A stray ` here.\n\nThen `/track`.\n' })).Findings.filter(f => f.Check === 'UnknownCommand');
+  assert.equal(f.length, 1); assert.equal(f[0].Line, 3); assert.match(f[0].Message, /\/track/);
+});
+test('reads a repository package.json export subpath as its own vocabulary (#468)', () => {
+  const doc = 'Use the `/authoring` subpath, not `/track`.\n', pkg = JSON.stringify({ name: 'x', exports: { '.': './dist/index.js', './authoring': './dist/authoring.js' } });
+  const flagged = (root: string) => check(root).Findings.filter(f => f.Check === 'UnknownCommand').map(f => f.Message.split(' ')[0]);
+  assert.deepEqual(flagged(fixture({ 'AGENTS.md': doc })), ['/authoring', '/track']);
+  assert.deepEqual(flagged(fixture({ 'AGENTS.md': doc, 'src/engine/package.json': pkg })), ['/track']);
+  assert.deepEqual(flagged(fixture({ 'AGENTS.md': doc, 'node_modules/dep/package.json': pkg })), ['/authoring', '/track']);
+  assert.deepEqual(flagged(fixture({ 'AGENTS.md': doc, 'package.json': '{ not json' })), ['/authoring', '/track']);
+});
 test('reports unknown bare commands',() => { const f = check(fixture({ 'AGENTS.md': 'Then `/track`.' })).Findings.filter(f => f.Check === 'UnknownCommand'); assert.equal(f.length, 1); assert.match(f[0].Message, /\/track/); });
 test('reports unknown namespaced commands', () => assert.ok(checks(fixture({ 'AGENTS.md': 'Then `/agentkit:slice`.' })).includes('UnknownCommand')));
 test('accepts host and skill commands', () => assert.ok(!checks(fixture({ 'AGENTS.md': '`/compact`, `/code-review:code-review --comment`, `/next`, `/agentkit:next`, `/agentkit:<name>`.' })).includes('UnknownCommand')));
