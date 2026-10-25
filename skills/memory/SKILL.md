@@ -4,12 +4,13 @@ description: Record, find, correct or accept this project's memories (decisions,
 argument-hint: "remember|recall|show|correct|accept|context [details]"
 ---
 
-Work with this project's memories in MemoryKit for **$ARGUMENTS**. Every action is one run of `node tools/memorykit.ts --action <action> ...`, which calls MemoryKit's CLI and prints one JSON result. Pass user text as a single argument value, never through a shell string.
+Work with this project's memories in MemoryKit for **$ARGUMENTS**. Every action is one run of `node tools/memorykit.ts --action <action> ...`, which calls MemoryKit's CLI and prints one JSON result. Pass user text as one `--name=value` argument (`--content=- a bullet`), never through a shell string; the `=` form keeps text that starts with `-` a value.
 
 ## Before anything
 
 - `State` NotConfigured (exit 2) means memories are off on this machine: say so, naming the `Config` path it reports, and stop. Do not create the config: turning memories on, and choosing the store, is the user's call.
-- `State` Failed (exit 1) means nothing was written. Report its `code` and `message` as they are; never describe a failed write as recorded or remembered.
+- `State` Failed (exit 1) means the write is not confirmed: never describe it as recorded or remembered, and report its `code` and `message` as they are. A MemoryKit problem code or `UsageError` means nothing was written. `CliFailed` (a crash or timeout, `details.written` unknown) means the write may have landed. Retrying the same request is safe either way: it replays rather than duplicating.
+- `State` Replayed means this exact request was recorded before and the memory has changed since (accepted, corrected or superseded). `Memory` is its current state; report that, not a new write.
 - The project is the current repository, named from its `origin` remote. With no remote, the script refuses (`NoNamespace`); pass `--namespace project/<owner>/<repo>` only when the user names it.
 
 ## Actions
@@ -18,8 +19,8 @@ Work with this project's memories in MemoryKit for **$ARGUMENTS**. Every action 
 - **recall** — `[--text <words>] [--limit <n>] [--include-candidates]`. Accepted, active memories of this project; candidates only with the flag.
 - **show** — `--id <id>`: one memory, including superseded ones and their `supersededBy`.
 - **correct** — `--id <id> --expected-revision <revision from show or recall> --content "<the corrected statement>"` and the same evidence options. The old memory becomes `superseded` and stays readable; the replacement is a candidate unless `--accept`. A `RevisionConflict` means it changed since you read it: show it again and ask before retrying.
-- **accept** — `--id <id> [--verification verified|disputed]`. Promotes a candidate so recall and context use it. Pass `--verification` only for what the user or a check you ran actually established about the claim.
-- **context** — `[--max-bytes <n>]`: the fenced block a new session would receive, with its measured `Bytes`, `LimitBytes`, `Items` and `Omitted`.
+- **accept** — `--id <id> [--verification verified|disputed]`. Promotes a candidate so recall and context use it. The author's provenance is kept; `acceptedBy` records the accepting host. Pass `--verification` only for what the user or a check you ran actually established about the claim.
+- **context** — `[--max-bytes <n>]`: the fenced block a new session would receive, with its measured `Bytes`, `LimitBytes`, `Items` and `Omitted`. `State` Omitted means accepted memories exist but none fits the limit; `Truncated` means more exist than the 500 read, so `Omitted` is a lower bound.
 
 ## Evidence and verification are separate
 
