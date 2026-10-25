@@ -120,9 +120,10 @@ test('--skip-unready skips what a later run releases, and still refuses what no 
   const tagged = publishRelease(input, fakeGh().runner); assert.equal(tagged.State, 'Skipped'); assert.equal(tagged.Refusal, 'HeadAlreadyTagged');
   git(s.root, 'commit', '--allow-empty', '-qm', 'local only');
   const ahead = publishRelease(input, fakeGh().runner); assert.equal(ahead.State, 'Skipped'); assert.equal(ahead.Refusal, 'HeadNotOrigin');
+  const unflagged = publishRelease({ ...s.input, skipUnready: false }, fakeGh().runner);
+  assert.equal(unflagged.State, 'Refused'); assert.equal(unflagged.Refusal, 'HeadNotOrigin');
   put(s.root, 'stray.txt', 'x\n');
-  assert.equal(publishRelease(input, fakeGh().runner).State, 'Refused');
-  assert.equal(publishRelease({ ...s.input, skipUnready: false }, pending.runner).State, 'Refused');
+  const dirty = publishRelease(input, fakeGh().runner); assert.equal(dirty.State, 'Refused'); assert.equal(dirty.Refusal, 'DirtyTree');
   assert.equal(remoteTags(s.origin), '');
 });
 test('dry run signs, verifies and builds the checksummed archive, then removes its tag and writes nothing outside', { skip: noSsh }, () => {

@@ -3,7 +3,8 @@ name: release
 # Publishes a stable release of main through tools/publish-release.ts: a signed tag, the source
 # archive and its checksum, and the GitHub release. It runs by itself once verify passes on a push
 # to main, so every merge is released; a run with nothing new to release, or one a newer main will
-# release, ends Skipped rather than failed (--skip-unready). The tag is signed with the release key
+# release, ends Skipped rather than failed (--skip-unready). A [skip ci] push to main starts no verify
+# run, so it and anything it skipped wait for the next push. The tag is signed with the release key
 # in the release environment's RELEASE_SIGNING_KEY secret, whose public half is in
 # .github/allowed_signers. The environment accepts only main, so no other branch's copy of this
 # file can read the key. GitHub-ActionTemplates' scripts/Initialize-ReleaseSigningKey.ps1 sets it
