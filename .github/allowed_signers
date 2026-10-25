@@ -1,0 +1,4 @@
+# The keys that sign AgentKit release tags, read by tools/publish-release.ts and by anyone
+# verifying a release:
+#   git -c gpg.ssh.allowedSignersFile=.github/allowed_signers tag -v <tag>
+The-Running-Dev@users.noreply.github.com namespaces="git" ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCr36RT7HpkqwJKRiItFzfQPFzHrHQWSsoVdX60Tad/jdvmfVX6ukSWHj1iZx6jJX2w3KN6+VqnAwVGosRRrVmTmAF5Ge9cYW6+QAse6ariQ/+yO5foFq/tsCYAIaqGnFgItfwPFXO7QzEErEgc6CncMXx0xwpYv1d5FWEz9mTuFPn3nHL2zaMjsl7UFQL8MDgIlIBdyiesvobbWDrD0cHnsHcWxs6ORy7KkOAmNYK20qaYb3efJStIcxQrWtuEn9uDH+mSLz5/aFT1RhoTCmJuNzIGEa06PojQ5i1RQ0xMcvIbXXiOSUNa/4U6u9H6YHhyzxQwRfeAPb/wWkXc6InoWZnBpdPAiKssvCgi2bmwtRzcd+rvKZE+0/ZWDCrcIjFdIdJryJ2hKylQ+LHm2Q0/MA91a1JXByreSS3wlcBlSuBDrSlhbm2WfCS845oxo/Ruh3PAM2G59RYV24SwuHbLCZ1zp9HUHXZk1lFkie/AGT+2g+7mW+yBMd0beYsOUvU=
