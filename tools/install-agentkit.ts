@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { resolve, join, dirname, parse, relative, isAbsolute } from 'node:path';
 import { homedir } from 'node:os';
 import { createHash } from 'node:crypto';
@@ -8,23 +8,25 @@ import { findExecutable } from './lib/executable.ts';
 import { parseOptions } from './lib/options.ts';
 import { isMain, main, writeJson } from './lib/runtime.ts';
 import { stableTags } from './get-agentkit-skill.ts';
+import { configPath } from './memorykit.ts';
 
 export const options = {
   version: { type: 'string' }, source: { type: 'string' }, hosts: { type: 'string', multiple: true },
   prefix: { type: 'string' }, 'dry-run': { type: 'boolean' }, uninstall: { type: 'boolean' },
   force: { type: 'boolean' }, verify: { type: 'boolean' }, 'register-only': { type: 'boolean' },
   'previous-commit': { type: 'string' }, 'requested-version': { type: 'string' },
+  'memorykit-cli': { type: 'string' }, 'memorykit-store': { type: 'string' },
 } as const;
 export type Host = 'claude' | 'codex' | 'copilot';
 export interface InstallOptions {
   version?: string; source?: string; hosts?: Host[]; prefix?: string; dryRun?: boolean;
   uninstall?: boolean; force?: boolean; verify?: boolean; registerOnly?: boolean;
-  previousCommit?: string; requestedVersion?: string;
+  previousCommit?: string; requestedVersion?: string; memorykitCli?: string; memorykitStore?: string;
 }
 export interface Registration { host: Host; name: string; path: string; root: string; kind: string; files?: Record<string, string>; target?: string }
 export interface Manifest {
   schemaVersion?: number; installRoot?: string; source?: string; requestedVersion?: string; version?: string;
-  commit?: string; previousCommit?: string; registrations?: Registration[]; hooksManaged?: boolean;
+  commit?: string; previousCommit?: string; registrations?: Registration[]; hooksManaged?: boolean; memoryKitHooks?: Host[];
   pointerBlocks?: Record<string, string>; hosts?: Partial<Record<Host, string[]>>; pointers?: Record<string, string>;
 }
 export interface InstallResult { State: string; Root: string; Collisions: string[]; Operations: string[]; [key: string]: unknown }
@@ -35,7 +37,19 @@ const forward = (path: string) => path.replaceAll('\\', '/');
 export const hash = (text: string | Buffer) => createHash('sha256').update(text).digest('hex').toUpperCase();
 const stat = (path: string) => { try { return lstatSync(path); } catch { return undefined; } };
 const read = (path: string) => readFileSync(path, 'utf8').replace(/^\uFEFF/, '');
+const statSafe = (path: string) => { try { return statSync(path); } catch { return undefined; } };
 const hookGroups = (value: unknown): unknown[] => value == null ? [] : Array.isArray(value) ? value : [value];
+// JSON with object keys sorted, so a file rewritten with another key order still compares equal.
+const canonical = (value: unknown): string => JSON.stringify(value, (_, v) => isObject(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) : v);
+const isObject = (value: unknown): value is Record<string, unknown> =>!!value && typeof value === 'object' && !Array.isArray(value);
+// A JSON settings file as an object (empty when absent), with `hooks`, when present, an object too.
+export function readSettings(path: string): Record<string, any> {
+  if (!existsSync(path)) return {};
+  let value: unknown;
+  try { value = JSON.parse(read(path)); } catch (error) { throw new Error(`'${path}' is not valid JSON (${error instanceof Error ? error.message : error}). Fix or move it, then run setup again.`); }
+  if (!isObject(value) || (value.hooks !== undefined && !isObject(value.hooks))) throw new Error(`'${path}' is not a JSON object with an object 'hooks'. Fix or move it, then run setup again.`);
+  return value;
+}
 export function normalizeOrigin(value: string) {
   const m = /^(?:https:\/\/github\.com\/|git@github\.com:)(.+?)(?:\.git)?\/?$/i.exec(value);
   return m ? 'github:' + m[1].replace(/\/$/, '').toLowerCase() : existsSync(value) ? resolve(value).replace(/[\\/]+$/, '') : value.replace(/\/+$/, '');
@@ -51,6 +65,28 @@ export function owned(entry: Registration, root: string): boolean {
 export function hook(root: string) {
   return { hooks: [{ type: 'command', command: 'node', args: [forward(join(root, 'tools/measure-session.ts')), '--hook'], timeout: 30 }] };
 }
+// MemoryKit's hooks, written only after --memorykit-cli and --memorykit-store opt in. SessionStart
+// loads accepted project memories as context; PreCompact records a candidate handoff. Claude Code
+// takes a command and arguments; Codex takes one command string.
+export const MEMORYKIT_EVENTS = { SessionStart: 'context', PreCompact: 'checkpoint' } as const;
+export function memoryHook(root: string, host: 'claude' | 'codex', event: keyof typeof MEMORYKIT_EVENTS) {
+  const script = forward(join(root, 'tools/memorykit.ts')), args = ['--action', MEMORYKIT_EVENTS[event], '--hook', '--host', host === 'claude' ? 'claude-code' : 'codex'];
+  return host === 'claude'
+    ? { hooks: [{ type: 'command', command: 'node', args: [script, ...args], timeout: 30 }] }
+    : { hooks: [{ type: 'command', command: `node "${script}" ${args.join(' ')}` }], matcher: '' };
+}
+// Ours by meaning, not by bytes: every command in the group runs this root's memorykit.ts with the
+// event's action. A host or user that rewrites the file (sorted keys, an added field) keeps it ours.
+export function isMemoryHook(group: unknown, root: string, event: keyof typeof MEMORYKIT_EVENTS) {
+  const script = forward(join(root, 'tools/memorykit.ts')).toLowerCase(), action = `--action ${MEMORYKIT_EVENTS[event]}`;
+  const hooks = (group as { hooks?: unknown })?.hooks;
+  return Array.isArray(hooks) && hooks.length > 0 && hooks.every(h => {
+    const { command, args } = (h ?? {}) as { command?: unknown; args?: unknown };
+    const line = [command, ...(Array.isArray(args) ? args : [])].join(' ').replaceAll('\\', '/').toLowerCase();
+    return line.includes(script) && line.includes(action);
+  });
+}
+export const CODEX_TRUST_NOTE ='Codex skips hooks it has not trusted, without an error: open Codex and run /hooks to review and trust the MemoryKit hooks.';
 // The PowerShell hook an install before the Node port wrote; its script is gone, so the entry fails at every session end.
 export function legacyHook(group: unknown, root: string) {
   const script = forward(join(root, 'tools/Measure-Session.ps1')).toLowerCase();
@@ -102,11 +138,23 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
   const env = config.env || process.env, runner = config.runner || run;
   const home = resolve(env.HOME || env.USERPROFILE || homedir()), root = resolve(env.AGENTKIT_HOME || join(home, '.agent-kit'));
   const codexRoot = resolve(env.CODEX_HOME || join(home, '.codex')), manifestPath = join(home, '.agent-kit-state/installed.json');
+  const codexHadHome = existsSync(codexRoot); // before this run's skill registrations create it
   const collisions: string[] = [], operations: string[] = [], registrations: Registration[] = [];
   const prefix = input.prefix || '';
   if (!/^[a-z0-9-]*$/.test(prefix)) throw new Error('Prefix must contain only lowercase letters, digits, and hyphens.');
   if (input.hosts?.some(h => !['claude', 'codex', 'copilot'].includes(h))) throw new Error('--hosts accepts claude, codex, or copilot.');
   if (input.verify && (input.uninstall || input.registerOnly)) throw new Error('--verify cannot be combined with --uninstall or internal re-entry.');
+  if (!!input.memorykitCli !== !!input.memorykitStore) throw new Error('--memorykit-cli and --memorykit-store are given together.');
+  const memoryKit = input.memorykitCli ? { cli: resolve(input.memorykitCli), store: resolve(input.memorykitStore!) } : undefined;
+  if (memoryKit && !statSafe(memoryKit.cli)?.isFile()) throw new Error(`MemoryKit CLI '${memoryKit.cli}' does not exist or is not a file.`);
+  if (memoryKit && !statSafe(memoryKit.store)?.isDirectory()) throw new Error(`MemoryKit store '${memoryKit.store}' does not exist or is not a directory. Create it with the MemoryKit CLI's init command first.`);
+  if (memoryKit && input.hosts?.length && !input.hosts.some(h => h === 'claude' || h === 'codex')) throw new Error('MemoryKit hooks run in Claude Code or Codex; add --hosts claude or codex.');
+  // Codex runs its hook as one shell command string, where these characters would expand or break.
+  if (memoryKit && /["`$]/.test(root)) throw new Error(`MemoryKit hooks cannot be written for an install root containing ", \` or $: '${root}'.`);
+  // Read every settings file this run may change before anything is written, so a malformed one
+  // stops the install instead of leaving registrations on disk without a manifest.
+  const hooksPath = join(home, '.claude/settings.json'), codexHooksPath = join(codexRoot, 'hooks.json');
+  if (!input.verify) for (const path of [hooksPath, codexHooksPath, ...(memoryKit ? [configPath(env)] : [])]) readSettings(path);
   if (!runner('git', ['--version'], { env }).found) throw new Error('AgentKit requires Git on PATH.');
   const git = (args: string[], cwd = root) => {
     const r = runner('git', ['-C', cwd, ...args], { env });
@@ -193,19 +241,52 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     } else { if (remove) return; updated = text + (text && !text.endsWith('\n') ? '\n' : '') + pointer + '\n'; }
     save(path, updated); if (!remove) pointerBlocks[path] = pointer;
   };
-  const hooksPath = join(home, '.claude/settings.json');
-  const updateHooks = (remove = false) => {
-    const settings = existsSync(hooksPath) ? JSON.parse(read(hooksPath)) : {};
-    settings.hooks ||= {};
-    const signatures = [JSON.stringify(hook(root))];
-    const kept = hookGroups(settings.hooks.SessionEnd).filter(h => h && !signatures.includes(JSON.stringify(h)) && !legacyHook(h, root));
-    settings.hooks.SessionEnd = remove ? kept : [...kept, hook(root)];
+  const saveSettings = (path: string, settings: unknown) => {
     const json = JSON.stringify(settings, null, 2);
-    if (existsSync(hooksPath) && read(hooksPath) !== json && !input.dryRun) {
-      const old = readFileSync(hooksPath, 'utf8'), backup = `${hooksPath}.agentkit-${hash(old)}.bak`;
+    if (existsSync(path) && read(path) !== json && !input.dryRun) {
+      const old = readFileSync(path, 'utf8'), backup = `${path}.agentkit-${hash(old)}.bak`;
       if (!existsSync(backup)) write(backup, old);
     }
-    save(hooksPath, json);
+    save(path, json);
+  };
+  // Each event keeps every group but this install's own, then adds this install's when wanted.
+  const setGroups = (hooks: Record<string, unknown>, event: string, own: unknown, wanted: boolean, also = (_: unknown) => false) => {
+    const kept = hookGroups(hooks[event]).filter(h => h && JSON.stringify(h) !== JSON.stringify(own) && !also(h));
+    hooks[event] = wanted ? [...kept, own] : kept;
+  };
+  const memoryEvents = Object.keys(MEMORYKIT_EVENTS) as (keyof typeof MEMORYKIT_EVENTS)[];
+  // MemoryKit's groups are replaced where they stand, so foreign groups keep their order and an
+  // unchanged file is not rewritten. An event without one of ours is left exactly as it is.
+  const setMemoryGroups = (hooks: Record<string, unknown>, host: 'claude' | 'codex', wanted: boolean) => {
+    for (const event of memoryEvents) {
+      const groups = hookGroups(hooks[event]), at = groups.findIndex(g => isMemoryHook(g, root, event));
+      if (at < 0 && !wanted) continue;
+      const kept = groups.filter(g => !isMemoryHook(g, root, event)), own = memoryHook(root, host, event);
+      if (wanted) kept.splice(at < 0 ? kept.length : at, 0, at >= 0 && canonical(groups[at]) === canonical(own) ? groups[at] : own);
+      if (kept.length) hooks[event] = kept; else delete hooks[event];
+    }
+  };
+  const updateHooks = (remove = false, memory = false) => {
+    if (remove && !existsSync(hooksPath)) return;
+    const settings = readSettings(hooksPath);
+    settings.hooks ||= {};
+    setGroups(settings.hooks, 'SessionEnd', hook(root), !remove, h => legacyHook(h, root));
+    setMemoryGroups(settings.hooks, 'claude', memory && !remove);
+    saveSettings(hooksPath, settings);
+  };
+  // Returns whether hooks.json changed, so the trust note appears only when there is something new to trust.
+  const updateCodexHooks = (remove = false) => {
+    if (remove && !existsSync(codexHooksPath)) return false;
+    const settings = readSettings(codexHooksPath), before = JSON.stringify(settings);
+    settings.hooks ||= {};
+    setMemoryGroups(settings.hooks, 'codex', !remove);
+    if (!Object.keys(settings.hooks).length) delete settings.hooks;
+    if (JSON.stringify(settings) === before) return false;
+    saveSettings(codexHooksPath, settings); return true;
+  };
+  const memoryHooksPresent = (host: 'claude' | 'codex') => {
+    const hooks = readSettings(host === 'claude' ? hooksPath : codexHooksPath).hooks ?? {};
+    return memoryEvents.every(event => hookGroups(hooks[event]).some(g => isMemoryHook(g, root, event)));
   };
   if (input.verify) {
     const Issues: string[] = [], Notes: string[] = [];
@@ -230,13 +311,30 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     }
     if (manifest.hooksManaged) {
       if (!existsSync(hooksPath)) Issues.push(`Hooks are managed but '${hooksPath}' does not exist.`);
-      else if (!hookGroups(JSON.parse(read(hooksPath)).hooks?.SessionEnd).some(h => JSON.stringify(h) === JSON.stringify(hook(root)))) Issues.push(`Expected SessionEnd hook entry missing from '${hooksPath}'.`);
+      else try { if (!hookGroups(readSettings(hooksPath).hooks?.SessionEnd).some(h => JSON.stringify(h) === JSON.stringify(hook(root)))) Issues.push(`Expected SessionEnd hook entry missing from '${hooksPath}'.`); }
+      catch (error) { Issues.push(error instanceof Error ? error.message : String(error)); }
     }
+    for (const host of manifest.memoryKitHooks ?? []) {
+      if (host !== 'claude' && host !== 'codex') continue;
+      try { if (!memoryHooksPresent(host)) Issues.push(`Expected MemoryKit SessionStart and PreCompact hook entries missing from '${host === 'claude' ? hooksPath : codexHooksPath}'.`); }
+      catch (error) { Issues.push(error instanceof Error ? error.message : String(error)); }
+    }
+    // The hooks fail at every session without a config naming a CLI and store that still exist.
+    if (manifest.memoryKitHooks?.length) {
+      const path = configPath(env);
+      try {
+        const config = readSettings(path);
+        if (!existsSync(path)) Issues.push(`MemoryKit config '${path}' is missing.`);
+        else for (const key of ['cli', 'store'] as const) if (typeof config[key] !== 'string' || !existsSync(config[key])) Issues.push(`MemoryKit ${key} '${config[key]}' named in '${path}' does not exist.`);
+      } catch (error) { Issues.push(error instanceof Error ? error.message : String(error)); }
+    }
+    if (manifest.memoryKitHooks?.includes('codex')) Notes.push(CODEX_TRUST_NOTE);
     return result(Issues.length ? 'Unhealthy' : 'OK', { Issues, Notes });
   }
   if (input.uninstall) {
     oldRegistrations.forEach(removeRegistration); releaseContainer();
     if (manifest.hooksManaged) updateHooks(true);
+    if (manifest.memoryKitHooks?.includes('codex')) updateCodexHooks(true);
     new Set([...Object.keys(pointerBlocks), ...Object.values(manifest.pointers || {})]).forEach(path => updatePointer(path, true));
     if (!input.dryRun && existsSync(manifestPath)) unlinkSync(manifestPath);
     if (input.force && exists) { plan(`Delete validated canonical checkout '${root}' (--force).`); if (!input.dryRun) rmSync(root, { recursive: true, force: true }); }
@@ -266,11 +364,13 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     const ref = isTag ? `refs/tags/${version}` : isBranch ? `refs/remotes/origin/${version}` : version;
     const sha = git(['rev-parse', '--verify', `${ref}^{commit}`]);
     if (!gitOK(['cat-file', '-e', `${sha}:setup.ts`])) throw new Error(`Version '${version}' (${sha}) predates the global front door. Publish a release containing this change after merge, or explicitly use --version main for unreleased work.`);
+    // Checked before the checkout: an older installer rejects the options only after the switch.
+    if (memoryKit && !(gitOK(['cat-file', '-e', `${sha}:tools/memorykit.ts`]) && git(['show', `${sha}:tools/install-agentkit.ts`]).includes("'memorykit-cli'"))) throw new Error(`Version '${version}' (${sha}) predates the MemoryKit hooks. Nothing was changed. Use a release that includes them, or --version main for unreleased work.`);
     if (isBranch && gitOK(['show-ref', '--verify', '--quiet', `refs/heads/${version}`]) && !gitOK(['merge-base', '--is-ancestor', `refs/heads/${version}`, sha])) throw new Error(`Local branch '${version}' has unpublished or divergent commits; not resetting it. Previous commit: ${previous}.`);
     plan(`Requested: ${input.version || 'latest stable'}; resolved: ${version} (${sha}).`);
-    if (input.dryRun) return result('DryRun', { Version: version, Commit: sha, Detail: 'Checkout and refresh selected managed registrations, hooks and shared pointers; no files written.' });
+    if (input.dryRun) return result('DryRun', { Version: version, Commit: sha, Detail: `Checkout and refresh selected managed registrations, hooks and shared pointers${memoryKit ? `; write the MemoryKit config '${configPath(env)}' and its SessionStart and PreCompact hooks` : ''}; no files written.` });
     if (isBranch) { git(['checkout', version]); git(['merge', '--ff-only', sha]); } else git(['checkout', '--detach', sha]);
-    const selected: InstallOptions = { version, source, prefix, registerOnly: true, previousCommit: previous, requestedVersion: input.version || 'latest stable', ...(input.hosts ? { hosts: input.hosts } : {}) };
+    const selected: InstallOptions = { version, source, prefix, registerOnly: true, previousCommit: previous, requestedVersion: input.version || 'latest stable', ...(input.hosts ? { hosts: input.hosts } : {}), ...(memoryKit ? { memorykitCli: memoryKit.cli, memorykitStore: memoryKit.store } : {}) };
     const child = runner(process.execPath, [join(root, 'tools/install-agentkit.ts'), ...installArguments(selected)], { env });
     if (child.code !== 0) throw new Error(`Setup failed after selecting ${sha}${previous ? `; the checkout was left there (previous commit ${previous})` : ''}. ${child.stderr || child.stdout || `Selected installer exited ${child.code}.`}`);
     if (child.stderr) process.stderr.write(child.stderr);
@@ -316,17 +416,33 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
       oldRegistrations.filter(r => r.host === host && !desired.includes(r.path)).forEach(removeRegistration);
       updatePointer(rulesPath(host));
     }
-    if (hosts.includes('claude')) updateHooks();
+    const Notes: string[] = [];
+    if (memoryKit) {
+      const path = configPath(env);
+      plan(`Write MemoryKit config '${path}'.`); saveSettings(path, { ...readSettings(path), ...memoryKit });
+    }
+    // The flags opt in the selected hosts; a rerun without them keeps exactly the hosts opted in
+    // before. Hosts outside this run's selection are left as they are. Codex gets hooks only once
+    // it has a home, or when named.
+    const optedIn = manifest.memoryKitHooks ?? [];
+    const wanted = hosts.filter(h => (h === 'claude' || h === 'codex') && (memoryKit || optedIn.includes(h)));
+    const memoryHosts = wanted.filter(h => h !== 'codex' || input.hosts?.includes('codex') || codexHadHome);
+    if (memoryKit && !wanted.length) Notes.push('No Claude Code or Codex host was selected, so the MemoryKit config was written and no hook was registered.');
+    if (wanted.includes('codex') && !memoryHosts.includes('codex')) Notes.push(`Codex has no home at '${codexRoot}' yet, so no MemoryKit hook was registered for it. Run Codex once, then setup again with the MemoryKit options.`);
+    if (hosts.includes('claude')) updateHooks(false, memoryHosts.includes('claude'));
+    if (hosts.includes('codex') && (memoryHosts.includes('codex') || optedIn.includes('codex'))) { if (updateCodexHooks(!memoryHosts.includes('codex')) && memoryHosts.includes('codex')) Notes.push(CODEX_TRUST_NOTE); }
+    if (memoryHosts.length) plan(`MemoryKit SessionStart and PreCompact hooks for ${memoryHosts.join(', ')}.`);
+    const memoryKitHooks = [...memoryHosts, ...optedIn.filter(h => !hosts.includes(h))];
     const sha = git(['rev-parse', 'HEAD']);
-    const next: Manifest = { schemaVersion: 2, installRoot: root, source, requestedVersion: input.requestedVersion || '', version: input.version || '', commit: sha, previousCommit: manifest.commit === sha ? manifest.previousCommit || '' : input.previousCommit || '', registrations, hooksManaged: hosts.includes('claude') || !!manifest.hooksManaged, pointerBlocks };
+    const next: Manifest = { schemaVersion: 2, installRoot: root, source, requestedVersion: input.requestedVersion || '', version: input.version || '', commit: sha, previousCommit: manifest.commit === sha ? manifest.previousCommit || '' : input.previousCommit || '', registrations, hooksManaged: hosts.includes('claude') || !!manifest.hooksManaged, pointerBlocks, ...(memoryKitHooks.length ? { memoryKitHooks } : {}) };
     save(manifestPath, JSON.stringify(next, null, 2));
     if (!input.dryRun) for (const entry of registrations) if (!collisions.includes(entry.path) && !owned(entry, root)) throw new Error(`Registration verification failed: ${entry.path}`);
-    return result(input.dryRun ? 'DryRun' : 'Installed', { Source: source, RequestedVersion: next.requestedVersion, Version: next.version, Commit: sha, Hosts: hosts, Registrations: registrations, Verified: 'Canonical runtime dependencies and owned registration bytes. Restart hosts for discovery; host execution is not claimed by setup.' });
+    return result(input.dryRun ? 'DryRun' : 'Installed', { Source: source, RequestedVersion: next.requestedVersion, Version: next.version, Commit: sha, Hosts: hosts, Registrations: registrations, Verified: 'Canonical runtime dependencies and owned registration bytes. Restart hosts for discovery; host execution is not claimed by setup.', ...(Notes.length ? { Notes } : {}) });
   }
 }
 export function installArguments(input: InstallOptions): string[] {
   const args: string[] = [];
-  for (const [key, flag] of [['version', 'version'], ['source', 'source'], ['prefix', 'prefix'], ['previousCommit', 'previous-commit'], ['requestedVersion', 'requested-version']] as const) if (input[key] !== undefined) args.push('--' + flag, input[key]!);
+  for (const [key, flag] of [['version', 'version'], ['source', 'source'], ['prefix', 'prefix'], ['previousCommit', 'previous-commit'], ['requestedVersion', 'requested-version'], ['memorykitCli', 'memorykit-cli'], ['memorykitStore', 'memorykit-store']] as const) if (input[key] !== undefined) args.push('--' + flag, input[key]!);
   for (const [key, flag] of [['dryRun', 'dry-run'], ['uninstall', 'uninstall'], ['force', 'force'], ['verify', 'verify'], ['registerOnly', 'register-only']] as const) if (input[key]) args.push('--' + flag);
   for (const host of input.hosts || []) args.push('--hosts', host);
   return args;
@@ -334,7 +450,7 @@ export function installArguments(input: InstallOptions): string[] {
 export function cli(args = process.argv.slice(2)) {
   try {
     const v = parseOptions(options, args);
-    const result = install({ version: v.version, source: v.source, hosts: v.hosts?.flatMap(h => h.split(',')) as Host[] | undefined, prefix: v.prefix, dryRun: v['dry-run'], uninstall: v.uninstall, force: v.force, verify: v.verify, registerOnly: v['register-only'], previousCommit: v['previous-commit'], requestedVersion: v['requested-version'] });
+    const result = install({ version: v.version, source: v.source, hosts: v.hosts?.flatMap(h => h.split(',')) as Host[] | undefined, prefix: v.prefix, dryRun: v['dry-run'], uninstall: v.uninstall, force: v.force, verify: v.verify, registerOnly: v['register-only'], previousCommit: v['previous-commit'], requestedVersion: v['requested-version'], memorykitCli: v['memorykit-cli'], memorykitStore: v['memorykit-store'] });
     writeJson(result); if (['NotInstalled', 'Unhealthy'].includes(result.State)) process.exitCode = 1;
   } catch (error) { process.stderr.write(`${error instanceof Error ? error.message : error}\n`); process.exitCode = 1; }
 }

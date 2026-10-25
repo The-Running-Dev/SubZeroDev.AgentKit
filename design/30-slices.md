@@ -115,7 +115,7 @@ Acceptance:
 Out of scope: hooks and the installer (S36); a service (`--url`) store; any bulk import.
 
 ## S36 — Memory hooks and installer opt-in, proven on two real hosts
-Status: todo
+Status: done
 Delivers: `memorykit.ts --hook` for SessionStart (accepted context for the project) and
 PreCompact (a candidate handoff checkpoint), registered by the installer only when asked, plus
 the end-to-end evidence that one host's decision reaches a fresh session of the other.
