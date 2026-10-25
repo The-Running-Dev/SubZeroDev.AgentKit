@@ -1,0 +1,64 @@
+name: release
+
+# Publishes a stable release of main through tools/publish-release.ts: a signed tag, the source
+# archive and its checksum, and the GitHub release. The tag is signed with the release key in the
+# RELEASE_SIGNING_KEY secret, whose public half is in .github/allowed_signers. Run it from the
+# Actions tab or with:
+#   gh workflow run release.yml --ref main [-f dry-run=true]
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Sign, verify and build the archive, then stop before the push and the release.
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.18.0"
+      - name: Load the release signing key
+        shell: bash
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then
+            echo "::error::The RELEASE_SIGNING_KEY secret is not set."
+            exit 1
+          fi
+          key="$RUNNER_TEMP/release-signing-key"
+          (umask 077; printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key")
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.signingkey "$key"
+      - name: Publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          args=()
+          if [ "$DRY_RUN" = true ]; then args+=(--dry-run); fi
+          node tools/publish-release.ts "${args[@]}"
+      - name: Remove the release signing key
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/release-signing-key"

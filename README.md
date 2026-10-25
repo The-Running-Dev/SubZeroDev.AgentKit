@@ -123,14 +123,14 @@ node "<kit-root>/setup.ts" --uninstall --force
 
 `--prefix ak-` installs names such as `$ak-next` and `$ak-next-routed`. Foreign or edited registrations are preserved and reported as collisions. Uninstall removes only unchanged owned registrations, pointers and hooks; adding `--force` also removes the validated checkout. Verify is read-only. Dry runs make no checkout or host changes; the initial bootstrap clone itself is a write.
 
-Publish a stable release with `tools/publish-release.ts`, from a clean `main` checkout:
+Publish a stable release with the `release` workflow, which runs `tools/publish-release.ts` on `main` and signs with the release key in the `RELEASE_SIGNING_KEY` secret:
 
 ```text
-node tools/publish-release.ts --dry-run
-node tools/publish-release.ts
+gh workflow run release.yml --ref main -f dry-run=true
+gh workflow run release.yml --ref main
 ```
 
-It refuses unless `main` is clean, equals `origin/main`, and the `verify` workflow's push run for that SHA succeeded. It picks the tag — `vYYYY.MM.DD`, then `.2`, `.3` for later releases that day; stable selection sorts by date, then numeric revision, with the bare tag as revision zero — signs it with SSH (`git tag -s`, the signer's `user.signingkey`), and refuses unless `git tag -v` verifies it against [`.github/allowed_signers`](.github/allowed_signers). It then builds the source archive with `git archive` and its SHA-256 checksum, pushes the tag, and creates the GitHub release with both as assets. `--dry-run` does all of that except the push and the release, and removes its tag again. Then exercise the fresh bootstrap without `--version` and confirm its reported commit is the release SHA. Tagging and publishing are the maintainer's release step; [SECURITY.md](SECURITY.md#verifying-a-release) says how anyone verifies one.
+The script also runs from a clean local `main` checkout, signing with the maintainer's own key. It refuses unless `main` is clean, equals `origin/main`, and the `verify` workflow's push run for that SHA succeeded. It picks the tag — `vYYYY.MM.DD`, then `.2`, `.3` for later releases that day; stable selection sorts by date, then numeric revision, with the bare tag as revision zero — signs it with SSH (`git tag -s`, the signer's `user.signingkey`), and refuses unless `git tag -v` verifies it against [`.github/allowed_signers`](.github/allowed_signers). It then builds the source archive with `git archive` and its SHA-256 checksum, pushes the tag, and creates the GitHub release with both as assets. `--dry-run` does all of that except the push and the release, and removes its tag again. Then exercise the fresh bootstrap without `--version` and confirm its reported commit is the release SHA. Starting the workflow is the maintainer's release step; [SECURITY.md](SECURITY.md#verifying-a-release) says how anyone verifies one.
 
 For post-merge branch cleanup, run the housekeeping script from the target repository. In bash or zsh:
 
