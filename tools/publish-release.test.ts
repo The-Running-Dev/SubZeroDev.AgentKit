@@ -72,7 +72,8 @@ test('repository comes from a GitHub origin and nothing else', () => {
 test('exit codes separate success, failure and a pushed tag without a release', () => {
   assert.equal(releaseExitCode('Released'), 0); assert.equal(releaseExitCode('DryRun'), 0);
   assert.equal(releaseExitCode('Refused'), 1); assert.equal(releaseExitCode('Failed'), 1);
-  assert.equal(releaseExitCode('TagPushed'), 2); assert.throws(() => releaseExitCode('Whatever'));
+  assert.equal(releaseExitCode('TagPushed'), 2); assert.equal(releaseExitCode('Skipped'), 0);
+  assert.throws(() => releaseExitCode('Whatever'));
 });
 test('verify must be the newest push run for the exact SHA, and successful', () => {
   const state = (runs: Run[], code = 0) => verifyState(() => ({ code, found: true, stderr: '', stdout: JSON.stringify(runs) }), repository, 'abc').Refusal;
@@ -106,6 +107,24 @@ test('refuses without verify green on HEAD, an allowed-signers file, or a reposi
 test('refuses a HEAD that is already released', () => {
   const s = setup(); git(s.root, 'tag', '-a', 'v2026.10.24', '-m', 'x'); git(s.root, 'push', '-q', 'origin', 'v2026.10.24');
   const r = publishRelease(s.input, fakeGh().runner); assert.equal(r.Refusal, 'HeadAlreadyTagged'); assert.match(r.Detail, /v2026\.10\.24/);
+});
+test('--skip-unready skips what a later run releases, and still refuses what no run would', () => {
+  const s = setup(), input = { ...s.input, skipUnready: true };
+  const pending = fakeGh(sha => [{ ...green(sha)[0], status: 'in_progress', conclusion: '' }]);
+  for (const [runner, refusal] of [[pending.runner, 'VerifyPending'], [fakeGh(() => []).runner, 'VerifyNotRun']] as const) {
+    const r = publishRelease(input, runner); assert.equal(r.State, 'Skipped'); assert.equal(r.Refusal, refusal);
+  }
+  const failed = publishRelease(input, fakeGh(sha => [{ ...green(sha)[0], conclusion: 'failure' }]).runner);
+  assert.equal(failed.State, 'Refused'); assert.equal(failed.Refusal, 'VerifyFailed');
+  git(s.root, 'tag', '-a', 'v2026.10.24', '-m', 'x');
+  const tagged = publishRelease(input, fakeGh().runner); assert.equal(tagged.State, 'Skipped'); assert.equal(tagged.Refusal, 'HeadAlreadyTagged');
+  git(s.root, 'commit', '--allow-empty', '-qm', 'local only');
+  const ahead = publishRelease(input, fakeGh().runner); assert.equal(ahead.State, 'Skipped'); assert.equal(ahead.Refusal, 'HeadNotOrigin');
+  const unflagged = publishRelease({ ...s.input, skipUnready: false }, fakeGh().runner);
+  assert.equal(unflagged.State, 'Refused'); assert.equal(unflagged.Refusal, 'HeadNotOrigin');
+  put(s.root, 'stray.txt', 'x\n');
+  const dirty = publishRelease(input, fakeGh().runner); assert.equal(dirty.State, 'Refused'); assert.equal(dirty.Refusal, 'DirtyTree');
+  assert.equal(remoteTags(s.origin), '');
 });
 test('dry run signs, verifies and builds the checksummed archive, then removes its tag and writes nothing outside', { skip: noSsh }, () => {
   const s = setup({ tags: ['v2026.10.25'] }); const gh = fakeGh();
