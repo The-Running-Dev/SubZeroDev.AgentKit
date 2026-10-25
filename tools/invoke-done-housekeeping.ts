@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import { run } from './lib/process.ts';
 import type { Runner } from './lib/process.ts';
@@ -39,9 +40,14 @@ export function doneHousekeeping(input: HousekeepingInput = {}, runner: Runner =
   const status = git('status', '--short');
   if (status.output.trim() && !input.keepDirty) {
     if (!input.autoStash) return { ...stop('DirtyTree', status.output), DefaultBranch: null };
-    const stash = git('stash', 'push', '-u', '-m', 'Invoke-DoneHousekeeping auto-stash');
+    // The stash stack is shared by every worktree, so neither 'stash@{0}' nor a fixed message keeps naming this entry.
+    // Push under a unique tag, then record the entry's commit SHA, which no later stash can move.
+    const tag = `Invoke-DoneHousekeeping auto-stash ${randomUUID()}`;
+    const stash = git('stash', 'push', '-u', '-m', tag);
     if (stash.code) throw new Error(`AutoStash was requested but 'git stash push -u' failed: ${stash.output}`);
-    result.Stashed = true; result.StashRef = 'stash@{0}';
+    const sha = git('stash', 'list', '--format=%H %gs').output.split('\n').map(l => l.trim()).find(l => l.endsWith(` ${tag}`))?.split(' ')[0];
+    if (!sha) throw new Error(`AutoStash pushed a stash tagged '${tag}' but could not find it in 'git stash list' to record its SHA. Find it by that tag and restore with 'git stash apply <sha>'.`);
+    result.Stashed = true; result.StashRef = sha;
   }
   try {
     let branch = input.defaultBranch;
