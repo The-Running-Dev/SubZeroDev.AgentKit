@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, cpSync, rmSync, symlinkSync, readlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, cpSync, rmSync, rmdirSync, symlinkSync, readlinkSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { temp, put, git } from './lib/fixtures.ts';
@@ -111,6 +111,50 @@ it('migrates bare Claude skill registrations from an earlier install into the pl
 });
 it('leaves a foreign agentkit folder and earlier Claude registrations untouched', f => {
   const path = put(f.plugin, 'SKILL.md', 'my own agentkit skill'); assert.ok(success(f).Collisions.includes(f.plugin)); assert.equal(read(path), 'my own agentkit skill'); assert.ok(!existsSync(join(f.plugin, '.claude-plugin'))); assert.equal(state(f).registrations!.filter(r => r.host === 'claude').length, 0); success(f, { uninstall: true }); assert.equal(read(path), 'my own agentkit skill');
+});
+// The Claude end state of rolling back to v2026.09.24 (checked against that tag's own setup.ps1, #450):
+// it registers bare ~/.claude/skills/<name> folders, deletes each plugin registration's files and
+// folder without pruning parents, and rewrites the manifest with only the bare registrations.
+function rollBack(f: Fixture) {
+  const s = state(f), claude = s.registrations!.filter(r => r.host === 'claude');
+  for (const r of claude) { for (const file of Object.keys(r.files!)) rmSync(join(r.path, file)); rmdirSync(r.path); }
+  const bare = claude.filter(r => r.files?.['SKILL.md']).map(r => {
+    const path = join(f.home, '.claude/skills', r.name), files = { 'SKILL.md': `legacy ${r.name}\n`, '.agentkit-owner': `AgentKit registration\nRoot: ${f.root}\nHost: claude\nName: ${r.name}\n` };
+    for (const [name, text] of Object.entries(files)) put(path, name, text);
+    return { ...r, path, files: Object.fromEntries(Object.entries(files).map(([name, text]) => [name, hash(text)])) };
+  });
+  saveState(f, { ...s, registrations: [...s.registrations!.filter(r => r.host !== 'claude'), ...bare] });
+}
+const marker = (f: Fixture) => join(f.plugin, '.agentkit-owner');
+it('re-upgrades after a rollback that left an empty owned plugin container, then uninstalls it', f => {
+  success(f); rollBack(f);
+  assert.deepEqual(readdirSync(f.plugin).sort(), ['.agentkit-owner', 'skills']); assert.deepEqual(readdirSync(join(f.plugin, 'skills')), []);
+  const r = success(f); assert.deepEqual(r.Collisions, []); assert.ok(r.Operations.some(o => o.startsWith('Adopt plugin container')));
+  for (const name of ['next', 'fix', 'align']) { assert.ok(existsSync(join(f.plugin, 'skills', name, 'SKILL.md'))); assert.ok(!existsSync(join(f.home, '.claude/skills', name))); }
+  assert.equal(success(f, { verify: true }).State, 'OK');
+  success(f, { uninstall: true }); assert.ok(!existsSync(f.plugin)); assert.ok(existsSync(join(f.home, '.claude/skills')));
+});
+for (const [name, foreign] of [['a foreign file in the container', 'notes.md'], ['a foreign skill in its skills folder', 'skills/mine/SKILL.md'], ['a link instead of its skills folder', '']] as const) {
+  it(`a rolled-back plugin container holding ${name} still collides and is left unchanged`, f => {
+    success(f); rollBack(f);
+    if (foreign) put(f.plugin, foreign, 'my own bytes');
+    else { const target = join(f.base, 'elsewhere'); mkdirSync(target); rmSync(join(f.plugin, 'skills'), { recursive: true }); symlinkSync(target, join(f.plugin, 'skills'), process.platform === 'win32' ? 'junction' : 'dir'); }
+    const before = snapshot(f); assert.ok(success(f).Collisions.includes(f.plugin));
+    assert.ok(!existsSync(join(f.plugin, '.claude-plugin'))); if (foreign) assert.equal(read(join(f.plugin, foreign)), 'my own bytes');
+    for (const [path, value] of Object.entries(before)) if (path.startsWith(f.plugin)) assert.equal(snapshot(f)[path], value, path);
+    success(f, { uninstall: true }); assert.ok(existsSync(f.plugin)); if (foreign) assert.equal(read(join(f.plugin, foreign)), 'my own bytes');
+  });
+}
+it('an empty plugin container without this runtime\'s owner marker still collides and is left in place', f => {
+  success(f); rollBack(f); writeFileSync(marker(f), 'AgentKit plugin container\nRoot: /some/other/runtime\n');
+  assert.ok(success(f).Collisions.includes(f.plugin)); assert.equal(read(marker(f)), 'AgentKit plugin container\nRoot: /some/other/runtime\n');
+  rmSync(marker(f)); const r = success(f);
+  assert.ok(r.Collisions.includes(f.plugin)); assert.ok(r.Operations.some(o => /only an empty skills folder and no AgentKit owner marker/.test(o)));
+  assert.deepEqual(readdirSync(f.plugin), ['skills']); success(f, { uninstall: true }); assert.deepEqual(readdirSync(f.plugin), ['skills']);
+});
+it('a foreign owner marker in an owned plugin container is reported and kept', f => {
+  success(f); writeFileSync(marker(f), 'mine'); const r = success(f);
+  assert.deepEqual(r.Collisions, [marker(f)]); assert.equal(read(marker(f)), 'mine'); assert.ok(existsSync(join(f.plugin, '.claude-plugin/plugin.json')));
 });
 test('resolves kit-owned dependencies of every shipped skill', () => {
   for (const name of readdirSync(join(kit, 'skills'))) {
