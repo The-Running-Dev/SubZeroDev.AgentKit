@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { temp, put, git } from './lib/fixtures.ts';
 import { run } from './lib/process.ts';
 import { getSkill } from './get-agentkit-skill.ts';
-import { install, installArguments, pointer, pointerStart, pointerEnd, hook, hash } from './install-agentkit.ts';
+import { install, installArguments, pointer, pointerStart, pointerEnd, hook, hash, memoryHook, CODEX_TRUST_NOTE } from './install-agentkit.ts';
 import type { InstallOptions, InstallResult, Manifest } from './install-agentkit.ts';
 
 const kit = resolve(dirname(fileURLToPath(import.meta.url)), '..'), front = join(kit, 'setup.ts');
@@ -170,3 +170,39 @@ test('setup refuses with the AgentKit message when Node cannot load TypeScript',
   const r = run(process.execPath, ['--no-experimental-strip-types', front, '--verify']);
   assert.equal(r.code, 2, r.stderr); assert.equal(r.stdout, ''); assert.match(r.stderr, /^AgentKit needs Node's TypeScript type stripping/);
 });
+
+// MemoryKit hooks: a synthetic CLI file and store directory; the installer only checks they exist.
+function memoryKit(f: Fixture) { return { memorykitCli: put(f.base, 'memorykit/dist/cli/main.js', '// stand-in'), memorykitStore: join(f.base, 'memory store') }; }
+const memoryConfig = (f: Fixture) => join(f.home, '.agent-kit-state/memorykit.json'), codexHooks = (f: Fixture) => join(f.codex, 'hooks.json');
+it('MemoryKit hooks are written only on opt-in, kept on rerun, verified and removed by uninstall', f => {
+  success(f); assert.ok(!existsSync(memoryConfig(f))); assert.ok(!existsSync(codexHooks(f))); assert.equal(json(f.settings).hooks.SessionStart, undefined); assert.equal(state(f).memoryKitHooks, undefined);
+  const mk = memoryKit(f); mkdirSync(mk.memorykitStore); put(f.home, '.agent-kit-state/memorykit.json', JSON.stringify({ cli: 'old', store: 'old', capture: false, contextBytes: 4096 }));
+  const r = success(f, mk); assert.deepEqual(r.Notes, [CODEX_TRUST_NOTE]);
+  assert.deepEqual(json(memoryConfig(f)), { cli: resolve(mk.memorykitCli), store: resolve(mk.memorykitStore), capture: false, contextBytes: 4096 });
+  const foreign = { hooks: [{ type: 'command', command: 'node /foreign/start.js' }] };
+  for (const event of ['SessionStart', 'PreCompact'] as const) {
+    assert.deepEqual(json(f.settings).hooks[event], [memoryHook(f.root, 'claude', event)]);
+    assert.deepEqual(json(codexHooks(f)).hooks[event], [memoryHook(f.root, 'codex', event)]);
+  }
+  assert.deepEqual((memoryHook(f.root, 'claude', 'PreCompact').hooks[0] as { args: string[] }).args.slice(1), ['--action', 'checkpoint', '--hook', '--host', 'claude-code']);
+  assert.match(memoryHook(f.root, 'codex', 'SessionStart').hooks[0].command, /^node ".+\/tools\/memorykit\.ts" --action context --hook --host codex$/);
+  assert.deepEqual(state(f).memoryKitHooks, ['claude', 'codex']);
+  const settings = json(f.settings), codex = json(codexHooks(f)); settings.hooks.SessionStart.unshift(foreign); codex.hooks.SessionStart.unshift(foreign);
+  writeFileSync(f.settings, JSON.stringify(settings, null, 2)); writeFileSync(codexHooks(f), JSON.stringify(codex, null, 2));
+  success(f); const before = snapshot(f); success(f); assert.deepEqual(snapshot(f), before, 'a rerun without the flags keeps the hooks and changes nothing');
+  assert.equal(success(f, { verify: true }).State, 'OK');
+  const broken = json(codexHooks(f)); delete broken.hooks.PreCompact; writeFileSync(codexHooks(f), JSON.stringify(broken));
+  failure(f, /MemoryKit SessionStart and PreCompact hook entries missing from .+hooks.json/, { verify: true });
+  success(f, { uninstall: true });
+  assert.deepEqual(json(f.settings).hooks.SessionStart, [foreign]); assert.deepEqual(json(f.settings).hooks.PreCompact, []);
+  assert.deepEqual(json(codexHooks(f)).hooks, { SessionStart: [foreign] });
+  assert.equal(json(memoryConfig(f)).store, resolve(mk.memorykitStore), 'the config is the user\'s and stays');
+});
+it('MemoryKit opt-in fails before any change without both paths or with one missing', f => {
+  const mk = memoryKit(f);
+  failure(f, /given together/, { memorykitCli: mk.memorykitCli });
+  failure(f, /store '.+memory store' does not exist. Create it with the MemoryKit CLI's init command/, mk);
+  mkdirSync(mk.memorykitStore); failure(f, /CLI '.+absent.js' does not exist/, { ...mk, memorykitCli: join(f.base, 'absent.js') });
+  assert.ok(!existsSync(f.root)); assert.ok(!existsSync(memoryConfig(f))); assert.ok(!existsSync(f.settings));
+});
+it('a MemoryKit dry run writes no config or hooks', f => { const mk = memoryKit(f); mkdirSync(mk.memorykitStore); success(f); const before = snapshot(f); success(f, { ...mk, dryRun: true }); assert.deepEqual(snapshot(f), before); });

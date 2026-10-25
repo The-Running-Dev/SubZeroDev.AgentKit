@@ -123,6 +123,14 @@ node "<kit-root>/setup.ts" --uninstall --force
 
 `--prefix ak-` installs names such as `$ak-next` and `$ak-next-routed`. Foreign or edited registrations are preserved and reported as collisions. Uninstall removes only unchanged owned registrations, pointers and hooks; adding `--force` also removes the validated checkout. Verify is read-only. Dry runs make no checkout or host changes; the initial bootstrap clone itself is a write.
 
+Project memory through [MemoryKit](https://github.com/The-Running-Dev/SubZeroDev.MemoryKit) is opt-in. Create a store with MemoryKit's CLI (`node "<memorykit>/dist/cli/main.js" init "<store>"`), then name both:
+
+```text
+node "<kit-root>/setup.ts" --memorykit-cli "<memorykit>/dist/cli/main.js" --memorykit-store "<store>"
+```
+
+This writes `~/.agent-kit-state/memorykit.json`, keeping any other settings in it, and registers two hooks for Claude Code and Codex: SessionStart loads the project's accepted memories as context, and PreCompact records the last assistant message as a candidate handoff that `/memory` can accept. Both paths must already exist, or nothing is installed. Later installs keep the hooks, `--verify` reports a missing one, and uninstall removes only these entries, leaving the config and the store. Codex skips hooks it has not trusted, without an error: open Codex and run `/hooks` once to trust them. Set `"capture": false` or `"context": false` in the config to turn either hook off. The options work from the first release that includes them; until then, add `--version main`.
+
 Every merge to `main` is released by itself. Once the `verify` workflow passes on the push, the `release` workflow runs `tools/publish-release.ts --skip-unready` on `main` and signs with the release key in the `release` environment's `RELEASE_SIGNING_KEY` secret. The environment accepts only `main`. A run with nothing new to release, or one whose `main` has moved on to a commit that its own `verify` run will release, ends `Skipped` rather than failed. Set the key up once with [GitHub-ActionTemplates](https://github.com/The-Running-Dev/GitHub-ActionTemplates)' `scripts/Initialize-ReleaseSigningKey.ps1 -Repository The-Running-Dev/SubZeroDev.AgentKit -BackupDirectory <offline folder>`, which keeps the passphrase-less key in `~\.keys`, backs it up, creates the environment and stores the secret. A rehearsal, or a retry after a failed run, starts by hand:
 
 ```text
