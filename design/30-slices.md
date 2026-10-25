@@ -73,6 +73,73 @@ Out of scope: changing what any script reports beyond the parity fixes in #454; 
 `design/20-contract.md` text of S33's done criteria, which still names `Test-Design.ps1` and the
 `powershell` CI job and is left as written.
 
+## S35 — Project memories through MemoryKit's JSON CLI, by explicit command
+Status: done
+Delivers: `tools/memorykit.ts`, an opt-in client that runs MemoryKit's CLI as a child process
+(no MemoryKit code in the kit, no runtime dependency) and the `/agentkit:memory` command that
+drives it. An agent records a decision, lesson or handoff for the current project with evidence,
+finds it again in a later session of any host, corrects it, and promotes a candidate so context
+retrieval may use it. MemoryKit stays the only store; AgentKit's conventions live in each
+memory's metadata.
+Touches: `tools/memorykit.ts`, `tools/memorykit.test.ts`, `skills/memory/SKILL.md`,
+`tools/invoke-codex-command.ts`, `AGENTS.shared.md`, `README.md`, `design/20-contract.md`,
+`design/90-decisions.md`.
+Depends on: S34
+Acceptance:
+  - S35.1 With no config at `~/.agent-kit-state/memorykit.json` (or `AGENTKIT_MEMORYKIT_CONFIG`)
+    every action reports `State` NotConfigured, exits 2 and runs nothing.
+  - S35.2 The namespace is `project/<owner>/<repo>` from the `origin` remote, lower-cased;
+    `--namespace` overrides it, and with neither the action fails with `NoNamespace`. `show`,
+    `correct` and `accept` on another project's memory fail exactly as `NotFound` does.
+  - S35.3 `remember` and `correct` write `status: candidate` unless `--accept`; `accept` is
+    the command that promotes a candidate, optionally recording `--verification`
+    verified / disputed; repeating it is `Unchanged`. `recall` and `context` return accepted,
+    active memories only (`recall --include-candidates` widens it).
+  - S35.4 Each evidence reference is `resolved` (it exists: a path in the project, a commit,
+    a MemoryKit memory, a transcript file) or `unresolved` (anything else, URLs included), and
+    the memory's `evidenceStatus` is missing / unresolved / resolved. Resolving never sets
+    `verification`, which stays `unverified` until an explicit `accept --verification`.
+    A `commit:` reference is pinned to the full hash it named when written.
+  - S35.5 The operation id is derived from the request, so a repeated identical request replays
+    the first write and creates no duplicate.
+  - S35.6 `correct` supersedes with the caller's expected revision; afterwards `recall` returns
+    the replacement and `show` on the old id still returns it, `superseded`, with
+    `supersededBy`. A stale revision fails `RevisionConflict`.
+  - S35.7 `context` fences accepted memories as untrusted data and enforces a UTF-8 byte limit
+    on the whole block (default 8192, provisional; `--max-bytes`), reporting `Bytes`,
+    `LimitBytes`, `Items` and `Omitted`. It never reports tokens.
+  - S35.8 Only exit 0 (or 3, history pending) of the CLI is `Persisted`. A missing CLI, a
+    missing store, invalid output and every MemoryKit problem report `State` Failed with the
+    code and exit 1; the tests drive each against the real CLI built from MemoryKit when
+    `MEMORYKIT_CLI` names it, and against an in-process stand-in with MemoryKit's exit codes otherwise.
+Out of scope: hooks and the installer (S36); a service (`--url`) store; any bulk import.
+
+## S36 — Memory hooks and installer opt-in, proven on two real hosts
+Status: todo
+Delivers: `memorykit.ts --hook` for SessionStart (accepted context for the project) and
+PreCompact (a candidate handoff checkpoint), registered by the installer only when asked, plus
+the end-to-end evidence that one host's decision reaches a fresh session of the other.
+Touches: `tools/memorykit.ts`, `tools/memorykit.test.ts`, `tools/install-agentkit.ts`,
+`tools/install-agentkit.test.ts`, `skills/memory/SKILL.md`, `design/20-contract.md`.
+Depends on: S35
+Acceptance:
+  - S36.1 `--action context --hook` prints only the host's SessionStart JSON
+    (`hookSpecificOutput.additionalContext`) and nothing when disabled or empty; a failure goes
+    to stderr with exit 1 and never prints context.
+  - S36.2 `--action checkpoint --hook` (PreCompact) records the last assistant message of the
+    transcript (Claude Code and Codex formats) as a candidate `handoff`; a duplicate delivery of
+    the same event replays and creates no second memory.
+  - S36.3 `capture` and `context` in the config switch each hook off; every hook run appends
+    one JSON line (event, outcome, code, no content) to `~/.agent-kit-state/memorykit.log`.
+  - S36.4 `install-agentkit.ts --memorykit-cli <path> --memorykit-store <dir>` writes the config
+    and registers both hooks for Claude Code (`~/.claude/settings.json`) and Codex
+    (`~/.codex/hooks.json`) with a backup; `--uninstall` removes them. It never writes Codex
+    trust hashes and reports that Codex runs the hooks only after `/hooks` trusts them.
+  - S36.5 On a synthetic repository, a Claude Code session records an evidenced decision and a
+    fresh Codex session receives it through SessionStart without the first transcript; a
+    correction then replaces it in the next session's context; the run is recorded in the PR.
+Out of scope: Copilot hooks (none verified); automatic acceptance of checkpoints.
+
 ## Landed
 
 | Slice | Name | Issue | Criteria | Body complete at |

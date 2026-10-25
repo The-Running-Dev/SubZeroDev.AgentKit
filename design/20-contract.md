@@ -25,6 +25,7 @@ Under Claude Code each is typed `/agentkit:<name>`; Codex and Copilot use the ba
 | `install-all` | Migrates repositories off pre-home-install copies | one PR per repository |
 | `install-review` | Installs the Claude Code GitHub review action | a workflow file |
 | `setup-project` | Scaffolds a project, creates its GitHub repository with the standard settings and the `Main` ruleset, and pushes it, by running SubZeroDev.GitHub's scripts in that checkout | the new project; `repositories/<Name>.yaml` and its pull request in SubZeroDev.GitHub |
+| `memory` | Records, finds, corrects and accepts project memories through MemoryKit | nothing in the repository; the MemoryKit store named in `~/.agent-kit-state/memorykit.json` |
 | `sync` | Updates the machine-wide checkout | the checkout; nothing in the repository |
 
 `/next` argument: a slice id to start from, or `one` to stop after one slice.
@@ -80,6 +81,7 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 | `get-next-slice.ts` | `[--repo-root --default-branch --slice --pull-requests-json --quiet]` | `State` Resume / Start / Finished / Blocked with `Slice`, `Branch`, `PullRequest`, `Base`, `DirtyFiles`, `GuardedFiles`, `OwnFiles`, `Reason`, `Detail`; reads the plan from `origin/<default>` after a fetch; read-only otherwise; exit 0 / 1 (Blocked) |
 | `test-design.ts` | `[--repo-root --quiet]` | `State` Passed / Failed / NotEvaluated with `Findings` (`Check`, `File`, `Line`, `Message`); read-only; exit 0 / 1 / 2 |
 | `publish-release.ts` | `[--repo-root --default-branch --repository --workflow --allowed-signers --out-dir --dry-run]` | `State` Released / DryRun / Refused / Failed / TagPushed with `Refusal`, `Tag`, `PreviousTag`, `HeadSha`, `Signature`, `Archive`, `Checksum`, `Sha256`, `Pushed`, `ReleaseUrl`, `TagRemoved`; refuses unless `main` is clean, equals `origin/main` and `verify` passed on HEAD; signs the tag with SSH and keeps it only if it verifies against `.github/allowed_signers`; `--dry-run` stops before the push; exit 0 / 1 / 2 (TagPushed) |
+| `memorykit.ts` | `--action`, `[--project --namespace --kind --content --reason --evidence --statement --accept --id --expected-revision --verification --text --limit --include-candidates --max-bytes --host]` | Project memories through MemoryKit's CLI: `remember` / `recall` / `show` / `correct` / `accept` / `context`. `State` Persisted / Replayed / Unchanged / Found / Context / Omitted / Empty / Failed / NotConfigured; exit 0 / 1 (Failed) / 2 (NotConfigured) |
 | `measure-session.ts` | `[--project --transcript-path --session-id --idle-threshold-minutes --detail --human --hook]` | Per-session cost report; `--hook` appends a row on `SessionEnd` |
 
 `RepoAliases.ps1` is gone; there is no by-hand wrapper.
@@ -91,7 +93,9 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 `.github/ISSUE_TEMPLATE/` (`/install` only), `.git/hooks/commit-msg`, `.github/gates.json` (read only),
 `.claude/gates.json`, `reviews/` (`/redteam` on a deliverable),
 `.claude/verify-report.json`, `.claude/session-costs.tsv` (appended by the global `SessionEnd`
-hook). Nothing else; in particular, no repository `settings.json` and no version stamp.
+hook). Nothing else; in particular, no repository `settings.json` and no version stamp. Project
+memories (`memorykit.ts`, opt-in) live in the MemoryKit store its config names, outside the
+repository.
 
 ## Invariants
 
