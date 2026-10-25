@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { callCli, contextBlock, correct, accept, context, createContext, item, operationId, recall, remember, show, CONTEXT_ITEMS, MemoryFailure } from './memorykit.ts';
+import { callCli, contextBlock, correct, accept, context, createContext, item, lastAssistantText, logPath, operationId, recall, remember, runHook, show, CHECKPOINT_BYTES, CONTEXT_ITEMS, MemoryFailure } from './memorykit.ts';
 import type { Context, MemoryConfig } from './memorykit.ts';
 import { git, put, repo, temp } from './lib/fixtures.ts';
 import { run } from './lib/process.ts';
@@ -241,4 +242,115 @@ test('an invalid config is refused rather than ignored', () => {
   const config = put(temp(), 'memorykit.json', JSON.stringify({ cli: 'x' }));
   const r = run(process.execPath, [SCRIPT, '--action', 'recall'], { env: { ...process.env, AGENTKIT_MEMORYKIT_CONFIG: config } });
   assert.equal(r.code, 1); assert.match(r.stderr, /must name "cli" and "store"/);
+});
+
+// Hooks: synthetic transcripts in each host's format, never a real session.
+const lines = (...o: object[]) => o.map(x => JSON.stringify(x)).join('\n') + '\n';
+const claudeTranscript = (text: string) => put(temp(), 'claude.jsonl', lines(
+  { type: 'user', message: { role: 'user', content: 'go' } },
+  { type: 'assistant', message: { role: 'assistant', content: [{ type: 'thinking', thinking: '' }, { type: 'text', text }] } },
+  { type: 'assistant', isSidechain: true, message: { role: 'assistant', content: [{ type: 'text', text: 'subagent noise' }] } },
+  { type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', id: 't1', name: 'Bash', input: {} }] } }));
+const codexTranscript = (text: string) => put(temp(), 'rollout.jsonl', lines(
+  { type: 'session_meta', payload: { id: 's' } },
+  { type: 'response_item', payload: { type: 'message', role: 'assistant', content: [{ type: 'output_text', text }] } },
+  { type: 'response_item', payload: { type: 'function_call', name: 'shell' } }));
+function hooks(b: Backend) {
+  const { config, runner } = b.make(), root = project(), env = { ...process.env, AGENTKIT_MEMORYKIT_CONFIG: join(temp(), 'memorykit.json') };
+  const ctx = createContext({ project: root, host: 'test-host', config, runner })!;
+  const hook = (action: 'context' | 'checkpoint', event: object, cfg: MemoryConfig = config) => runHook(action, JSON.stringify({ cwd: root, session_id: 'S1', ...event }), { host: 'test-host', env, runner, config: cfg });
+  const log = () => readFileSync(logPath(env), 'utf8').trim().split('\n');
+  return { config, ctx, hook, log };
+}
+
+for (const b of backends) {
+  test(`${b.name}: the SessionStart hook prints only accepted context, as the host's JSON`, { skip: b.skip }, () => {
+    const { config, ctx, hook, log } = hooks(b);
+    const empty = hook('context', { hook_event_name: 'SessionStart' });
+    assert.deepEqual([empty.stdout, empty.exitCode, empty.entry.outcome], ['', 0, 'Empty']);
+    accept(ctx, remember(ctx, { kind: 'decision', content: 'Use SQLite for the cache.', evidence: ['notes.md'] }).Memory.id);
+    const r = hook('context', { hook_event_name: 'SessionStart' }), out = JSON.parse(r.stdout);
+    assert.equal(r.exitCode, 0); assert.equal(out.hookSpecificOutput.hookEventName, 'SessionStart');
+    assert.match(out.hookSpecificOutput.additionalContext, /^<memorykit-context untrusted="true"[^]*Use SQLite for the cache\./);
+    assert.equal(r.entry.bytes, Buffer.byteLength(out.hookSpecificOutput.additionalContext)); assert.equal(r.entry.items, 1);
+    const off = hook('context', { hook_event_name: 'SessionStart' }, { ...config, context: false });
+    assert.deepEqual([off.stdout, off.exitCode, off.entry.outcome], ['', 0, 'Disabled']);
+    assert.deepEqual(log().map(l => JSON.parse(l).outcome), ['Empty', 'Context', 'Disabled']);
+    assert.ok(log().every(l => !l.includes('SQLite')), 'the log records no memory content');
+  });
+
+  test(`${b.name}: the PreCompact hook records the last assistant message once, as a candidate handoff`, { skip: b.skip }, () => {
+    const { config, ctx, hook } = hooks(b);
+    const event = { hook_event_name: 'PreCompact', transcript_path: claudeTranscript('Slice 3 is half done; the parser change is next.') };
+    const first = hook('checkpoint', event), again = hook('checkpoint', event);
+    assert.deepEqual([first.stdout, first.exitCode, first.entry.outcome], ['', 0, 'Persisted']);
+    assert.equal(again.entry.id, first.entry.id);
+    const codex = hook('checkpoint', { hook_event_name: 'PreCompact', session_id: 'S2', transcript_path: codexTranscript('Codex stopped before the tests.') });
+    assert.equal(codex.entry.outcome, 'Persisted');
+    const items = recall(ctx, { includeCandidates: true }).Items;
+    assert.equal(items.length, 2);
+    const claude = items.find(i => i.id === first.entry.id)!;
+    assert.deepEqual([claude.kind, claude.status, claude.statement, claude.evidenceStatus, claude.verification], ['handoff', 'candidate', 'source', 'resolved', 'unverified']);
+    assert.match(claude.content, /session S1\)[^]*Slice 3 is half done/); assert.doesNotMatch(claude.content, /subagent noise/);
+    assert.match(items.find(i => i.id === codex.entry.id)!.content, /Codex stopped before the tests\./);
+    assert.equal(context(ctx).State, 'Empty', 'a checkpoint is not context until accepted');
+    const off = hook('checkpoint', { ...event, transcript_path: claudeTranscript('Another message.') }, { ...config, capture: false });
+    assert.equal(off.entry.outcome, 'Disabled'); assert.equal(recall(ctx, { includeCandidates: true }).Items.length, 2);
+  });
+
+  test(`${b.name}: a hook failure is reported on stderr with exit 1 and never as context or a capture`, { skip: b.skip }, () => {
+    const { config, hook, log } = hooks(b), missing = { ...config, store: join(temp(), 'absent') };
+    const c = hook('context', { hook_event_name: 'SessionStart' }, missing);
+    assert.deepEqual([c.stdout, c.exitCode, c.entry.outcome, c.entry.code], ['', 1, 'Failed', 'StoreUnavailable']); assert.match(c.stderr, /StoreUnavailable/);
+    const k = hook('checkpoint', { hook_event_name: 'PreCompact', transcript_path: claudeTranscript('Unsaved.') }, missing);
+    assert.deepEqual([k.stdout, k.exitCode, k.entry.outcome, k.entry.code], ['', 1, 'Failed', 'StoreUnavailable']);
+    assert.deepEqual(log().map(l => JSON.parse(l).outcome), ['Failed', 'Failed']);
+  });
+}
+
+test('the last assistant message is read from either host format, skipping tools and subagents', () => {
+  assert.equal(lastAssistantText(readFileSync(claudeTranscript('Claude text.'), 'utf8')), 'Claude text.');
+  assert.equal(lastAssistantText(readFileSync(codexTranscript('Codex text.'), 'utf8')), 'Codex text.');
+  assert.equal(lastAssistantText('not json\n' + lines({ type: 'assistant', message: { content: [{ type: 'tool_use' }] } })), '');
+});
+
+test('a long checkpoint is clipped to the byte limit on a character boundary', () => {
+  const { ctx, hook } = hooks(backends[0]);
+  // The odd trailing byte puts the cut in the middle of an 'é'; the end, with the next steps, is kept.
+  const r = hook('checkpoint', { hook_event_name: 'PreCompact', transcript_path: claudeTranscript('é'.repeat(6000) + 'a') });
+  const content = recall(ctx, { includeCandidates: true }).Items.find(i => i.id === r.entry.id)!.content, body = content.slice(content.indexOf('\n') + 1);
+  assert.ok(Buffer.byteLength(body) <= CHECKPOINT_BYTES, `${Buffer.byteLength(body)} bytes`); assert.match(body, /^… é+a$/);
+});
+
+test('a hook outside a project, without a config or without an event does nothing it could misreport', () => {
+  const env = { ...process.env, AGENTKIT_MEMORYKIT_CONFIG: join(temp(), 'memorykit.json') }, config = { cli: join(temp(), 'absent.js'), store: temp() };
+  const outside = runHook('context', JSON.stringify({ cwd: repo() }), { env, config });
+  assert.deepEqual([outside.stdout, outside.exitCode, outside.entry.outcome], ['', 0, 'NoProject']);
+  const bom = runHook('context', '\uFEFF' + JSON.stringify({ cwd: repo() }), { env, config });
+  assert.equal(bom.entry.outcome, 'NoProject', 'a byte order mark does not make the event unreadable');
+  const garbled = runHook('context', 'not json', { env, config });
+  assert.deepEqual([garbled.stdout, garbled.exitCode, garbled.entry.code], ['', 1, 'InvalidEvent']);
+  const lost = runHook('checkpoint', JSON.stringify({ cwd: project(), transcript_path: join(temp(), 'gone.jsonl') }), { env, config });
+  assert.deepEqual([lost.stdout, lost.exitCode, lost.entry.outcome, lost.entry.code], ['', 1, 'Failed', 'TranscriptUnavailable']);
+  assert.match(lost.stderr, /^MemoryKit checkpoint: TranscriptUnavailable: /);
+  const fresh = { ...process.env, AGENTKIT_MEMORYKIT_CONFIG: join(temp(), 'memorykit.json') };
+  const off = runHook('checkpoint', JSON.stringify({ cwd: repo() }), { env: fresh, config: null });
+  assert.deepEqual([off.stdout, off.stderr, off.exitCode, off.entry.outcome], ['', '', 0, 'NotConfigured']);
+  assert.ok(!existsSync(logPath(fresh)), 'a machine that never opted in gets no log');
+});
+
+test('the script runs a hook from stdin, printing nothing on stdout when it fails', () => {
+  const config = put(temp(), 'memorykit.json', JSON.stringify({ cli: join(temp(), 'absent.js'), store: temp() }));
+  const env = { ...process.env, AGENTKIT_MEMORYKIT_CONFIG: config }, input = JSON.stringify({ cwd: project(), hook_event_name: 'SessionStart' });
+  const r = run(process.execPath, [SCRIPT, '--action', 'context', '--hook', '--host', 'claude-code'], { env, input });
+  assert.deepEqual([r.code, r.stdout], [1, '']); assert.match(r.stderr, /CliNotFound/);
+  const entry = JSON.parse(readFileSync(join(config, '..', 'memorykit.log'), 'utf8'));
+  assert.deepEqual(Object.keys(entry).sort(), ['action', 'at', 'code', 'event', 'host', 'namespace', 'outcome', 'session']);
+  assert.deepEqual([entry.action, entry.event, entry.host, entry.outcome, entry.code], ['context', 'SessionStart', 'claude-code', 'Failed', 'CliNotFound']);
+  const none = run(process.execPath, [SCRIPT, '--action', 'context', '--hook'], { env: { ...process.env, AGENTKIT_MEMORYKIT_CONFIG: join(temp(), 'none.json') }, input });
+  assert.deepEqual([none.code, none.stdout, none.stderr], [0, '', '']);
+  const recallHook = run(process.execPath, [SCRIPT, '--action', 'recall', '--hook'], { env, input });
+  assert.equal(recallHook.code, 1); assert.match(recallHook.stderr, /--hook takes --action context or checkpoint/);
+  const bare = run(process.execPath, [SCRIPT, '--action', 'checkpoint'], { env });
+  assert.equal(bare.code, 1); assert.match(bare.stderr, /runs only as a hook/);
 });
