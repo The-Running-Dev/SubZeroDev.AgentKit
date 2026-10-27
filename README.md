@@ -19,6 +19,7 @@ tools/*.ts                    Node scripts the commands call; no PowerShell need
   invoke-housekeeping.ts      post-merge branch cleanup, no model call
   invoke-done-housekeeping.ts confirmed-merged branch deletion
   measure-session.ts          what a session actually cost, from the transcript
+  evaluate-workflow.ts        opt-in C2 replay packets and human-evidence verification
   get-next-slice.ts           the first unfinished slice in 30-slices.md
   new-design-docs.ts          seeds design/ from templates/design
   ensure-project-files.ts     creates a command's repo files on first use
@@ -43,6 +44,9 @@ design/                       the kit's own design. Never installed
   cost.md                     measured session and output costs
 ```
 
+
+The [behavioral regression pilot](reports/behavioral-regression-pilot.md) reuses
+C2's cases for opt-in `/next` and `/fix` planning replays with human-reviewed evidence.
 
 ## Installing
 
