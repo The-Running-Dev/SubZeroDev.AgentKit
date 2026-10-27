@@ -88,6 +88,20 @@ test('accepts complete human attestations but labels their provenance limitation
   assert.match(v.limitation, /not independently verified model behavior/);
 });
 
+test('accepts a result directory reached through a directory link', () => {
+  const t = trial(), alias = join(temp(), 'receipt-link');
+  symlinkSync(t.dir, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  assert.equal(verify(t.packet.packet, t.packet.packetSha256, join(alias, 'result.json')).status, 'human-assessed-pass');
+});
+
+test('rejects captures reached through a directory link outside the result directory', () => {
+  const t = trial(), outside = temp();
+  put(outside, 'capture.txt', readFileSync(join(t.dir, 'a.txt'), 'utf8'));
+  symlinkSync(outside, join(t.dir, 'outside-link'), process.platform === 'win32' ? 'junction' : 'dir');
+  t.result.phases[0].transcript = 'outside-link/capture.txt';
+  assert.throws(() => t.verify(), /resolves outside/);
+});
+
 test('resolves nested repo inputs before enforcing the source checkout boundary', () => {
   assert.throws(() => prepare({ repo: join(source, 'tools'), out: join(source, 'forbidden-packet'), command: 'next', caseId: 'caller' }), /outside/);
 });

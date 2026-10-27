@@ -114,7 +114,8 @@ export function verify(packet: string, expectedDigest: string, resultPath: strin
   if (JSON.stringify(Object.keys(files).sort()) !== JSON.stringify(expectedPaths)) throw new Error('Packet file set mismatch.');
   for (const [path, hash] of Object.entries(files)) if (sha256(readArtifact(root, path)) !== hash) throw new Error(`Packet artifact mismatch: ${path}`);
   const resultRoot = realpathSync(dirname(resolve(resultPath)));
-  const result = record(JSON.parse(readArtifact(resultRoot, relative(resultRoot, resolve(resultPath))).toString('utf8')), 'result');
+  // Keep the canonical parent and filename together when the requested parent is an alias.
+  const result = record(JSON.parse(readArtifact(resultRoot, basename(resultPath)).toString('utf8')), 'result');
   if (result.schema !== 1 || result.trialId !== manifest.id || result.packetSha256 !== expectedDigest || result.revision !== manifest.revision || result.command !== command || result.caseId !== caseId) throw new Error('Result identity mismatch.');
   const host = record(result.host, 'host');
   for (const field of ['name', 'version', 'model', 'settings']) text(host[field], `host.${field}`);
