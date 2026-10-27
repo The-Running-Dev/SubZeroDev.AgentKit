@@ -149,7 +149,7 @@ export function conversationMemory(archiveRoot: string, value: unknown, settings
     const savedWrites: Writes | undefined = existsSync(writesPath) ? JSON.parse(readFileSync(writesPath, 'utf8')) : undefined;
     // A later attachment blocks new selections, but must not strand an uncertain write.
     // Already-prepared selections can replay with their original revision and identity.
-    if (review.branchHash !== branchHash && !request.selected!.every(id => savedWrites?.requests?.[id])) fail('RevisionConflict', 'The branch changed; prepare a new review for new selections. Retry already-prepared selections with their original review ID.');
+    if (review.branchHash !== branchHash && !request.selected!.every(id => savedWrites?.requests && Object.hasOwn(savedWrites.requests, id))) fail('RevisionConflict', 'The branch changed; prepare a new review for new selections. Retry already-prepared selections with their original review ID.');
     // Recompute eligibility and provenance from the package, never trust saved eligibility flags.
     const inputs = review.proposals.map(({ id, kind, statementIndex, statement, content, corrects }) => ({ id, kind, statementIndex, statement, content, ...(corrects ? { corrects } : {}) }));
     parse({ schemaVersion: 1, action: 'propose', branchId: request.branchId, reviewId: request.reviewId, expectedRevision: review.branchRevision, proposals: inputs });
@@ -167,7 +167,7 @@ export function conversationMemory(archiveRoot: string, value: unknown, settings
       const input = { kind: p.kind, content: p.content, statement: p.statement, evidence: p.evidence.map(e => e.ref), extra: { conversation: { branchId: request.branchId, revision: review.branchRevision, reviewId: request.reviewId, proposalId: p.id, attribution: p.attribution, evidence: p.evidence.map(({ sha256, startByte, endByte }) => ({ sha256, startByte, endByte })) } } };
       const originalHost = { ...ctx!, host: writes.host };
       const prepared = p.corrects ? prepareCorrect(originalHost, p.corrects.id, p.corrects.expectedRevision, input) : prepareRemember(originalHost, input);
-      if (writes.requests[p.id] && json(writes.requests[p.id]) !== json(prepared)) fail('RequestConflict', 'Saved request differs from the selected proposal. Do not overwrite its retry identity.');
+      if (Object.hasOwn(writes.requests, p.id) && json(writes.requests[p.id]) !== json(prepared)) fail('RequestConflict', 'Saved request differs from the selected proposal. Do not overwrite its retry identity.');
       writes.requests[p.id] = prepared;
     }
     save(writesPath, writes);

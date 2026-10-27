@@ -109,6 +109,25 @@ it('MEM-1/2: entry point proposes attributed items privately and stores only sel
   assert.equal(f.db().records.length, 2);
 });
 
+it('MEM-2/4: inherited object names are valid proposal IDs, with only prepared selections replayable', f => {
+  const proposal = { ...f.propose.proposals[0], id: 'constructor' };
+  assert.equal(f.invoke({ ...f.propose, proposals: [proposal] }).code, 0);
+  const stored = f.invoke(f.storing(['constructor']));
+  assert.equal(stored.code, 0); assert.equal(stored.value.Results.constructor.Memory.status, 'candidate');
+  assert.equal(f.db().records.length, 1);
+  conversation(f.archive, { schemaVersion: 1, action: 'attach', branchId: 'synthetic', operationId: 'later', expectedRevision: 1, handoff: [f.fork.handoff[0]] });
+  assert.equal(f.invoke(f.storing(['constructor'])).code, 0);
+  assert.equal(f.db().records.length, 1);
+});
+
+it('MEM-4: inherited request properties cannot authorize a new selection after attachment', f => {
+  assert.equal(f.invoke({ ...f.propose, proposals: [...f.propose.proposals, { ...f.propose.proposals[0], id: 'constructor' }] }).code, 0);
+  assert.equal(f.invoke(f.storing(['decision'])).code, 0);
+  conversation(f.archive, { schemaVersion: 1, action: 'attach', branchId: 'synthetic', operationId: 'later', expectedRevision: 1, handoff: [f.fork.handoff[0]] });
+  assert.equal(f.invoke(f.storing(['constructor'])).value.code, 'RevisionConflict');
+  assert.equal(f.db().records.length, 1);
+});
+
 it('MEM-3: missing configuration returns safe guidance and neither config nor writes are created', f => {
   f.invoke(f.propose);
   const absent = join(f.base, 'absent.json'), r = f.invoke(f.storing(), { AGENTKIT_MEMORYKIT_CONFIG: absent });
