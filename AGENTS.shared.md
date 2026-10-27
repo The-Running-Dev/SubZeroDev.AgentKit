@@ -48,6 +48,7 @@ The one question no command text names is the update card the skill reader can p
 
 - **Never say a check passed that did not run.** If a tool is unavailable, say so and name what was not checked. A failure is reported with its error text in full.
 - **Verify, don't assert.** State only what you checked this session; remembered values are how wrong facts get written down confidently.
+- **Git state needs evidence.** Claims about a branch, detached HEAD, a clean or dirty tree, or commits require successful tool output or explicitly supplied evidence for this workspace. A source snapshot or missing Git metadata leaves those facts unknown; it does not establish a clean tree or an empty history. In an assessment that cannot run tools, omit irrelevant Git state or say it was not checked. Explicitly withdraw an earlier unsupported claim when reconciling; a later caveat does not correct it silently.
 - A regression test is verified by reverting the fix and watching it fail.
 - Never state a deployed URL until the deploy for that exact commit reports success.
 - A claimed limitation ("the API can't", "that needs a credential") needs the error text or a probe, the same as any other claim.
