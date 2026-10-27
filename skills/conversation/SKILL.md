@@ -1,14 +1,15 @@
 ---
 name: conversation
-description: Fork, attach, return or propose reviewed branch memories using private Notes and the existing MemoryKit adapter. Usage - /conversation fork|attach|return|memories [details]
-argument-hint: "fork|attach|return|memories [details]"
+description: Fork, attach, return, bridge supported native chats or propose reviewed branch memories using private Notes and existing tools. Usage - /conversation fork|attach|return|host|memories [details]
+argument-hint: "fork|attach|return|host|memories [details]"
 disable-model-invocation: true
 ---
 
 Read `AGENTS.shared.md` completely, and the caller's and chosen archive's applicable
 instructions. Work on **$ARGUMENTS**. This command creates a portable handoff, not a
-native chat clone. It uses existing files, Git and manual navigation. Do not call
-host fork/attach/message APIs or graph tools. Only the explicit `memories` workflow
+native chat clone. It uses existing files, Git and manual navigation. Only the
+explicit `host` workflow below may call supported native tools. Never call native
+attach/message APIs or graph tools. Only the explicit `memories` workflow
 below uses MemoryKit; fork/attach/return never write memory.
 
 ## Choose the source and archive
@@ -96,6 +97,12 @@ proof of completeness). Source bytes and metadata are immutable after attachment
 Use a new source ID for corrected coverage or a later source; explain the correction
 in a new attributed statement. The original record stays intact.
 
+For a nested branch, optionally add `parent.branchId` naming its existing immediate
+parent package in the same archive. Keep that parent's saved bookmark and question
+in this child's `parent`. A fork cannot name itself or a missing parent. This is a
+local provenance reference for return, not a new graph backend. Older version 1
+packages without it remain valid.
+
 Every statement has `role` = `user|assistant|unknown`, `kind` =
 `exact|summary|suggestion|unavailable`, `text`, and `refs`. A ref is
 `{"sourceId":"parent-excerpt","startByte":0,"endByte":20}`: zero-based,
@@ -178,6 +185,16 @@ them; a commit/push failure does not undo the local write and must be named.
 - `SourceChanged`, `QuoteMismatch`, `InvalidSpan`, `OccupiedPath` or `UnsafePath`:
   stop and report the discrepancy. Do not repair original sources or relabel a
   quote to bypass a failed check. Archive symlinks/junctions are refused.
+
+## Supported native chats
+
+For `/conversation host`, read [the native host workflow](references/native-host.md)
+and use `tools/conversation-host.ts`. Inspect the current tool contracts and the
+Workspace capability report if available; registrations and historical graph
+records do not prove a callable API. Portable fork/attach/return remains usable
+with every optional capability absent. Selected handoff is the default; full-history
+fork requires an explicit user request. Navigation never authorizes a message to
+another chat, and attaching source never rewrites native chat history.
 
 ## Reviewed branch memories
 
@@ -283,5 +300,7 @@ manifest/note/source paths, source coverage gaps, actual archive commit and push
 state, and the next manual parent-navigation/copy step. `Returned` is a rendered
 packet only. For memories, report review/receipt paths, selected write outcomes,
 candidate/accepted state and gaps; never call failed or unknown writes remembered.
-No host automation, graph projection, automatic memory acceptance, story
-publication or new database is part of this workflow.
+For host operations, distinguish preserved package, released call, confirmed native
+ID/navigation and unknown/manual recovery. Report the native receipt path and
+actual observations. Graph projection, automatic memory acceptance, story
+publication and a new database remain outside this workflow.
