@@ -58,8 +58,8 @@ function within(root: string, path: string): boolean {
 function readArtifact(root: string, path: unknown): Buffer {
   const name = text(path, 'artifact path');
   if (isAbsolute(name) || !within(root, resolve(root, name))) throw new Error('Artifact escapes its directory.');
-  const full = realpathSync(resolve(root, name));
-  if (!within(realpathSync(root), full)) throw new Error('Artifact resolves outside its directory.');
+  const full = realpathSync.native(resolve(root, name));
+  if (!within(realpathSync.native(root), full)) throw new Error('Artifact resolves outside its directory.');
   const stat = statSync(full);
   if (!stat.isFile() || stat.size === 0 || stat.size > 16 * 1024 * 1024) throw new Error('Artifact must be a non-empty regular file of at most 16 MiB.');
   return readFileSync(full);
@@ -69,10 +69,11 @@ function put(root: string, path: string, content: string) {
   writeFileSync(join(root, path), content, { encoding: 'utf8', flag: 'wx' });
 }
 export function prepare(input: { repo: string; out: string; command: Command; caseId: CaseId; revision?: string }) {
-  const requestedRepo = realpathSync(input.repo);
-  const repo = realpathSync(execFileSync('git', ['-C', requestedRepo, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', windowsHide: true }).trim());
+  // Native realpath also expands Windows 8.3 aliases before comparing boundaries.
+  const requestedRepo = realpathSync.native(input.repo);
+  const repo = realpathSync.native(execFileSync('git', ['-C', requestedRepo, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', windowsHide: true }).trim());
   // Resolve the existing parent too: a directory link must not bypass the checkout boundary.
-  const requested = resolve(input.out), out = join(realpathSync(dirname(requested)), basename(requested));
+  const requested = resolve(input.out), out = join(realpathSync.native(dirname(requested)), basename(requested));
   const command = member(input.command, ['next', 'fix'], 'command');
   const caseId = member(input.caseId, caseIds, 'case');
   if (within(repo, out) || within(out, repo)) throw new Error('Packet must be outside the source checkout.');
@@ -103,7 +104,7 @@ export function prepare(input: { repo: string; out: string; command: Command; ca
 }
 
 export function verify(packet: string, expectedDigest: string, resultPath: string) {
-  const root = realpathSync(packet), bytes = readArtifact(root, 'manifest.json');
+  const root = realpathSync.native(packet), bytes = readArtifact(root, 'manifest.json');
   if (!/^[0-9a-f]{64}$/.test(expectedDigest) || sha256(bytes) !== expectedDigest) throw new Error('Packet digest mismatch. Use the digest recorded at preparation.');
   const manifest = record(JSON.parse(bytes.toString('utf8')), 'manifest');
   if (manifest.schema !== 1 || !/^[0-9a-f]{40}$/.test(manifest.revision)) throw new Error('Invalid packet revision/schema.');
@@ -113,7 +114,7 @@ export function verify(packet: string, expectedDigest: string, resultPath: strin
   const files = record(manifest.files, 'packet files');
   if (JSON.stringify(Object.keys(files).sort()) !== JSON.stringify(expectedPaths)) throw new Error('Packet file set mismatch.');
   for (const [path, hash] of Object.entries(files)) if (sha256(readArtifact(root, path)) !== hash) throw new Error(`Packet artifact mismatch: ${path}`);
-  const resultRoot = realpathSync(dirname(resolve(resultPath)));
+  const resultRoot = realpathSync.native(dirname(resolve(resultPath)));
   // Keep the canonical parent and filename together when the requested parent is an alias.
   const result = record(JSON.parse(readArtifact(resultRoot, basename(resultPath)).toString('utf8')), 'result');
   if (result.schema !== 1 || result.trialId !== manifest.id || result.packetSha256 !== expectedDigest || result.revision !== manifest.revision || result.command !== command || result.caseId !== caseId) throw new Error('Result identity mismatch.');

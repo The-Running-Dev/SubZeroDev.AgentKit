@@ -106,6 +106,15 @@ test('resolves nested repo inputs before enforcing the source checkout boundary'
   assert.throws(() => prepare({ repo: join(source, 'tools'), out: join(source, 'forbidden-packet'), command: 'next', caseId: 'caller' }), /outside/);
 });
 
+test('rejects source-overlapping output through a Windows short path', { skip: process.platform !== 'win32' }, context => {
+  const alias = spawnSync('cmd.exe', ['/d', '/c', `for %I in ("${source}") do @echo %~sI`], { encoding: 'utf8', windowsHide: true, windowsVerbatimArguments: true });
+  assert.equal(alias.status, 0, alias.stderr);
+  const short = alias.stdout.trim();
+  const long = resolve(git(source, 'rev-parse', '--show-toplevel'));
+  if (resolve(short).toLowerCase() === long.toLowerCase()) { context.skip('Filesystem has no short-path alias.'); return; }
+  assert.throws(() => prepare({ repo: short, out: join(short, 'forbidden-short-packet'), command: 'next', caseId: 'caller' }), /outside/);
+});
+
 test('preserves a behavioral failure or unverified grade instead of turning receipt validity into success', () => {
   const t = trial();
   t.result.humanReview.grades[0].verdict = 'fail';
