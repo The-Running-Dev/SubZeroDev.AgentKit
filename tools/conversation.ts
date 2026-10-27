@@ -23,7 +23,7 @@ interface Result {
   Persistence: 'WrittenUncommitted' | 'ReadOnly';
 }
 interface Receipt { operationId: string; fingerprint: string; result: Result }
-interface Branch {
+export interface Branch {
   schemaVersion: 1; branchId: string; date: string; parent: Parent; revision: number;
   sources: Source[]; handoff: Statement[]; receipts: Receipt[];
 }
@@ -100,7 +100,7 @@ function request(value: unknown, cwd: string): Request {
 }
 
 // Never follow archive symlinks/junctions, including ancestors of files not created yet.
-function inside(root: string, path: string): string {
+export function inside(root: string, path: string): string {
   if (isAbsolute(path) || path.split(/[\\/]/).some(p => !p || p === '.' || p === '..')) fail('UnsafePath', `Not an archive-relative path: ${path}`);
   const full = resolve(root, path), rel = relative(root, full);
   if (rel.startsWith('..' + sep) || isAbsolute(rel)) fail('UnsafePath', path);
@@ -114,7 +114,7 @@ function inside(root: string, path: string): string {
 }
 const bytesAt = (path: string) => existsSync(path) ? readFileSync(path) : null;
 const hashAt = (path: string) => { const b = bytesAt(path); return b === null ? null : digest(b); };
-function atomic(path: string, data: Buffer) {
+export function atomic(path: string, data: Buffer) {
   mkdirSync(dirname(path), { recursive: true });
   // Reserved, content-addressed staging file. Under the archive lock a partial
   // temp from the same pending write can be discarded without touching its target.
