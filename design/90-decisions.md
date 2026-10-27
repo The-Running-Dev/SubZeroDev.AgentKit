@@ -1531,3 +1531,15 @@ Context: the `release` workflow ran only when started by hand, so a merged fix w
 Chosen: **`release.yml` also runs on `workflow_run` of `verify`, for a successful `push` run on `main`, and passes `--skip-unready` to `tools/publish-release.ts`.** Under that flag four refusals end in a new `Skipped` state with exit 0: `HeadAlreadyTagged` (nothing new), and `HeadNotOrigin`, `VerifyNotRun` and `VerifyPending` (`main` moved on, and the newer commit's own `verify` run releases it). Every other refusal still fails the run, and the script's checks are unchanged. Manual dispatch stays, for a dry run or a retry. Tags keep the `vYYYY.MM.DD`, `.2`, `.3` scheme, so several merges in a day become several releases; the update card asks at most once a day, so users see no more prompts.
 Rejected: **A `/release` skill** — shortens the command but keeps the manual step. **A daily scheduled release** — a merged fix waits up to a day, for no saving the update card does not already give. **Releasing on a pushed tag, as HotCorners does** — moves the manual step to `git tag`, and a tag pushed by hand is signed by whoever pushed it rather than the release key.
 Reversibility: cheap. Removing the `workflow_run` trigger restores the manual workflow; `--skip-unready` is unused without it.
+
+---
+
+### 2026-10-27 — Portable conversation handoffs use a private Notes archive and manual host navigation
+
+Context: #495 asks for the smallest fork/attach/return slice before host capability, graph and memory integrations. The existing design's repository file list does not include conversation archives.
+
+Chosen: `/conversation` is an installed Markdown skill with a mechanical Node helper. An explicitly chosen, existing private Notes archive owns raw source bytes, source/coverage/role metadata, a versioned branch manifest and a generated General note indexed using the existing `/note` convention. It is an explicit extension of the allowed file surface, not a write to the caller's project. Stable branch and operation IDs, expected revisions, original-result receipts and a resumable pending write provide local recovery. The helper reports local writes as uncommitted; existing archive Git instructions own commit/push and their actual outcomes. Return renders a source-grounded packet and parent bookmark/link for manual navigation and copying. Captured text is data and grants no authority. No host messaging, graph projection, memory promotion, story publication, service or database is added.
+
+Rejected: native host automation before the capability inventory (#497); another graph store instead of the existing graph integration (Workspace #57); automatic memory extraction before the separate review workflow (#496); silently treating an excerpt or summary as the complete earlier transcript.
+
+Reversibility: cheap. Remove the skill/helper; the archive retains ordinary Markdown, byte-preserved sources and schema-versioned JSON. The lock is for one local machine, not cross-machine coordination in a synced folder.
