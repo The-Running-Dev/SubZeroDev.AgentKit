@@ -23,6 +23,9 @@ for (const command of ['next', 'fix']) {
     for (const text of [body, prompt]) {
       assert.match(text, /prose-only edit/i);
       assert.match(text, /few lines.*Criteria.*Verified/);
+      assert.match(text, /replaces the broad impact assessment and full PR evidence checklist/);
+      assert.match(text, /two short paragraphs/);
+      assert.match(text, /Do not append.*inapplicable.*absent.*checks/);
       assert.match(text, /Do not inventory unrelated/);
       assert.match(text, /not a reason to invent.*tracking|do not invent.*tracking/i);
       assert.match(text, /not run/);
