@@ -31,6 +31,8 @@ The rule it applies, for reading the plan by hand: a slice is a `## S<n>` headin
 - Branch in this worktree: `git switch -c slice/S<n>-<short-name> <Base>` for `Start`, `git switch <Branch>` for `Resume`. If git refuses the switch because uncommitted work would be overwritten, that is a blocker: stop and name the files.
 - `GuardedFiles` from step 1 are someone else's work in progress, guarded for the whole slice: never stage, commit, revert or reformat them. If the slice has to change one of them, that is a blocker: stop and name the file, rather than mixing that work into the slice. Every other file you change is the slice's: `get-next-slice.ts` recorded what was already dirty when the slice started, so after an interruption it hands your edits back as `OwnFiles` rather than guarding them.
 - Read the slice, `design/20-contract.md`, and the parts of `design/10-design.md` it touches. Read the code you are about to change in full.
+- **Before editing, assess impact.** Trace the changed behaviour through actual entry points, callers and downstream consumers, using imports, calls, schemas, configuration or generators as evidence. Inspect applicable interfaces, generated artifacts, persistence/migration boundaries, tests and documentation; for release-sensitive changes include deployment order, compatibility and rollback. Name inapplicable surfaces briefly; do not invent dependencies from directory names. Cite repository paths and symbols (or pinned external links). Separate observed edges, hypotheses and consumers you cannot verify within the authorized scope.
+- Keep that initial assessment with the working notes for the pull request's **Criteria** and **Verified** sections, not in a new tracking file. Map each criterion and affected edge to a meaningful regression check and its expected outcome; identify coverage gaps before implementation. A small or docs-only edit can use a few lines. Reuse the current design/slice authority. This assessment adds no orchestrator or mandatory delegation: when step 5 already calls for reviewers, give them the affected edges and checks to verify within that review budget.
 - Set the slice's risk — `LOW`, `MEDIUM` or `HIGH` (`AGENTS.shared.md` § *Review budget*) — from what it touches, not from its size. It goes in the pull request's *Verified* section and decides step 5's review.
 - For each acceptance criterion, write a test that fails first where the criterion can be tested, then implement until it passes. Stay inside the slice's `Out of scope:` line.
 - Where the code and the design disagree, do what works, keep going, and note it for the pull request (`AGENTS.shared.md` § *The design is the spec*).
@@ -52,6 +54,8 @@ Run the repository's gates. `node tools/test-gates-cache.ts --repo-root .` reads
 
 Then run the slice's entry point — what a user runs: the command, the installer, the script through its `main` — against a mock or a sandbox where it is destructive. Passing unit tests do not stand in for it, and a slice whose entry point was not run is not ready for review; say in *Verified* which of the five levels ran (`AGENTS.shared.md` § *Verification*).
 
+**Before opening the pull request or requesting review, reconcile impact.** Compare the actual diff against the initial assessment, then trace newly affected edges even when their consumers have no diff. Add or revise the relevant checks and run them; record their observed outcomes, remaining unverified consumers, justified exclusions and any scope change in **Criteria**/**Verified**. An unrelated passing test or a clean command exit is not evidence for an untested consumer. A newly found edge does not authorize adjacent work: keep the slice's scope, and report out-of-scope work through the existing issue/report path. On resume or after review corrections, refresh this reconciliation for the final diff before handing it back; this does not reset the review budget.
+
 Then run the design check, which is advisory and never a gate: `node tools/test-design.ts --repo-root .`. It is read-only and checks that what `design/`, the command files and `AGENTS.md` state about the tree is true — cited scripts and commands exist, the contract's tables match the scripts and skills, every slice has a `Status:` line. Exit 2 means there is no `design/` and nothing to check.
 
 - A reference **outside `design/`** that this slice broke — a skill citing a script the slice renamed — is the slice's own bug: fix it in this branch.
@@ -66,7 +70,7 @@ Commit by named path — never a guarded file (step 2) — `git diff --check`, p
 <one or two sentences: what a user can now do>
 
 ## Criteria
-- S<n>.1 — met: <the test or check that shows it>
+- S<n>.1 — met: <affected path/symbol → regression check → observed outcome>
 - S<n>.2 — ...
 
 ## Differs from design
@@ -74,6 +78,9 @@ Commit by named path — never a guarded file (step 2) — `git diff --check`, p
 
 ## Verified
 <each gate: passed / failed with its output / not run and why>
+Impact: <initial affected edges and evidence; observed / hypothesis / unverified>
+Reconciled: <actual diff vs initial assessment; new edges, checks and outcomes>
+Unknowns/exclusions: <unverified consumers or omitted checks and why, or none>
 Risk: <LOW | MEDIUM | HIGH> — <what it touches>
 Entry point: <the command run and its result, or not run and why>
 ```
