@@ -25,6 +25,8 @@ Filing happens **after** reproducing, never before — filing first would put an
 
 Read the source the defect lives in, and the parts of `design/20-contract.md` that govern it. A fix that needs a contract or schema change is still a fix: make it, and say so in the pull request's **Differs from design** section.
 
+Before editing, assess impact using `skills/next/SKILL.md` step 2's evidence convention: trace the defect and proposed fix through actual callers, applicable contracts and downstream consumers, including tests, generated artifacts, persistence and documentation where relevant. Include deployment/rollback for release-sensitive fixes. Keep observed edges, hypotheses and unverified consumers distinct, with paths/symbols or pinned external evidence, in the working notes for **Criteria**/**Verified**; a small fix needs only a few lines. Select regression checks for affected edges as well as the reproduction — fixing the original symptom alone does not establish consumer compatibility. This assessment does not replace the cause statement below or authorize adjacent fixes.
+
 ## Branch
 
 Derive `fix/<issue>-<slug>` from the issue number and title, **after the issue exists** — never before, since the branch name needs a real number.
@@ -51,6 +53,8 @@ Disproved by: <the evidence — the reproduction's output after the patch>
 ## Fix, then ship it
 
 Implement until the reproduction passes, then verify the regression test by reverting the fix and watching it fail. Then ship it exactly as `/next` ships a slice — `skills/next/SKILL.md` steps 3 to 5: local gates, a non-draft pull request (its **Criteria** section lists the reproduction instead of slice criteria, and it says `Fixes #<issue>`), CI, review threads, merge through `tools/merge-pull-request.ts`, and branch cleanup. No separate command, and no pause between them.
+
+Before opening the pull request or requesting review, apply step 3's impact reconciliation to the actual diff, including newly discovered callers and checks. In **Criteria**, map the reproduction and affected edges to checks and observed outcomes; in **Verified**, retain the initial evidence, final reconciliation, unknowns and justified exclusions. Refresh these after corrections before handing the final diff back. A clean command exit does not verify an untested downstream consumer. Keep the existing regression-revert proof, risk-based review budget and exact-SHA merge refusal unchanged; no separate regression ledger or mandatory multi-agent run is introduced.
 
 ## Never
 
