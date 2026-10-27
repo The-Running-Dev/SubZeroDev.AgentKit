@@ -1543,3 +1543,17 @@ Chosen: `/conversation` is an installed Markdown skill with a mechanical Node he
 Rejected: native host automation before the capability inventory (#497); another graph store instead of the existing graph integration (Workspace #57); automatic memory extraction before the separate review workflow (#496); silently treating an excerpt or summary as the complete earlier transcript.
 
 Reversibility: cheap. Remove the skill/helper; the archive retains ordinary Markdown, byte-preserved sources and schema-versioned JSON. The lock is for one local machine, not cross-machine coordination in a synced folder.
+
+---
+
+### 2026-10-27 — Branch memory extraction reviews selections privately and submits prepared MemoryKit requests
+
+Context: #496 follows the portable fork/attach/return slice. It needs source-grounded, individually reviewed proposals without another graph database, memory kind or acceptance workflow.
+
+Chosen: `/conversation memories propose|store` selects attributed handoff statements from a version 1 branch package. The helper validates exact source spans, preserves generated labels and coverage gaps, and writes review/retry JSON beside the private raw archive. Only explicitly selected eligible decisions, lessons or handoffs reach the existing MemoryKit adapter as unverified candidates. The adapter exposes read-only request preparation and normal submission so requests are saved before mutation and replay with their original host, expected revision and operation identity. Prepared selections can retry after later attachments; new selections require a current review. Corrections preserve superseded records and never refresh a conflicting revision without re-review. Acceptance, namespace rules, accepted-only context, 8192-byte default and 500-record context bound remain the existing adapter's responsibility. Public fixtures contain synthetic material only.
+
+Differs from design: `20-contract.md`'s frozen file/tool list predates conversation extraction. The new helper and private review/receipt JSON extend that surface; they are provenance and retry receipts, not a second memory backend. No design synchronization is performed during implementation.
+
+Rejected: bulk prompt/transcript capture; automatic candidate selection or acceptance; inventing a story/branch memory kind; rebuilding Graphify or the Workspace/context graph; silently changing an uncertain operation's identity or a correction's expected revision.
+
+Reversibility: cheap. Remove the orchestration command; archived sources/reviews remain ordinary private files and memories remain accessible through the established adapter.

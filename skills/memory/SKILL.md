@@ -15,6 +15,11 @@ Work with this project's memories in MemoryKit for **$ARGUMENTS**. Every action 
 
 ## Actions
 
+For reviewed extraction from an archived branch, use
+[`/conversation memories`](../conversation/SKILL.md). It proposes individual items
+privately, stores only explicitly selected candidates via this adapter and saves
+prepared requests for retry. It never accepts them; acceptance below is separate.
+
 - **remember** — `--kind decision|lesson|handoff --content "<one self-contained statement>"`, plus `--evidence <ref>` for each piece of support (a path in the repository, `commit:<sha or ref>`, `memory:<id>`, `transcript:<path>`, or a URL), `--reason "<why it is worth keeping>"`, and `--statement source` only when the content quotes its source verbatim (the default is `generated`). The memory is a **candidate**: it is kept but not used as context until accepted. Add `--accept` only when the user asked to accept it in the same request.
 - **recall** — `[--text <words>] [--limit <n>] [--include-candidates]`. Accepted, active memories of this project; candidates only with the flag.
 - **show** — `--id <id>`: one memory, including superseded ones and their `supersededBy`.

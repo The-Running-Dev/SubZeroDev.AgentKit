@@ -157,15 +157,28 @@ function write<E extends object = {}>(ctx: Context, args: string[], extra = {} a
   return { State: state, OperationId: r.value.operationId, Memory: item(current), History: r.value.history, HistoryPending: r.historyPending, ...extra };
 }
 
-export function remember(ctx: Context, input: WriteInput) {
+// Preparing is read-only. A caller may save this exact request before submitting it, so a
+// retry does not recompute provenance, evidence resolution or the operation identity.
+export interface PreparedWrite { namespace: string; args: string[]; superseded?: string }
+export function prepareRemember(ctx: Context, input: WriteInput): PreparedWrite {
   const w = writeParts(ctx, input, 'remember');
-  return write(ctx, ['create', `--namespace=${ctx.namespace}`, `--kind=${w.kind}`, `--content=${w.content}`, `--metadata=${JSON.stringify(w.metadata)}`, `--provenance=${JSON.stringify(w.provenance)}`, `--operation-id=${w.id}`]);
+  return { namespace: ctx.namespace, args: ['create', `--namespace=${ctx.namespace}`, `--kind=${w.kind}`, `--content=${w.content}`, `--metadata=${JSON.stringify(w.metadata)}`, `--provenance=${JSON.stringify(w.provenance)}`, `--operation-id=${w.id}`] };
 }
-export function correct(ctx: Context, id: string, expectedRevision: number, input: Omit<WriteInput, 'kind'> & { kind?: string }) {
+export function prepareCorrect(ctx: Context, id: string, expectedRevision: number, input: Omit<WriteInput, 'kind'> & { kind?: string }): PreparedWrite {
   const current = own(ctx, id), w = writeParts(ctx, { ...input, kind: input.kind ?? current.kind }, 'correct');
   // The corrected memory is always cited; it does not count towards the evidence status.
   const evidence = [...w.provenance.evidence.filter(e => e.ref !== `memory:${id}`), { ref: `memory:${id}`, note: 'corrected' }];
-  return write(ctx, ['supersede', id, `--expected-revision=${expectedRevision}`, `--kind=${w.kind}`, `--content=${w.content}`, `--metadata=${JSON.stringify(w.metadata)}`, `--provenance=${JSON.stringify({ ...w.provenance, evidence })}`, `--operation-id=${operationId(['correct', id, expectedRevision, w.id])}`], { Superseded: id });
+  return { namespace: ctx.namespace, superseded: id, args: ['supersede', id, `--expected-revision=${expectedRevision}`, `--kind=${w.kind}`, `--content=${w.content}`, `--metadata=${JSON.stringify(w.metadata)}`, `--provenance=${JSON.stringify({ ...w.provenance, evidence })}`, `--operation-id=${operationId(['correct', id, expectedRevision, w.id])}`] };
+}
+export function submitPrepared(ctx: Context, prepared: PreparedWrite) {
+  if (prepared.namespace !== ctx.namespace) throw new MemoryFailure({ code: 'NamespaceConflict', message: 'Prepared request belongs to another namespace.' });
+  return write(ctx, prepared.args, prepared.superseded ? { Superseded: prepared.superseded } : {});
+}
+export function remember(ctx: Context, input: WriteInput) {
+  return submitPrepared(ctx, prepareRemember(ctx, input));
+}
+export function correct(ctx: Context, id: string, expectedRevision: number, input: Omit<WriteInput, 'kind'> & { kind?: string }) {
+  return submitPrepared(ctx, prepareCorrect(ctx, id, expectedRevision, input));
 }
 export function accept(ctx: Context, id: string, expectedRevision?: number, verification?: string) {
   if (verification !== undefined && !['verified', 'disputed', 'unverified'].includes(verification)) throw new MemoryFailure({ code: 'InvalidVerification', message: '--verification takes verified, disputed or unverified.' });
