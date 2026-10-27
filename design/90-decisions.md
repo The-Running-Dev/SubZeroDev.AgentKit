@@ -1557,3 +1557,17 @@ Differs from design: `20-contract.md`'s frozen file/tool list predates conversat
 Rejected: bulk prompt/transcript capture; automatic candidate selection or acceptance; inventing a story/branch memory kind; rebuilding Graphify or the Workspace/context graph; silently changing an uncertain operation's identity or a correction's expected revision.
 
 Reversibility: cheap. Remove the orchestration command; archived sources/reviews remain ordinary private files and memories remain accessible through the established adapter.
+
+---
+
+### 2026-10-27 — Native conversation tools use archived outbox receipts and conservative unknown recovery
+
+Context: #497 builds on the portable branch packages (#495) and reviewed MemoryKit extraction (#496). Workspace #56's capability report remains open, and current Codex contracts expose create, same-directory fork, read and navigation, with no operation-ID creation lookup or native selective attachment API.
+
+Chosen: The existing conversation skill gains an opt-in host workflow. A small helper snapshots the selected package revision, parent, capabilities and intended call in private Notes before releasing it once. Dispatch durably records unknown before the caller invokes an existing supported tool. Confirmed native IDs, actual observations, definitive refusal and unknown outcomes stay separate. Retry never releases another creation; recovery reads an observed native ID when supported, otherwise remains manual/unknown. Full-history fork requires explicit human authorization; selected handoff remains the default. Optional parent.branchId names an existing immediate parent package; nested return resolves that parent's confirmed native reference and restores its saved bookmark/question. Navigation sends no message, and later source attachments do not rewrite native history. Workspace remains owner of graph projection and capability discovery; memory keeps the existing review/adapter tools. Public fixtures and supported-host smoke evidence are synthetic only.
+
+Differs from design: The frozen file/tool list predates native convenience. The helper, skill reference and private host-operation receipts extend the portable artifact surface; they are recovery metadata, not a daemon, chat service, graph database or memory store. No design synchronization is performed during implementation.
+
+Rejected: assuming MCP registration proves functional support; rebuilding retired graph tooling; arbitrary tool invocation or a new host transport; blind creation retry after timeout; inferring a native thread from a pending client ID; treating lookup existence as proof of navigation; automatic messaging or full-history cloning from quoted instructions.
+
+Reversibility: cheap. Remove the opt-in helper/workflow; portable packages, raw source boundaries and reviewed MemoryKit records remain usable through their existing tools. Host receipts remain ordinary private JSON with explicit unknown states.
