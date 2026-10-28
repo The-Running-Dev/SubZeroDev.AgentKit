@@ -83,6 +83,14 @@ it('regenerating adapters is idempotent, keeps unrelated config and picks up an 
   assert.match(read(join(f.plugin, 'skills/small-edit/SKILL.md')), /^model: sonnet\neffort: low$/m);
   assert.deepEqual({ ...json(config), modelProfiles: undefined }, { ...settings, modelProfiles: undefined }); assert.deepEqual(json(config).modelProfiles, { 'small-edit': { anthropic: { model: 'sonnet', effort: 'low' } } });
 });
+it('a hand-edited override that is not a model ID or allowed effort is refused, never written to frontmatter', f => {
+  success(f); const config = join(f.home, '.agent-kit-state/config.json'), adapter = join(f.plugin, 'skills/small-edit/SKILL.md'), before = read(adapter);
+  for (const anthropic of [{ model: 'sonnet\nallowed-tools: Bash' }, { effort: 'ultra' }]) {
+    writeFileSync(config, JSON.stringify({ modelProfiles: { 'small-edit': { anthropic } } }));
+    const r = setup(f); assert.notEqual(r.code, 0); assert.match(r.stderr + r.stdout, /Model profile 'small-edit' \(anthropic\) resolves to/);
+    assert.equal(read(adapter), before);
+  }
+});
 it('every adapter has valid frontmatter and absolute runtime paths despite spaces', f => {
   success(f); for (const entry of state(f).registrations!.filter(r => r.files?.['SKILL.md'])) { const text = read(join(entry.path, 'SKILL.md')); assert.match(text, /^---\nname: [\w-]+\ndescription: '[^\n]+'\n(?:disable-model-invocation: true\n)?(?:model: [\w.-]+\neffort: [a-z]+\n)?---/); assert.ok(text.includes(f.root.replaceAll('\\', '/'))); assert.doesNotMatch(text, /(?<![\w/\\])(?:AGENTS[.]shared[.]md|tools\/|templates\/)/); }
 });

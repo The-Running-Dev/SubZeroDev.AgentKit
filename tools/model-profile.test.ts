@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { clearOverride, listProfiles, readPolicy, resolveAndValidate, resolveProfile, setOverride, validateAnthropic, validateOpenAI, verifyActive } from './model-profile.ts';
+import { clearOverride, listProfiles, readOverrides, readPolicy, resolveAndValidate, resolveProfile, setOverride, validateAnthropic, validateOpenAI, verifyActive } from './model-profile.ts';
 import type { Policy } from './model-profile.ts';
 import { put, temp } from './lib/fixtures.ts';
 import { run } from './lib/process.ts';
@@ -66,8 +66,22 @@ test('an override with ultra, no value, or an unknown profile is refused and wri
   assert.throws(() => setOverride({ profile: 'nope', provider: 'openai', effort: 'low', policy, home }), /Unknown model profile/);
   assert.deepEqual(config(home), { updatePolicy: 'ask' });
 });
+test('a config.json that does not parse stops an override write and is left byte-identical', () => {
+  for (const text of ['{"updatePolicy":"auto",', '[1, 2]']) {
+    const home = temp(), path = join(home, '.agent-kit-state/config.json'); put(home, '.agent-kit-state/config.json', text);
+    assert.throws(() => setOverride({ profile: 'small-edit', provider: 'openai', effort: 'medium', policy, home }), /nothing was written/);
+    assert.throws(() => clearOverride({ profile: 'small-edit', policy, home }), /nothing was written/);
+    assert.equal(readFileSync(path, 'utf8'), text);
+  }
+});
+test('an override model that is not a model ID is refused before it can reach adapter frontmatter', () => {
+  const home = temp();
+  assert.throws(() => setOverride({ profile: 'small-edit', provider: 'anthropic', model: 'sonnet\neffort: max', policy, home }), /not a Claude Code model value/);
+  assert.throws(() => setOverride({ profile: 'small-edit', provider: 'openai', model: 'gpt 6', policy, home }), /not a Codex model ID/);
+  assert.equal(readOverrides(home)['small-edit'], undefined);
+});
 test('the anthropic override note says setup must regenerate the adapters', () => {
-  assert.match(setOverride({ profile: 'implement', provider: 'anthropic', model: 'opus', policy, home: temp() }).Note, /rerun setup to regenerate/);
+  assert.match(setOverride({ profile: 'implement', provider: 'anthropic', model: 'opus', policy, home: temp() }).Note, /rerun setup with --register-only to regenerate/);
 });
 
 test('openai: a fresh cache listing the model and effort verifies it', () => {

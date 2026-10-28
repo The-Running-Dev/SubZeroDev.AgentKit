@@ -35,6 +35,25 @@ export function effortProblem(effort: string): string | undefined {
   if (effort === 'ultra') return "Effort 'ultra' is not used by AgentKit task profiles: Codex describes it as maximum reasoning with automatic task delegation, which none of these profiles needs. Choose low, medium, high, xhigh or max.";
   if (!(efforts as readonly string[]).includes(effort)) return `Effort '${effort}' is not one of ${efforts.join(', ')}.`;
 }
+// The values that go into adapter frontmatter and Codex arguments: a model ID, never free text.
+const modelPatterns: Record<Provider, RegExp> = { anthropic: /^[a-z][a-z0-9.-]*(\[1m\])?$/i, openai: /^[a-z0-9][a-z0-9._-]*$/i };
+export function modelProblem(provider: Provider, model: string): string | undefined {
+  if (!modelPatterns[provider].test(model)) return provider === 'anthropic'
+    ? `'${model}' is not a Claude Code model value (an alias such as haiku, sonnet or opus, or a full claude-* ID).`
+    : `'${model}' is not a Codex model ID (letters, digits, '.', '_' and '-').`;
+}
+export function settingProblem(provider: Provider, setting: Setting): string | undefined {
+  return modelProblem(provider, setting.model) || effortProblem(setting.effort);
+}
+// Strict where the file is about to be rewritten: a missing file is empty, but one that does not
+// parse stops the write, so a hand-edit typo never costs every other setting in it.
+function readConfigForWrite(path: string): Record<string, any> {
+  if (!existsSync(path)) return {};
+  let value: unknown; try { value = JSON.parse(readFileSync(path, 'utf8')); } catch (error) { throw new Error(`'${path}' is not valid JSON (${(error as Error).message}). Fix or remove it, then retry; nothing was written.`); }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`'${path}' does not hold a JSON object. Fix or remove it, then retry; nothing was written.`);
+  return value as Record<string, any>;
+}
+const overridesIn = (config: Record<string, any>): Overrides => { const value = config.modelProfiles; return value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {}; };
 export function readPolicy(root = resolveKitRoot(import.meta.url)): Policy {
   const path = join(root, 'policy/model-profiles.json');
   let value: any; try { value = JSON.parse(readFileSync(path, 'utf8')); } catch (error) { throw new Error(`Model policy '${path}' is missing or not valid JSON: ${(error as Error).message}`); }
@@ -54,23 +73,22 @@ function providerOf(value: string): Provider {
   return value as Provider;
 }
 export function readOverrides(home = defaultHome()): Overrides {
-  const value = readState(configPath(home)).modelProfiles;
-  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return overridesIn(readState(configPath(home)));
 }
 // The namespaced modelProfiles key only; every other setting in config.json is kept as it was.
 export function setOverride(input: { profile: string; provider: string; model?: string; effort?: string; policy?: Policy; home?: string }) {
   const policy = input.policy || readPolicy(), provider = providerOf(input.provider); profileOf(policy, input.profile);
   const model = input.model?.trim(), effort = input.effort?.trim().toLowerCase();
   if (!model && !effort) throw new Error('--set-override needs --model, --effort or both.');
-  if (effort) { const problem = effortProblem(effort); if (problem) throw new Error(problem); }
-  const path = configPath(input.home || defaultHome()), config = readState(path), all: Overrides = { ...readOverrides(input.home || defaultHome()) };
+  const problem = (model && modelProblem(provider, model)) || (effort && effortProblem(effort)); if (problem) throw new Error(problem);
+  const path = configPath(input.home || defaultHome()), config = readConfigForWrite(path), all = overridesIn(config);
   all[input.profile] = { ...all[input.profile], [provider]: { ...all[input.profile]?.[provider], ...(model ? { model } : {}), ...(effort ? { effort } : {}) } };
   config.modelProfiles = all; saveState(path, config);
   return { Profile: input.profile, Provider: provider, Override: all[input.profile][provider], Path: path, Note: applyNote(provider) };
 }
 export function clearOverride(input: { profile: string; provider?: string; policy?: Policy; home?: string }) {
   const policy = input.policy || readPolicy(); profileOf(policy, input.profile);
-  const provider = input.provider ? providerOf(input.provider) : undefined, path = configPath(input.home || defaultHome()), config = readState(path), all: Overrides = { ...readOverrides(input.home || defaultHome()) };
+  const provider = input.provider ? providerOf(input.provider) : undefined, path = configPath(input.home || defaultHome()), config = readConfigForWrite(path), all = overridesIn(config);
   if (provider && all[input.profile]) { const rest = { ...all[input.profile] }; delete rest[provider]; all[input.profile] = rest; }
   if (!provider || !Object.keys(all[input.profile] || {}).length) delete all[input.profile];
   if (Object.keys(all).length) config.modelProfiles = all; else delete config.modelProfiles;
@@ -78,7 +96,7 @@ export function clearOverride(input: { profile: string; provider?: string; polic
   return { Profile: input.profile, Provider: provider || 'all', Cleared: true, Path: path, Note: applyNote(provider) };
 }
 function applyNote(provider?: Provider) {
-  const claude = 'Claude skills take their model from the adapter written at setup: rerun setup to regenerate them, or the installed skill keeps its previous model.';
+  const claude = 'Claude skills take their model from the adapter written at setup: rerun setup with --register-only to regenerate them, or the installed skill keeps its previous model.';
   const codex = 'The routed Codex launcher reads this on every launch.';
   return provider === 'anthropic' ? claude : provider === 'openai' ? codex : `${claude} ${codex}`;
 }
@@ -120,8 +138,7 @@ export const family = (model: string) => /\b(?:claude-)?(haiku|sonnet|opus|fable
 // Claude Code keeps no model catalogue on disk, so a value that passes is still only unverified:
 // the host decides when the skill loads, and --verify-active reads what it chose.
 export function validateAnthropic(setting: Setting, env = process.env, platform = process.platform) {
-  const problem = effortProblem(setting.effort); if (problem) return { Validation: 'refused', Detail: problem };
-  if (!/^[a-z][a-z0-9.-]*(\[1m\])?$/i.test(setting.model)) return { Validation: 'refused', Detail: `'${setting.model}' is not a Claude Code model value (an alias such as haiku, sonnet or opus, or a full claude-* ID).` };
+  const problem = effortProblem(setting.effort) || modelProblem('anthropic', setting.model); if (problem) return { Validation: 'refused', Detail: problem };
   for (const path of [join(defaultHome(env), '.claude/settings.json'), managedSettingsPath(platform)]) {
     const allowed = readState(path).availableModels;
     if (Array.isArray(allowed) && !allowed.some((m: unknown) => typeof m === 'string' && (m === setting.model || (!!family(m) && family(m) === family(setting.model)))))
@@ -135,7 +152,7 @@ export function validate(provider: Provider, setting: Setting, env = process.env
 function appliesThrough(provider: Provider, explicit: boolean) {
   if (provider === 'openai') return { Applicable: true, Through: 'The routed Codex launcher (/<profile>-routed, or start-agentkit-codex.ts --model/--effort) passes these as -m and model_reasoning_effort. A native Codex session keeps its own model and effort.' };
   return explicit
-    ? { Applicable: false, Through: "A Claude skill's model and effort are fixed in its adapter frontmatter when setup generates it, so a per-call value cannot change a skill that is already loaded. Set it with --set-override and rerun setup, or switch this session with /model." }
+    ? { Applicable: false, Through: "A Claude skill's model and effort are fixed in its adapter frontmatter when setup generates it, so a per-call value cannot change a skill that is already loaded. Set it with --set-override and rerun setup with --register-only, or switch this session with /model." }
     : { Applicable: true, Through: "The skill adapter's model and effort frontmatter, written when setup generates it. It applies for the rest of the turn that invokes the skill, if the host accepts it." };
 }
 export function resolveAndValidate(input: { profile: string; provider: string; model?: string; effort?: string; policy?: Policy; home?: string; env?: NodeJS.ProcessEnv }) {
@@ -163,7 +180,7 @@ export function verifyActive(input: { profile: string; model?: string; effort?: 
   const resolved = resolveProfile({ profile: input.profile, provider: 'anthropic', policy: input.policy, home });
   const requested = { model: input.model?.trim() || resolved.Resolved.model, effort: input.effort?.trim().toLowerCase() || resolved.Resolved.effort };
   const stale = requested.model !== resolved.Resolved.model || requested.effort !== resolved.Resolved.effort;
-  const base = { Profile: input.profile, Provider: 'anthropic', Requested: requested, Resolved: resolved.Resolved, Source: resolved.Source, ...(stale ? { RegenerationNeeded: `The adapter requested '${show(requested)}' but policy and config now resolve to '${show(resolved.Resolved)}'. Rerun setup to regenerate it.` } : {}) };
+  const base = { Profile: input.profile, Provider: 'anthropic', Requested: requested, Resolved: resolved.Resolved, Source: resolved.Source, ...(stale ? { RegenerationNeeded: `The adapter requested '${show(requested)}' but policy and config now resolve to '${show(resolved.Resolved)}'. Rerun setup with --register-only to regenerate it.` } : {}) };
   const sessionId = env.CLAUDE_CODE_SESSION_ID;
   if (!sessionId) return { ...base, Active: null, ModelMatch: null, Detail: 'No CLAUDE_CODE_SESSION_ID: not running inside Claude Code, so the active model cannot be read.' };
   const active = activeClaudeModel(sessionId, home);

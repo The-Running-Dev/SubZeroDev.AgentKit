@@ -9,8 +9,8 @@ import { parseOptions } from './lib/options.ts';
 import { isMain, main, writeJson } from './lib/runtime.ts';
 import { stableTags } from './get-agentkit-skill.ts';
 import { configPath } from './memorykit.ts';
-import { readPolicy, resolveProfile } from './model-profile.ts';
-import type { Policy, Setting } from './model-profile.ts';
+import { readPolicy, resolveProfile, settingProblem } from './model-profile.ts';
+import type { Policy, Provider, Setting } from './model-profile.ts';
 
 export const options = {
   version: { type: 'string' }, source: { type: 'string' }, hosts: { type: 'string', multiple: true },
@@ -102,7 +102,12 @@ export function legacyHook(group: unknown, root: string) {
 export interface TaskAdapter { claude: Setting; openai: Setting; expensive?: boolean }
 export function taskAdapter(policy: Policy, skill: string, home: string): TaskAdapter | undefined {
   if (!Object.hasOwn(policy.profiles, skill)) return undefined;
-  const resolved = (provider: string) => resolveProfile({ profile: skill, provider, policy, home }).Resolved;
+  // Policy is checked when read, but a config override is hand-editable: refuse it before it reaches frontmatter.
+  const resolved = (provider: Provider) => {
+    const setting = resolveProfile({ profile: skill, provider, policy, home }).Resolved, problem = settingProblem(provider, setting);
+    if (problem) throw new Error(`Model profile '${skill}' (${provider}) resolves to '${setting.model} · ${setting.effort}': ${problem} Fix the modelProfiles override in ~/.agent-kit-state/config.json, or clear it with tools/model-profile.ts --clear-override.`);
+    return setting;
+  };
   return { claude: resolved('anthropic'), openai: resolved('openai'), expensive: !!policy.profiles[skill].expensive };
 }
 export function adapter(root: string, name: string, registrationName: string, host: Host, routed: boolean, task?: TaskAdapter) {
@@ -146,7 +151,7 @@ Report requested, resolved and verified active separately, as that output gives 
 call the profile applied unless the active model matched. A different model or effort for this
 one call cannot be applied here: say so, and say that a lasting change is
 \`node "${root}/tools/model-profile.ts" --set-override --profile ${name} --provider anthropic --model <id>\`
-followed by rerunning setup.${task.expensive ? ' This profile is expensive; it runs only because the user invoked it, and nothing escalates beyond it automatically.' : ''}` : host === 'codex' ? `
+followed by \`node "${root}/setup.ts" --register-only\` to regenerate this adapter.${task.expensive ? ' This profile is expensive; it runs only because the user invoked it, and nothing escalates beyond it automatically.' : ''}` : host === 'codex' ? `
 
 Model profile \`${name}\` recommends ${task.openai.model} at ${task.openai.effort} effort. That is a
 recommendation, not applied: this session keeps its own model. To run on the profile, use \`/${registrationName}-routed\`.` : `

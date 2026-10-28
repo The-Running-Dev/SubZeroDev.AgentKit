@@ -25,7 +25,7 @@ Three different things, always reported separately:
 
 | Host | How a profile applies | Per-call override |
 |---|---|---|
-| **Claude Code** | The plugin adapter's `model:` and `effort:` frontmatter, written when setup generates it. It applies for the turn that invokes the skill — if the host accepts it. Organisation policy, `availableModels` or auto mode can refuse the model; environment settings or caps can change the effort. | Not applicable to a loaded skill. Set an override and rerun setup, or switch the session with `/model`. |
+| **Claude Code** | The plugin adapter's `model:` and `effort:` frontmatter, written when setup generates it. It applies for the turn that invokes the skill — if the host accepts it. Organisation policy, `availableModels` or auto mode can refuse the model; environment settings or caps can change the effort. | Not applicable to a loaded skill. Set an override and rerun `node setup.ts --register-only`, or switch the session with `/model`. |
 | **Codex, routed** (`/<name>-routed`, `start-agentkit-codex.ts`) | The launcher passes `-m <model>` and `-c model_reasoning_effort=<effort>` to a new Codex process. | `--model` and `--effort` on the launcher, applied and reported as `explicit`. |
 | **Codex, native** (`/<name>`) | Recommendation only. The session keeps its own model. | — |
 | **Copilot** | Recommendation only, for both providers. | — |
@@ -81,10 +81,10 @@ Run a task on its profile from a Codex host — the routed adapter does this for
 node tools/invoke-codex-command.ts --command small-edit --dry-run
 ```
 
-Open a new Codex window on a profile, with an explicit model for this call (the arguments file holds the task text):
+Open a new Codex window on a profile, with an explicit model for this call. The arguments file is a JSON array of strings, the task text, such as `["Add a pause menu to the title screen"]`:
 
 ```bash
-node tools/start-agentkit-codex.ts --command implement --arguments-file task.txt --model gpt-6.1-terra --effort high
+node tools/start-agentkit-codex.ts --command implement --arguments-file args.json --model gpt-6.1-terra --effort high
 ```
 
 Make `small-edit` run on Sonnet at low effort under Claude Code, then regenerate the adapters so the frontmatter carries it:
@@ -94,10 +94,10 @@ node tools/model-profile.ts --set-override --profile small-edit --provider anthr
 ```
 
 ```bash
-node setup.ts
+node setup.ts --register-only
 ```
 
-Remove that override (both providers when `--provider` is left out), then rerun setup:
+Remove that override (both providers when `--provider` is left out), then regenerate the adapters the same way:
 
 ```bash
 node tools/model-profile.ts --clear-override --profile small-edit --provider anthropic
@@ -112,7 +112,7 @@ When a provider renames, adds or retires a model:
 1. Edit `policy/model-profiles.json`: change the `model` or `effort` for the affected profiles and provider. Claude entries use the family aliases (`haiku`, `sonnet`, `opus`), which follow the latest model in each family; pin a full `claude-*` ID only when you need a fixed version.
 2. Set `reviewed` to today's date.
 3. Run `node tools/model-profile.ts --profile <name> --provider openai` for each changed OpenAI profile. Start Codex once first if the cache is stale, so the check runs against a fresh cache.
-4. Rerun setup, so the Claude frontmatter and the Codex and Copilot recommendations pick up the change.
+4. Run `node setup.ts --register-only`, so the Claude frontmatter and the Codex and Copilot recommendations pick up the change.
 5. Run `npm test`.
 
 A change that is only for you goes in an override, not the policy.
