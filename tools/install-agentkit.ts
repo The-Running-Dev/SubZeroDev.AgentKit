@@ -427,11 +427,16 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     const hosts = [...new Set(input.hosts?.length ? input.hosts : (['claude', 'codex', 'copilot'] as Host[]).filter(h => existsSync(hostRoot(h)) || findExecutable(h, env) || (h === 'copilot' && existsSync(join(home, '.agents')))))];
     if (!hosts.length) plan('No supported host detected. Pass --hosts claude, codex, or copilot explicitly.');
     registrations.push(...oldRegistrations.filter(r => !hosts.includes(r.host)));
-    const registerFiles = (host: Host, name: string, path: string, content: Record<string, string>) => {
+    const registration = (host: Host, name: string, path: string, content: Record<string, string>) => {
       const files = { ...content, '.agentkit-owner': `AgentKit registration\nRoot: ${root}\nHost: ${host}\nName: ${name}\n` };
+      const entry: Registration = { host, name, path, root, kind: 'files', files: Object.fromEntries(Object.entries(files).map(([name, text]) => [name, hash(text)])) };
+      return { files, entry };
+    };
+    const registerFiles = (host: Host, name: string, path: string, content: Record<string, string>) => {
+      const { files, entry } = registration(host, name, path, content);
       plan(`Register ${host}/${name} -> ${root}`);
       for (const [name, text] of Object.entries(files)) save(join(path, name), text);
-      registrations.push({ host, name, path, root, kind: 'files', files: Object.fromEntries(Object.entries(files).map(([name, text]) => [name, hash(text)])) });
+      registrations.push(entry);
     };
     for (const host of hosts) {
       const desired: string[] = [];
@@ -453,10 +458,15 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
       for (const skill of skills) for (const routed of host === 'codex' ? [false, true] : [false]) {
         const task = tasks.get(skill);
         const name = prefix + skill + (routed ? '-routed' : ''), path = join(host === 'claude' ? pluginRoot : hostRoot(host), 'skills', name);
-        desired.push(path); const old = oldRegistrations.find(r => r.path === path), item = stat(path);
-        if (item && !(old && owned(old, root))) { collision(path); if (old) registrations.push(old); continue; }
-        if (item && old?.kind === 'link') removeRegistration(old);
-        registerFiles(host, name, path, { 'SKILL.md': adapter(root, skill, name, host, routed, task) });
+        desired.push(path); const old = oldRegistrations.find(r => r.path === path), item = stat(path), content = { 'SKILL.md': adapter(root, skill, name, host, routed, task) };
+        // A folder already holding exactly the bytes this run writes is ours whatever the manifest says:
+        // release v2026.10.28 rewrote adapters mid-loop and could stop before recording their hashes.
+        if (item && !(old && owned(old, root))) {
+          if (!owned(registration(host, name, path, content).entry, root)) { collision(path); if (old) registrations.push(old); continue; }
+          plan(`Adopt '${path}': it already holds exactly the files this setup writes.`);
+        }
+        if (item?.isSymbolicLink() && old?.kind === 'link') removeRegistration(old);
+        registerFiles(host, name, path, content);
       }
       oldRegistrations.filter(r => r.host === host && !desired.includes(r.path)).forEach(removeRegistration);
       updatePointer(rulesPath(host));

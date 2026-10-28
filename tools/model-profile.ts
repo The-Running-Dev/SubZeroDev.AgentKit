@@ -131,32 +131,75 @@ export function validateOpenAI(setting: Setting, env = process.env, now = Date.n
     ? { Validation: 'unverified', Cache, Detail: `'${show(setting)}' is listed, but only in a stale cache.${staleNote}` }
     : { Validation: 'verified', Cache, Detail: `'${show(setting)}' is listed in the Codex model cache fetched ${cache.fetched_at}.` };
 }
-export function managedSettingsPath(platform = process.platform) {
-  return platform === 'win32' ? 'C:/Program Files/ClaudeCode/managed-settings.json' : platform === 'darwin' ? '/Library/Application Support/ClaudeCode/managed-settings.json' : '/etc/claude-code/managed-settings.json';
+export function managedSettingsDir(platform = process.platform) {
+  return platform === 'win32' ? 'C:/Program Files/ClaudeCode' : platform === 'darwin' ? '/Library/Application Support/ClaudeCode' : '/etc/claude-code';
+}
+const strings = (value: unknown) => Array.isArray(value) ? value.filter((m: unknown): m is string => typeof m === 'string') : undefined;
+// Claude Code's file-based managed source: managed-settings.json, then managed-settings.d/*.json in
+// name order; lists combine and a later single value replaces an earlier one. Remote, MDM and
+// registry sources are not read here, and Claude Code ranks them above these files. Invalid values
+// fail the way Claude Code fails them: availableModels closed (an empty list), availableModelsMatch
+// as "exact", deniedModels dropped.
+export function managedModelSettings(dir = managedSettingsDir()) {
+  const drop = join(dir, 'managed-settings.d');
+  const files = [join(dir, 'managed-settings.json'), ...(existsSync(drop) ? readdirSync(drop).filter(n => n.endsWith('.json') && !n.startsWith('.')).sort().map(n => join(drop, n)) : [])];
+  const found: { availableModels?: string[]; deniedModels?: string[]; availableModelsMatch?: string; Sources: Record<string, string[]> } = { Sources: {} };
+  let closed = false;
+  for (const file of files) {
+    const settings = readState(file);
+    for (const key of ['availableModels', 'deniedModels'] as const) {
+      const list = strings(settings[key]);
+      if (list) { found[key] = [...new Set([...(found[key] || []), ...list])]; (found.Sources[key] ||= []).push(file); }
+      else if (key === 'availableModels' && settings[key] != null) { closed = true; (found.Sources[key] ||= []).push(file); }
+    }
+    if (settings.availableModelsMatch != null) { found.availableModelsMatch = settings.availableModelsMatch === 'prefix' ? 'prefix' : 'exact'; found.Sources.availableModelsMatch = [file]; }
+  }
+  if (closed) found.availableModels = [];
+  return found;
 }
 export const family = (model: string) => /\b(?:claude-)?(haiku|sonnet|opus|fable)\b/i.exec(model)?.[1].toLowerCase();
-const aliases = ['haiku', 'sonnet', 'opus', 'fable'];
+const aliases = ['haiku', 'sonnet', 'opus', 'fable'], ignored = ['best', 'opusplan', 'default'];
+const bare = (m: string) => m.toLowerCase().replace(/\[1m\]$/, '');
+const dated = (entry: string, id: string) => id.startsWith(entry + '-') && /^\d{8}$/.test(id.slice(entry.length + 1));
 // Claude Code's availableModels rules: a family alias permits the family; a version prefix permits
 // itself and IDs extending it by another segment; a full ID permits itself. Listing a prefix or ID
 // in a family disables that family's alias entry. A requested alias lands on the newest permitted
 // version of its family, so it passes when the list permits any. [1m] does not change the model.
-export function availableModelsAllow(list: string[], model: string) {
-  const bare = (m: string) => m.toLowerCase().replace(/\[1m\]$/, '');
-  const entries = list.map(bare), wanted = bare(model), wantedFamily = family(wanted);
+// availableModelsMatch "exact" narrows a model ID entry to that version and its dated ID.
+export function availableModelsAllow(list: string[], model: string, exact = false) {
+  const entries = list.map(bare).filter(e => !exact || !ignored.includes(e)), wanted = bare(model), wantedFamily = family(wanted);
   if (aliases.includes(wanted)) return entries.some(e => family(e) === wanted);
   const specific = entries.filter(e => !aliases.includes(e));
-  if (specific.some(e => wanted === e || wanted.startsWith(e + '-'))) return true;
+  if (specific.some(e => wanted === e || (exact ? dated(e, wanted) : wanted.startsWith(e + '-')))) return true;
   return !!wantedFamily && entries.includes(wantedFamily) && !specific.some(e => family(e) === wantedFamily);
+}
+// Claude Code's deniedModels rules: a family alias blocks the family; a model ID blocks that version
+// in every spelling (dated, Bedrock-prefixed) and, without a minor version, later minor versions
+// too; an entry ending -0 blocks only the version without a minor. A requested alias is blocked
+// only when its family is; otherwise it lands on a version no entry blocks. With prefix set, the
+// model is a prefix standing for every ID that extends it, so an entry ending -0 never covers it.
+export function deniedModelsBlock(list: string[], model: string, prefix = false) {
+  const entries = list.map(bare).filter(e => !ignored.includes(e)), wanted = bare(model);
+  if (aliases.includes(wanted)) return entries.includes(wanted);
+  const id = wanted.replace(/^[a-z0-9.-]*?anthropic\./, '').replace(/-v\d+$/, '');
+  return entries.some(e => aliases.includes(e) ? family(id) === e
+    : id === e || id.startsWith(e + '-') || (!prefix && e.endsWith('-0') && (id === e.slice(0, -2) || dated(e.slice(0, -2), id))));
 }
 // Claude Code keeps no model catalogue on disk, so a value that passes is still only unverified:
 // the host decides when the skill loads, and --verify-active reads what it chose.
-export function validateAnthropic(setting: Setting, env = process.env, platform = process.platform) {
+// A managed availableModels list replaces the user's; deniedModels and availableModelsMatch are
+// read from managed settings only, as Claude Code does.
+export function validateAnthropic(setting: Setting, env = process.env, platform = process.platform, managedDir = managedSettingsDir(platform)) {
   const problem = effortProblem(setting.effort) || modelProblem('anthropic', setting.model); if (problem) return { Validation: 'refused', Detail: problem };
-  for (const path of [join(defaultHome(env), '.claude/settings.json'), managedSettingsPath(platform)]) {
-    const allowed = readState(path).availableModels;
-    if (Array.isArray(allowed) && !availableModelsAllow(allowed.filter((m: unknown): m is string => typeof m === 'string'), setting.model))
-      return { Validation: 'refused', Detail: `'${setting.model}' is not in availableModels in ${path}; Claude Code would not use it.` };
-  }
+  const managed = managedModelSettings(managedDir), user = join(defaultHome(env), '.claude/settings.json');
+  const denied = managed.deniedModels || [], where = (key: string) => managed.Sources[key].join(', ');
+  if (deniedModelsBlock(denied, setting.model)) return { Validation: 'refused', Detail: `'${setting.model}' is blocked by deniedModels in ${where('deniedModels')}; Claude Code would not use it.` };
+  const [list, from] = managed.availableModels ? [managed.availableModels, where('availableModels')] : [strings(readState(user).availableModels), user];
+  const exact = !!managed.availableModels && managed.availableModelsMatch === 'exact';
+  // An alias passes only through an entry that deniedModels leaves standing.
+  const usable = aliases.includes(bare(setting.model)) ? list?.filter(e => !deniedModelsBlock(denied, e, !exact)) : list;
+  if (usable && !availableModelsAllow(usable, setting.model, exact))
+    return { Validation: 'refused', Detail: `'${setting.model}' is not permitted by availableModels in ${from}; Claude Code would not use it.` };
   return { Validation: 'unverified', Detail: 'Claude Code keeps no model catalogue on disk, and organisation policy, auto mode or effort caps can still change what runs. Verify after loading with --verify-active.' };
 }
 export function validate(provider: Provider, setting: Setting, env = process.env) {

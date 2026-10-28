@@ -53,6 +53,15 @@ The routed launcher checks the model and effort together against `~/.codex/model
 
 The cache is evidence, not authority.
 
+### Claude Code's model settings
+
+Claude Code keeps no model catalogue on disk, so a Claude model is at best `unverified`. Setup refuses one that Claude Code's own settings would reject:
+
+- **`deniedModels`** in the managed settings files — `managed-settings.json` and `managed-settings.d/*.json` in the system's managed folder.
+- **`availableModels`** — the managed list when one is set, otherwise the list in `~/.claude/settings.json`. A managed `availableModelsMatch: "exact"` narrows a model ID entry to that version and its dated ID.
+
+Server-delivered, MDM and registry policies are not read; Claude Code still applies them.
+
 ### `ultra` effort
 
 `ultra` is refused for every task profile. Codex describes it as maximum reasoning with automatic task delegation, which none of these profiles needs.
