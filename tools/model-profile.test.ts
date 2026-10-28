@@ -107,6 +107,12 @@ test('openai: a missing or unreadable cache is reported, not treated as a pass',
   assert.deepEqual([validateOpenAI({ model: 'gpt-6-luna', effort: 'low' }, codexEnv(), now)].map(r => [r.Validation, r.Cache?.State]), [['unverified', 'missing']]);
   assert.deepEqual([validateOpenAI({ model: 'gpt-6-luna', effort: 'low' }, codexEnv('{not json'), now)].map(r => [r.Validation, r.Cache?.State]), [['unverified', 'unreadable']]);
 });
+test('openai: a model value that is not a model ID is refused before the cache is consulted', () => {
+  for (const env of [codexEnv(cache()), codexEnv()]) {
+    const r = validateOpenAI({ model: 'gpt 6', effort: 'low' }, env, now);
+    assert.equal(r.Validation, 'refused'); assert.match(r.Detail, /not a Codex model ID/); assert.equal(r.Cache, undefined);
+  }
+});
 test('ultra is refused even where the cache lists it', () => {
   const r = validateOpenAI({ model: 'gpt-6-astra', effort: 'ultra' }, codexEnv(cache()), now);
   assert.equal(r.Validation, 'refused'); assert.match(r.Detail, /automatic task delegation/);
@@ -124,6 +130,29 @@ test('anthropic: availableModels refuses a model the host would not use, matchin
   assert.equal(validateAnthropic({ model: 'haiku', effort: 'low' }, env, 'linux').Validation, 'refused');
   assert.equal(validateAnthropic({ model: 'sonnet', effort: 'low' }, env, 'linux').Validation, 'unverified');
   assert.equal(validateAnthropic({ model: 'claude-opus-5-5', effort: 'low' }, env, 'linux').Validation, 'unverified');
+});
+test("anthropic: availableModels follows Claude Code's alias, version-prefix and full-ID rules", () => {
+  const cases: [string[], string, boolean][] = [
+    [['claude-sonnet-4-5'], 'claude-sonnet-4-6', false],
+    [['claude-sonnet-4-5'], 'claude-sonnet-4-5', true],
+    [['claude-sonnet-4-5'], 'claude-sonnet-4-5-20250929', true],
+    [['claude-sonnet-4-5-20250929'], 'claude-sonnet-4-5', false],
+    [['claude-fable-5'], 'claude-fable-5-1', true],
+    [['claude-fable-5-1'], 'claude-fable-5', false],
+    [['sonnet'], 'claude-sonnet-4-6', true],
+    [['sonnet', 'claude-sonnet-4-5'], 'claude-sonnet-4-6', false],
+    [['sonnet', 'claude-sonnet-4-5'], 'claude-sonnet-4-5-20250929', true],
+    [['sonnet', 'claude-opus-4-6'], 'opus', true],
+    [['sonnet', 'claude-opus-4-6'], 'claude-opus-4-7', false],
+    [['sonnet'], 'haiku', false],
+    [['Sonnet'], 'sonnet[1m]', true],
+    [['claude-opus-4-6'], 'claude-opus-4-6[1m]', true],
+    [[], 'sonnet', false],
+  ];
+  for (const [availableModels, model, allowed] of cases) {
+    const home = temp(); put(home, '.claude/settings.json', JSON.stringify({ availableModels }));
+    assert.equal(validateAnthropic({ model, effort: 'low' }, { HOME: home, USERPROFILE: home }, 'linux').Validation, allowed ? 'unverified' : 'refused', `${model} against ${JSON.stringify(availableModels)}`);
+  }
 });
 test('an explicit Claude value is reported as not applicable to an already-loaded skill', () => {
   const env = { HOME: temp(), USERPROFILE: '' };

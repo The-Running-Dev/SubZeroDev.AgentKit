@@ -113,7 +113,7 @@ export function resolveProfile(input: { profile: string; provider: string; model
   };
 }
 export function validateOpenAI(setting: Setting, env = process.env, now = Date.now()) {
-  const problem = effortProblem(setting.effort); if (problem) return { Validation: 'refused', Detail: problem };
+  const problem = settingProblem('openai', setting); if (problem) return { Validation: 'refused', Detail: problem };
   const path = join(env.CODEX_HOME || join(defaultHome(env), '.codex'), 'models_cache.json');
   if (!existsSync(path)) return { Validation: 'unverified', Cache: { Path: path, State: 'missing' }, Detail: `No Codex model cache at ${path}, so '${show(setting)}' goes to Codex unchecked; Codex reports an unknown model when it starts.` };
   let cache: any; try { cache = JSON.parse(readFileSync(path, 'utf8')); } catch (error) { return { Validation: 'unverified', Cache: { Path: path, State: 'unreadable' }, Detail: `The Codex model cache could not be read (${(error as Error).message}), so '${show(setting)}' goes to Codex unchecked.` }; }
@@ -135,13 +135,26 @@ export function managedSettingsPath(platform = process.platform) {
   return platform === 'win32' ? 'C:/Program Files/ClaudeCode/managed-settings.json' : platform === 'darwin' ? '/Library/Application Support/ClaudeCode/managed-settings.json' : '/etc/claude-code/managed-settings.json';
 }
 export const family = (model: string) => /\b(?:claude-)?(haiku|sonnet|opus|fable)\b/i.exec(model)?.[1].toLowerCase();
+const aliases = ['haiku', 'sonnet', 'opus', 'fable'];
+// Claude Code's availableModels rules: a family alias permits the family; a version prefix permits
+// itself and IDs extending it by another segment; a full ID permits itself. Listing a prefix or ID
+// in a family disables that family's alias entry. A requested alias lands on the newest permitted
+// version of its family, so it passes when the list permits any. [1m] does not change the model.
+export function availableModelsAllow(list: string[], model: string) {
+  const bare = (m: string) => m.toLowerCase().replace(/\[1m\]$/, '');
+  const entries = list.map(bare), wanted = bare(model), wantedFamily = family(wanted);
+  if (aliases.includes(wanted)) return entries.some(e => family(e) === wanted);
+  const specific = entries.filter(e => !aliases.includes(e));
+  if (specific.some(e => wanted === e || wanted.startsWith(e + '-'))) return true;
+  return !!wantedFamily && entries.includes(wantedFamily) && !specific.some(e => family(e) === wantedFamily);
+}
 // Claude Code keeps no model catalogue on disk, so a value that passes is still only unverified:
 // the host decides when the skill loads, and --verify-active reads what it chose.
 export function validateAnthropic(setting: Setting, env = process.env, platform = process.platform) {
   const problem = effortProblem(setting.effort) || modelProblem('anthropic', setting.model); if (problem) return { Validation: 'refused', Detail: problem };
   for (const path of [join(defaultHome(env), '.claude/settings.json'), managedSettingsPath(platform)]) {
     const allowed = readState(path).availableModels;
-    if (Array.isArray(allowed) && !allowed.some((m: unknown) => typeof m === 'string' && (m === setting.model || (!!family(m) && family(m) === family(setting.model)))))
+    if (Array.isArray(allowed) && !availableModelsAllow(allowed.filter((m: unknown): m is string => typeof m === 'string'), setting.model))
       return { Validation: 'refused', Detail: `'${setting.model}' is not in availableModels in ${path}; Claude Code would not use it.` };
   }
   return { Validation: 'unverified', Detail: 'Claude Code keeps no model catalogue on disk, and organisation policy, auto mode or effort caps can still change what runs. Verify after loading with --verify-active.' };

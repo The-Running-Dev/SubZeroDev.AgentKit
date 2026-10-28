@@ -17,7 +17,7 @@ function fixture() {
   for (const dir of [origin, home, project]) mkdirSync(dir, { recursive: true });
   const files = ['setup.ts', 'package.json', 'tools/package.json', 'AGENTS.shared.md', 'policy/model-profiles.json'];
   for (const dir of ['tools', 'tools/lib']) for (const name of readdirSync(join(kit, dir))) if (name.endsWith('.ts') && !name.endsWith('.test.ts')) files.push(dir + '/' + name);
-  for (const name of ['next', 'fix', 'align', 'small-edit']) files.push(`skills/${name}/SKILL.md`);
+  for (const name of ['next', 'fix', 'align', 'asset-craft', 'small-edit']) files.push(`skills/${name}/SKILL.md`);
   for (const path of files) put(origin, path, read(join(kit, path)));
   put(origin, 'templates/example.md', 'template'); put(origin, 'AGENTS.md', 'PROJECT-ONLY-RULE-MUST-NOT-LOAD-GLOBALLY'); put(project, 'keep.txt', 'project stays unchanged');
   git(origin, 'init', '-q', '-b', 'main'); git(origin, 'add', ...files, 'templates/example.md', 'AGENTS.md'); git(origin, 'commit', '-qm', 'fixture'); git(origin, 'tag', 'v2026.09.17');
@@ -43,7 +43,7 @@ function it(name: string, action: (f: Fixture) => void) { test(name, () => { con
 // One case for each of the original 38 Pester It blocks.
 it('fresh setup uses selected installer and registers all hosts without changing the project', f => {
   assert.equal(success(f).State, 'Installed'); const s = state(f);
-  assert.equal(s.registrations!.length, 17); assert.equal(s.requestedVersion, 'latest stable'); assert.equal(s.version, 'v2026.09.17');
+  assert.equal(s.registrations!.length, 21); assert.equal(s.requestedVersion, 'latest stable'); assert.equal(s.version, 'v2026.09.17');
   assert.equal(read(join(f.project, 'keep.txt')), 'project stays unchanged'); assert.deepEqual(readdirSync(f.project), ['keep.txt']);
   assert.ok(s.registrations!.every(r => r.root === f.root)); assert.doesNotMatch(read(join(f.codex, 'AGENTS.md')), /PROJECT-ONLY/);
 });
@@ -91,6 +91,15 @@ it('a hand-edited override that is not a model ID or allowed effort is refused, 
     assert.equal(read(adapter), before);
   }
 });
+it('a refused override leaves every adapter as it was, so the corrected rerun regenerates without collision', f => {
+  success(f); const config = join(f.home, '.agent-kit-state/config.json'), asset = join(f.plugin, 'skills/asset-craft/SKILL.md'), before = read(asset);
+  writeFileSync(config, JSON.stringify({ modelProfiles: { 'asset-craft': { anthropic: { model: 'opus' } }, 'small-edit': { anthropic: { effort: 'ultra' } } } }));
+  const r = setup(f); assert.notEqual(r.code, 0); assert.match(r.stderr + r.stdout, /Model profile 'small-edit' \(anthropic\) resolves to/); assert.equal(read(asset), before);
+  writeFileSync(config, JSON.stringify({ modelProfiles: { 'asset-craft': { anthropic: { model: 'haiku' } }, 'small-edit': { anthropic: { effort: 'low' } } } }));
+  assert.deepEqual(success(f).Collisions, []); assert.match(read(asset), /^model: haiku$/m); assert.match(read(join(f.plugin, 'skills/small-edit/SKILL.md')), /^effort: low$/m);
+  writeFileSync(asset, read(asset) + '\nuser edit\n'); const edited = read(asset);
+  assert.deepEqual(success(f).Collisions, [join(f.plugin, 'skills/asset-craft')]); assert.equal(read(asset), edited);
+});
 it('every adapter has valid frontmatter and absolute runtime paths despite spaces', f => {
   success(f); for (const entry of state(f).registrations!.filter(r => r.files?.['SKILL.md'])) { const text = read(join(entry.path, 'SKILL.md')); assert.match(text, /^---\nname: [\w-]+\ndescription: '[^\n]+'\n(?:disable-model-invocation: true\n)?(?:model: [\w.-]+\neffort: [a-z]+\n)?---/); assert.ok(text.includes(f.root.replaceAll('\\', '/'))); assert.doesNotMatch(text, /(?<![\w/\\])(?:AGENTS[.]shared[.]md|tools\/|templates\/)/); }
 });
@@ -123,7 +132,7 @@ it('retargeted legacy manifest links survive refresh and uninstall', f => {
   success(f); assert.equal(resolve(readlinkSync(link)), foreign); success(f, { uninstall: true }); assert.equal(read(join(foreign, 'SKILL.md')), 'foreign skill'); assert.ok(existsSync(link));
 });
 it('preserves edited pointer blocks instead of refreshing or deleting them', f => { success(f); const path = join(f.codex, 'AGENTS.md'), text = read(path).replace('AgentKit shared rules:', 'User customized shared rules:'); writeFileSync(path, text); success(f); assert.equal(read(path), text); success(f, { uninstall: true }); assert.equal(read(path), text); });
-it('a selected-host update retains ownership of other installed hosts', f => { success(f); success(f, { hosts: ['codex'] }); assert.equal(state(f).registrations!.length, 17); success(f, { uninstall: true }); assert.ok(!existsSync(f.plugin)); });
+it('a selected-host update retains ownership of other installed hosts', f => { success(f); success(f, { hosts: ['codex'] }); assert.equal(state(f).registrations!.length, 21); success(f, { uninstall: true }); assert.ok(!existsSync(f.plugin)); });
 it('Verify reports OK and changes nothing after a healthy install', f => { success(f); const before = snapshot(f); assert.equal(success(f, { verify: true }).State, 'OK'); assert.deepEqual(snapshot(f), before); });
 it('Verify reports a foreign-modified registration without repairing it', f => { success(f); const path = join(f.plugin, 'skills/next/SKILL.md'); writeFileSync(path, 'tampered outside AgentKit'); failure(f, /changed outside AgentKit/, { verify: true }); assert.equal(read(path), 'tampered outside AgentKit'); });
 it('Verify reports nothing installed when no manifest exists', f => { failure(f, /Nothing installed for this profile/, { verify: true }); });
