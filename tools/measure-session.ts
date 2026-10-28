@@ -6,6 +6,9 @@ import { integerOption, parseOptions } from './lib/options.ts';
 import { run } from './lib/process.ts';
 import type { Runner } from './lib/process.ts';
 import { isMain, main, writeJson } from './lib/runtime.ts';
+import { readCodexSession, humanCodexReport } from './lib/codex-session-usage.ts';
+import type { CodexSessionReport } from './lib/codex-session-usage.ts';
+import { sniffTranscriptVendor } from './lib/transcript-jsonl.ts';
 
 export const options = {
   project: { type: 'string' },
@@ -24,13 +27,7 @@ function records(file: string): any[] {
   return readFileSync(file, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/).map(line => { try { return JSON.parse(line); } catch { return null; } });
 }
 export function transcriptVendor(file: string): string {
-  let shape = 'unknown';
-  for (const record of records(file).slice(0, 50)) {
-    if (!record || typeof record !== 'object') continue;
-    if ('payload' in record || record.type === 'session_meta') return 'codex';
-    if (record.message) { if ('usage' in record.message) return 'claude'; shape = 'claude'; }
-  }
-  return shape;
+  return sniffTranscriptVendor(file);
 }
 export function projectSlug(path: string): string { return path.replace(/[\\/]+$/, '').replace(/[^A-Za-z0-9]/g, '-'); }
 export function resolveTranscriptDirectory(project: string, home = process.env.HOME || process.env.USERPROFILE || homedir()): string {
@@ -105,7 +102,7 @@ export function measureSession(input: { project?: string; transcriptPath?: strin
   const report: SessionReport = { idleThresholdMinutes: threshold, sessions: [] }, totals = usageSum(), subs = usageSum();
   for (const file of files) {
     const vendor = transcriptVendor(file);
-    if (vendor !== 'claude') throw new Error(`${basename(file)} is not a Claude Code transcript (detected: ${vendor}). ${vendor === 'codex' ? "Codex records usage as 'token_count' events under payload.info, not as 'message.usage'. No Codex reader is implemented, and its per-turn counts are not the same unit as Claude's per-call ones." : 'No known agent writes this shape.'}`);
+    if (vendor !== 'claude') throw new Error(`${basename(file)} is not a Claude Code transcript (detected: ${vendor}). ${vendor === 'codex' ? 'Codex token_count measurement requires one explicit --transcript-path file through the CLI or measureTranscript; directory discovery is Claude-only.' : 'No known agent writes this shape.'}`);
     const session = readSession(file, threshold); if (!session.segments.length) continue;
     const sum = total(session.segments), sub = subagents(directory, session.id, threshold); add(totals, sum); add(subs, sub);
     const entry: ReportSession = { id: session.id.slice(0, 8), started: session.started, spanSeconds: round(session.span), activeSeconds: round(session.active), models: session.models, total: sum, subagents: sub, ...(input.detail ? { segments: session.segments } : {}) };
@@ -115,6 +112,16 @@ export function measureSession(input: { project?: string; transcriptPath?: strin
   if (!report.sessions.length) throw new Error('No Claude Code usage records found in the matched transcripts. Nothing to measure.');
   if (files.length > 1) { report.allSessions = totals; report.allSubagents = subs; }
   return report;
+}
+// Preserve measureSession's Claude report for existing callers; dispatch an
+// explicit file to a discriminated provider report at the shared CLI boundary.
+export function measureTranscript(input: Parameters<typeof measureSession>[0] = {}): SessionReport | CodexSessionReport {
+  const path = input.transcriptPath;
+  if (path && existsSync(path) && statSync(path).isFile() && transcriptVendor(path) === 'codex') {
+    if (input.sessionId) throw new Error('Codex measurement accepts one explicit file, without --session-id.');
+    return readCodexSession(path);
+  }
+  return measureSession(input);
 }
 function duration(seconds: number): string { return [Math.floor(seconds / 3600) % 24, Math.floor(seconds / 60) % 60, Math.floor(seconds) % 60].map(v => String(v).padStart(2, '0')).join(':'); }
 export function costLogPath(root = process.env.CLAUDE_PROJECT_DIR || dirname(dirname(fileURLToPath(import.meta.url))), runner: Runner = run): string {
@@ -149,6 +156,6 @@ export function humanReport(report: SessionReport, threshold = 5): string {
 if (isMain(import.meta.url)) await main(() => {
   const v = parseOptions(options), threshold = integerOption(v['idle-threshold-minutes'], 'idle-threshold-minutes', 5);
   if (v.hook) { try { sessionHook(readFileSync(0, 'utf8'), undefined, threshold); } catch (error) { process.stderr.write(`Measure-Session: ${error instanceof Error ? error.message : error}\n`); process.exitCode = 1; } return; }
-  const report = measureSession({ project: v.project, transcriptPath: v['transcript-path'], sessionId: v['session-id'], detail: v.detail, idleThresholdMinutes: threshold });
-  if (v.human) process.stdout.write(humanReport(report, threshold)); else writeJson(report);
+  const report = measureTranscript({ project: v.project, transcriptPath: v['transcript-path'], sessionId: v['session-id'], detail: v.detail, idleThresholdMinutes: threshold });
+  if (v.human) process.stdout.write('provider' in report ? humanCodexReport(report) : humanReport(report, threshold)); else writeJson(report);
 });
