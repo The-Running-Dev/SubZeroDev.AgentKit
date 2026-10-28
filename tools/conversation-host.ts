@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { atomic, conversation, conversationPacket, inside } from './conversation.ts';
+import { atomic, conversation, conversationPacket, inside, releaseConversationLock } from './conversation.ts';
 import type { Branch } from './conversation.ts';
 import { parseOptions, requiredOption } from './lib/options.ts';
 import { isMain, main, writeJson } from './lib/runtime.ts';
@@ -211,7 +211,7 @@ export function conversationHost(archiveRoot: string, value: unknown) {
       ParentThreadId: o.parentThreadId, ThreadId: o.threadId ?? null, Packet: o.packet, Call: released, Persistence: 'WrittenUncommitted',
       Recovery: o.state === 'unknown' ? 'Do not create again. Reconcile an observed native thread ID with read_thread; otherwise inspect the host manually and keep this operation unknown.'
         : o.state === 'unsupported' ? 'Portable packet preserved. Copy it and navigate manually; native operation unavailable.' : null };
-  } finally { rmSync(lock, { recursive: true }); }
+  } finally { releaseConversationLock(lock); }
 }
 
 if (isMain(import.meta.url)) await main(() => {
