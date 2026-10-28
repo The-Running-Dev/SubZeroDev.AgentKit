@@ -81,6 +81,107 @@ function fixture(realCli?: string) {
 type Fixture = ReturnType<typeof fixture>;
 function it(name: string, fn: (f: Fixture) => void) { test(name, () => { const f = fixture(); try { fn(f); } finally { rmSync(f.base, { recursive: true, force: true }); } }); }
 
+it('MEM cleanup: CLI retries transient lock errors, preserves replay and reports permanent failures', f => {
+  const attempts = join(f.base, 'cleanup-attempts');
+  const preload = put(f.base, 'cleanup-errors.cjs', `
+const fs = require('node:fs');
+const { syncBuiltinESMExports } = require('node:module');
+const original = fs.rmSync;
+let attempts = 0;
+fs.rmSync = function(target, options) {
+  if (String(target) === fs.realpathSync(process.env.TEST_LOCK) && options?.recursive) {
+    fs.writeFileSync(process.env.TEST_ATTEMPTS, String(++attempts));
+    const code = process.env.TEST_ERROR;
+    if (attempts <= Number(process.env.TEST_FAILURES)) throw Object.assign(new Error('synthetic cleanup ' + code), {code});
+  }
+  return original(target, options);
+};
+syncBuiltinESMExports();
+`);
+  const lock = join(f.archive, '.conversation-lock');
+  const invoke = (code: string, failures: number) => run(process.execPath, ['--require', preload, script,
+    '--archive-root', f.archive, '--request-file', put(f.base, 'cleanup-request.json', JSON.stringify(f.propose))], {
+    timeout: 20000, env: { ...f.env, TEST_LOCK: lock, TEST_ATTEMPTS: attempts, TEST_ERROR: code, TEST_FAILURES: String(failures) },
+  });
+  const review = join(f.archive, 'Journal/raw/conversation-synthetic/review-1.memory-review.json');
+  for (const code of ['EPERM', 'ENOTEMPTY']) {
+    const result = invoke(code, 2);
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).State, 'Proposed');
+    assert.equal(readFileSync(attempts, 'utf8'), '3');
+    assert.equal(existsSync(lock), false);
+  }
+  const before = readFileSync(review);
+  for (const [code, expectedAttempts] of [['EPERM', '11'], ['EIO', '1']]) {
+    const failed = invoke(code, 99);
+    assert.equal(failed.code, 1); assert.equal(failed.stdout, '');
+    assert.match(failed.stderr, new RegExp('synthetic cleanup ' + code));
+    assert.equal(readFileSync(attempts, 'utf8'), expectedAttempts);
+    assert.ok(existsSync(lock)); assert.deepEqual(readFileSync(review), before);
+    // A later invocation must not remove a lock it did not acquire.
+    const blocked = invoke(code, 0);
+    assert.equal(JSON.parse(blocked.stdout).code, 'ArchiveLocked');
+    assert.ok(existsSync(lock));
+    rmSync(lock, { recursive: true });
+  }
+  assert.equal(f.invoke(f.propose).value.State, 'Proposed');
+  assert.deepEqual(readFileSync(review), before);
+  assert.equal(existsSync(join(f.store, 'db.json')), false);
+  assert.equal(existsSync(join(f.archive, 'Journal/raw/conversation-synthetic/review-1.memory-writes.json')), false);
+});
+
+test('MEM cleanup: Windows proposer releases a real held directory and returns its saved review', { skip: process.platform !== 'win32' }, () => {
+  const f = fixture(), ready = join(f.base, 'holder-ready'), pidFile = join(f.base, 'holder-pid');
+  const preload = put(f.base, 'hold-cleanup.cjs', `
+const fs = require('node:fs');
+const { spawn } = require('node:child_process');
+const { syncBuiltinESMExports } = require('node:module');
+const original = fs.rmSync;
+let held = false;
+fs.rmSync = function(target, options) {
+  if (!held && String(target).endsWith('.conversation-lock') && options?.recursive) {
+    held = true;
+    const child = spawn(process.execPath, ['-e',
+      'require("node:fs").writeFileSync(process.argv[1], "ready"); setTimeout(() => process.exit(), 300);', process.env.TEST_READY],
+      { cwd: target, stdio: 'ignore', windowsHide: true });
+    fs.writeFileSync(process.env.TEST_PID, String(child.pid));
+    const deadline = Date.now() + 10000;
+    while (!fs.existsSync(process.env.TEST_READY)) {
+      if (Date.now() > deadline) throw new Error('Holder never became ready');
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+    }
+    child.unref();
+  }
+  return original(target, options);
+};
+syncBuiltinESMExports();
+`);
+  try {
+    const result = run(process.execPath, ['--require', preload, script, '--archive-root', f.archive,
+      '--request-file', put(f.base, 'held-request.json', JSON.stringify(f.propose))], {
+      timeout: 20000, env: { ...f.env, TEST_READY: ready, TEST_PID: pidFile },
+    });
+    assert.equal(result.code, 0, result.stderr);
+    const review = JSON.parse(result.stdout);
+    assert.equal(review.State, 'Proposed'); assert.ok(existsSync(review.Review));
+    assert.equal(existsSync(join(f.archive, '.conversation-lock')), false);
+    assert.equal(existsSync(join(f.store, 'db.json')), false);
+    assert.equal(f.invoke(f.propose).value.State, 'Proposed');
+  } finally {
+    if (existsSync(pidFile)) {
+      const pid = Number(readFileSync(pidFile, 'utf8'));
+      try { process.kill(pid); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error; }
+      const deadline = Date.now() + 5000;
+      for (;;) {
+        try { process.kill(pid, 0); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ESRCH') break; throw error; }
+        if (Date.now() > deadline) throw new Error('Holder did not exit');
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+      }
+    }
+    rmSync(f.base, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  }
+});
+
 it('MEM-1/2: entry point proposes attributed items privately and stores only selected candidates', f => {
   const p = f.invoke(f.propose); assert.equal(p.code, 0); assert.equal(p.value.State, 'Proposed');
   assert.equal(existsSync(join(f.store, 'db.json')), false);

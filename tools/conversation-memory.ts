@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { atomic, inside } from './conversation.ts';
+import { atomic, inside, releaseConversationLock } from './conversation.ts';
 import type { Branch } from './conversation.ts';
 import { configPath, createContext, KINDS, MemoryFailure, prepareCorrect, prepareRemember, submitPrepared } from './memorykit.ts';
 import type { PreparedWrite } from './memorykit.ts';
@@ -183,7 +183,7 @@ export function conversationMemory(archiveRoot: string, value: unknown, settings
       if ((results[p.id] as { State: string }).State === 'Failed') return { State: 'Failed', Results: results, Receipts: writesPath, Persistence: 'WrittenUncommitted' };
     }
     return { State: 'Stored', Results: results, Receipts: writesPath, Persistence: 'WrittenUncommitted' };
-  } finally { rmSync(lock, { recursive: true }); }
+  } finally { releaseConversationLock(lock); }
 }
 
 if (isMain(import.meta.url)) await main(() => {
