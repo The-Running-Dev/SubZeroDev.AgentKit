@@ -151,7 +151,7 @@ it('FAR-7: an archive junction cannot redirect writes outside the archive', f =>
 it('FAR-1/6: actual installer adapter and canonical reader run fork/attach/return offline', f => {
   // A real local Git source and isolated host/home, not mocked installer output.
   const origin = join(f.base, 'kit origin'), home = join(f.base, 'isolated home'), installed = join(home, '.agent-kit'), codex = join(home, '.codex');
-  const files = ['setup.ts', 'package.json', 'tools/package.json', 'AGENTS.shared.md', 'skills/conversation/SKILL.md'];
+  const files = ['setup.ts', 'package.json', 'tools/package.json', 'AGENTS.shared.md', 'policy/model-profiles.json', 'skills/conversation/SKILL.md'];
   for (const path of files) put(origin, path, readFileSync(join(kit, path), 'utf8'));
   for (const dir of ['tools', 'tools/lib']) for (const entry of readdirSync(join(kit, dir))) if (entry.endsWith('.ts') && !entry.endsWith('.test.ts')) {
     const target = join(origin, dir, entry); mkdirSync(dirname(target), { recursive: true }); cpSync(join(kit, dir, entry), target);

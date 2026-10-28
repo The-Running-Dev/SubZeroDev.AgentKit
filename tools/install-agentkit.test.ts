@@ -15,9 +15,9 @@ const json = (path: string) => JSON.parse(read(path));
 function fixture() {
   const base = temp(), origin = join(base, 'local origin'), home = join(base, 'temporary home'), project = join(base, 'project'), codex = join(base, 'custom codex home'), root = join(home, '.agent-kit');
   for (const dir of [origin, home, project]) mkdirSync(dir, { recursive: true });
-  const files = ['setup.ts', 'package.json', 'tools/package.json', 'AGENTS.shared.md'];
+  const files = ['setup.ts', 'package.json', 'tools/package.json', 'AGENTS.shared.md', 'policy/model-profiles.json'];
   for (const dir of ['tools', 'tools/lib']) for (const name of readdirSync(join(kit, dir))) if (name.endsWith('.ts') && !name.endsWith('.test.ts')) files.push(dir + '/' + name);
-  for (const name of ['next', 'fix', 'align']) files.push(`skills/${name}/SKILL.md`);
+  for (const name of ['next', 'fix', 'align', 'small-edit']) files.push(`skills/${name}/SKILL.md`);
   for (const path of files) put(origin, path, read(join(kit, path)));
   put(origin, 'templates/example.md', 'template'); put(origin, 'AGENTS.md', 'PROJECT-ONLY-RULE-MUST-NOT-LOAD-GLOBALLY'); put(project, 'keep.txt', 'project stays unchanged');
   git(origin, 'init', '-q', '-b', 'main'); git(origin, 'add', ...files, 'templates/example.md', 'AGENTS.md'); git(origin, 'commit', '-qm', 'fixture'); git(origin, 'tag', 'v2026.09.17');
@@ -43,7 +43,7 @@ function it(name: string, action: (f: Fixture) => void) { test(name, () => { con
 // One case for each of the original 38 Pester It blocks.
 it('fresh setup uses selected installer and registers all hosts without changing the project', f => {
   assert.equal(success(f).State, 'Installed'); const s = state(f);
-  assert.equal(s.registrations!.length, 13); assert.equal(s.requestedVersion, 'latest stable'); assert.equal(s.version, 'v2026.09.17');
+  assert.equal(s.registrations!.length, 17); assert.equal(s.requestedVersion, 'latest stable'); assert.equal(s.version, 'v2026.09.17');
   assert.equal(read(join(f.project, 'keep.txt')), 'project stays unchanged'); assert.deepEqual(readdirSync(f.project), ['keep.txt']);
   assert.ok(s.registrations!.every(r => r.root === f.root)); assert.doesNotMatch(read(join(f.codex, 'AGENTS.md')), /PROJECT-ONLY/);
 });
@@ -67,8 +67,32 @@ it('selects unreleased branch and SHA only explicitly and rolls back to the stab
 it('does not silently reset a locally diverged branch', f => { success(f, { version: 'main' }); writeFileSync(join(f.root, 'AGENTS.shared.md'), 'local commit'); git(f.root, 'commit', '-qam', 'local'); const before = git(f.root, 'rev-parse', 'HEAD'); failure(f, /unpublished or divergent/, { version: 'main' }); assert.equal(git(f.root, 'rev-parse', 'HEAD'), before); });
 it('reports fetch failure as Git failure rather than divergence and preserves HEAD', f => { success(f); const before = git(f.root, 'rev-parse', 'HEAD'); const r = failure(f, /git fetch/, { source: join(f.base, 'missing-origin'), force: true }); assert.doesNotMatch(r.stderr, /unpublished or divergent/); assert.equal(git(f.root, 'rev-parse', 'HEAD'), before); });
 it('fresh and existing dry runs write no host or checkout changes', f => { success(f, { dryRun: true }); assert.ok(!existsSync(f.root)); success(f); const before = snapshot(f); success(f, { dryRun: true, prefix: 'ak-' }); assert.deepEqual(snapshot(f), before); });
+it('a task skill gets its Claude model and effort as frontmatter and only a recommendation elsewhere', f => {
+  success(f); const claude = read(join(f.plugin, 'skills/small-edit/SKILL.md')), codex = read(cskill(f, 'small-edit')), routed = read(cskill(f, 'small-edit-routed')), copilot = read(join(f.home, '.copilot/skills/small-edit/SKILL.md'));
+  assert.match(claude, /^disable-model-invocation: true\nmodel: haiku\neffort: medium\n---/m); assert.match(claude, /--verify-active --profile small-edit --model haiku --effort medium/); assert.match(claude, /requested, resolved and verified active separately/);
+  for (const text of [codex, copilot]) { assert.doesNotMatch(text, /^model:/m); assert.match(text, /recommendation, not applied/); }
+  assert.match(routed, /gpt-6-luna at low effort/); assert.match(routed, /only when the user explicitly/);
+  assert.doesNotMatch(read(join(f.plugin, 'skills/next/SKILL.md')), /^model:|Model profile/m);
+});
+it('regenerating adapters is idempotent, keeps unrelated config and picks up an override', f => {
+  success(f); const config = join(f.home, '.agent-kit-state/config.json'), settings = { ...(existsSync(config) ? json(config) : {}), updatePolicy: 'manual', unrelated: { keep: true } };
+  writeFileSync(config, JSON.stringify(settings, null, 2)); success(f); const before = snapshot(f); success(f); assert.deepEqual(snapshot(f), before);
+  assert.deepEqual(json(config), settings);
+  const set = run(process.execPath, [join(f.root, 'tools/model-profile.ts'), '--set-override', '--profile', 'small-edit', '--provider', 'anthropic', '--model', 'sonnet', '--effort', 'low'], { env: f.env, cwd: f.project }); assert.equal(set.code, 0, set.stderr);
+  assert.match(read(join(f.plugin, 'skills/small-edit/SKILL.md')), /^model: haiku$/m); success(f);
+  assert.match(read(join(f.plugin, 'skills/small-edit/SKILL.md')), /^model: sonnet\neffort: low$/m);
+  assert.deepEqual({ ...json(config), modelProfiles: undefined }, { ...settings, modelProfiles: undefined }); assert.deepEqual(json(config).modelProfiles, { 'small-edit': { anthropic: { model: 'sonnet', effort: 'low' } } });
+});
+it('a hand-edited override that is not a model ID or allowed effort is refused, never written to frontmatter', f => {
+  success(f); const config = join(f.home, '.agent-kit-state/config.json'), adapter = join(f.plugin, 'skills/small-edit/SKILL.md'), before = read(adapter);
+  for (const anthropic of [{ model: 'sonnet\nallowed-tools: Bash' }, { effort: 'ultra' }]) {
+    writeFileSync(config, JSON.stringify({ modelProfiles: { 'small-edit': { anthropic } } }));
+    const r = setup(f); assert.notEqual(r.code, 0); assert.match(r.stderr + r.stdout, /Model profile 'small-edit' \(anthropic\) resolves to/);
+    assert.equal(read(adapter), before);
+  }
+});
 it('every adapter has valid frontmatter and absolute runtime paths despite spaces', f => {
-  success(f); for (const entry of state(f).registrations!.filter(r => r.files?.['SKILL.md'])) { const text = read(join(entry.path, 'SKILL.md')); assert.match(text, /^---\nname: [\w-]+\ndescription: '[^\n]+'\n(?:disable-model-invocation: true\n)?---/); assert.ok(text.includes(f.root.replaceAll('\\', '/'))); assert.doesNotMatch(text, /(?<![\w/\\])(?:AGENTS[.]shared[.]md|tools\/|templates\/)/); }
+  success(f); for (const entry of state(f).registrations!.filter(r => r.files?.['SKILL.md'])) { const text = read(join(entry.path, 'SKILL.md')); assert.match(text, /^---\nname: [\w-]+\ndescription: '[^\n]+'\n(?:disable-model-invocation: true\n)?(?:model: [\w.-]+\neffort: [a-z]+\n)?---/); assert.ok(text.includes(f.root.replaceAll('\\', '/'))); assert.doesNotMatch(text, /(?<![\w/\\])(?:AGENTS[.]shared[.]md|tools\/|templates\/)/); }
 });
 it('all pointers name shared rules, resolve at read time and bake in no machine-specific path', f => { success(f); for (const path of Object.keys(state(f).pointerBlocks!)) { const text = read(path); assert.match(text, /AGENTS\.shared\.md/); assert.match(text, /AGENTKIT_HOME/); assert.ok(!text.includes(f.root.replaceAll('\\', '/'))); assert.doesNotMatch(text, /PROJECT-ONLY/); } });
 it('upgrades a previously installed resolved-path pointer without collision', f => {
@@ -99,7 +123,7 @@ it('retargeted legacy manifest links survive refresh and uninstall', f => {
   success(f); assert.equal(resolve(readlinkSync(link)), foreign); success(f, { uninstall: true }); assert.equal(read(join(foreign, 'SKILL.md')), 'foreign skill'); assert.ok(existsSync(link));
 });
 it('preserves edited pointer blocks instead of refreshing or deleting them', f => { success(f); const path = join(f.codex, 'AGENTS.md'), text = read(path).replace('AgentKit shared rules:', 'User customized shared rules:'); writeFileSync(path, text); success(f); assert.equal(read(path), text); success(f, { uninstall: true }); assert.equal(read(path), text); });
-it('a selected-host update retains ownership of other installed hosts', f => { success(f); success(f, { hosts: ['codex'] }); assert.equal(state(f).registrations!.length, 13); success(f, { uninstall: true }); assert.ok(!existsSync(f.plugin)); });
+it('a selected-host update retains ownership of other installed hosts', f => { success(f); success(f, { hosts: ['codex'] }); assert.equal(state(f).registrations!.length, 17); success(f, { uninstall: true }); assert.ok(!existsSync(f.plugin)); });
 it('Verify reports OK and changes nothing after a healthy install', f => { success(f); const before = snapshot(f); assert.equal(success(f, { verify: true }).State, 'OK'); assert.deepEqual(snapshot(f), before); });
 it('Verify reports a foreign-modified registration without repairing it', f => { success(f); const path = join(f.plugin, 'skills/next/SKILL.md'); writeFileSync(path, 'tampered outside AgentKit'); failure(f, /changed outside AgentKit/, { verify: true }); assert.equal(read(path), 'tampered outside AgentKit'); });
 it('Verify reports nothing installed when no manifest exists', f => { failure(f, /Nothing installed for this profile/, { verify: true }); });
