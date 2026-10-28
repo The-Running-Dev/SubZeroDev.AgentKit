@@ -27,6 +27,17 @@ Under Claude Code each is typed `/agentkit:<name>`; Codex and Copilot use the ba
 | `setup-project` | Scaffolds a project, creates its GitHub repository with the standard settings and the `Main` ruleset, and pushes it, by running SubZeroDev.GitHub's scripts in that checkout | the new project; `repositories/<Name>.yaml` and its pull request in SubZeroDev.GitHub |
 | `memory` | Records, finds, corrects and accepts project memories through MemoryKit | nothing in the repository; the MemoryKit store named in `~/.agent-kit-state/memorykit.json` |
 | `sync` | Updates the machine-wide checkout | the checkout; nothing in the repository |
+| `conversation` | Forks, attaches and returns a conversation branch, bridges it to supported native chats, and proposes reviewed branch memories | the private Notes archive the user names; selected memories through MemoryKit; nothing in the repository |
+| `model-fit` | Recommends the task profile, model and effort for a piece of work without doing it | nothing |
+| `small-edit` | Makes a small, contained edit and verifies it | code, tests |
+| `implement` | Implements a scoped change with tests that is not a plan slice | code, tests |
+| `asset-craft` | Prepares a generation-ready prompt and asset specification, and renders it where an image tool is available | the asset and its specification |
+| `visual-check` | Checks rendered output against a reference or a stated expectation | nothing; the differences go in the conversation |
+| `deep-debug` | Root-causes a failure that resisted ordinary debugging, on the expensive profile | the diagnosis, and a fix where one is in scope |
+
+The six task commands (`model-fit` to `deep-debug`) each carry a profile from
+`policy/model-profiles.json`; a user override sits under `modelProfiles` in
+`~/.agent-kit-state/config.json` (`90-decisions.md`, 2026-10-28).
 
 `/next` argument: a slice id to start from, or `one` to stop after one slice.
 
@@ -80,8 +91,12 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 | `get-agentkit-skill.ts`, `invoke-codex-command.ts`, `start-agentkit-codex.ts` | see the script | Skill reading and update check, Codex profile routing, Codex launch |
 | `get-next-slice.ts` | `[--repo-root --default-branch --slice --pull-requests-json --quiet]` | `State` Resume / Start / Finished / Blocked with `Slice`, `Branch`, `PullRequest`, `Base`, `DirtyFiles`, `GuardedFiles`, `OwnFiles`, `Reason`, `Detail`; reads the plan from `origin/<default>` after a fetch; read-only otherwise; exit 0 / 1 (Blocked) |
 | `test-design.ts` | `[--repo-root --quiet]` | `State` Passed / Failed / NotEvaluated with `Findings` (`Check`, `File`, `Line`, `Message`); read-only; exit 0 / 1 / 2 |
-| `publish-release.ts` | `[--repo-root --default-branch --repository --workflow --allowed-signers --out-dir --dry-run]` | `State` Released / DryRun / Refused / Failed / TagPushed with `Refusal`, `Tag`, `PreviousTag`, `HeadSha`, `Signature`, `Archive`, `Checksum`, `Sha256`, `Pushed`, `ReleaseUrl`, `TagRemoved`; refuses unless `main` is clean, equals `origin/main` and `verify` passed on HEAD; signs the tag with SSH and keeps it only if it verifies against `.github/allowed_signers`; `--dry-run` stops before the push; exit 0 / 1 / 2 (TagPushed) |
+| `publish-release.ts` | `[--repo-root --default-branch --repository --workflow --allowed-signers --out-dir --dry-run --skip-unready]` | `State` Released / DryRun / Refused / Skipped / Failed / TagPushed with `Refusal`, `Tag`, `PreviousTag`, `HeadSha`, `Signature`, `Archive`, `Checksum`, `Sha256`, `Pushed`, `ReleaseUrl`, `TagRemoved`; refuses unless `main` is clean, equals `origin/main` and `verify` passed on HEAD; signs the tag with SSH and keeps it only if it verifies against `.github/allowed_signers`; `--dry-run` stops before the push; `--skip-unready` (the release after each `verify` run on `main`) reports the not-ready refusals — head already tagged, head not `origin/main`, `verify` not run or pending — as `Skipped`; exit 0 / 1 / 2 (TagPushed) |
 | `memorykit.ts` | `--action`, `[--project --namespace --kind --content --reason --evidence --statement --accept --id --expected-revision --verification --text --limit --include-candidates --max-bytes --host --hook]` | Project memories through MemoryKit's CLI: `remember` / `recall` / `show` / `correct` / `accept` / `context`. `State` Persisted / Replayed / Unchanged / Found / Context / Omitted / Empty / Failed / NotConfigured; exit 0 / 1 (Failed) / 2 (NotConfigured). With `--hook` it reads the host's event on stdin: `context` (SessionStart) prints only `hookSpecificOutput.additionalContext` JSON or nothing; `checkpoint` (PreCompact, hook only) records the transcript's last assistant message as a candidate `handoff` and prints nothing; a failure (including an unreadable transcript, `TranscriptUnavailable`) is stderr and exit 1, never exit 2; without a config it does nothing and writes nothing; otherwise every run appends one line to `memorykit.log` beside the config |
+| `model-profile.ts` | `[--profile --provider --model --effort --list --set-override --clear-override --verify-active]` | Resolves a task profile from `policy/model-profiles.json` and the user's overrides to a model and effort per provider, and checks it against what the host would use (Claude Code's user and managed model settings, the Codex model cache): `Validation` verified / unverified / refused; never substitutes a fallback. `--list`, `--set-override`, `--clear-override` and `--verify-active` (the session's active model against the request) are mutually exclusive; exit 1 when any provider is refused |
+| `conversation.ts` | `--archive-root`, `--request-file` | Fork / attach / return of a conversation branch in a private Notes archive: `State` Forked / Attached / Returned with `BranchId`, `Revision`, `Manifest`, `Note`, `Sources`, `Packet`, `Persistence` |
+| `conversation-host.ts` | `--archive-root`, `--request-file`; see the script | Prepares, dispatches, reconciles and records a native-chat operation for a branch, keeping its receipts in the archive (`90-decisions.md`, 2026-10-27) |
+| `conversation-memory.ts` | `--archive-root`, `--request-file`, `[--project --namespace]` | `propose` writes a review of a branch's attributed statements beside the archive (`State` Proposed); `store` submits the selected ones through MemoryKit as candidates (`State` Stored / Failed / NotConfigured); exit 0 / 1 (Failed) / 2 (NotConfigured) |
 | `measure-session.ts` | `[--project --transcript-path --session-id --idle-threshold-minutes --detail --human --hook]` | Per-session cost report; `--hook` appends a row on `SessionEnd` |
 
 `RepoAliases.ps1` is gone; there is no by-hand wrapper.
@@ -96,7 +111,8 @@ surface is `git show v2026.09.24:design/20-contract.md`.
 hook). Nothing else; in particular, no repository `settings.json` and no version stamp. Project
 memories (`memorykit.ts`, opt-in) live in the MemoryKit store its config names, outside the
 repository; its hooks log each run (event and outcome, never content) to `memorykit.log` beside
-the config.
+the config. Conversation branches, their sources, memory reviews and host receipts live in the
+private Notes archive the user names, outside the repository (`90-decisions.md`, 2026-10-27).
 
 ## Invariants
 
