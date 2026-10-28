@@ -43,7 +43,7 @@ function it(name: string, action: (f: Fixture) => void) { test(name, () => { con
 // One case for each of the original 38 Pester It blocks.
 it('fresh setup uses selected installer and registers all hosts without changing the project', f => {
   assert.equal(success(f).State, 'Installed'); const s = state(f);
-  assert.equal(s.registrations!.length, 13); assert.equal(s.requestedVersion, 'latest stable'); assert.equal(s.version, 'v2026.09.17');
+  assert.equal(s.registrations!.length, 17); assert.equal(s.requestedVersion, 'latest stable'); assert.equal(s.version, 'v2026.09.17');
   assert.equal(read(join(f.project, 'keep.txt')), 'project stays unchanged'); assert.deepEqual(readdirSync(f.project), ['keep.txt']);
   assert.ok(s.registrations!.every(r => r.root === f.root)); assert.doesNotMatch(read(join(f.codex, 'AGENTS.md')), /PROJECT-ONLY/);
 });
@@ -115,7 +115,7 @@ it('retargeted legacy manifest links survive refresh and uninstall', f => {
   success(f); assert.equal(resolve(readlinkSync(link)), foreign); success(f, { uninstall: true }); assert.equal(read(join(foreign, 'SKILL.md')), 'foreign skill'); assert.ok(existsSync(link));
 });
 it('preserves edited pointer blocks instead of refreshing or deleting them', f => { success(f); const path = join(f.codex, 'AGENTS.md'), text = read(path).replace('AgentKit shared rules:', 'User customized shared rules:'); writeFileSync(path, text); success(f); assert.equal(read(path), text); success(f, { uninstall: true }); assert.equal(read(path), text); });
-it('a selected-host update retains ownership of other installed hosts', f => { success(f); success(f, { hosts: ['codex'] }); assert.equal(state(f).registrations!.length, 13); success(f, { uninstall: true }); assert.ok(!existsSync(f.plugin)); });
+it('a selected-host update retains ownership of other installed hosts', f => { success(f); success(f, { hosts: ['codex'] }); assert.equal(state(f).registrations!.length, 17); success(f, { uninstall: true }); assert.ok(!existsSync(f.plugin)); });
 it('Verify reports OK and changes nothing after a healthy install', f => { success(f); const before = snapshot(f); assert.equal(success(f, { verify: true }).State, 'OK'); assert.deepEqual(snapshot(f), before); });
 it('Verify reports a foreign-modified registration without repairing it', f => { success(f); const path = join(f.plugin, 'skills/next/SKILL.md'); writeFileSync(path, 'tampered outside AgentKit'); failure(f, /changed outside AgentKit/, { verify: true }); assert.equal(read(path), 'tampered outside AgentKit'); });
 it('Verify reports nothing installed when no manifest exists', f => { failure(f, /Nothing installed for this profile/, { verify: true }); });
