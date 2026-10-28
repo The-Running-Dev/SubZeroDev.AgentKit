@@ -1,0 +1,7 @@
+{"type":"session_meta","payload":{"id":"fixture-session","cli_version":"0.0.0-fixture","cwd":"PRIVATE_PATH_NOT_FOR_REPORT","base_instructions":"PRIVATE_TEXT_NOT_FOR_REPORT"}}
+{"type":"turn_context","payload":{"model":"gpt-fixture"}}
+{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100,"cached_input_tokens":80,"output_tokens":30,"reasoning_output_tokens":10,"total_tokens":130},"last_token_usage":{"input_tokens":100,"cached_input_tokens":80,"output_tokens":30,"reasoning_output_tokens":10,"total_tokens":130}}}}
+{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100,"cached_input_tokens":80,"output_tokens":30,"reasoning_output_tokens":10,"total_tokens":130},"last_token_usage":{"input_tokens":100,"cached_input_tokens":80,"output_tokens":30,"reasoning_output_tokens":10,"total_tokens":130}}}}
+{"type":"session_meta","payload":{"id":"fixture-session","cli_version":"0.0.0-fixture"}}
+{"type":"token_usage_record","payload":{"thread_id":"fixture-session","thread_token_usage":{"input_tokens":180,"output_tokens":50,"total_tokens":230}}}
+{"type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":180,"cached_input_tokens":120,"output_tokens":50,"reasoning_output_tokens":15,"total_tokens":230},"last_token_usage":{"input_tokens":80,"cached_input_tokens":40,"output_tokens":20,"reasoning_output_tokens":5,"total_tokens":100}}}}
