@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "reviewed": "2026-10-28",
+  "note": "The one shared model policy for AgentKit's task skills. Each profile names a model and effort per provider; tools/model-profile.ts resolves, validates and reports them. Update IDs here, then rerun setup so Claude adapters pick them up. See docs/model-profiles.md.",
+  "profiles": {
+    "model-fit": {
+      "purpose": "Recommend a task profile, model and effort without doing the task.",
+      "openai": { "model": "gpt-6-luna", "effort": "low", "sandbox": "read-only" },
+      "anthropic": { "model": "haiku", "effort": "low" }
+    },
+    "asset-craft": {
+      "purpose": "Inspect references and prepare or produce visual assets.",
+      "openai": { "model": "gpt-6.1-sol", "effort": "low", "sandbox": "workspace-write" },
+      "anthropic": { "model": "sonnet", "effort": "low" }
+    },
+    "implement": {
+      "purpose": "Implement a scoped change with tests.",
+      "openai": { "model": "gpt-6.1-sol", "effort": "medium", "sandbox": "workspace-write" },
+      "anthropic": { "model": "sonnet", "effort": "medium" }
+    },
+    "visual-check": {
+      "purpose": "Check rendered output against a reference or expectation.",
+      "openai": { "model": "gpt-6.1-terra", "effort": "medium", "sandbox": "workspace-write" },
+      "anthropic": { "model": "sonnet", "effort": "medium" }
+    },
+    "small-edit": {
+      "purpose": "Make a small, contained edit.",
+      "openai": { "model": "gpt-6-luna", "effort": "low", "sandbox": "workspace-write" },
+      "anthropic": { "model": "haiku", "effort": "medium" }
+    },
+    "deep-debug": {
+      "purpose": "Root-cause a failure that resisted ordinary debugging.",
+      "expensive": true,
+      "openai": { "model": "gpt-6-astra", "effort": "medium", "sandbox": "workspace-write" },
+      "anthropic": { "model": "opus", "effort": "medium" }
+    }
+  }
+}

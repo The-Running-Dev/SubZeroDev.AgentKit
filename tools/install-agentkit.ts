@@ -9,6 +9,8 @@ import { parseOptions } from './lib/options.ts';
 import { isMain, main, writeJson } from './lib/runtime.ts';
 import { stableTags } from './get-agentkit-skill.ts';
 import { configPath } from './memorykit.ts';
+import { readPolicy, resolveProfile } from './model-profile.ts';
+import type { Policy, Setting } from './model-profile.ts';
 
 export const options = {
   version: { type: 'string' }, source: { type: 'string' }, hosts: { type: 'string', multiple: true },
@@ -96,11 +98,18 @@ export function legacyHook(group: unknown, root: string) {
     return [command, ...(Array.isArray(args) ? args : [])].join(' ').replaceAll('\\', '/').toLowerCase().includes(script);
   });
 }
-export function adapter(root: string, name: string, registrationName: string, host: Host, routed: boolean) {
+// A task skill's model profile, resolved at setup from policy/model-profiles.json and config.json's modelProfiles.
+export interface TaskAdapter { claude: Setting; openai: Setting; expensive?: boolean }
+export function taskAdapter(policy: Policy, skill: string, home: string): TaskAdapter | undefined {
+  if (!Object.hasOwn(policy.profiles, skill)) return undefined;
+  const resolved = (provider: string) => resolveProfile({ profile: skill, provider, policy, home }).Resolved;
+  return { claude: resolved('anthropic'), openai: resolved('openai'), expensive: !!policy.profiles[skill].expensive };
+}
+export function adapter(root: string, name: string, registrationName: string, host: Host, routed: boolean, task?: TaskAdapter) {
   root = forward(root);
   const mode = routed ? 'routed, separate terminal' : host === 'codex' ? 'native, current session' : 'native';
   const invocation = host === 'claude' ? `/agentkit:${registrationName}` : `/${name}`;
-  const header = `---\nname: ${registrationName}\ndescription: 'AgentKit ${invocation} (${mode}). Use only when the user requests this command.'\n${host === 'claude' ? 'disable-model-invocation: true\n' : ''}---\n`;
+  const header = `---\nname: ${registrationName}\ndescription: 'AgentKit ${invocation} (${mode}). Use only when the user requests this command.'\n${host === 'claude' ? 'disable-model-invocation: true\n' : ''}${host === 'claude' && task ? `model: ${task.claude.model}\neffort: ${task.claude.effort}\n` : ''}---\n`;
   const dependencies = `Runtime: [${root}](${root}). Read [${root}/AGENTS.shared.md](${root}/AGENTS.shared.md). Kit scripts and templates resolve under this runtime; project files stay relative to the current project.\n`;
   if (routed) return header + dependencies + `
 This is an explicit routed invocation. Do not execute the command in this session.
@@ -115,10 +124,37 @@ node "${root}/tools/start-agentkit-codex.ts" --command ${name} --arguments-file 
 This opens a visible terminal. The user interacts with that terminal for
 approvals and session completion. Report that it launched; do not claim the command
 completed. Never substitute headless codex exec or auto-answer child approvals.
-`;
+${task ? `
+The launcher runs this command on model profile \`${name}\`: ${task.openai.model} at ${task.openai.effort} effort${task.expensive ? ', an expensive profile' : ''}.
+Add \`--model <id>\` or \`--effort <level>\` to the command above only when the user explicitly
+asks for a different model or effort for this run. The launcher validates them and refuses an
+unsupported value with its reason; report a refusal rather than retrying without the override.
+` : ''}`;
   const native = host === 'codex' ? 'Execution mode: native Codex. Keep the current session model and effort; do not claim routed tier verification. For enforced command routing use the corresponding -routed skill.' : host === 'claude' ? `Execute the core using this host and its normal model policy. In Claude Code this command is \`${invocation}\`; name every AgentKit command for the user the same way (shared rules, *Models*).` : 'Execute the core using this host and its normal model policy.';
+  const profile = !task ? '' : host === 'claude' ? `
+
+Model profile \`${name}\`: this adapter's frontmatter requests ${task.claude.model} at ${task.claude.effort} effort,
+resolved when setup generated it. The host may not apply it: organization policy or
+\`availableModels\` can refuse the model, and environment settings or caps can change effort.
+Before the work, run:
+
+\`\`\`text
+node "${root}/tools/model-profile.ts" --verify-active --profile ${name} --model ${task.claude.model} --effort ${task.claude.effort}
+\`\`\`
+
+Report requested, resolved and verified active separately, as that output gives them; never
+call the profile applied unless the active model matched. A different model or effort for this
+one call cannot be applied here: say so, and say that a lasting change is
+\`node "${root}/tools/model-profile.ts" --set-override --profile ${name} --provider anthropic --model <id>\`
+followed by rerunning setup.${task.expensive ? ' This profile is expensive; it runs only because the user invoked it, and nothing escalates beyond it automatically.' : ''}` : host === 'codex' ? `
+
+Model profile \`${name}\` recommends ${task.openai.model} at ${task.openai.effort} effort. That is a
+recommendation, not applied: this session keeps its own model. To run on the profile, use \`/${registrationName}-routed\`.` : `
+
+Model profile \`${name}\` recommends ${task.openai.model} at ${task.openai.effort} effort (OpenAI) or ${task.claude.model} at
+${task.claude.effort} effort (Anthropic). That is a recommendation, not applied: this session keeps its own model.`;
   return header + dependencies + `
-${native}
+${native}${profile}
 
 Load the complete canonical command through this reader, then execute the returned
 JSON object's Content with the user's arguments. The reader resolves kit dependencies to absolute
@@ -378,8 +414,8 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
     return { ...installed, Operations: [...operations, ...installed.Operations] };
   }
   {
-    for (const path of ['AGENTS.shared.md', 'templates', 'tools/invoke-codex-command.ts', 'tools/start-agentkit-codex.ts', 'tools/get-agentkit-skill.ts']) if (!existsSync(join(root, path))) throw new Error(`Incomplete runtime: missing '${path}'.`);
-    const skills = readdirSync(join(root, 'skills'), { withFileTypes: true }).filter(s => s.isDirectory() && existsSync(join(root, 'skills', s.name, 'SKILL.md'))).map(s => s.name).sort();
+    for (const path of ['AGENTS.shared.md', 'templates', 'policy/model-profiles.json', 'tools/invoke-codex-command.ts', 'tools/start-agentkit-codex.ts', 'tools/get-agentkit-skill.ts']) if (!existsSync(join(root, path))) throw new Error(`Incomplete runtime: missing '${path}'.`);
+    const policy = readPolicy(root), skills = readdirSync(join(root, 'skills'), { withFileTypes: true }).filter(s => s.isDirectory() && existsSync(join(root, 'skills', s.name, 'SKILL.md'))).map(s => s.name).sort();
     const hosts = [...new Set(input.hosts?.length ? input.hosts : (['claude', 'codex', 'copilot'] as Host[]).filter(h => existsSync(hostRoot(h)) || findExecutable(h, env) || (h === 'copilot' && existsSync(join(home, '.agents')))))];
     if (!hosts.length) plan('No supported host detected. Pass --hosts claude, codex, or copilot explicitly.');
     registrations.push(...oldRegistrations.filter(r => !hosts.includes(r.host)));
@@ -407,11 +443,12 @@ export function install(input: InstallOptions, config: { env?: NodeJS.ProcessEnv
         registerFiles(host, 'agentkit', path, { 'plugin.json': JSON.stringify({ name: 'agentkit', description: "AgentKit commands, namespaced /agentkit:<command> so they never reach Claude Code's own commands. Generated by tools/install-agentkit.ts; edit the canonical kit, not these files." }, null, 2) + '\n' });
       }
       for (const skill of skills) for (const routed of host === 'codex' ? [false, true] : [false]) {
+        const task = taskAdapter(policy, skill, home);
         const name = prefix + skill + (routed ? '-routed' : ''), path = join(host === 'claude' ? pluginRoot : hostRoot(host), 'skills', name);
         desired.push(path); const old = oldRegistrations.find(r => r.path === path), item = stat(path);
         if (item && !(old && owned(old, root))) { collision(path); if (old) registrations.push(old); continue; }
         if (item && old?.kind === 'link') removeRegistration(old);
-        registerFiles(host, name, path, { 'SKILL.md': adapter(root, skill, name, host, routed) });
+        registerFiles(host, name, path, { 'SKILL.md': adapter(root, skill, name, host, routed, task) });
       }
       oldRegistrations.filter(r => r.host === host && !desired.includes(r.path)).forEach(removeRegistration);
       updatePointer(rulesPath(host));
