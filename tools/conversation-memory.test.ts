@@ -89,7 +89,7 @@ const { syncBuiltinESMExports } = require('node:module');
 const original = fs.rmSync;
 let attempts = 0;
 fs.rmSync = function(target, options) {
-  if (String(target) === process.env.TEST_LOCK && options?.recursive) {
+  if (String(target) === fs.realpathSync(process.env.TEST_LOCK) && options?.recursive) {
     fs.writeFileSync(process.env.TEST_ATTEMPTS, String(++attempts));
     const code = process.env.TEST_ERROR;
     if (attempts <= Number(process.env.TEST_FAILURES)) throw Object.assign(new Error('synthetic cleanup ' + code), {code});
