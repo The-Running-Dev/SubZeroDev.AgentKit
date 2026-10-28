@@ -61,8 +61,10 @@ const fs = require('node:fs');
 const { spawn } = require('node:child_process');
 const { syncBuiltinESMExports } = require('node:module');
 const original = fs.rmSync;
+let held = false;
 fs.rmSync = function(target, options) {
-  if (String(target).endsWith('.conversation-lock') && options?.recursive) {
+  if (!held && String(target).endsWith('.conversation-lock') && options?.recursive) {
+    held = true;
     const child = spawn(process.execPath, ['-e',
       'require("node:fs").writeFileSync(process.argv[1], "ready"); setTimeout(() => process.exit(), Number(process.argv[2]));',
       process.env.HOLDER_READY, process.env.HOLDER_MS],
@@ -81,8 +83,20 @@ syncBuiltinESMExports();
 `);
   const release = () => {
     if (existsSync(pidFile)) {
-      try { process.kill(Number(readFileSync(pidFile, 'utf8'))); } catch (error) {
+      const pid = Number(readFileSync(pidFile, 'utf8'));
+      try { process.kill(pid); } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+      }
+      // Termination is asynchronous on Windows; wait for the process to exit
+      // before tearing down its cwd (Node 22 cannot do that wait via rmSync).
+      const deadline = Date.now() + 5000;
+      for (;;) {
+        try { process.kill(pid, 0); } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ESRCH') break;
+          throw error;
+        }
+        if (Date.now() > deadline) throw new Error('Holder did not exit');
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
       }
       rmSync(pidFile);
     }

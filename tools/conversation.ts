@@ -257,9 +257,16 @@ export function conversation(archiveRoot: string, value: unknown, config: { cwd?
     rmSync(pendingFile);
     return plan.result;
   } finally {
-    // Windows sync/indexing tools can briefly retain directory handles. Retry
-    // only cleanup of our acquired lock; exhaustion still reports the error.
-    rmSync(lock, { recursive: true, maxRetries: 10, retryDelay: 100 });
+    // Node 22's native rmSync does not retry every Windows directory-handle
+    // failure. Keep the same bounded policy across supported Node versions.
+    // Only our acquired lock is removed; exhaustion still reports the error.
+    for (let attempt = 0; ; attempt++) {
+      try { rmSync(lock, { recursive: true }); break; }
+      catch (error) {
+        if (attempt >= 10 || !['EBUSY', 'EMFILE', 'ENFILE', 'ENOTEMPTY', 'EPERM'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100 * (attempt + 1));
+      }
+    }
   }
 }
 
