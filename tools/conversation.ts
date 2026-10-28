@@ -256,7 +256,11 @@ export function conversation(archiveRoot: string, value: unknown, config: { cwd?
     }
     rmSync(pendingFile);
     return plan.result;
-  } finally { rmSync(lock, { recursive: true }); }
+  } finally {
+    // Windows sync/indexing tools can briefly retain directory handles. Retry
+    // only cleanup of our acquired lock; exhaustion still reports the error.
+    rmSync(lock, { recursive: true, maxRetries: 10, retryDelay: 100 });
+  }
 }
 
 if (isMain(import.meta.url)) await main(() => {

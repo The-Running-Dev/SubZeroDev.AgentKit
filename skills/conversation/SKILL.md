@@ -178,7 +178,10 @@ them; a commit/push failure does not undo the local write and must be named.
   and the edited file, reconcile explicitly, and retry; never delete the plan to
   hide a partial write. Do not call a failed invocation a completed attachment.
 - `.conversation-lock` serializes helper operations across this archive. A crash
-  can leave it behind. Stop other writers, inspect `owner.json`, confirm the
+  can leave it behind. Cleanup of an acquired lock retries transient filesystem
+  errors up to 10 times with a 100 ms incremental delay (5.5 seconds of total
+  retry delay); an exhausted cleanup still reports failure. This needs no local
+  retry wrapper. If a lock remains, stop other writers, inspect `owner.json`, confirm the
   process is no longer running, then remove only that lock directory and retry the
   original request. Never clear an active or unverified lock. This is a local,
   single-machine workflow; synced-folder locks are not distributed coordination.

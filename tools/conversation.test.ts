@@ -51,6 +51,72 @@ function snapshot(root: string): Record<string, string> {
 }
 const manifest = (f: Fixture) => join(f.archive, `Journal/raw/conversation-${f.fork.branchId}/branch.json`);
 
+test('Windows CLI cleanup retries a held directory, but reports exhausted retries', { skip: process.platform !== 'win32' }, () => {
+  const f = fixture();
+  // A separate process's cwd holds a real Windows directory handle. The preload
+  // arranges timing only; rmSync itself and its retry implementation stay real.
+  const ready = join(f.base, 'holder-ready'), pidFile = join(f.base, 'holder-pid');
+  const preload = put(f.base, 'hold-cleanup.cjs', `
+const fs = require('node:fs');
+const { spawn } = require('node:child_process');
+const { syncBuiltinESMExports } = require('node:module');
+const original = fs.rmSync;
+fs.rmSync = function(target, options) {
+  if (String(target).endsWith('.conversation-lock') && options?.recursive) {
+    const child = spawn(process.execPath, ['-e',
+      'require("node:fs").writeFileSync(process.argv[1], "ready"); setTimeout(() => process.exit(), Number(process.argv[2]));',
+      process.env.HOLDER_READY, process.env.HOLDER_MS],
+      { cwd: target, stdio: 'ignore', windowsHide: true });
+    fs.writeFileSync(process.env.HOLDER_PID, String(child.pid));
+    const deadline = Date.now() + 10000;
+    while (!fs.existsSync(process.env.HOLDER_READY)) {
+      if (Date.now() > deadline) throw new Error('Holder never became ready');
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+    }
+    child.unref();
+  }
+  return original(target, options);
+};
+syncBuiltinESMExports();
+`);
+  const release = () => {
+    if (existsSync(pidFile)) {
+      try { process.kill(Number(readFileSync(pidFile, 'utf8'))); } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+      }
+      rmSync(pidFile);
+    }
+    rmSync(ready, { force: true });
+  };
+  const invoke = (request: unknown, holdMs = 300) => {
+    release();
+    const requestFile = put(f.base, 'request.json', JSON.stringify(request));
+    return run(process.execPath, ['--require', preload, join(kit, 'tools/conversation.ts'), '--archive-root', f.archive, '--request-file', requestFile], {
+      timeout: 20000, env: { ...process.env, HOLDER_READY: ready, HOLDER_PID: pidFile, HOLDER_MS: String(holdMs) },
+    });
+  };
+  try {
+    for (const [request, state] of [[f.fork, 'Forked'], [f.attach, 'Attached'], [f.fork, 'Forked'], [f.returning, 'Returned']] as const) {
+      const result = invoke(request);
+      assert.equal(result.code, 0, result.stderr);
+      assert.equal(JSON.parse(result.stdout).State, state);
+      assert.equal(existsSync(join(f.archive, '.conversation-lock')), false);
+      assert.equal(existsSync(join(f.archive, '.conversation-pending.json')), false);
+    }
+    const before = snapshot(f.archive);
+    const failed = invoke(f.returning, 15000);
+    assert.equal(failed.code, 1); assert.equal(failed.stdout, '');
+    assert.match(failed.stderr, /EPERM|EBUSY|EACCES/);
+    assert.ok(existsSync(join(f.archive, '.conversation-lock')));
+    release();
+    rmSync(join(f.archive, '.conversation-lock'), { recursive: true, maxRetries: 10, retryDelay: 100 });
+    assert.deepEqual(snapshot(f.archive), before);
+  } finally {
+    release();
+    rmSync(f.base, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+  }
+});
+
 it('FAR-2/3/5: preserves raw bytes, attribution, coverage, parent and note/index conventions', f => {
   const beforeIndex = readFileSync(join(f.archive, 'INDEX.md'), 'utf8');
   const result = conversation(f.archive, f.fork);
