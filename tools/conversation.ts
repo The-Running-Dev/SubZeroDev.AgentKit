@@ -115,6 +115,21 @@ export function inside(root: string, path: string): string {
 }
 const bytesAt = (path: string) => existsSync(path) ? readFileSync(path) : null;
 const hashAt = (path: string) => { const b = bytesAt(path); return b === null ? null : digest(b); };
+function retryFilesystem(action: () => void, codes: readonly string[]) {
+  // Initial attempt plus ten retries, at most 5.5 seconds of backoff. Node 22's
+  // native rmSync retry does not cover every Windows directory-handle failure.
+  for (let attempt = 0; ; attempt++) {
+    try { action(); return; }
+    catch (error) {
+      if (attempt >= 10 || !codes.includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100 * (attempt + 1));
+    }
+  }
+}
+// Call only after acquiring this lock; never remove another writer's lock.
+export function releaseConversationLock(lock: string) {
+  retryFilesystem(() => rmSync(lock, { recursive: true }), ['EBUSY', 'EMFILE', 'ENFILE', 'ENOTEMPTY', 'EPERM']);
+}
 export function atomic(path: string, data: Buffer) {
   mkdirSync(dirname(path), { recursive: true });
   // Reserved, content-addressed staging file. Under the archive lock a partial
@@ -125,7 +140,10 @@ export function atomic(path: string, data: Buffer) {
     rmSync(temporary);
   }
   writeFileSync(temporary, data, { flag: 'wx' });
-  try { renameSync(temporary, path); } finally { rmSync(temporary, { force: true }); }
+  // Retry the same atomic replacement. Never unlink the destination to work
+  // around a sharing violation; on exhaustion its bytes and pending plan survive.
+  try { retryFilesystem(() => renameSync(temporary, path), ['EACCES', 'EBUSY', 'EMFILE', 'ENFILE', 'EPERM']); }
+  finally { rmSync(temporary, { force: true }); }
 }
 function sourceBytes(root: string, source: Source): Buffer {
   const bytes = readFileSync(inside(root, source.path));
@@ -257,16 +275,7 @@ export function conversation(archiveRoot: string, value: unknown, config: { cwd?
     rmSync(pendingFile);
     return plan.result;
   } finally {
-    // Node 22's native rmSync does not retry every Windows directory-handle
-    // failure. Keep the same bounded policy across supported Node versions.
-    // Only our acquired lock is removed; exhaustion still reports the error.
-    for (let attempt = 0; ; attempt++) {
-      try { rmSync(lock, { recursive: true }); break; }
-      catch (error) {
-        if (attempt >= 10 || !['EBUSY', 'EMFILE', 'ENFILE', 'ENOTEMPTY', 'EPERM'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100 * (attempt + 1));
-      }
-    }
+    releaseConversationLock(lock);
   }
 }
 
