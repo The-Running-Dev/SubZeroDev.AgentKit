@@ -100,6 +100,15 @@ it('a refused override leaves every adapter as it was, so the corrected rerun re
   writeFileSync(asset, read(asset) + '\nuser edit\n'); const edited = read(asset);
   assert.deepEqual(success(f).Collisions, [join(f.plugin, 'skills/asset-craft')]); assert.equal(read(asset), edited);
 });
+it('an adapter rewritten on disk but missing from the manifest is adopted when it holds exactly what this run writes', f => {
+  const config = join(f.home, '.agent-kit-state/config.json'), asset = join(f.plugin, 'skills/asset-craft/SKILL.md'), profile = JSON.stringify({ modelProfiles: { 'asset-craft': { anthropic: { model: 'haiku' } } } });
+  put(f.home, '.agent-kit-state/config.json', profile); success(f); const haiku = read(asset);
+  rmSync(config); success(f); assert.doesNotMatch(read(asset), /^model: haiku$/m);
+  // The v2026.10.28 failure: the new adapter reached disk, the manifest kept the old hashes.
+  writeFileSync(asset, haiku); writeFileSync(config, profile);
+  const r = success(f); assert.deepEqual(r.Collisions, []); assert.ok(r.Operations.some(o => o.startsWith(`Adopt '${join(f.plugin, 'skills/asset-craft')}'`)));
+  assert.equal(read(asset), haiku); assert.deepEqual(success(f, { verify: true }).State, 'OK');
+});
 it('every adapter has valid frontmatter and absolute runtime paths despite spaces', f => {
   success(f); for (const entry of state(f).registrations!.filter(r => r.files?.['SKILL.md'])) { const text = read(join(entry.path, 'SKILL.md')); assert.match(text, /^---\nname: [\w-]+\ndescription: '[^\n]+'\n(?:disable-model-invocation: true\n)?(?:model: [\w.-]+\neffort: [a-z]+\n)?---/); assert.ok(text.includes(f.root.replaceAll('\\', '/'))); assert.doesNotMatch(text, /(?<![\w/\\])(?:AGENTS[.]shared[.]md|tools\/|templates\/)/); }
 });

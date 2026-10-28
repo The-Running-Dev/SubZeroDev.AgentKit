@@ -154,6 +154,65 @@ test("anthropic: availableModels follows Claude Code's alias, version-prefix and
     assert.equal(validateAnthropic({ model, effort: 'low' }, { HOME: home, USERPROFILE: home }, 'linux').Validation, allowed ? 'unverified' : 'refused', `${model} against ${JSON.stringify(availableModels)}`);
   }
 });
+const checkManaged = (user: object | undefined, managed: Record<string, object>, model: string) => {
+  const home = temp(), dir = temp(); if (user) put(home, '.claude/settings.json', JSON.stringify(user));
+  for (const [path, settings] of Object.entries(managed)) put(dir, path, JSON.stringify(settings));
+  return validateAnthropic({ model, effort: 'low' }, { HOME: home, USERPROFILE: home }, 'linux', dir);
+};
+test('anthropic: a managed availableModels list replaces the user list; without one the user list applies', () => {
+  const user = { availableModels: ['haiku'] }, managed = { 'managed-settings.json': { availableModels: ['sonnet'] } };
+  assert.equal(checkManaged(user, managed, 'sonnet').Validation, 'unverified');
+  const r = checkManaged(user, managed, 'haiku'); assert.equal(r.Validation, 'refused'); assert.match(r.Detail, /managed-settings\.json/);
+  assert.equal(checkManaged(user, {}, 'haiku').Validation, 'unverified');
+  assert.equal(checkManaged(user, { 'managed-settings.json': { model: 'opus' } }, 'sonnet').Validation, 'refused');
+  assert.equal(checkManaged(user, { 'managed-settings.json': { availableModels: ['sonnet'] }, 'managed-settings.d/10-team.json': { availableModels: ['opus'] } }, 'opus').Validation, 'unverified');
+  assert.equal(checkManaged(user, { 'managed-settings.d/10-team.json': { availableModels: ['opus'] }, 'managed-settings.d/.hidden.json': { availableModels: ['haiku'] } }, 'haiku').Validation, 'refused');
+});
+test("anthropic: managed deniedModels follows Claude Code's family, version and minor-version rules", () => {
+  const cases: [string[], string, boolean][] = [
+    [['opus'], 'claude-opus-5-5', true],
+    [['opus'], 'opus', true],
+    [['claude-opus-5-5'], 'claude-opus-5-5', true],
+    [['claude-opus-5-5'], 'claude-opus-5-5-20261001', true],
+    [['claude-opus-5-5'], 'us.anthropic.claude-opus-5-5-20261001-v1', true],
+    [['claude-opus-5-5'], 'claude-opus-5-5[1m]', true],
+    [['claude-opus-5-5'], 'claude-opus-5', false],
+    [['claude-opus-5-5'], 'opus', false],
+    [['claude-opus-5'], 'claude-opus-5-5', true],
+    [['claude-opus-5-0'], 'claude-opus-5', true],
+    [['claude-opus-5-0'], 'claude-opus-5-20260101', true],
+    [['claude-opus-5-0'], 'claude-opus-5-5', false],
+    [['best', 'default'], 'claude-opus-5-5', false],
+  ];
+  for (const [deniedModels, model, blocked] of cases) assert.equal(checkManaged(undefined, { 'managed-settings.json': { deniedModels } }, model).Validation, blocked ? 'refused' : 'unverified', `${model} against ${JSON.stringify(deniedModels)}`);
+  assert.match(checkManaged(undefined, { 'managed-settings.json': { availableModels: ['opus'], deniedModels: ['claude-opus-5-5'] } }, 'claude-opus-5-5').Detail, /blocked by deniedModels/);
+  assert.equal(checkManaged({ deniedModels: ['opus'] }, {}, 'opus').Validation, 'unverified');
+});
+test('anthropic: a requested alias passes only through an availableModels entry deniedModels leaves standing', () => {
+  assert.equal(checkManaged(undefined, { 'managed-settings.json': { availableModels: ['claude-opus-5-5'], deniedModels: ['claude-opus-5-5'] } }, 'opus').Validation, 'refused');
+  assert.equal(checkManaged(undefined, { 'managed-settings.json': { availableModels: ['opus'], deniedModels: ['claude-opus-5-5'] } }, 'opus').Validation, 'unverified');
+  assert.equal(checkManaged(undefined, { 'managed-settings.json': { availableModels: ['claude-opus-5', 'claude-opus-5-5'], deniedModels: ['claude-opus-5-5'] } }, 'opus').Validation, 'unverified');
+  // claude-opus-5 still permits Opus 5.5 when only Opus 5 itself is denied, unless matching is exact.
+  assert.equal(checkManaged(undefined, { 'managed-settings.json': { availableModels: ['claude-opus-5'], deniedModels: ['claude-opus-5-0'] } }, 'opus').Validation, 'unverified');
+  assert.equal(checkManaged(undefined, { 'managed-settings.json': { availableModels: ['claude-opus-5'], deniedModels: ['claude-opus-5-0'], availableModelsMatch: 'exact' } }, 'opus').Validation, 'refused');
+});
+test('anthropic: an invalid managed availableModels fails closed and an invalid availableModelsMatch reads as "exact"', () => {
+  const user = { availableModels: ['haiku'] };
+  assert.equal(checkManaged(user, { 'managed-settings.json': { availableModels: 'haiku' } }, 'haiku').Validation, 'refused');
+  assert.equal(checkManaged(user, { 'managed-settings.json': { availableModels: [42, 'sonnet'] } }, 'sonnet').Validation, 'unverified');
+  assert.equal(checkManaged(user, { 'managed-settings.json': { availableModels: null } }, 'haiku').Validation, 'unverified');
+  assert.equal(checkManaged(undefined, { 'managed-settings.json': { availableModels: ['claude-opus-5'], availableModelsMatch: 'Exact' } }, 'claude-opus-5-5').Validation, 'refused');
+  assert.equal(checkManaged(undefined, { 'managed-settings.json': { deniedModels: 'opus' } }, 'opus').Validation, 'unverified');
+});
+test('anthropic: availableModelsMatch "exact" narrows a managed model ID entry to its version and dated ID', () => {
+  const managed = (extra: object = {}) => ({ 'managed-settings.json': { availableModels: ['claude-opus-5', 'sonnet'], availableModelsMatch: 'exact', ...extra } });
+  assert.equal(checkManaged(undefined, managed(), 'claude-opus-5').Validation, 'unverified');
+  assert.equal(checkManaged(undefined, managed(), 'claude-opus-5-20260101').Validation, 'unverified');
+  assert.equal(checkManaged(undefined, managed(), 'claude-opus-5-5').Validation, 'refused');
+  assert.equal(checkManaged(undefined, managed(), 'claude-sonnet-5-5').Validation, 'unverified');
+  assert.equal(checkManaged(undefined, managed({ availableModelsMatch: 'prefix' }), 'claude-opus-5-5').Validation, 'unverified');
+  assert.equal(checkManaged({ availableModels: ['claude-opus-5'], availableModelsMatch: 'exact' }, {}, 'claude-opus-5-5').Validation, 'unverified');
+});
 test('an explicit Claude value is reported as not applicable to an already-loaded skill', () => {
   const env = { HOME: temp(), USERPROFILE: '' };
   const explicit = resolveAndValidate({ profile: 'small-edit', provider: 'anthropic', model: 'opus', policy, home: env.HOME, env });
