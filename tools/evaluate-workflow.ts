@@ -7,6 +7,7 @@ import { skillPrompt } from './invoke-codex-command.ts';
 import { resolveKitRoot } from './lib/kit-root.ts';
 import { parseOptions, requiredOption } from './lib/options.ts';
 import { isMain, main, writeJson } from './lib/runtime.ts';
+import { readCodexSession } from './lib/codex-session-usage.ts';
 
 export const caseIds = ['caller', 'scope-growth', 'prose'] as const;
 export type CaseId = typeof caseIds[number];
@@ -55,14 +56,37 @@ function within(root: string, path: string): boolean {
   const rel = relative(root, path);
   return rel === '' || (!isAbsolute(rel) && rel !== '..' && !rel.startsWith('..' + (process.platform === 'win32' ? '\\' : '/')));
 }
-function readArtifact(root: string, path: unknown): Buffer {
+function artifactPath(root: string, path: unknown): string {
   const name = text(path, 'artifact path');
   if (isAbsolute(name) || !within(root, resolve(root, name))) throw new Error('Artifact escapes its directory.');
   const full = realpathSync.native(resolve(root, name));
   if (!within(realpathSync.native(root), full)) throw new Error('Artifact resolves outside its directory.');
+  return full;
+}
+function readArtifact(root: string, path: unknown): Buffer {
+  const full = artifactPath(root, path);
   const stat = statSync(full);
   if (!stat.isFile() || stat.size === 0 || stat.size > 16 * 1024 * 1024) throw new Error('Artifact must be a non-empty regular file of at most 16 MiB.');
   return readFileSync(full);
+}
+
+// This binds an explicitly selected source to the receipt, not the execution to
+// the trial. Session membership and human grading still need operator review.
+function usageEvidence(value: unknown, root: string, host: Record<string, any>) {
+  if (value === null) return null;
+  const input = record(value, 'usage evidence');
+  if (JSON.stringify(Object.keys(input).sort()) !== JSON.stringify(['provider', 'sessionId', 'transcript', 'transcriptSha256']))
+    throw new Error('Usage must be null or a Codex source reference; supplied totals are not accepted.');
+  if (input.provider !== 'codex' || host.name !== 'codex') throw new Error('Usage evidence requires host.name and provider codex.');
+  if (typeof input.transcriptSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(input.transcriptSha256)) throw new Error('Usage evidence requires a SHA-256 digest.');
+  const sessionId = text(input.sessionId, 'usage session identity');
+  const report = readCodexSession(artifactPath(root, input.transcript));
+  if (report.source.sha256 !== input.transcriptSha256) throw new Error('Usage transcript digest mismatch.');
+  if (report.sessionId !== sessionId) throw new Error('Usage session identity mismatch.');
+  if (report.source.cliVersions.length !== 1 || report.source.cliVersions[0] !== host.version)
+    throw new Error('Usage producer version must match host.version.');
+  if (report.models.length !== 1 || report.models[0] !== host.model) throw new Error('Usage model must match host.model.');
+  return { scope: 'session', association: 'operator-attested-trial-membership', report };
 }
 function put(root: string, path: string, content: string) {
   mkdirSync(dirname(join(root, path)), { recursive: true });
@@ -151,10 +175,9 @@ export function verify(packet: string, expectedDigest: string, resultPath: strin
     }
     return { id, verdict };
   });
-  // Usage is deliberately not inferred from transcript shape or an unsupported host reader.
-  if (result.usage !== null) throw new Error('Pilot usage must be null (unavailable); no usage reader is implemented.');
+  const usage = usageEvidence(result.usage, resultRoot, host);
   const status = grades.some(g => g.verdict === 'fail') ? 'human-assessed-fail' : grades.some(g => g.verdict === 'unverified') ? 'unverified' : 'human-assessed-pass';
-  return { status, trialId: manifest.id, revision: manifest.revision, command, caseId, host, grades, elapsedMs, usage: null,
+  return { status, trialId: manifest.id, revision: manifest.revision, command, caseId, host, grades, elapsedMs, usage,
     limitation: 'Integrity and completeness checks only. Human grades, host metadata, chronology and execution provenance are attestations, not independently verified model behavior.' };
 }
 

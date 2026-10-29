@@ -89,8 +89,9 @@ partial source snapshot supports inspection, not building or executing AgentKit.
    alongside the captures. Preserve failures. If a phase failed, timed out or did
    not run, record its actual outcome; verification must refuse a passing receipt.
 
-No candidate executor or host transcript/usage reader is implemented. Host
-identity, sequence, timing, execution and human judgments remain attestations.
+No candidate executor is implemented. Optional native Codex usage evidence is
+read through the existing session meter, as described below. Host identity,
+sequence, timing, execution and human judgments remain attestations.
 A fabricated but internally consistent receipt can pass integrity verification;
 this tool cannot prove that a candidate ran. Keep original host evidence for
 review. Do not publish captures containing private source or host information
@@ -128,10 +129,52 @@ criterion appears exactly once. Do not copy the example grades as results.
 }
 ```
 
-Usage must be `null` (unavailable), never invented zero tokens/cost. Both elapsed
+Usage defaults to `null` (unavailable), never invented zero tokens/cost. Both elapsed
 times must be positive integer milliseconds. Capture paths must resolve inside
 the result's directory; empty, missing, changed, directory or reused captures are
 refused. Hash files with SHA-256 over their bytes, without reformatting them.
+
+### Optional native Codex session evidence
+
+For an explicitly selected native Codex rollout, replace `usage: null` with:
+
+```json
+{
+  "provider": "codex",
+  "transcript": "private/rollout.jsonl",
+  "transcriptSha256": "SHA256_OF_ORIGINAL_ROLLOUT_BYTES",
+  "sessionId": "SESSION_ID_FROM_SESSION_META"
+}
+```
+
+The reference is relative to the receipt directory and must stay inside it,
+including through directory links. Copy the completed rollout there explicitly;
+the verifier does not discover sessions or read the home directory. The existing
+meter streams at most 256 MiB with an 8 MiB line limit. `host.name` must be
+`codex`; its `version` and `model` must match the rollout's single recorded CLI
+version and model. Missing, conflicting or multi-model identity is refused for
+this narrow pilot, even though the standalone meter can report some of it.
+
+The verifier checks the original source digest, parses it with
+`readCodexSession`, and returns a `usage` object containing `scope: "session"`,
+`association: "operator-attested-trial-membership"` and the native `report`.
+Supplied totals or extra report fields are rejected. Partial/unavailable coverage
+and warnings are retained; unavailable totals remain null. Cumulative snapshots
+replace rather than add. Cache/reasoning subsets and response records are not
+added again. No billed cost or phase-level allocation is inferred.
+
+Use a fresh isolated session for each two-phase trial and retain its complete
+rollout after phase B. The verifier does not prove that the selected session
+executed the packet, started fresh, contains only that trial, or delivered the
+recorded responses in order. Matching version/model and hashes are consistency
+checks, not execution provenance. The operator must review that association.
+Usage evidence never promotes a failing or unverified behavioral grade.
+
+Raw rollouts can contain private prompts, paths and host metadata. Keep them
+outside Git and inspect reports before publishing. Successful verifier output
+contains the meter's source digest/byte count and accounting metadata, not the
+source path or conversation text. See the [real-capture validation record](usage-evidence-integration.md)
+for the tested producer and its limits; synthetic fixtures do not certify a CLI.
 
 ```powershell
 # $receipt is an operator-created result.json, outside workspace/.
@@ -152,7 +195,10 @@ are capturable, the rubric is usable, and the unchanged-consumer case reveals a
 real planning defect. Report each criterion's human pass/fail/unverified counts,
 incomplete-trial count, elapsed times and operator interventions from captures.
 Keep denominators and exclusions; missing evidence never increases pass rate.
-Token/cost comparisons are unavailable in this pilot.
+For optionally measured Codex trials, report observed session token counters,
+coverage and warnings alongside those behavioral results. Keep unavailable
+trials in the denominator. A baseline alone demonstrates neither token savings
+nor billing accuracy; billed-cost comparisons remain unavailable.
 
 Only after that smoke test, consider three repeats per command/case per variant
 (36 trials for two variants), with the same model, host/settings, source snapshot,
@@ -165,5 +211,6 @@ Do not infer an improvement from prompt wording or deterministic tool tests.
 `node --test tools/evaluate-workflow.test.ts` exercises all six packet
 preparations, source pinning and refusal paths, then uses explicitly synthetic
 captures to test the verifier and its real CLI exit codes. `npm test` discovers
-these tests through the existing runner. These checks make no model call. No
-observed model-trial results are included with this implementation.
+these tests through the existing runner. These checks make no model call. The
+[usage integration record](usage-evidence-integration.md#six-live-c2-captures)
+separately records six live captures with unverified semantic grades.
