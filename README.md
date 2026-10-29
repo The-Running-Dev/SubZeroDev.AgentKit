@@ -20,6 +20,7 @@ tools/*.ts                    Node scripts the commands call; no PowerShell need
   invoke-done-housekeeping.ts confirmed-merged branch deletion
   measure-session.ts          what a session actually cost, from the transcript
   evaluate-workflow.ts        opt-in C2 replay packets and human-evidence verification
+  report-workflow-suite.ts    read-only C2 suite counts and independent session totals
   get-next-slice.ts           the first unfinished slice in 30-slices.md
   new-design-docs.ts          seeds design/ from templates/design
   ensure-project-files.ts     creates a command's repo files on first use
