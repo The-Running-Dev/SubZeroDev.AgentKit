@@ -19,6 +19,21 @@ const defaultHome = () => process.env.HOME || process.env.USERPROFILE || homedir
 export function readState(path: string): Record<string, any> {
   try { const value = JSON.parse(readFileSync(path, 'utf8')); return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; } catch { return {}; }
 }
+// Passive reads may fall back to defaults. A read before a write must only treat
+// ENOENT as empty: an existence probe can also fail for an unreadable file.
+export function readStateForWrite(path: string): Record<string, any> {
+  let text: string;
+  try { text = readFileSync(path, 'utf8'); } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT') return {};
+    throw new Error(`Cannot read '${path}' (${code || 'read error'}). Check its permissions and accessibility, then retry; nothing was written.`);
+  }
+  // JSON.parse errors can include source bytes; never echo them into diagnostics.
+  let value: unknown;
+  try { value = JSON.parse(text); } catch { throw new Error(`'${path}' is not valid JSON. Back up and fix it, or move it aside, then retry; nothing was written.`); }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`'${path}' does not hold a JSON object. Back up and fix it, or move it aside, then retry; nothing was written.`);
+  return value as Record<string, any>;
+}
 export function saveState(path: string, value: object): void {
   mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, JSON.stringify(value, null, 2) + '\n');
 }
@@ -34,7 +49,7 @@ export function updatePolicy(home: string, env = process.env): UpdatePolicy {
 export function setUpdatePolicy(value: string, home = defaultHome()) {
   const policy = value.toLowerCase();
   if (!['ask', 'auto', 'off'].includes(policy)) throw new Error('--update-policy must be ask, auto or off.');
-  const path = join(home, '.agent-kit-state/config.json'), config = readState(path);
+  const path = join(home, '.agent-kit-state/config.json'), config = readStateForWrite(path);
   delete config.autoUpdate; config.updatePolicy = policy; saveState(path, config);
   return { Message: `AgentKit update policy: ${policy} (${path})` };
 }
@@ -45,7 +60,7 @@ export function setAutoUpdate(value: string, home = defaultHome()) {
 }
 export function snoozeUpdate(home = defaultHome(), now = Date.now()) {
   const path = join(home, '.agent-kit-state/update-check.json'), until = new Date(now + SNOOZE_MS).toISOString();
-  saveState(path, { ...readState(path), snoozedUntil: until });
+  saveState(path, { ...readStateForWrite(path), snoozedUntil: until });
   return { Message: `AgentKit update card snoozed until ${until} (${path})` };
 }
 export function sessionKey(env = process.env, runner: Runner = run): string {
@@ -89,7 +104,7 @@ export function updateNotice(root: string, home: string, env = process.env, runn
   if (policy === 'ask' && Date.parse(String(seen.snoozedUntil || '')) > (opts.now ?? Date.now())) return '';
   const key = sessionKey(env, runner), sessions: string[] = Array.isArray(seen.sessions) ? seen.sessions.map(String) : [];
   if (sessions.includes(key)) return '';
-  try { saveState(path, { ...seen, sessions: [...sessions, key].slice(-50) }); } catch { /* A read remains usable if state cannot be saved. */ }
+  try { saveState(path, { ...readStateForWrite(path), sessions: [...sessions, key].slice(-50) }); } catch { /* A read remains usable if state cannot be saved. */ }
   const git = (args: string[], timeout = 20000) => {
     const r = runner('git', ['-C', root, ...args], { env: { ...env, GIT_TERMINAL_PROMPT: '0' }, timeout });
     if (!r.found || r.code !== 0) throw new Error(r.stderr || 'git update check failed');
