@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { caseIds, prepare, sha256, verify } from './evaluate-workflow.ts';
 import { git, put, repo, temp } from './lib/fixtures.ts';
+import type { CaseId, Command } from './evaluate-workflow.ts';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const entry = join(root, 'tools/evaluate-workflow.ts');
@@ -21,22 +22,22 @@ const paths = [...Object.keys(seedManifest.files).filter(p => p.startsWith('work
 git(source, 'add', '--', ...paths);
 git(source, 'commit', '-qm', 'Synthetic workflow replay source');
 
-function trial() {
+function trial(command: Command = 'next', caseId: CaseId = 'caller') {
   const dir = temp();
-  const packet = prepare({ repo: source, out: join(dir, 'packet'), command: 'next', caseId: 'caller' });
+  const packet = prepare({ repo: source, out: join(dir, 'packet'), command, caseId });
   const manifest = JSON.parse(readFileSync(join(packet.packet, 'manifest.json'), 'utf8'));
   const a = 'Synthetic verifier fixture: pre-edit assessment. Not an observed model trial.\n';
   const b = 'Synthetic verifier fixture: final reconciliation. Not an observed model trial.\n';
   put(dir, 'a.txt', a); put(dir, 'b.txt', b);
   const result = {
-    schema: 1, trialId: packet.id, packetSha256: packet.packetSha256, revision: packet.revision, command: 'next', caseId: 'caller',
+    schema: 1, trialId: packet.id, packetSha256: packet.packetSha256, revision: packet.revision, command, caseId,
     host: { name: 'synthetic', version: 'test', model: 'not-a-model', settings: 'no model was called' },
     phases: [
       { id: 'a', outcome: 'completed', promptSha256: manifest.files['phase-a.md'], elapsedMs: 1, transcript: 'a.txt', transcriptSha256: sha256(a) },
       { id: 'b', outcome: 'completed', promptSha256: manifest.files['phase-b.md'], elapsedMs: 2, transcript: 'b.txt', transcriptSha256: sha256(b) },
     ],
-    humanReview: { reviewer: 'Synthetic test fixture', grades: ['real-caller-boundary', 'evidence-honesty', 'scope-boundary'].map(id => ({ id, verdict: 'pass', reason: 'Synthetic verifier fixture only', evidence: [{ phase: 'b', quote: 'final reconciliation' }] })) },
-    usage: null,
+    humanReview: { reviewer: 'Synthetic test fixture', grades: (manifest.criteria as string[]).map(id => ({ id, verdict: 'pass', reason: 'Synthetic verifier fixture only', evidence: [{ phase: 'b', quote: 'final reconciliation' }] })) },
+    usage: null as null | { provider: string; transcript: string; transcriptSha256: string; sessionId: string },
   };
   const resultPath = join(dir, 'result.json');
   const save = () => writeFileSync(resultPath, JSON.stringify(result));
@@ -167,7 +168,93 @@ test('refuses success-only JSON, omitted human review, omitted grades, no eviden
   const u = trial(); (u.result as any).humanReview = null; assert.throws(() => u.verify(), /humanReview/);
   const v = trial(); v.result.humanReview.grades.pop(); assert.throws(() => v.verify(), /Every fixed criterion/);
   const w = trial(); w.result.humanReview.grades[0].evidence = []; assert.throws(() => w.verify(), /transcript evidence/);
-  const x = trial(); (x.result as any).usage = { tokens: 0, cost: 0 }; assert.throws(() => x.verify(), /usage must be null/);
+  const x = trial(); (x.result as any).usage = { tokens: 0, cost: 0 }; assert.throws(() => x.verify(), /supplied totals are not accepted/);
+});
+
+const usageFixture = join(root, 'tools/fixtures/codex-session/usage.jsonl');
+function attachUsage(t: ReturnType<typeof trial>, body = readFileSync(usageFixture, 'utf8')) {
+  put(t.dir, 'usage.jsonl', body);
+  t.result.host = { name: 'codex', version: '0.0.0-fixture', model: 'gpt-fixture', settings: 'Synthetic usage fixture; no candidate execution' };
+  t.result.usage = { provider: 'codex', transcript: 'usage.jsonl', transcriptSha256: sha256(body), sessionId: 'fixture-session' };
+}
+
+test('all six C2 receipts derive optional session usage without adding repeated snapshots or subsets', () => {
+  for (const command of ['next', 'fix'] as const) for (const caseId of caseIds) {
+    const t = trial(command, caseId); attachUsage(t);
+    const r = t.verify();
+    assert.equal(r.status, 'human-assessed-pass');
+    assert.equal(r.usage!.scope, 'session');
+    assert.equal(r.usage!.association, 'operator-attested-trial-membership');
+    assert.equal(r.usage!.report.totals!.totalTokens, 230);
+    assert.equal(r.usage!.report.coverage, 'observed');
+    assert.equal(r.usage!.report.source.sha256, t.result.usage!.transcriptSha256);
+    assert.doesNotMatch(JSON.stringify(r), /PRIVATE_|usage.jsonl/);
+    t.result.humanReview.grades[0].verdict = 'unverified';
+    assert.equal(t.verify().status, 'unverified');
+    t.result.humanReview.grades[0].verdict = 'fail';
+    assert.equal(t.verify().status, 'human-assessed-fail');
+  }
+});
+
+test('optional usage preserves partial, unavailable and zero coverage rather than inventing totals', () => {
+  const body = readFileSync(usageFixture, 'utf8');
+  const t = trial(); attachUsage(t, body + '{');
+  assert.equal(t.verify().usage!.report.coverage, 'partial');
+  assert.equal(t.verify().usage!.report.totals!.totalTokens, 230);
+  const identity = body.split('\n').filter(line => /session_meta|turn_context/.test(line)).join('\n') + '\n';
+  attachUsage(t, identity);
+  assert.equal(t.verify().usage!.report.coverage, 'unavailable');
+  assert.equal(t.verify().usage!.report.totals, null);
+  const zero = { input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, reasoning_output_tokens: 0, total_tokens: 0 };
+  attachUsage(t, identity + JSON.stringify({ type: 'event_msg', payload: { type: 'token_count', info: { total_token_usage: zero } } }) + '\n');
+  assert.equal(t.verify().usage!.report.totals!.totalTokens, 0);
+  assert.equal(t.verify().usage!.report.coverage, 'observed');
+  t.result.usage = null;
+  assert.equal(t.verify().usage, null);
+});
+
+test('usage rejects changed bytes, missing source, escapes, directories and invented report fields', () => {
+  const t = trial(); attachUsage(t);
+  put(t.dir, 'usage.jsonl', readFileSync(usageFixture, 'utf8') + '\n');
+  assert.throws(() => t.verify(), /Usage transcript digest mismatch/);
+  for (const path of ['missing.jsonl', '.', '../outside.jsonl', resolve(temp(), 'outside.jsonl')]) {
+    attachUsage(t); t.result.usage!.transcript = path; assert.throws(() => t.verify());
+  }
+  attachUsage(t); (t.result.usage as any).totals = { totalTokens: 0 };
+  assert.throws(() => t.verify(), /supplied totals are not accepted/);
+  const outside = temp(); put(outside, 'usage.jsonl', readFileSync(usageFixture, 'utf8'));
+  symlinkSync(outside, join(t.dir, 'usage-link'), process.platform === 'win32' ? 'junction' : 'dir');
+  attachUsage(t); t.result.usage!.transcript = 'usage-link/usage.jsonl';
+  assert.throws(() => t.verify(), /resolves outside/);
+});
+
+test('usage requires consistent session, provider, producer version and model identity', () => {
+  for (const [field, value] of [['sessionId', 'wrong'], ['sessionId', null], ['provider', 'claude'], ['transcriptSha256', 'bad']] as const) {
+    const t = trial(); attachUsage(t); (t.result.usage as any)[field] = value; assert.throws(() => t.verify(), /Usage|usage/);
+  }
+  for (const field of ['name', 'version', 'model'] as const) {
+    const t = trial(); attachUsage(t); t.result.host[field] = 'wrong'; assert.throws(() => t.verify(), /Usage|usage/);
+  }
+  const body = readFileSync(usageFixture, 'utf8');
+  for (const bodyChange of [body.replaceAll('0.0.0-fixture', ''), body.replace('gpt-fixture', ''), body + JSON.stringify({ type: 'session_meta', payload: { id: 'other-session' } }) + '\n', body + JSON.stringify({ type: 'turn_context', payload: { model: 'other-model' } }) + '\n']) {
+    const t = trial(); attachUsage(t, bodyChange); assert.throws(() => t.verify(), /identit|version|model/);
+  }
+});
+
+test('usage refuses reset counters and malformed records even with valid source digests', () => {
+  const body = readFileSync(usageFixture, 'utf8');
+  const reset = { type: 'event_msg', payload: { type: 'token_count', info: { total_token_usage: { input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, reasoning_output_tokens: 0, total_tokens: 0 } } } };
+  const t = trial(); attachUsage(t, body + JSON.stringify(reset) + '\n');
+  assert.throws(() => t.verify(), /counters decreased/);
+  attachUsage(t, body + '{broken}\n'); assert.throws(() => t.verify(), /Malformed Codex JSON/);
+});
+
+test('CLI verifies source-backed usage without publishing the source path or content', () => {
+  const t = trial(); attachUsage(t); t.save();
+  const r = spawnSync(process.execPath, [entry, '--verify', '--packet', t.packet.packet, '--packet-sha', t.packet.packetSha256, '--result', t.resultPath], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(JSON.parse(r.stdout).usage.report.totals.totalTokens, 230);
+  assert.doesNotMatch(r.stdout, /PRIVATE_|usage.jsonl/);
 });
 
 test('validates host identity, non-empty reasons and positive elapsed time', () => {

@@ -84,3 +84,9 @@ must report **230**, with last usage **100** and no added cache/reasoning subset
 `tools/codex-session-usage.test.ts` exercises that fixture through both JSON and
 human CLI entry points, missing/partial usage, identity/reset failures,
 counter validation, malformed/oversized input and chunk boundaries.
+
+A real Codex CLI 0.158.0 smoke capture was checked separately during the
+[pilot usage-evidence integration](../reports/usage-evidence-integration.md).
+That observation validates the reported shape for that capture, not every run
+of that version or future producer versions. The synthetic fixture remains
+synthetic; private raw rollouts are not committed.
