@@ -214,3 +214,9 @@ captures to test the verifier and its real CLI exit codes. `npm test` discovers
 these tests through the existing runner. These checks make no model call. The
 [usage integration record](usage-evidence-integration.md#six-live-c2-captures)
 separately records six live captures with unverified semantic grades.
+
+The [read-only suite report](../docs/behavioral-pilot-suite.md) aggregates an
+explicit receipt list through this verifier, keeping all six C2 slots, missing
+evidence and human pass/fail/unverified counts visible. It separates incompatible
+cohorts and suppresses unsafe token totals. It does not execute or grade trials;
+elapsed times are omitted, including the hibernation-affected #515 baseline.

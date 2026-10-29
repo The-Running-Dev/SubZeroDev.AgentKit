@@ -33,6 +33,7 @@ const cases = {
     criteria: ['proportionality', 'evidence-honesty', 'scope-boundary'],
   },
 } as const;
+export const caseCriteria = (caseId: CaseId): readonly string[] => [...cases[caseId].criteria];
 const sourcePaths = ['AGENTS.shared.md', 'README.md', 'tools/get-agentkit-skill.ts',
   'tools/get-agentkit-skill.test.ts', 'tools/invoke-codex-command.ts',
   'tools/invoke-codex-command.test.ts', 'tools/start-agentkit-codex.ts',
@@ -140,7 +141,8 @@ export function verify(packet: string, expectedDigest: string, resultPath: strin
   for (const [path, hash] of Object.entries(files)) if (sha256(readArtifact(root, path)) !== hash) throw new Error(`Packet artifact mismatch: ${path}`);
   const resultRoot = realpathSync.native(dirname(resolve(resultPath)));
   // Keep the canonical parent and filename together when the requested parent is an alias.
-  const result = record(JSON.parse(readArtifact(resultRoot, basename(resultPath)).toString('utf8')), 'result');
+  const receiptBytes = readArtifact(resultRoot, basename(resultPath));
+  const result = record(JSON.parse(receiptBytes.toString('utf8')), 'result');
   if (result.schema !== 1 || result.trialId !== manifest.id || result.packetSha256 !== expectedDigest || result.revision !== manifest.revision || result.command !== command || result.caseId !== caseId) throw new Error('Result identity mismatch.');
   const host = record(result.host, 'host');
   for (const field of ['name', 'version', 'model', 'settings']) text(host[field], `host.${field}`);
@@ -178,6 +180,7 @@ export function verify(packet: string, expectedDigest: string, resultPath: strin
   const usage = usageEvidence(result.usage, resultRoot, host);
   const status = grades.some(g => g.verdict === 'fail') ? 'human-assessed-fail' : grades.some(g => g.verdict === 'unverified') ? 'unverified' : 'human-assessed-pass';
   return { status, trialId: manifest.id, revision: manifest.revision, command, caseId, host, grades, elapsedMs, usage,
+    evidence: { packetSha256: expectedDigest, receiptSha256: sha256(receiptBytes), producerSha256: manifest.producerSha256 },
     limitation: 'Integrity and completeness checks only. Human grades, host metadata, chronology and execution provenance are attestations, not independently verified model behavior.' };
 }
 
