@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { readState, saveState } from './get-agentkit-skill.ts';
+import { readState, readStateForWrite, saveState } from './get-agentkit-skill.ts';
 import { resolveKitRoot } from './lib/kit-root.ts';
 import { parseOptions, requiredOption } from './lib/options.ts';
 import { isMain, main, writeJson } from './lib/runtime.ts';
@@ -45,14 +45,6 @@ export function modelProblem(provider: Provider, model: string): string | undefi
 export function settingProblem(provider: Provider, setting: Setting): string | undefined {
   return modelProblem(provider, setting.model) || effortProblem(setting.effort);
 }
-// Strict where the file is about to be rewritten: a missing file is empty, but one that does not
-// parse stops the write, so a hand-edit typo never costs every other setting in it.
-function readConfigForWrite(path: string): Record<string, any> {
-  if (!existsSync(path)) return {};
-  let value: unknown; try { value = JSON.parse(readFileSync(path, 'utf8')); } catch (error) { throw new Error(`'${path}' is not valid JSON (${(error as Error).message}). Fix or remove it, then retry; nothing was written.`); }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`'${path}' does not hold a JSON object. Fix or remove it, then retry; nothing was written.`);
-  return value as Record<string, any>;
-}
 const overridesIn = (config: Record<string, any>): Overrides => { const value = config.modelProfiles; return value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {}; };
 export function readPolicy(root = resolveKitRoot(import.meta.url)): Policy {
   const path = join(root, 'policy/model-profiles.json');
@@ -81,14 +73,14 @@ export function setOverride(input: { profile: string; provider: string; model?: 
   const model = input.model?.trim(), effort = input.effort?.trim().toLowerCase();
   if (!model && !effort) throw new Error('--set-override needs --model, --effort or both.');
   const problem = (model && modelProblem(provider, model)) || (effort && effortProblem(effort)); if (problem) throw new Error(problem);
-  const path = configPath(input.home || defaultHome()), config = readConfigForWrite(path), all = overridesIn(config);
+  const path = configPath(input.home || defaultHome()), config = readStateForWrite(path), all = overridesIn(config);
   all[input.profile] = { ...all[input.profile], [provider]: { ...all[input.profile]?.[provider], ...(model ? { model } : {}), ...(effort ? { effort } : {}) } };
   config.modelProfiles = all; saveState(path, config);
   return { Profile: input.profile, Provider: provider, Override: all[input.profile][provider], Path: path, Note: applyNote(provider) };
 }
 export function clearOverride(input: { profile: string; provider?: string; policy?: Policy; home?: string }) {
   const policy = input.policy || readPolicy(); profileOf(policy, input.profile);
-  const provider = input.provider ? providerOf(input.provider) : undefined, path = configPath(input.home || defaultHome()), config = readConfigForWrite(path), all = overridesIn(config);
+  const provider = input.provider ? providerOf(input.provider) : undefined, path = configPath(input.home || defaultHome()), config = readStateForWrite(path), all = overridesIn(config);
   if (provider && all[input.profile]) { const rest = { ...all[input.profile] }; delete rest[provider]; all[input.profile] = rest; }
   if (!provider || !Object.keys(all[input.profile] || {}).length) delete all[input.profile];
   if (Object.keys(all).length) config.modelProfiles = all; else delete config.modelProfiles;
