@@ -117,6 +117,20 @@ it('upgrades a previously installed resolved-path pointer without collision', f 
   success(f); const path = join(f.codex, 'AGENTS.md'), s = state(f), old = `${pointerStart}\nAgentKit shared rules: read [${f.root}/AGENTS.shared.md](${f.root}/AGENTS.shared.md) only when running an AgentKit command.\n${pointerEnd}`;
   writeFileSync(path, old); s.pointerBlocks![path] = old; saveState(f, s); assert.deepEqual(success(f).Collisions, []); assert.match(read(path), /AGENTKIT_HOME/); assert.ok(!read(path).includes(f.root));
 });
+test('the pointer carries the standing delegation and routes free-text next to /next', () => {
+  assert.doesNotMatch(pointer, /only when running/);
+  assert.match(pointer, /whether or not a command runs/);
+  for (const action of ['committing', 'pushing', 'non-draft pull requests', 'review comments', 'tools/merge-pull-request.ts']) assert.ok(pointer.includes(action), action);
+  assert.match(pointer, /design\/30-slices\.md/); assert.match(pointer, /without asking whether to continue/);
+  assert.match(pointer, /"next", "continue" or "resume" means \/next/); assert.ok(existsSync(join(kit, 'skills/next/SKILL.md')));
+  assert.ok(existsSync(join(kit, 'tools/merge-pull-request.ts')));
+});
+it('upgrades the command-only pointer an earlier install wrote to the standing delegation', f => {
+  success(f); const s = state(f), old = `${pointerStart}\nAgentKit shared rules: read AGENTS.shared.md, resolved from AGENTKIT_HOME if set else the home directory's .agent-kit, only when running an AgentKit command; each command's own skill file names the exact reads it needs.\n${pointerEnd}`;
+  for (const path of Object.keys(s.pointerBlocks!)) { writeFileSync(path, `# Mine\n\n${old}\n`); s.pointerBlocks![path] = old; }
+  saveState(f, s); assert.deepEqual(success(f).Collisions, []);
+  for (const path of Object.keys(s.pointerBlocks!)) { assert.equal(read(path), `# Mine\n\n${pointer}\n`); assert.equal(state(f).pointerBlocks![path], pointer); }
+});
 it('foreign same-named skill survives byte-for-byte and is reported', f => { put(f.codex, 'skills/next/SKILL.md', 'foreign bytes'); assert.ok(success(f).Collisions.includes(dirname(cskill(f)))); assert.equal(read(cskill(f)), 'foreign bytes'); assert.ok(!existsSync(join(dirname(cskill(f)), '.agentkit-owner'))); });
 it('edited managed skills survive refresh and uninstall', f => { success(f); writeFileSync(cskill(f), 'my edited core'); success(f); assert.equal(read(cskill(f)), 'my edited core'); success(f, { uninstall: true }); assert.equal(read(cskill(f)), 'my edited core'); });
 it('prefix change removes only unchanged previous managed registrations', f => { success(f); writeFileSync(cskill(f), 'keep customized'); success(f, { prefix: 'ak-' }); assert.ok(existsSync(cskill(f))); assert.ok(!existsSync(cskill(f, 'fix'))); assert.ok(existsSync(cskill(f, 'ak-fix'))); assert.ok(existsSync(cskill(f, 'ak-fix-routed'))); });

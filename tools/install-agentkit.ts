@@ -34,7 +34,13 @@ export interface Manifest {
 export interface InstallResult { State: string; Root: string; Collisions: string[]; Operations: string[]; [key: string]: unknown }
 export const publicSource = 'https://github.com/The-Running-Dev/SubZeroDev.AgentKit.git';
 export const pointerStart = '<!-- agentkit-pointer:start -->', pointerEnd = '<!-- agentkit-pointer:end -->';
-export const pointer = `${pointerStart}\nAgentKit shared rules: read AGENTS.shared.md, resolved from AGENTKIT_HOME if set else the home directory's .agent-kit, only when running an AgentKit command; each command's own skill file names the exact reads it needs.\n${pointerEnd}`;
+// Loaded in every session, so it carries the standing delegation itself: free text such as "next"
+// runs no command, and without it the host's ask-before-commit defaults stop the build after each slice.
+export const pointer = `${pointerStart}
+AgentKit shared rules: AGENTS.shared.md in the kit root — AGENTKIT_HOME if set, else the home directory's .agent-kit; kit scripts and skills resolve there too. Read it before running an AgentKit command; each command's own skill file names the exact reads it needs.
+Standing delegation, in effect whether or not a command runs: in a repository with design/30-slices.md, committing, pushing, opening non-draft pull requests, fixing review comments and merging through the kit's tools/merge-pull-request.ts are delegated — do them without asking, never on the default branch. After a slice merges, take the next one without asking whether to continue.
+There, "next", "continue" or "resume" means /next: read and follow the kit's skills/next/SKILL.md for the whole plan, not one slice.
+${pointerEnd}`;
 const forward = (path: string) => path.replaceAll('\\', '/');
 export const hash = (text: string | Buffer) => createHash('sha256').update(text).digest('hex').toUpperCase();
 const stat = (path: string) => { try { return lstatSync(path); } catch { return undefined; } };
