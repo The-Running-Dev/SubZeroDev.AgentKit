@@ -64,7 +64,7 @@ function artifactPath(root: string, path: unknown): string {
   if (!within(realpathSync.native(root), full)) throw new Error('Artifact resolves outside its directory.');
   return full;
 }
-function readArtifact(root: string, path: unknown): Buffer {
+export function readArtifact(root: string, path: unknown): Buffer {
   const full = artifactPath(root, path);
   const stat = statSync(full);
   if (!stat.isFile() || stat.size === 0 || stat.size > 16 * 1024 * 1024) throw new Error('Artifact must be a non-empty regular file of at most 16 MiB.');
