@@ -252,6 +252,8 @@ chat report adds only what remains for the user to decide (`AGENTS.shared.md`, *
 
 ## Re-running
 
+For an existing repository whose agreed plan lives outside `design/`, a plan-running assignment handles adoption through `skills/next/SKILL.md`. Prepare publishable, evidence-reconciled project documents, then use `tools/adopt-project.ts` on a feature branch. It preserves divergent documents and does not publish anything. Complete checks, review and guarded merge of the bootstrap PR, verify the plan on the remote default branch, and continue implementation in the same assignment. Missing setup is agent work, not instructions for the user to run.
+
 Installing again upgrades. The classification in phase 1 is what makes it safe: an unchanged file is identical and skipped, and a file the target has since edited is divergent and reconciled with the target winning. **Never treat a re-install as a reset** — the target's edits since the last install are the accumulated knowledge the kit does not have.
 
 **Command files are not part of this at all.** They are never copied into the target, so a re-install neither reconciles nor upgrades them — the installed kit at `AGENTKIT_HOME` (or wherever it resolves) is always current, and `/sync` is what advances it. Re-running `/install` here only ever refreshes this repository's own per-repo files and the pointer section.

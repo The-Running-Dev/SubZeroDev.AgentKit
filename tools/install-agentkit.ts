@@ -9,6 +9,7 @@ import { parseOptions } from './lib/options.ts';
 import { isMain, main, writeJson } from './lib/runtime.ts';
 import { stableTags } from './get-agentkit-skill.ts';
 import { configPath } from './memorykit.ts';
+import { delegationText } from './lib/plan-assignment.ts';
 import { readPolicy, resolveProfile, settingProblem } from './model-profile.ts';
 import type { Policy, Provider, Setting } from './model-profile.ts';
 
@@ -38,8 +39,7 @@ export const pointerStart = '<!-- agentkit-pointer:start -->', pointerEnd = '<!-
 // runs no command, and without it the host's ask-before-commit defaults stop the build after each slice.
 export const pointer = `${pointerStart}
 AgentKit shared rules: AGENTS.shared.md in the kit root — AGENTKIT_HOME if set, else the home directory's .agent-kit; kit scripts and skills resolve there too. Read it before running an AgentKit command; each command's own skill file names the exact reads it needs.
-Standing delegation, in effect whether or not a command runs: in a repository with design/30-slices.md, committing, pushing, opening non-draft pull requests, fixing review comments and merging through the kit's tools/merge-pull-request.ts are delegated — do them without asking, never on the default branch. After a slice merges, take the next one without asking whether to continue.
-There, "next", "continue" or "resume" means /next: read and follow the kit's skills/next/SKILL.md for the whole plan, not one slice.
+${delegationText}
 ${pointerEnd}`;
 const forward = (path: string) => path.replaceAll('\\', '/');
 export const hash = (text: string | Buffer) => createHash('sha256').update(text).digest('hex').toUpperCase();

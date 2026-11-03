@@ -5,9 +5,11 @@ argument-hint: "[optional: a slice id to start from, or 'one' to stop after a si
 disable-model-invocation: true
 ---
 
-Build `design/30-slices.md` to completion. **Do the work; do not describe it.** Each slice goes from code to merged pull request, then the next slice starts, in this same session. Stop only when the plan is finished or on a genuine blocker (`AGENTS.shared.md` § *When to stop*). Never end with "run /next again" or "start a fresh session" — that is the failure this command exists to remove.
+Build the agreed plan to completion within the user's assignment. **Do the work; do not describe it.** Each slice goes from code to merged pull request, then the next slice starts, in this same session. Honor explicit slice/count limits, pauses and later restrictions. Stop only when the assigned scope is finished or on a genuine blocker (`AGENTS.shared.md` § *When to stop*). Never end with "run /next again" or "start a fresh session" — that is the failure this command exists to remove.
 
 With `$1` set to a slice id, start there. With `$1` set to `one`, stop after one slice.
+
+Natural-language assignments to finish or resume an agreed plan use this workflow too, including when project files are missing. Interpret "continue" against the active assignment: continuing a discussion or review does not authorize publishing. A plan file or checkpoint alone grants no authority. On compaction restore the assignment, limits, current branch/PR and next action from the conversation and repository evidence. Reuse the selector's branch discovery and ownership guard; do not create another queue. Do not promise automatic restart after host termination without a tested host mechanism.
 
 ## 0. Start clean
 
@@ -21,10 +23,21 @@ Run `node tools/get-next-slice.ts --repo-root .` (add `--slice $1` when `$1` is 
 
 - **`Resume`** — work from an earlier run is in flight: an open pull request (`PullRequest`), or a branch with no pull request yet (`Branch`), with commits or, if the run stopped before its first commit, without. Check out `Branch` (step 2) and continue: from step 3 if its work is complete, otherwise finish it in step 2 first. `OwnFiles` are that run's uncommitted edits: carry on with them. `AGENTS.shared.md` § *Git and delivery* applies: continue that branch, never a new one.
 - **`Start`** — build `Slice` from `Base` in step 2.
+- **`Prepare`** — the remote plan is missing. Complete **Adopt an existing repository** below, including delivery of its bootstrap PR, then rerun this step automatically.
 - **`Finished`** — the plan is done: reconcile the design (step 7), then report and stop.
 - **`Blocked`** — `Detail` says why (a failed fetch with git's error, a dependency cycle or gap, two branches or two open pull requests for one slice, `gh` unavailable). Report it and stop.
 
-The rule it applies, for reading the plan by hand: a slice is a `## S<n>` heading and the lines under it; the next is the first, in document order, whose `Status:` is not `done` and whose `Depends on:` slices are all `done`; a slice with no `Status:` line is not done. Slices named in a `## Landed` table, or any other index of slices retired by an earlier version of the kit, are history: they count as `done`, and none is ever rebuilt.
+The rule it applies, for reading the plan by hand: a slice is a `## S<n>` heading and the lines under it; the next is the first, in document order, whose `Status:` is not `done`, with no `Blocked by:` or `Status: blocked`, and whose `Depends on:` slices are all `done`; a slice with no `Status:` line is not done. Put external prerequisites in `Blocked by: <decision/access and evidence needed>`, rather than hiding them in prose. Blocked slices remain unfinished; independent eligible work continues. Slices named in a `## Landed` table are history: they count as `done`, and none is ever rebuilt.
+
+### Adopt an existing repository
+
+Preparation belongs to this assignment; never ask the user to move files or run setup commands.
+
+1. Inspect applicable instructions, the agreed plan location, code, tests, CI and existing branches/PRs. Resume an existing `plan/adopt` preparation branch/PR rather than duplicating it. Preserve unrelated edits. Do not use `/setup-project`, which scaffolds a new repository.
+2. Read the supplied project sources. Reconcile status with merged PRs and acceptance evidence, not prior recaps. Exclude moved or unapproved candidate scope. Preserve private source records in place and prepare only publishable project documents; do not copy private transcripts into the repository. Convert active slices to unique `## S<n>` headings, `Status: todo|done|blocked`, internal `Depends on: S<n>, ...` and explicit `Blocked by:` external prerequisites. Ask only if a missing product choice or contradictory authority prevents the agreed work.
+3. Branch from the default branch as `plan/adopt` before edits. Prepare the normalized plan and brief/design/contract in a work directory. Run `node tools/adopt-project.ts --repo-root . --plan <prepared-plan> --brief <brief> --design <design> --contract <contract>`. These paths name prepared project documents, not raw personal sources. The tool preserves divergent files. Fill any missing spec from the agreed material and derive runnable gates from actual build/CI configuration. Inspect its `Project` report and reconcile any `Ambiguous` or `Occupied` entries before delivery; never overwrite an unrelated hook or instruction file.
+4. Verify the project gates and inspect all prepared files. Deliver preparation through the normal named-path commit, non-draft PR, review and `tools/merge-pull-request.ts` path (steps 3–5). This bootstrap does not depend on the selector succeeding. Do not mark an implementation slice done for adopting the repository.
+5. Fetch and verify the plan on the remote default branch, then return to step 1 in this same assignment. A local plan or unmerged preparation PR is not readiness.
 
 ## 2. Build it
 
@@ -109,6 +122,8 @@ Three failed attempts to fix the same CI failure or review defect is a blocker: 
 ## 6. Keep going
 
 Return to step 1 for the next slice. Do not pause between slices, do not ask whether to continue, and do not suggest a new session — context compaction is handled by the host.
+
+A slice merge is a progress update, not a final response. If an explicit slice/count limit has been reached, report that assigned scope complete and stop. Routine CI waits, review fixes and recoverable conflicts remain agent work within the existing retry budget. When blocked, finish independent authorized work, then report the evidence, attempts, retained branch/PR and smallest missing decision or external change. Never bypass a merge refusal.
 
 When step 1 returns `Finished`, go to step 7.
 

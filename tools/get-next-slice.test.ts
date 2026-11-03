@@ -15,6 +15,26 @@ function fixture(text = plan) {
 }
 const pr = (number: number, headRefName: string, baseRefName = 'main', isCrossRepository = false) => ({ number, headRefName, baseRefName, isCrossRepository, url: `https://example.test/pull/${number}` });
 const next = (f: ReturnType<typeof fixture>, prs: ReturnType<typeof pr>[] = [], extra: NextInput = {}) => getNextSlice({ repoRoot: f.work, pullRequestsJson: JSON.stringify(prs), ...extra });
+test('skips blocked external prerequisites without mistaking them for completion', () => {
+  const f = fixture('## S1 - Copy\nStatus: blocked\nBlocked by: FM-U2 host decision\n\n## S2 - UI\nStatus: todo\nDepends on: none\n');
+  assert.equal(next(f).Slice, 'S2');
+  assert.equal(next(f, [], { slice: 'S1' }).Reason, 'NoEligibleSlice');
+  assert.match(next(f, [], { slice: 'S1' }).Detail!, /FM-U2/);
+});
+test('unrecognized dependency tokens fail closed, including external decisions and ranges', () => {
+  for (const dependency of ['FM-U2', 'S1-S3']) {
+    const r = next(fixture(`## S1 - Pending\nStatus: todo\nDepends on: ${dependency}\n`));
+    assert.equal(r.Reason, 'NoEligibleSlice'); assert.match(r.Detail!, /unresolved dependencies/);
+  }
+});
+test('blocked status also prevents resuming implementation from an existing branch', () => {
+  const f = fixture('## S1 - Pending\nStatus: blocked\nBlocked by: missing access\n');
+  git(f.work, 'switch', '-qc', 'slice/S1-pending');
+  assert.equal(next(f).Reason, 'NoEligibleSlice');
+});
+test('empty and duplicate remote plans are invalid rather than finished', () => {
+  for (const text of ['# Empty', '## S1 - A\n\n## S1 - Duplicate']) assert.equal(next(fixture(text)).Reason, 'InvalidPlan');
+});
 test('starts the first slice whose dependencies are done', () => { const r = next(fixture()); assert.equal(r.State, 'Start'); assert.equal(r.Slice, 'S1'); assert.equal(r.Base, 'origin/main'); assert.deepEqual(r.DirtyFiles, []); });
 test('resumes the branch instead of trusting its unmerged done status', () => { const f = fixture(); git(f.work, 'switch', '-qc', 'slice/S1-first'); writePlan(f.work, plan.replace('Status: todo', 'Status: done')); const r = next(f); assert.equal(r.State, 'Resume'); assert.equal(r.Reason, 'UnmergedBranch'); assert.equal(r.Slice, 'S1'); });
 test('resumes a later open PR before starting an earlier slice', () => { const r = next(fixture(), [pr(42, 'slice/S3-third')]); assert.equal(r.Reason, 'OpenPullRequest'); assert.equal(r.Slice, 'S3'); assert.equal(r.PullRequest, 42); });
