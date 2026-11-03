@@ -1,5 +1,8 @@
 # Read-only behavioral pilot suite report
 
+For pinned baseline/candidate experiments with A1 attachments, see
+[offline workflow comparison (A2)](workflow-comparison.md).
+
 `node tools/report-workflow-suite.ts --selection /private/suite.json` verifies an
 explicit receipt list using `evaluate-workflow.ts` (the #515 verifier), then
 reports the six C2 command/case slots and each fixed criterion. It reads local
