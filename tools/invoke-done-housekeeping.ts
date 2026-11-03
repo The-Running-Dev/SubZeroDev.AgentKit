@@ -32,10 +32,66 @@ export function doneHousekeeping(input: HousekeepingInput = {}, runner: Runner =
   const url = git('remote', 'get-url', 'origin');
   const repo = url.code === 0 ? url.output.trim().match(/[:/]([^/:]+\/[^/]+?)(\.git)?$/)?.[1] : undefined;
   const ghArgs = repo ? ['-R', repo] : [];
+  // gh paginates up to this limit. Reaching it without a match is inconclusive,
+  // rather than proof that no other merged PR accounts for a reused branch name.
+  const prLimit = 1000;
   const prs = (branch: string, fields: string) => {
-    const r = runner('gh', ['pr', 'list', ...ghArgs, '--state', 'merged', '--head', branch, '--json', fields], { cwd: root });
+    const r = runner('gh', ['pr', 'list', ...ghArgs, '--state', 'merged', '--head', branch, '--limit', String(prLimit), '--json', fields], { cwd: root });
     if (r.code || !r.stdout.trim()) return [];
     return JSON.parse(r.stdout) as { url: string; headRefOid?: string }[];
+  };
+  const verifyHead = (local: string, head: string): { contained: boolean; unknown?: string } => {
+    if (local === head) return { contained: true };
+    const hasHead = () => git('cat-file', '-e', `${head}^{commit}`).code === 0;
+    if (!hasHead()) {
+      // Fetch the immutable PR head, never the possibly reused branch ref. Do not
+      // move local branches or overwrite another operation's FETCH_HEAD.
+      const fetched = git('fetch', '--no-tags', '--no-write-fetch-head', 'origin', head);
+      if (fetched.code || !hasHead()) return { contained: false, unknown: `merged head ${head} is unavailable after fetch: ${fetched.output}` };
+    }
+    const ancestor = git('merge-base', '--is-ancestor', local, head);
+    if (ancestor.code === 0) return { contained: true };
+    if (ancestor.code !== 1) return { contained: false, unknown: `ancestry check failed: ${ancestor.output}` };
+    const shallow = git('rev-parse', '--is-shallow-repository');
+    if (shallow.code || shallow.stdout.trim() !== 'false') return { contained: false, unknown: 'history is shallow or its completeness could not be established' };
+    const base = git('merge-base', local, head);
+    if (base.code || !base.stdout.trim()) return { contained: false, unknown: 'no common history could be established' };
+    const commits = git('rev-list', `${head}..${local}`);
+    const merges = git('rev-list', '--min-parents=2', `${head}..${local}`);
+    const unique = commits.stdout.trim().split('\n').filter(Boolean);
+    if (commits.code || merges.code || !unique.length || merges.stdout.trim()) {
+      return { contained: false, unknown: 'local-only history is unavailable or contains merge commits that patch comparison cannot verify' };
+    }
+    const cherry = git('cherry', head, local);
+    const patches = cherry.stdout.trim().split('\n').filter(Boolean).map(line => /^([+-]) ([0-9a-f]+)$/.exec(line));
+    // git cherry omits merges. Require an explicit result for every local-only
+    // commit; failed/empty/incomplete output is never evidence of containment.
+    if (cherry.code || patches.length !== unique.length || patches.some(p => !p)
+      || new Set(patches.map(p => p![2])).size !== unique.length
+      || patches.some(p => !unique.includes(p![2]))) {
+      return { contained: false, unknown: `patch comparison was unsuccessful or incomplete: ${cherry.output}` };
+    }
+    if (patches.some(p => p![1] === '+')) return { contained: false };
+    // cherry ignores whitespace, including changes inside string literals or
+    // indentation. It is only a first filter; deletion also requires verbatim
+    // patch IDs. Empty commits produce no patch ID and remain protected.
+    const patchIds = (range: string) => {
+      const log = git('log', '--no-merges', '--format=medium', '--no-notes', '--no-show-signature',
+        '--no-decorate', '--no-color', '--no-ext-diff', '--no-textconv', '--binary', '--full-index', '--no-renames', '-p', range);
+      if (log.code) return null;
+      const ids = runner('git', ['-C', root, 'patch-id', '--verbatim'], { input: log.stdout });
+      if (ids.code) return null;
+      const entries = ids.stdout.trim().split('\n').filter(Boolean).map(line => /^([0-9a-f]+) ([0-9a-f]+)$/.exec(line));
+      return entries.some(e => !e) ? null : entries.map(e => ({ patch: e![1], commit: e![2] }));
+    };
+    const localPatches = patchIds(`${head}..${local}`), mergedPatches = patchIds(`${local}..${head}`);
+    if (!localPatches || !mergedPatches || localPatches.length !== unique.length
+      || new Set(localPatches.map(p => p.commit)).size !== unique.length
+      || localPatches.some(p => !unique.includes(p.commit))) {
+      return { contained: false, unknown: 'verbatim patch verification failed, was incomplete, or encountered empty commits' };
+    }
+    if (localPatches.some(p => !mergedPatches.some(m => m.patch === p.patch))) return { contained: false };
+    return { contained: true };
   };
   const status = git('status', '--short');
   if (status.output.trim() && !input.keepDirty) {
@@ -68,16 +124,30 @@ export function doneHousekeeping(input: HousekeepingInput = {}, runner: Runner =
     for (const b of merged) result.Candidates.push({ Branch: b, MergedPr: prs(b, 'number,url')[0]?.url ?? null });
     const others = git('for-each-ref', '--format=%(refname:short)', 'refs/heads').output.split('\n').map(l => l.trim()).filter(l => l && l !== branch && !merged.includes(l));
     for (const b of others) {
-      const p = prs(b, 'number,url,mergeCommit,headRefOid')[0];
-      if (!p) continue;
+      const matches = prs(b, 'number,url,headRefOid');
+      if (!matches.length) continue;
       const tip = git('rev-parse', b); const local = tip.code === 0 ? tip.output.split('\n')[0].trim() : null;
-      const head = p.headRefOid ?? null;
-      if (!local || !head || local !== head) {
-        result.TipAheadOfMergedPr.push({ Branch: b, MergedPr: p.url, LocalTip: local, MergedHead: head,
-          Reason: !head ? `PR ${p.url} reported no headRefOid - cannot confirm the local tip is what merged.`
-            : !local ? `Could not resolve the local tip of '${b}' - cannot confirm it is what merged.`
-              : `Local tip ${local} is not the head that merged in ${p.url} (${head}) - commits exist on this branch that no merged PR accounts for.` });
-      } else result.SquashMergeCandidates.push({ Branch: b, MergedPr: p.url, MergedHead: head });
+      const unknown: string[] = [];
+      const proofs = new Map<string, ReturnType<typeof verifyHead>>();
+      let contained = false;
+      for (const p of matches) {
+        const head = p.headRefOid;
+        const proof = !local ? { contained: false, unknown: `could not resolve local tip of '${b}'` }
+          : !head ? { contained: false, unknown: `PR ${p.url} reported no headRefOid` } : proofs.get(head) ?? verifyHead(local, head);
+        if (head) proofs.set(head, proof);
+        if (proof.contained) {
+          result.SquashMergeCandidates.push({ Branch: b, MergedPr: p.url, MergedHead: head! });
+          contained = true; break;
+        }
+        if (proof.unknown) unknown.push(`${p.url}: ${proof.unknown}`);
+      }
+      if (contained) continue;
+      if (matches.length === prLimit) unknown.push(`merged PR query reached its ${prLimit} result limit`);
+      // Keep the legacy bucket for callers, but never describe uncertainty as
+      // proven unmerged work. Only the positive proof above authorizes -D.
+      result.TipAheadOfMergedPr.push({ Branch: b, MergedPr: matches[0].url, LocalTip: local, MergedHead: matches[0].headRefOid ?? null,
+        Reason: unknown.length ? `Cannot verify containment in merged history; branch kept. ${unknown.join('; ')}`
+          : `Local commits or patches are not accounted for by any of the ${matches.length} merged PR heads checked; branch kept.` });
     }
     for (const [branches, force] of [[input.deleteBranches ?? [], false], [input.forceDeleteBranches ?? [], true]] as const) {
       for (const b of branches) {
