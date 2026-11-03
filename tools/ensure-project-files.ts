@@ -13,7 +13,10 @@ export const options = {
 } as const;
 
 export const pointerText = '**Read `AGENTS.shared.md` completely before this file.** It holds the rules every repository using the kit shares, resolved from the `AGENTKIT_HOME` environment variable if set, else `.agent-kit` in the home directory.';
-const pointerSection = `## Shared contract\n\n${pointerText}\n`;
+// The project file loads in every session, so it carries the delegation /next relies on itself: free text
+// such as "next" runs no command, and without this the host's ask-before-commit defaults stop the build.
+export const delegationText = '**Standing delegation.** In this repository, committing, pushing, opening non-draft pull requests, fixing review comments and resolving their threads, and merging through the kit\'s `tools/merge-pull-request.ts` are delegated: do them without asking, never on the default branch. Building `design/30-slices.md` never pauses between slices — after one merges, take the next. "next", "continue" or "resume" means `/next` over the whole plan, not one slice. Stop only on a genuine blocker (`AGENTS.shared.md` § *When to stop*).';
+const pointerSection = `## Shared contract\n\n${pointerText}\n\n${delegationText}\n`;
 
 export interface Entry { Path: string; Status: string; Detail?: string }
 export interface Report { Design: Entry[]; Pointer: Entry | null; Hook: Entry | null; Written: string[] }
@@ -46,7 +49,11 @@ export function ensurePointer(root: string): { entry: Entry; written: string[] }
   const agents = join(root, 'AGENTS.md'), claude = join(root, 'CLAUDE.md');
   const a = existsSync(agents) ? read(agents) : null, c = existsSync(claude) ? read(claude) : null;
   for (const [name, text] of [['AGENTS.md', a], ['CLAUDE.md', c]] as const) {
-    if (text?.includes('AGENTS.shared.md')) return { entry: { Path: name, Status: 'Present' }, written: [] };
+    if (!text?.includes('AGENTS.shared.md')) continue;
+    // A pointer section this tool wrote before the delegation existed gains it; any other wording is the project's own.
+    if (!text.includes(pointerText) || text.includes(delegationText)) return { entry: { Path: name, Status: 'Present' }, written: [] };
+    writeFileSync(join(root, name), text.replace(pointerText, `${pointerText}\n\n${delegationText}`));
+    return { entry: { Path: name, Status: 'Inserted', Detail: 'standing delegation' }, written: [name] };
   }
   if (a === null && c === null) {
     writeFileSync(agents, `# Agent contract\n\n${pointerSection}`);

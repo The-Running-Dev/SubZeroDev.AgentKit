@@ -1577,3 +1577,15 @@ Differs from design: The frozen file/tool list predates native convenience. The 
 Rejected: assuming MCP registration proves functional support; rebuilding retired graph tooling; arbitrary tool invocation or a new host transport; blind creation retry after timeout; inferring a native thread from a pending client ID; treating lookup existence as proof of navigation; automatic messaging or full-history cloning from quoted instructions.
 
 Reversibility: cheap. Remove the opt-in helper/workflow; portable packages, raw source boundaries and reviewed MemoryKit records remain usable through their existing tools. Host receipts remain ordinary private JSON with explicit unknown states.
+
+---
+
+### 2026-11-03 — The machine-wide pointer and the project pointer section carry the standing delegation
+
+Context: In SubZeroDev.FileManager the agent built one slice, asked "Commit, push, PR?" and waited for "Resume next". The delegation in `AGENTS.shared.md` § *Git and delivery* and `/next`'s never-pause rule only load when an AgentKit command runs, because the machine-wide pointer (#398, #451) said to read `AGENTS.shared.md` "only when running an AgentKit command". Free text such as "next" runs no command, so the host's ask-before-commit defaults applied.
+
+Chosen: The installer's pointer — one text for Claude Code, Codex and Copilot — states the delegation itself, in effect whether or not a command runs, scoped to repositories with `design/30-slices.md`, and routes "next", "continue" and "resume" there to the kit's `skills/next/SKILL.md` for the whole plan. `tools/ensure-project-files.ts` writes the same grant into the project's own pointer section, and adds it to a section it wrote earlier, so a project carries the authority where the global pointer is missing or old. Existing installs pick the new pointer up on the next install through the manifest's recorded block.
+
+Rejected: Keeping the delegation only in `AGENTS.shared.md` — that is the configuration that failed. Loading all of `AGENTS.shared.md` every session — #398 shrank the pointer on purpose; three lines carry the part that has to be always-on.
+
+Reversibility: cheap. Revert the two strings; the manifest refresh rewrites installed pointers either way.

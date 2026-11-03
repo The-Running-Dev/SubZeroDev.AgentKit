@@ -128,7 +128,11 @@ Never delete a rule you do not understand. An instruction with no obvious reason
 
 ```markdown
 **Read `AGENTS.shared.md` completely before this file.** It holds the rules every repository using the kit shares, resolved from the `AGENTKIT_HOME` environment variable if set, else `.agent-kit` in the home directory.
+
+**Standing delegation.** In this repository, committing, pushing, opening non-draft pull requests, fixing review comments and resolving their threads, and merging through the kit's `tools/merge-pull-request.ts` are delegated: do them without asking, never on the default branch. Building `design/30-slices.md` never pauses between slices — after one merges, take the next. "next", "continue" or "resume" means `/next` over the whole plan, not one slice. Stop only on a genuine blocker (`AGENTS.shared.md` § *When to stop*).
 ```
+
+The second paragraph is there because this file loads in every session and `AGENTS.shared.md` may not: a session the user starts with free text such as "next" runs no command, and without the grant in a file the host always loads, the host's ask-before-commit defaults stop the build after each slice. `tools/ensure-project-files.ts` adds it to a pointer section it wrote before the paragraph existed.
 
 **Write that resolution instruction, not a resolved path.** A concrete absolute path (or an `@`-import of one) bakes in the installing machine's home directory or account name — correct for the machine that ran the install, and wrong the moment the target is cloned onto another machine or account, or `AGENTKIT_HOME` moves (#406). The instruction above is the same order `AGENTS.shared.md` § *House conventions* ("Kit files resolve from the kit root") defines for a script, kept short enough to stand on its own before the target has a local copy of `AGENTS.shared.md` to read that convention from — every session that reads it resolves the location itself, at read time, rather than trusting a value baked in at install time.
 
