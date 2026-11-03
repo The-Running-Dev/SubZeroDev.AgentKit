@@ -110,6 +110,86 @@ needed for behavioral or improvement claims. A baseline report is no A/B result.
 
 ## Verification
 
+### Offline assessment attachments (A1)
+
+Use the existing packet and original schema-1 receipt to seal a separate,
+versioned evaluator draft. This command makes no model or network calls and
+does not execute candidates or write memory. It first runs `verify()` with all
+existing human-review requirements; unverified human grades are valid inputs.
+The receipt, its human grades and suite reporter selection/status stay unchanged.
+
+```text
+node tools/assess-workflow.ts --packet PRIVATE_PACKET --packet-sha PREPARATION_DIGEST --result PRIVATE_RECEIPT --assessment PRIVATE_DRAFT --out PRIVATE_ATTACHMENT
+```
+
+All paths are explicitly selected private files/directories. The output parent
+must exist and the output file must not exist (exclusive creation). Keep each
+evaluator's attachment separately. Success prints only schema and attachment
+digest; failures print a generic diagnostic and exit 1. No raw evidence is
+printed. Attachments themselves contain private quotes and reasons.
+
+Draft format (replace digest placeholders with exact lowercase SHA-256 values):
+
+```json
+{
+  "schema": "agentkit.workflow-assessment.v1",
+  "target": {
+    "trialId": "ORIGINAL_TRIAL_ID",
+    "packetSha256": "PREPARATION_DIGEST",
+    "receiptSha256": "ORIGINAL_RECEIPT_BYTES_DIGEST",
+    "transcripts": { "a": "PHASE_A_BYTES_DIGEST", "b": "PHASE_B_BYTES_DIGEST" }
+  },
+  "evaluator": {
+    "id": "criterion-checker", "version": "1",
+    "codeSha256": "EVALUATOR_CODE_DIGEST",
+    "configSha256": "CONFIG_DIGEST", "rubricSha256": "RUBRIC_DIGEST",
+    "origin": "deterministic"
+  },
+  "execution": "synthetic",
+  "results": [
+    {
+      "id": "real-caller-boundary", "verdict": "unverified",
+      "reason": "This excerpt alone cannot establish the caller check.",
+      "evidence": [{ "phase": "b", "quote": "EXACT_CAPTURE_TEXT", "start": 0 }]
+    },
+    { "id": "evidence-honesty", "verdict": "skipped", "reason": "No evaluator configured.", "evidence": [] },
+    { "id": "scope-boundary", "verdict": "skipped", "reason": "No evaluator configured.", "evidence": [] }
+  ],
+  "review": { "status": "unreviewed" }
+}
+```
+
+Results must cover the exact fixed criteria from `caseCriteria()` once each.
+Verdicts are `pass`, `fail`, `unverified`, or `skipped`; they remain distinct.
+Every result needs a reason. Non-skipped results require 1–16 evidence entries;
+skipped results require none. Each quote must match at `start`, a zero-based
+JavaScript UTF-16 character offset in the named phase's UTF-8 decoded capture.
+The transcript digests still bind the original exact bytes. Evidence text/reasons
+are limited to 4,096 UTF-8 bytes; evaluator ID/version to 256 bytes; the complete
+draft to 256 KiB. The final formatted attachment, including its digest and
+newline, must also fit 256 KiB; sealing rejects larger outputs before writing.
+Unknown fields and invalid enums are rejected.
+
+Evaluator origins: `human`, `model`, `deterministic`, `mock`. Execution provenance:
+`synthetic`, `replay`, `real-host`. Review status: `unreviewed`, `accepted`,
+`rejected`. These fields and evaluator digests are supplied attestations, not
+independently verified authorship, execution, or reviewer approval. Review never
+becomes the original human grade, even when marked accepted.
+
+The output adds `assessmentSha256`: SHA-256 of the canonical payload (recursive
+lexicographic object keys, JSON primitives, array order preserved), excluding
+that digest field. It binds target, evaluator, configuration/rubric digests,
+execution, results and review. A changed payload produces a different identity;
+this is capture identity, not a candidate fingerprint or generation cache.
+Consumers must call `assessWorkflow(input, attachment, true)` to revalidate a
+sealed attachment against the packet, original receipt and phase captures,
+including evidence and attachment identity. Parsing JSON alone is insufficient.
+No reporter automatically discovers or consumes attachments.
+
+`node --test tools/assess-workflow.test.ts` covers sealing, revalidation,
+independent evaluator identities, invalid targets/evidence/schema/bounds,
+distinct verdicts, non-mutation and the real CLI including exclusive outputs.
+
 `node --test tools/report-workflow-suite.test.ts tools/evaluate-workflow.test.ts`
 tests the real CLI, fixed C2 matrix, fail/unverified handling, missing/tampered
 evidence, exact deduplication/conflicts, order determinism, cohort isolation,
