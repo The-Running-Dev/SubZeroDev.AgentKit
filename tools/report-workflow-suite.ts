@@ -18,19 +18,21 @@ const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() &&
 const verifierSha256 = sha256(readFileSync(fileURLToPath(new URL('./evaluate-workflow.ts', import.meta.url))));
 const reporterSha256 = sha256(readFileSync(fileURLToPath(import.meta.url)));
 
-function boundedJson(path: string): unknown {
+function boundedJson(path: string, expectedSha256?: string): unknown {
   const info = statSync(path);
   if (!info.isFile() || !info.size || info.size > 1024 * 1024) throw new Error('Invalid selection file.');
-  return JSON.parse(readFileSync(path, 'utf8'));
+  const bytes = readFileSync(path);
+  if (!bytes.length || bytes.length > 1024 * 1024 || (expectedSha256 !== undefined && sha256(bytes) !== expectedSha256)) throw new Error('Invalid selection bytes or digest.');
+  return JSON.parse(bytes.toString('utf8'));
 }
 
 function cohortKey(v: Pick<Cohort, 'revision' | 'producerSha256' | 'host'>): string {
   return sha256(JSON.stringify([v.revision, v.producerSha256, v.host.name, v.host.version, v.host.model, v.host.settings]));
 }
 
-function selection(path: string): { cohorts: Cohort[]; receipts: Selection[] } {
+export function readSuiteSelection(path: string, expectedSha256?: string): { cohorts: Cohort[]; receipts: Selection[] } {
   let v: unknown;
-  try { v = boundedJson(path); } catch { throw new Error('Invalid suite selection: expected a nonempty JSON file up to 1 MiB.'); }
+  try { v = boundedJson(path, expectedSha256); } catch { throw new Error('Invalid suite selection: expected a nonempty JSON file up to 1 MiB with matching digest when pinned.'); }
   if (!exact(v, ['schema', 'cohorts', 'receipts']) || v.schema !== 1 || !Array.isArray(v.cohorts) || !v.cohorts.length || v.cohorts.length > 16 || !Array.isArray(v.receipts) || v.receipts.length > 100) throw new Error('Invalid suite selection schema or limits.');
   for (const c of v.cohorts) {
     if (!exact(c, ['revision', 'producerSha256', 'host', 'repeats']) || !digest(c.revision, 40) || !digest(c.producerSha256, 64) || !Number.isInteger(c.repeats) || Number(c.repeats) < 1 || Number(c.repeats) > 20 || !exact(c.host, ['name', 'version', 'model', 'settings']) || !Object.values(c.host).every(text)) throw new Error('Invalid expected cohort.');
@@ -44,8 +46,8 @@ function selection(path: string): { cohorts: Cohort[]; receipts: Selection[] } {
 
 const counts = () => ({ pass: 0, fail: 0, unverified: 0 });
 
-export function reportSuite(path: string) {
-  const selected = selection(path), base = dirname(resolve(path));
+export function reportSuite(path: string, expectedSha256?: string) {
+  const selected = readSuiteSelection(path, expectedSha256), base = dirname(resolve(path));
   const verified: Verified[] = [], identities = new Map<string, Set<string>>();
   let duplicates = 0, invalid = 0;
   for (const r of selected.receipts) {

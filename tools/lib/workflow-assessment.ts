@@ -28,9 +28,10 @@ function canonical(value: unknown): string {
     .map(([key, item]) => JSON.stringify(key) + ':' + canonical(item)).join(',') + '}';
   return JSON.stringify(value);
 }
-export function readAssessment(path: string): unknown {
+export function readAssessment(path: string, expectedSha256?: string): unknown {
   const bytes = readArtifact(dirname(resolve(path)), basename(path));
   if (bytes.length > maxBytes) throw new Error('Assessment exceeds 256 KiB.');
+  if (expectedSha256 !== undefined && sha256(bytes) !== expectedSha256) throw new Error('Assessment file digest mismatch.');
   return JSON.parse(bytes.toString('utf8'));
 }
 export interface CaptureInput { packet: string; packetSha256: string; result: string }
