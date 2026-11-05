@@ -153,6 +153,24 @@ export const family = (model: string) => /\b(?:claude-)?(haiku|sonnet|opus|fable
 const aliases = ['haiku', 'sonnet', 'opus', 'fable'], ignored = ['best', 'opusplan', 'default'];
 const bare = (m: string) => m.toLowerCase().replace(/\[1m\]$/, '');
 const dated = (entry: string, id: string) => id.startsWith(entry + '-') && /^\d{8}$/.test(id.slice(entry.length + 1));
+// Active verification is narrower than availableModels permission checks: a version
+// must not match a different minor version, and a pinned date must not float.
+function activeModelMatch(requested: string, observed: string): boolean | null {
+  const wanted = bare(requested), got = bare(observed);
+  if (['inherit', ...ignored].includes(wanted)) return null;
+  const fullId = /^claude-(?=[a-z0-9-]*\d)[a-z0-9]+(?:-[a-z0-9]+)+$/;
+  if (!fullId.test(got)) return null;
+  if (got === wanted) return true;
+  // Only a concrete ID in the recognized family establishes an alias selection.
+  const gotFamily = family(got);
+  if (aliases.includes(wanted)) {
+    const familyId = gotFamily && (got.startsWith(`claude-${gotFamily}-`) || /^claude-\d+(?:-\d+)*-(?:haiku|sonnet|opus|fable)-\d/.test(got));
+    return familyId ? gotFamily === wanted : null;
+  }
+  if (!fullId.test(wanted)) return null;
+  if (dated(got, wanted)) return null; // An undated observation cannot establish a pinned snapshot.
+  return !/-\d{8}$/.test(wanted) && dated(wanted, got);
+}
 // Claude Code's availableModels rules: a family alias permits the family; a version prefix permits
 // itself and IDs extending it by another segment; a full ID permits itself. Listing a prefix or ID
 // in a family disables that family's alias entry. A requested alias lands on the newest permitted
@@ -208,18 +226,20 @@ export function resolveAndValidate(input: { profile: string; provider: string; m
   return { ...resolved, ...validate(resolved.Provider, resolved.Resolved, input.env || process.env), ...appliesThrough(resolved.Provider, explicit) };
 }
 export function activeClaudeModel(sessionId: string, home = defaultHome()): { Transcript: string; Model: string } | undefined {
-  const root = join(home, '.claude/projects'); if (!existsSync(root)) return;
-  for (const dir of readdirSync(root, { withFileTypes: true })) {
-    if (!dir.isDirectory()) continue;
-    const file = join(root, dir.name, `${sessionId}.jsonl`); if (!existsSync(file)) continue;
-    const lines = readFileSync(file, 'utf8').split('\n');
-    for (let i = lines.length - 1; i >= 0; i--) {
-      let entry: any; try { entry = JSON.parse(lines[i]); } catch { continue; }
-      const model = entry?.type === 'assistant' ? entry.message?.model : undefined;
-      if (typeof model === 'string' && model && model !== '<synthetic>') return { Transcript: file, Model: model };
+  try {
+    const root = join(home, '.claude/projects'); if (!existsSync(root)) return;
+    for (const dir of readdirSync(root, { withFileTypes: true })) {
+      if (!dir.isDirectory()) continue;
+      const file = join(root, dir.name, `${sessionId}.jsonl`); if (!existsSync(file)) continue;
+      const lines = readFileSync(file, 'utf8').split('\n');
+      for (let i = lines.length - 1; i >= 0; i--) {
+        let entry: any; try { entry = JSON.parse(lines[i]); } catch { continue; }
+        const model = entry?.type === 'assistant' ? entry.message?.model : undefined;
+        if (typeof model === 'string' && model && model !== '<synthetic>') return { Transcript: file, Model: model };
+      }
+      return;
     }
-    return;
-  }
+  } catch { return; } // Missing or unreadable evidence never establishes an active model.
 }
 // Requested is what the invoking adapter carries; Resolved is what policy and config say now;
 // Active is the model the transcript recorded. Effort is not recorded, so it is never verified.
@@ -232,12 +252,11 @@ export function verifyActive(input: { profile: string; model?: string; effort?: 
   const sessionId = env.CLAUDE_CODE_SESSION_ID;
   if (!sessionId) return { ...base, Active: null, ModelMatch: null, Detail: 'No CLAUDE_CODE_SESSION_ID: not running inside Claude Code, so the active model cannot be read.' };
   const active = activeClaudeModel(sessionId, home);
-  if (!active) return { ...base, Active: null, ModelMatch: null, Detail: `No transcript with an assistant model for session ${sessionId} under ${join(home, '.claude/projects')}.` };
-  const wanted = requested.model.toLowerCase(), got = active.Model.toLowerCase();
-  const match = got === wanted || (['haiku', 'sonnet', 'opus'].includes(wanted) ? family(got) === wanted : ['inherit', 'default', 'best'].includes(wanted) ? null : false);
+  if (!active) return { ...base, Active: null, ModelMatch: null, Detail: `No transcript with a readable assistant model for session ${sessionId} under ${join(home, '.claude/projects')}.` };
+  const match = activeModelMatch(requested.model, active.Model);
   const Detail = match === true ? `Active model ${active.Model} matches the request. Effort is not recorded in the transcript and stays unverified.`
     : match === false ? `Active model ${active.Model} does not match the requested '${requested.model}': the host did not apply the skill's model (availableModels, organisation policy or auto mode can cause this). Report it; do not claim the profile ran.`
-    : `Active model ${active.Model}; the request '${requested.model}' names no fixed model, so there is nothing to match.`;
+    : `Recorded model ${active.Model}; the request '${requested.model}' or the observation does not establish a fixed model selection, so the match stays unverified.`;
   return { ...base, Active: { model: active.Model, effort: 'not recorded' }, ModelMatch: match, Transcript: active.Transcript, Detail };
 }
 export function listProfiles(policy = readPolicy(), home = defaultHome()) {
