@@ -25,7 +25,7 @@ export function housekeepingSummary(r: ReturnType<typeof housekeeping>): string 
   const lines = [`Default branch: ${d.DefaultBranch} (${d.Pulled ? 'pulled' : 'not pulled'})`,
     `Pruned remote-tracking refs: ${d.PrunedCount}`, a.Deleted.length ? `Deleted:\n${a.Deleted.map(b => `  - ${b}`).join('\n')}` : 'Deleted: (none)'];
   if (a.Stopped) lines.push(`Stopped during apply: ${a.Reason} - ${a.Detail}`);
-  for (const e of d.TipAheadOfMergedPr) lines.push(`Kept ${e.Branch}: it has commits that no merged pull request accounts for - ${e.Reason} (TipAheadOfMergedPr)`);
+  for (const e of d.TipAheadOfMergedPr) lines.push(`Kept ${e.Branch}: ${e.Reason} (TipAheadOfMergedPr)`);
   for (const e of a.Refused) lines.push(`Kept ${e.Branch}: Git refused the safe delete - ${e.Reason} (Refused)`);
   if (r.Escalate) lines.push('A judgement case was found. This script has not decided anything about it - read the cases above and open a session if one is warranted.');
   return lines.join('\n') + '\n';
