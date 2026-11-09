@@ -1595,3 +1595,15 @@ Chosen: The installer's pointer — one text for Claude Code, Codex and Copilot 
 Rejected: Keeping the delegation only in `AGENTS.shared.md` — that is the configuration that failed. Loading all of `AGENTS.shared.md` every session — #398 shrank the pointer on purpose; three lines carry the part that has to be always-on.
 
 Reversibility: cheap. Revert the two strings; the manifest refresh rewrites installed pointers either way.
+
+---
+
+### 2026-11-09 — Bounded MemoryKit browsing is an explicit browse-and-select flow beside the unchanged automatic context
+
+Context: MemoryKit M1 (PR #50, f5a951c) added a summary-first `browse` command: allowlisted summaries, a byte-bounded envelope, cursors bound to project and filters, and a live view with no global totals. The private Kiln plan's M2 asks AgentKit to adopt it. M1 does not establish better retrieval quality, and the documented retrieval-quality target misses stand.
+
+Chosen: `tools/memorykit.ts` gains `capabilities`, `browse` and `select`. Capability comes from the installed CLI (`setup --help` lists `browse`, or exit 2 "Unknown command"; the version from the adjacent package is reported only); anything else is `unknown`, never assumed. `browse` returns summaries with a preview of at most 256 characters (unfenced untrusted data; candidate previews only with `--include-candidates`) and validates the page whole (count, measured bytes, limit, preview length, project, active and accepted) before using any of it. `select` takes `<id>@<revision>` and, per id, re-reads the record and inserts it only if it is still this project's, active, unsuperseded, accepted and at that revision, within a byte limit; a foreign id reads as missing. Only an unknown `browse` command, or a usage error while capability is `unsupported` (the pre-browse CLI rejects the browse options first), becomes `BrowseUnsupported`; an authorization, provider, cursor or store failure is reported unchanged and ends the call with nothing inserted, and no other read path stands in. The hooks, `context`, `recall` and the SessionStart block are unchanged: browse and select are interactive only. Release gate: tests cover foreign scope, stale revision, revoked, superseded, candidate and continuation-after-change cases with zero forbidden insertions, and a paired measurement reports bytes, fetches, CLI calls and latency of both paths as diagnostics; no token or billing saving is claimed or asserted.
+
+Rejected: falling back to `recall` or `context` when browse is unavailable or fails; probing `--version`, which the CLI lacks; wiring browse into hooks; caching browsed pages across a selection; claiming byte measurements as token or cost savings.
+
+Reversibility: cheap. Remove the three actions; the automatic path never depended on them.
