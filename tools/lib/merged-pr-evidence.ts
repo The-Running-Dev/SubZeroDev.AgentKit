@@ -18,7 +18,9 @@ export function mergedPrEvidence(root: string, branch: string, ghArgs: string[],
   } catch { return { prs: [], complete: false, reason: 'GitHub returned malformed merged PR evidence.' }; }
 }
 
-export function compareMergedPr(root: string, local: string, pr: MergedPr, runner: Runner): Comparison {
+// `settled` names a ref whose commits are already kept elsewhere (the default branch):
+// they are never reported as work a merged PR must account for.
+export function compareMergedPr(root: string, local: string, pr: MergedPr, runner: Runner, settled?: string): Comparison {
   const git = (...args: string[]) => runner('git', ['-C', root, ...args]);
   const available = new Map<string, boolean>();
   const ensure = (sha: string): boolean => {
@@ -39,7 +41,7 @@ export function compareMergedPr(root: string, local: string, pr: MergedPr, runne
   if (ancestor.code !== 1) return { kind: 'unknown', reason: `Ancestry check failed: ${ancestor.stderr}` };
   const shallow = git('rev-parse', '--is-shallow-repository');
   if (shallow.code || shallow.stdout.trim() !== 'false') return { kind: 'unknown', reason: 'Complete history is unavailable for patch comparison.' };
-  const unique = git('rev-list', `${head}..${local}`);
+  const unique = git('rev-list', local, '--not', head, ...(settled ? [settled] : []), '--');
   const cherry = git('cherry', head, local);
   if (unique.code || cherry.code) return { kind: 'unknown', reason: 'Could not compare local commits and merged patches.' };
   const commits = unique.stdout.trim().split('\n').filter(Boolean);

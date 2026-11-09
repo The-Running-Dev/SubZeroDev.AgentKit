@@ -2,10 +2,11 @@
 
 Deliverable: Conservative classification of local tips against every merged PR using a branch name
 Risk: HIGH — classifications feed the existing opt-in force-deletion path
+Authorized: one further review and correction — Ben, 2026-11-09: "validate the PR and apply fixes as needed"
 
 ## Verification
 Syntax: passed — npm run typecheck; npm run check:no-runtime-dependencies
-Unit: passed — 39/39 focused housekeeping tests; four original false-positive regressions failed against the original implementation and passed after correction
+Unit: passed — 39/39 focused housekeeping tests; four original false-positive regressions failed against the original implementation and passed after correction; two default-branch regressions failed with the C2 change reverted and passed with it
 Integration: passed — real Git histories cover ancestry, rewritten patches, multi-commit squashes, reused PR names, SHA-only object fetches, unavailable evidence, whitespace and submodule differences, worktrees and concurrent branch changes
 Entry point: passed — actual invoke-housekeeping.ts CLI exercised with real Git and mocked GitHub in disposable repositories; contained ancestor deleted only in a fixture while extra work and unavailable evidence were retained
 End to end: not run — live housekeeping/deletion on existing user branches requires explicit user approval; no existing user branches were deleted
@@ -47,3 +48,24 @@ Kind: re-review
 Revision: Same issue-518 worktree after C1
 Scope: F1 and F2 corrections and their regression coverage only
 Outcome: Both resolved; reviewer reran the new tests and both original reproduction histories, which now return unaccounted rather than contained; no unresolved review findings
+
+## R3
+Kind: review
+Revision: 94a0a069c8469af2c0a8f819e6b415977b4748bc
+Scope: User-requested validation of PR 525 against issue 518: false-positive classes left after R2, and deletion safety
+Outcome: One demonstrated blocking finding, F3
+
+## F3
+Severity: BLOCKING
+Raised in: R3
+Where: tools/lib/merged-pr-evidence.ts unique-commit range
+Claim: Commits already on the default branch are reported as work no merged PR accounts for
+Evidence: Real-Git probes — a feature rebased locally onto newer main, then squash-merged from its pre-rebase head, was TipAheadOfMergedPr naming the main commit; main merged into a feature after its squash named every main commit, the squash commit included
+Consequence: The issue-518 false-positive escalation persists for locally rebased or main-merged branches, with a reason that is untrue
+Correction: Exclude commits reachable from the default branch from the commits a merged PR must account for; merge commits and genuinely extra commits stay unaccounted
+Status: resolved
+
+## C2
+Revision: 94a0a069c8469af2c0a8f819e6b415977b4748bc plus the F3 correction
+Changes: compareMergedPr takes the default branch as settled history for the classification and the pre-deletion recheck; two regressions cover the rebase case and that main commits are never named while a real extra commit stays protected
+Verification: Both regressions fail with the change reverted and pass with it; typecheck and dependency check passed; full suite result in the PR

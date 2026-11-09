@@ -78,7 +78,7 @@ export function doneHousekeeping(input: HousekeepingInput = {}, runner: Runner =
       }
       if (!all.prs.length) continue;
       const tip = git('rev-parse', b); const local = tip.code === 0 ? tip.stdout.trim() : null;
-      const comparisons = all.prs.map(p => ({ p, comparison: local ? compareMergedPr(root, local, p, runner)
+      const comparisons = all.prs.map(p => ({ p, comparison: local ? compareMergedPr(root, local, p, runner, `refs/heads/${branch}`)
         : { kind: 'unknown' as const, reason: `Could not resolve the local tip of '${b}'.` } }));
       const contained = comparisons.find(c => c.comparison.kind === 'contained');
       if (contained) {
@@ -108,7 +108,7 @@ export function doneHousekeeping(input: HousekeepingInput = {}, runner: Runner =
           const checkedTip = git('rev-parse', `${recorded.MergedHead}^{commit}`);
           // Recheck against the recorded PR immediately before a destructive operation.
           const comparison = currentTip.code || checkedTip.code ? null : compareMergedPr(root, currentTip.stdout.trim(),
-            prs(b).prs.find(p => p.url === recorded.MergedPr)!, runner);
+            prs(b).prs.find(p => p.url === recorded.MergedPr)!, runner, `refs/heads/${branch}`);
           if (comparison?.kind !== 'contained') {
             result.Refused.push({ Branch: b, Reason: 'Branch containment could not be reconfirmed before force deletion.' });
             continue;

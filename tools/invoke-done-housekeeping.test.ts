@@ -217,3 +217,21 @@ test('a branch that gains work during discovery is rechecked before force deleti
   assert.deepEqual(d.Deleted, []); assert.match(d.Refused[0].Reason, /could not be reconfirmed/);
   assert.ok(git(r, 'rev-parse', 'feature'));
 });
+test('a feature rebased locally onto newer default-branch commits is still contained', () => {
+  const r = repo(); git(r, 'switch', '-qc', 'feature'); const head = commitFile(r, 'f.txt', 'feature patch');
+  git(r, 'switch', '-q', 'main'); commitFile(r, 'm.txt', 'main patch');
+  git(r, 'switch', '-q', 'feature'); git(r, 'rebase', '-q', 'main'); git(r, 'switch', '-q', 'main');
+  git(r, 'merge', '--squash', 'feature'); git(r, 'commit', '-qm', 'squashed'); const squash = git(r, 'rev-parse', 'HEAD');
+  const d = done(r, {}, github([pr(head, 1, squash)]));
+  assert.deepEqual(d.TipAheadOfMergedPr, []); assert.ok(d.SquashMergeCandidates.some(c => c.Branch === 'feature'));
+});
+test('default-branch commits are never reported as unaccounted work, and real extras stay protected', () => {
+  const r = repo(); git(r, 'switch', '-qc', 'feature'); const head = commitFile(r, 'f.txt', 'feature patch');
+  git(r, 'switch', '-q', 'main'); const mainOnly = commitFile(r, 'm.txt', 'main patch');
+  git(r, 'merge', '--squash', 'feature'); git(r, 'commit', '-qm', 'squashed'); const squash = git(r, 'rev-parse', 'HEAD');
+  git(r, 'switch', '-q', 'feature'); git(r, 'merge', '-q', '--no-edit', 'main'); const extra = commitFile(r, 'x.txt', 'unmerged patch');
+  git(r, 'switch', '-q', 'main');
+  const d = done(r, { forceDeleteBranches: ['feature'] }, github([pr(head, 1, squash)])); kept(d, r);
+  const reason = d.TipAheadOfMergedPr.find(c => c.Branch === 'feature')!.Reason;
+  assert.match(reason, new RegExp(extra)); assert.doesNotMatch(reason, new RegExp(`${mainOnly}|${squash}`));
+});
