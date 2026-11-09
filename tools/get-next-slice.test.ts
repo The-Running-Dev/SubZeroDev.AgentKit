@@ -32,6 +32,12 @@ test('blocked status also prevents resuming implementation from an existing bran
   git(f.work, 'switch', '-qc', 'slice/S1-pending');
   assert.equal(next(f).Reason, 'NoEligibleSlice');
 });
+
+test('blocked slices with ambiguous pull requests do not stop independent work', () => {
+  const f = fixture('## S1 - Pending\nStatus: blocked\nBlocked by: missing access\n\n## S2 - Independent\nStatus: todo\nDepends on: none\n');
+  const r = next(f, [pr(8, 'slice/S1-first'), pr(9, 'slice/S1-again')]);
+  assert.equal(r.State, 'Start'); assert.equal(r.Slice, 'S2');
+});
 test('empty and duplicate remote plans are invalid rather than finished', () => {
   for (const text of ['# Empty', '## S1 - A\n\n## S1 - Duplicate']) assert.equal(next(fixture(text)).Reason, 'InvalidPlan');
 });

@@ -118,6 +118,7 @@ export function getNextSlice(input: NextInput = {}, runner: Runner = run) {
     }
   }
   for (const s of pending) {
+    if (s.BlockedBy) continue;
     const pattern = new RegExp(`^slice/S${s.Id}(?![0-9])`, 'i');
     const matching = prs.filter(p => pattern.test(p.headRefName));
     if (matching.length > 1) {
@@ -125,7 +126,6 @@ export function getNextSlice(input: NextInput = {}, runner: Runner = run) {
       return complete('Blocked', 'AmbiguousPullRequest', `S${s.Id} has more than one open pull request: ${matching.map(p => `#${p.number} ${p.headRefName}`).join(', ')}.`);
     }
     const branches = [...flights].filter(([name]) => pattern.test(name));
-    if (s.BlockedBy) continue;
     if (matching.length === 1) {
       const p = matching[0]; result.Slice = `S${s.Id}`; result.Branch = p.headRefName; result.PullRequest = p.number; result.PullRequestUrl = p.url;
       return complete('Resume', 'OpenPullRequest', `S${s.Id} has open pull request #${p.number} on ${p.headRefName}.`);

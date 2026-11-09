@@ -20,6 +20,12 @@ test('inserts the pointer under the title of the file that holds content, keepin
 test('keeps an inverted arrangement: content in CLAUDE.md, AGENTS.md a pointer', () => { const r = temp(); put(r, 'AGENTS.md', 'See CLAUDE.md.\n'); put(r, 'CLAUDE.md', 'Own rule.\n'); assert.equal(ensureProjectFiles(r, kit, { pointer: true }).Pointer?.Path, 'CLAUDE.md'); assert.ok(text(r, 'CLAUDE.md').startsWith(`## Shared contract\n\n${pointerText}\n\n${delegationText}\n\nOwn rule.`)); });
 test('leaves a file that already names AGENTS.shared.md alone', () => { const r = temp(); put(r, 'AGENTS.md', 'Read AGENTS.shared.md first.\n'); assert.equal(ensureProjectFiles(r, kit, { pointer: true }).Pointer?.Status, 'Present'); assert.equal(text(r, 'AGENTS.md'), 'Read AGENTS.shared.md first.\n'); });
 test('the project contract carries the same scoped assignment as host pointers', () => { const r = temp(); ensureProjectFiles(r, kit, { pointer: true }); assert.ok(text(r, 'AGENTS.md').includes(delegationText)); });
+
+test('the live installation procedure carries the canonical scoped assignment', () => {
+  const procedure = text(kit, 'INSTALL.md');
+  assert.ok(procedure.includes(delegationText));
+  assert.ok(!procedure.includes(legacyDelegationText));
+});
 test('migrates the old unconditional delegation without duplicating it or changing user rules', () => {
   const r = temp(); put(r, 'AGENTS.md', `# Project\n\n${pointerText}\n\n${legacyDelegationText}\n\nUser restriction stays.\n`);
   ensureProjectFiles(r, kit, { pointer: true });
