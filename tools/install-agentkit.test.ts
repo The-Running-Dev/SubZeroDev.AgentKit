@@ -117,12 +117,14 @@ it('upgrades a previously installed resolved-path pointer without collision', f 
   success(f); const path = join(f.codex, 'AGENTS.md'), s = state(f), old = `${pointerStart}\nAgentKit shared rules: read [${f.root}/AGENTS.shared.md](${f.root}/AGENTS.shared.md) only when running an AgentKit command.\n${pointerEnd}`;
   writeFileSync(path, old); s.pointerBlocks![path] = old; saveState(f, s); assert.deepEqual(success(f).Collisions, []); assert.match(read(path), /AGENTKIT_HOME/); assert.ok(!read(path).includes(f.root));
 });
-test('the pointer carries the standing delegation and routes free-text next to /next', () => {
+test('the pointer scopes delivery and natural-language routing to the active assignment', () => {
   assert.doesNotMatch(pointer, /only when running/);
-  assert.match(pointer, /whether or not a command runs/);
-  for (const action of ['committing', 'pushing', 'non-draft pull requests', 'review comments', 'tools/merge-pull-request.ts']) assert.ok(pointer.includes(action), action);
-  assert.match(pointer, /design\/30-slices\.md/); assert.match(pointer, /without asking whether to continue/);
-  assert.match(pointer, /"next", "continue" or "resume" means \/next/); assert.ok(existsSync(join(kit, 'skills/next/SKILL.md')));
+  for (const action of ['commits', 'pushes', 'non-draft pull requests', 'review fixes', 'tools/merge-pull-request.ts']) assert.ok(pointer.includes(action), action);
+  assert.match(pointer, /assigns completion or resumption of an agreed plan/);
+  assert.match(pointer, /continue an explanation or review grants no delivery authority/);
+  assert.match(pointer, /Honor explicit slice limits, pauses and later restrictions/);
+  assert.match(pointer, /Missing project files are preparation work/);
+  assert.ok(existsSync(join(kit, 'skills/next/SKILL.md')));
   assert.ok(existsSync(join(kit, 'tools/merge-pull-request.ts')));
 });
 it('upgrades the command-only pointer an earlier install wrote to the standing delegation', f => {
