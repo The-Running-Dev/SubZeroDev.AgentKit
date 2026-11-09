@@ -3,6 +3,7 @@
 Deliverable: Conservative classification of local tips against every merged PR using a branch name
 Risk: HIGH — classifications feed the existing opt-in force-deletion path
 Authorized: one further review and correction — Ben, 2026-11-09: "validate the PR and apply fixes as needed"
+Authorized: one targeted re-review of C2 — Ben, 2026-11-09: "Yes, re-review it"
 
 ## Verification
 Syntax: passed — npm run typecheck; npm run check:no-runtime-dependencies
@@ -69,3 +70,19 @@ Status: resolved
 Revision: 94a0a069c8469af2c0a8f819e6b415977b4748bc plus the F3 correction
 Changes: compareMergedPr takes the default branch as settled history for the classification and the pre-deletion recheck; two regressions cover the rebase case and that main commits are never named while a real extra commit stays protected
 Verification: Both regressions fail with the change reverted and pass with it; typecheck and dependency check passed; full suite result in the PR
+
+## R4
+Kind: re-review
+Revision: baf48af3f024761504a48a21f19eff79e3fde37d
+Scope: F3 and the C2 correction only
+Outcome: F3 resolved; the reviewer reverted the C2 change and saw both new tests fail; real-Git probes (main merged in with and without extra content, rebased plus extra or empty commits, indentation-only difference, missing default ref, tag shadowing main, unpushed commit on local main) found no path to a contained result that loses work; one non-blocking finding, F4
+
+## F4
+Severity: NON-BLOCKING
+Raised in: R4
+Where: tools/invoke-done-housekeeping.test.ts, coverage of the pre-deletion recheck call in tools/invoke-done-housekeeping.ts
+Claim: No test fails if the default branch is dropped from the force-deletion recheck
+Evidence: Removing that argument from the recheck call alone left the file at pass 32, fail 0
+Consequence: Fails safe (the recheck then refuses the delete), but a later edit could silently stop rebased branches from being force-deleted
+Correction: Request force deletion in the rebase regression and assert the branch is deleted
+Status: open
