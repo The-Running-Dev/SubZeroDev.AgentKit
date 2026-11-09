@@ -75,14 +75,4 @@ Verification: Both regressions fail with the change reverted and pass with it; t
 Kind: re-review
 Revision: baf48af3f024761504a48a21f19eff79e3fde37d
 Scope: F3 and the C2 correction only
-Outcome: F3 resolved; the reviewer reverted the C2 change and saw both new tests fail; real-Git probes (main merged in with and without extra content, rebased plus extra or empty commits, indentation-only difference, missing default ref, tag shadowing main, unpushed commit on local main) found no path to a contained result that loses work; one non-blocking finding, F4
-
-## F4
-Severity: NON-BLOCKING
-Raised in: R4
-Where: tools/invoke-done-housekeeping.test.ts, coverage of the pre-deletion recheck call in tools/invoke-done-housekeeping.ts
-Claim: No test fails if the default branch is dropped from the force-deletion recheck
-Evidence: Removing that argument from the recheck call alone left the file at pass 32, fail 0
-Consequence: Fails safe (the recheck then refuses the delete), but a later edit could silently stop rebased branches from being force-deleted
-Correction: Request force deletion in the rebase regression and assert the branch is deleted
-Status: open
+Outcome: F3 resolved; the reviewer reverted the C2 change and saw both new tests fail; real-Git probes (main merged in with and without extra content, rebased plus extra or empty commits, indentation-only difference, missing default ref, tag shadowing main, unpushed commit on local main) found no path to a contained result that loses work; one non-blocking test gap, the force-deletion recheck's default-branch argument, tracked in https://github.com/The-Running-Dev/SubZeroDev.AgentKit/issues/526
