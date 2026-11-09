@@ -1,3 +1,5 @@
+import { compareMergedPr, mergedPrEvidence } from './lib/merged-pr-evidence.ts';
+import type { PrEvidence } from './lib/merged-pr-evidence.ts';
 import { randomUUID } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import { run } from './lib/process.ts';
@@ -26,16 +28,17 @@ export function doneHousekeeping(input: HousekeepingInput = {}, runner: Runner =
     Candidates: [] as { Branch: string; MergedPr: string | null }[],
     SquashMergeCandidates: [] as { Branch: string; MergedPr: string; MergedHead: string }[],
     TipAheadOfMergedPr: [] as { Branch: string; MergedPr: string; LocalTip: string | null; MergedHead: string | null; Reason: string }[],
+    UnknownMergedPrEvidence: [] as { Branch: string; Reason: string }[],
     Deleted: [] as string[], Refused: [] as { Branch: string; Reason: string }[], Stashed: false, StashRef: null as string | null,
   };
   const stop = (reason: string, detail: string) => ({ ...result, Stopped: true, Reason: reason, Detail: detail });
   const url = git('remote', 'get-url', 'origin');
   const repo = url.code === 0 ? url.output.trim().match(/[:/]([^/:]+\/[^/]+?)(\.git)?$/)?.[1] : undefined;
   const ghArgs = repo ? ['-R', repo] : [];
-  const prs = (branch: string, fields: string) => {
-    const r = runner('gh', ['pr', 'list', ...ghArgs, '--state', 'merged', '--head', branch, '--json', fields], { cwd: root });
-    if (r.code || !r.stdout.trim()) return [];
-    return JSON.parse(r.stdout) as { url: string; headRefOid?: string }[];
+  const evidence = new Map<string, PrEvidence>();
+  const prs = (branch: string) => {
+    if (!evidence.has(branch)) evidence.set(branch, mergedPrEvidence(root, branch, ghArgs, runner));
+    return evidence.get(branch)!;
   };
   const status = git('status', '--short');
   if (status.output.trim() && !input.keepDirty) {
@@ -57,7 +60,7 @@ export function doneHousekeeping(input: HousekeepingInput = {}, runner: Runner =
     }
     result.DefaultBranch = branch;
     const current = git('branch', '--show-current').output.trim();
-    if (current && current !== branch && git('log', `${branch}..HEAD`, '--oneline').output.trim() && !prs(current, 'number,url').length) {
+    if (current && current !== branch && git('log', `${branch}..HEAD`, '--oneline').output.trim() && !prs(current).prs.length) {
       return stop('UnmergedCurrentBranch', `Branch '${current}' has commits not on '${branch}' and no merged PR was found for it via gh.`);
     }
     const checkout = git('checkout', branch);
@@ -65,25 +68,51 @@ export function doneHousekeeping(input: HousekeepingInput = {}, runner: Runner =
     if (!input.skipPull) result.Pulled = git('pull').code === 0;
     result.PrunedCount = git('fetch', '--prune', 'origin').output.split('\n').filter(l => /\[deleted\]/.test(l)).length;
     const merged = git('for-each-ref', '--format=%(refname:short)', `--merged=${branch}`, 'refs/heads').output.split('\n').map(l => l.trim()).filter(l => l && l !== branch);
-    for (const b of merged) result.Candidates.push({ Branch: b, MergedPr: prs(b, 'number,url')[0]?.url ?? null });
+    for (const b of merged) result.Candidates.push({ Branch: b, MergedPr: prs(b).prs[0]?.url ?? null });
     const others = git('for-each-ref', '--format=%(refname:short)', 'refs/heads').output.split('\n').map(l => l.trim()).filter(l => l && l !== branch && !merged.includes(l));
     for (const b of others) {
-      const p = prs(b, 'number,url,mergeCommit,headRefOid')[0];
-      if (!p) continue;
-      const tip = git('rev-parse', b); const local = tip.code === 0 ? tip.output.split('\n')[0].trim() : null;
-      const head = p.headRefOid ?? null;
-      if (!local || !head || local !== head) {
-        result.TipAheadOfMergedPr.push({ Branch: b, MergedPr: p.url, LocalTip: local, MergedHead: head,
-          Reason: !head ? `PR ${p.url} reported no headRefOid - cannot confirm the local tip is what merged.`
-            : !local ? `Could not resolve the local tip of '${b}' - cannot confirm it is what merged.`
-              : `Local tip ${local} is not the head that merged in ${p.url} (${head}) - commits exist on this branch that no merged PR accounts for.` });
-      } else result.SquashMergeCandidates.push({ Branch: b, MergedPr: p.url, MergedHead: head });
+      const all = prs(b);
+      if (!all.complete) {
+        result.UnknownMergedPrEvidence.push({ Branch: b, Reason: all.reason ?? 'Merged PR evidence is incomplete.' });
+        continue;
+      }
+      if (!all.prs.length) continue;
+      const tip = git('rev-parse', b); const local = tip.code === 0 ? tip.stdout.trim() : null;
+      const comparisons = all.prs.map(p => ({ p, comparison: local ? compareMergedPr(root, local, p, runner, `refs/heads/${branch}`)
+        : { kind: 'unknown' as const, reason: `Could not resolve the local tip of '${b}'.` } }));
+      const contained = comparisons.find(c => c.comparison.kind === 'contained');
+      if (contained) {
+        result.SquashMergeCandidates.push({ Branch: b, MergedPr: contained.p.url, MergedHead: contained.p.headRefOid! });
+        continue;
+      }
+      // Only a commit unaccounted for by EVERY matching PR establishes ahead work.
+      const unmatched = comparisons.map(c => c.comparison.kind === 'unaccounted' ? c.comparison.commits : []);
+      const common = unmatched[0]?.filter(c => unmatched.every(set => set.includes(c))) ?? [];
+      if (all.complete && common.length) {
+        const p = all.prs[0];
+        result.TipAheadOfMergedPr.push({ Branch: b, MergedPr: p.url, LocalTip: local, MergedHead: p.headRefOid ?? null,
+          Reason: `Local commit(s) ${common.join(', ')} have no ancestry or patch match in any of the ${all.prs.length} merged PR(s) for this branch; no merged PR accounts for this work.` });
+      } else result.UnknownMergedPrEvidence.push({ Branch: b,
+        Reason: all.reason ?? (comparisons.filter(c => c.comparison.kind === 'unknown').map(c =>
+          `${c.p.url}: ${c.comparison.kind === 'unknown' ? c.comparison.reason : ''}`).join('; ') || 'No single merged PR accounts for the complete tip; evidence is insufficient.') });
     }
     for (const [branches, force] of [[input.deleteBranches ?? [], false], [input.forceDeleteBranches ?? [], true]] as const) {
       for (const b of branches) {
         if (force ? !result.SquashMergeCandidates.some(c => c.Branch === b) : !merged.includes(b)) {
           result.Refused.push({ Branch: b, Reason: force ? "Not in this run's SquashMergeCandidates - not force-deleted." : `Not in --merged '${branch}' - not deleted.` });
           continue;
+        }
+        if (force) {
+          const currentTip = git('rev-parse', b);
+          const recorded = result.SquashMergeCandidates.find(c => c.Branch === b)!;
+          const checkedTip = git('rev-parse', `${recorded.MergedHead}^{commit}`);
+          // Recheck against the recorded PR immediately before a destructive operation.
+          const comparison = currentTip.code || checkedTip.code ? null : compareMergedPr(root, currentTip.stdout.trim(),
+            prs(b).prs.find(p => p.url === recorded.MergedPr)!, runner, `refs/heads/${branch}`);
+          if (comparison?.kind !== 'contained') {
+            result.Refused.push({ Branch: b, Reason: 'Branch containment could not be reconfirmed before force deletion.' });
+            continue;
+          }
         }
         const deleted = git('branch', force ? '-D' : '-d', b);
         if (!deleted.code) result.Deleted.push(b);
@@ -96,7 +125,7 @@ export function doneHousekeeping(input: HousekeepingInput = {}, runner: Runner =
     return result;
   } catch (e) {
     return { ...stop('UnhandledError', e instanceof Error ? e.message : String(e)), Pulled: false, PrunedCount: 0,
-      Candidates: [], SquashMergeCandidates: [], TipAheadOfMergedPr: [], Deleted: [], Refused: [] };
+      Candidates: [], SquashMergeCandidates: [], TipAheadOfMergedPr: [], UnknownMergedPrEvidence: [], Deleted: [], Refused: [] };
   }
 }
 if (isMain(import.meta.url)) await main(() => {

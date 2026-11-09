@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clearOverride, listProfiles, readOverrides, readPolicy, resolveAndValidate, resolveProfile, setOverride, validateAnthropic, validateOpenAI, verifyActive } from './model-profile.ts';
@@ -239,6 +239,96 @@ test('verify-active flags an adapter older than the current config, and a missin
   assert.match(r.RegenerationNeeded || '', /requested 'haiku · medium' but policy and config now resolve to 'sonnet · medium'/);
   assert.equal(r.Active, null); assert.match(r.Detail, /No CLAUDE_CODE_SESSION_ID/);
   assert.match(verifyActive({ profile: 'small-edit', policy, home, env: { CLAUDE_CODE_SESSION_ID: 'none' } }).Detail, /No transcript/);
+});
+
+const activeCases: [string, string, boolean | null][] = [
+  ['claude-opus-4-1', 'claude-opus-4-1-20250805', true],
+  ['sonnet[1m]', 'claude-sonnet-4-5-20250929', true],
+  ['fable', 'claude-fable-5-1', true],
+  ['fable[1m]', 'claude-fable-5-1-20261001', true],
+  ['sonnet', 'claude-3-5-sonnet-20241022', true],
+  ['haiku', 'claude-3-haiku-20240307', true],
+  [' SoNnEt[1M] ', 'CLAUDE-SONNET-4-5-20250929[1M]', true],
+  ['claude-opus-4-1[1m]', 'claude-opus-4-1-20250805', true],
+  ['claude-opus-4-1', 'claude-opus-4-1[1m]', true],
+  ['claude-opus-4-1-20250805', 'claude-opus-4-1-20250805', true],
+  ['claude-opus-4-1', 'claude-opus-4-6', false],
+  ['claude-opus-4-1', 'claude-opus-4-10', false],
+  ['claude-opus-4-1', 'claude-opus-4-1-1', false],
+  ['claude-opus-4-1', 'claude-opus-4-1-202508050', false],
+  ['claude-opus-4-1', 'claude-opus-4-1-20250805-extra', false],
+  ['claude-opus-4-1-20250805', 'claude-opus-4-1-20250806', false],
+  ['claude-opus-4-1-20250805', 'claude-opus-4-1', null],
+  ['sonnet[1m]', 'claude-opus-4-1-20250805', false],
+  ['fable', 'claude-sonnet-4-5', false],
+  ['claude-opus-4-1', 'opus', null],
+  ['sonnet', 'unknown-model', null],
+  ['sonnet', 'claude-sonnet-unknown', null],
+  ['sonnet', 'claude-not-sonnet-4-5', null],
+  ['my-alias', 'claude-sonnet-4-5', null],
+];
+for (const [model, observed, expected] of activeCases) test(`verify-active: ${model} against ${observed} is ${expected}`, t => {
+  const home = temp(); t.after(() => rmSync(home, { recursive: true, force: true }));
+  transcript(home, 'matching', [observed]);
+  const r = verifyActive({ profile: 'small-edit', model, policy, home, env: { CLAUDE_CODE_SESSION_ID: 'matching' } });
+  assert.equal(r.ModelMatch, expected);
+  assert.equal(r.Requested.model, model.trim());
+  assert.deepEqual(r.Resolved, policy.profiles['small-edit'].anthropic);
+  assert.deepEqual(r.Source, { model: 'policy', effort: 'policy' });
+  assert.deepEqual(r.Active, { model: observed, effort: 'not recorded' });
+});
+test('verify-active keeps dynamic requests unverified even when the transcript repeats them', t => {
+  const home = temp(); t.after(() => rmSync(home, { recursive: true, force: true }));
+  for (const model of ['inherit', 'default', 'best', 'opusplan']) for (const observed of [model, 'claude-opus-4-1-20250805']) {
+    transcript(home, 'dynamic', [observed]);
+    const r = verifyActive({ profile: 'small-edit', model, policy, home, env: { CLAUDE_CODE_SESSION_ID: 'dynamic' } });
+    assert.equal(r.ModelMatch, null, `${model}: ${observed}`);
+  }
+});
+test('verify-active never substitutes a resolved model for the adapter request', t => {
+  const home = temp(); t.after(() => rmSync(home, { recursive: true, force: true }));
+  setOverride({ profile: 'small-edit', provider: 'anthropic', model: 'sonnet', policy, home });
+  transcript(home, 'stale', ['claude-sonnet-4-5-20250929']);
+  const r = verifyActive({ profile: 'small-edit', model: 'haiku', policy, home, env: { CLAUDE_CODE_SESSION_ID: 'stale' } });
+  assert.equal(r.Requested.model, 'haiku'); assert.equal(r.Resolved.model, 'sonnet');
+  assert.equal(r.Source.model, 'config'); assert.equal(r.ModelMatch, false); assert.ok(r.RegenerationNeeded);
+});
+test('verify-active leaves missing and unusable transcripts unknown', t => {
+  const home = temp(); t.after(() => rmSync(home, { recursive: true, force: true }));
+  const env = { CLAUDE_CODE_SESSION_ID: 'unavailable' };
+  const check = () => {
+    const r = verifyActive({ profile: 'small-edit', policy, home, env });
+    assert.equal(r.Active, null); assert.equal(r.ModelMatch, null); assert.match(r.Detail, /No transcript/);
+  };
+  check();
+  transcript(home, 'other-session', ['claude-haiku-5-5']); check();
+  for (const text of ['', '{broken\n', '{"type":"user","message":{"model":"claude-haiku-5-5"}}\n', '{"type":"assistant","message":{"model":"<synthetic>"}}\n', '{"type":"assistant","message":{"model":42}}\n']) {
+    put(home, '.claude/projects/D--proj/unavailable.jsonl', text); check();
+  }
+});
+test('verify-active reports an unreadable transcript as unknown', t => {
+  const home = temp(); t.after(() => rmSync(home, { recursive: true, force: true }));
+  const path = transcript(home, 'unreadable', ['claude-haiku-5-5']);
+  const preload = put(home, 'unreadable.cjs', `const fs = require('node:fs'); const read = fs.readFileSync;
+fs.readFileSync = function(path, ...args) { if (String(path) === ${JSON.stringify(path)}) throw Object.assign(new Error('fixture denied'), { code: 'EACCES' }); return read.call(this, path, ...args); };
+require('node:module').syncBuiltinESMExports();`);
+  const r = run(process.execPath, ['--require', preload, join(root, 'tools/model-profile.ts'), '--verify-active', '--profile', 'small-edit'], { env: { ...process.env, HOME: home, USERPROFILE: home, CLAUDE_CODE_SESSION_ID: 'unreadable' } });
+  assert.equal(r.code, 0, r.stderr);
+  const value = JSON.parse(r.stdout); assert.equal(value.Active, null); assert.equal(value.ModelMatch, null);
+});
+test('verify-active does not infer a subagent model from a different transcript', t => {
+  const home = temp(); t.after(() => rmSync(home, { recursive: true, force: true }));
+  put(home, '.claude/projects/D--proj/parent/subagents/agent-child.jsonl', JSON.stringify({ type: 'assistant', message: { model: 'claude-haiku-5-5' } }));
+  const r = verifyActive({ profile: 'small-edit', policy, home, env: { CLAUDE_CODE_SESSION_ID: 'parent' } });
+  assert.equal(r.ModelMatch, null); assert.equal(r.Active, null);
+});
+test('the verify-active CLI normalizes observed models and preserves unknown results', t => {
+  const home = temp(); t.after(() => rmSync(home, { recursive: true, force: true }));
+  transcript(home, 'cli', ['claude-sonnet-4-5-20250929']);
+  for (const [model, expected] of [['sonnet[1m]', true], ['haiku', false], ['inherit', null]] as const) {
+    const r = cli(['--verify-active', '--profile', 'small-edit', '--model', model], { HOME: home, USERPROFILE: home, CLAUDE_CODE_SESSION_ID: 'cli' });
+    assert.equal(r.code, 0, r.stderr); assert.equal(JSON.parse(r.stdout).ModelMatch, expected);
+  }
 });
 test('list shows each profile with both providers and any overrides', () => {
   const home = temp(); setOverride({ profile: 'deep-debug', provider: 'openai', effort: 'high', policy, home });

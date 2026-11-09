@@ -40,7 +40,11 @@ The Claude adapter tells the agent to run, after loading:
 node tools/model-profile.ts --verify-active --profile small-edit --model haiku --effort medium
 ```
 
-It reads the current session's transcript (`CLAUDE_CODE_SESSION_ID`) and compares the last assistant model with the request. `ModelMatch: false` means the host did not apply the skill's model, and the report must say so. The transcript does not record effort, so effort is always reported as unverified. `RegenerationNeeded` appears when the policy or your overrides changed since setup wrote the adapter.
+It reads the transcript named by `CLAUDE_CODE_SESSION_ID` and compares the last non-synthetic assistant model with the request. Comparison ignores case and the supported `[1m]` suffix; that suffix does not establish the actual context capacity. The recognized family aliases (`haiku`, `sonnet`, `opus`, `fable`) match concrete IDs in that family. An undated full ID matches itself or the same ID followed by an eight-digit date, never a different model version. A dated request requires that exact snapshot; an undated observation alone cannot establish it.
+
+`ModelMatch: false` means the recorded model differs from the request, and the report must say so. Missing or unreadable transcripts, dynamic requests (`inherit`, `default`, `best`, `opusplan`), unknown aliases and observations that cannot establish the selection remain `ModelMatch: null`. Requested, resolved and observed values retain their original spellings; normalization is only for comparison. The transcript does not record effort, so effort is always reported as unverified. `RegenerationNeeded` appears when the policy or your overrides changed since setup wrote the adapter.
+
+**Session limitation:** inside a Claude Code subagent, `CLAUDE_CODE_SESSION_ID` can identify the parent. This command cannot reliably identify the executing subagent or select its transcript from that value. Its result describes only the named transcript, even if `ModelMatch` is true; it must not be reported as verification of a subagent's model. Run it in the main session for main-session verification. Reliable subagent identification remains separate work (issue #505).
 
 ### The Codex model cache
 
