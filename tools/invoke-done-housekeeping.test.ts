@@ -222,8 +222,9 @@ test('a feature rebased locally onto newer default-branch commits is still conta
   git(r, 'switch', '-q', 'main'); commitFile(r, 'm.txt', 'main patch');
   git(r, 'switch', '-q', 'feature'); git(r, 'rebase', '-q', 'main'); git(r, 'switch', '-q', 'main');
   git(r, 'merge', '--squash', 'feature'); git(r, 'commit', '-qm', 'squashed'); const squash = git(r, 'rev-parse', 'HEAD');
-  const d = done(r, {}, github([pr(head, 1, squash)]));
+  const d = done(r, { forceDeleteBranches: ['feature'] }, github([pr(head, 1, squash)]));
   assert.deepEqual(d.TipAheadOfMergedPr, []); assert.ok(d.SquashMergeCandidates.some(c => c.Branch === 'feature'));
+  assert.deepEqual(d.Deleted, ['feature']);
 });
 test('default-branch commits are never reported as unaccounted work, and real extras stay protected', () => {
   const r = repo(); git(r, 'switch', '-qc', 'feature'); const head = commitFile(r, 'f.txt', 'feature patch');
