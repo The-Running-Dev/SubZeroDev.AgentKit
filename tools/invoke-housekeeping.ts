@@ -17,7 +17,7 @@ export function housekeeping(input: Pick<HousekeepingInput, 'repoRoot' | 'defaul
     ? doneHousekeeping({ repoRoot: root, defaultBranch: discover.DefaultBranch!, skipPull: true,
       keepDirty: startedDirty, deleteBranches: discover.Candidates.map(c => c.Branch),
       forceDeleteBranches: discover.SquashMergeCandidates.map(c => c.Branch) }, runner) : discover;
-  return { Escalate: applied.Stopped || discover.TipAheadOfMergedPr.length > 0 || applied.Refused.length > 0, Discover: discover, Applied: applied };
+  return { Escalate: applied.Stopped || discover.TipAheadOfMergedPr.length > 0 || discover.UnknownMergedPrEvidence.length > 0 || applied.TipAheadOfMergedPr.length > 0 || applied.UnknownMergedPrEvidence.length > 0 || applied.Refused.length > 0, Discover: discover, Applied: applied };
 }
 export function housekeepingSummary(r: ReturnType<typeof housekeeping>): string {
   const d = r.Discover, a = r.Applied;
@@ -25,7 +25,8 @@ export function housekeepingSummary(r: ReturnType<typeof housekeeping>): string 
   const lines = [`Default branch: ${d.DefaultBranch} (${d.Pulled ? 'pulled' : 'not pulled'})`,
     `Pruned remote-tracking refs: ${d.PrunedCount}`, a.Deleted.length ? `Deleted:\n${a.Deleted.map(b => `  - ${b}`).join('\n')}` : 'Deleted: (none)'];
   if (a.Stopped) lines.push(`Stopped during apply: ${a.Reason} - ${a.Detail}`);
-  for (const e of d.TipAheadOfMergedPr) lines.push(`Kept ${e.Branch}: it has commits that no merged pull request accounts for - ${e.Reason} (TipAheadOfMergedPr)`);
+  for (const e of new Map([...d.TipAheadOfMergedPr, ...a.TipAheadOfMergedPr].map(e => [e.Branch, e])).values()) lines.push(`Kept ${e.Branch}: it has commits that no merged pull request accounts for - ${e.Reason} (TipAheadOfMergedPr)`);
+  for (const e of new Map([...d.UnknownMergedPrEvidence, ...a.UnknownMergedPrEvidence].map(e => [e.Branch, e])).values()) lines.push(`Kept ${e.Branch}: ${e.Reason} (UnknownMergedPrEvidence)`);
   for (const e of a.Refused) lines.push(`Kept ${e.Branch}: Git refused the safe delete - ${e.Reason} (Refused)`);
   if (r.Escalate) lines.push('A judgement case was found. This script has not decided anything about it - read the cases above and open a session if one is warranted.');
   return lines.join('\n') + '\n';

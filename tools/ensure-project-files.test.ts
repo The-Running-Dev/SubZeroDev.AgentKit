@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { delegationText, ensureProjectFiles, pointerText } from './ensure-project-files.ts';
+import { legacyDelegationText } from './lib/plan-assignment.ts';
 import { git, put, repo, temp } from './lib/fixtures.ts';
 
 const kit = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -18,7 +19,19 @@ test('creates AGENTS.md with the pointer and a CLAUDE.md importing it when neith
 test('inserts the pointer under the title of the file that holds content, keeping every line', () => { const r = temp(); put(r, 'CLAUDE.md', '@AGENTS.md\n'); put(r, 'AGENTS.md', '# Project\n\nOwn rule.\n'); const report = ensureProjectFiles(r, kit, { pointer: true }); assert.deepEqual(report.Pointer, { Path: 'AGENTS.md', Status: 'Inserted' }); assert.equal(text(r, 'AGENTS.md'), `# Project\n\n## Shared contract\n\n${pointerText}\n\n${delegationText}\n\nOwn rule.\n`); assert.equal(text(r, 'CLAUDE.md'), '@AGENTS.md\n'); });
 test('keeps an inverted arrangement: content in CLAUDE.md, AGENTS.md a pointer', () => { const r = temp(); put(r, 'AGENTS.md', 'See CLAUDE.md.\n'); put(r, 'CLAUDE.md', 'Own rule.\n'); assert.equal(ensureProjectFiles(r, kit, { pointer: true }).Pointer?.Path, 'CLAUDE.md'); assert.ok(text(r, 'CLAUDE.md').startsWith(`## Shared contract\n\n${pointerText}\n\n${delegationText}\n\nOwn rule.`)); });
 test('leaves a file that already names AGENTS.shared.md alone', () => { const r = temp(); put(r, 'AGENTS.md', 'Read AGENTS.shared.md first.\n'); assert.equal(ensureProjectFiles(r, kit, { pointer: true }).Pointer?.Status, 'Present'); assert.equal(text(r, 'AGENTS.md'), 'Read AGENTS.shared.md first.\n'); });
-test('the pointer section carries the standing delegation and routes free-text next to /next', () => { const r = temp(); ensureProjectFiles(r, kit, { pointer: true }); const agents = text(r, 'AGENTS.md'); assert.ok(agents.includes(delegationText)); for (const phrase of ['committing, pushing, opening non-draft pull requests', 'tools/merge-pull-request.ts', 'never pauses between slices', '"next", "continue" or "resume" means `/next`', 'When to stop']) assert.ok(agents.includes(phrase), phrase); assert.ok(existsSync(join(kit, 'skills/next/SKILL.md'))); });
+test('the project contract carries the same scoped assignment as host pointers', () => { const r = temp(); ensureProjectFiles(r, kit, { pointer: true }); assert.ok(text(r, 'AGENTS.md').includes(delegationText)); });
+
+test('the live installation procedure carries the canonical scoped assignment', () => {
+  const procedure = text(kit, 'INSTALL.md');
+  assert.ok(procedure.includes(delegationText));
+  assert.ok(!procedure.includes(legacyDelegationText));
+});
+test('migrates the old unconditional delegation without duplicating it or changing user rules', () => {
+  const r = temp(); put(r, 'AGENTS.md', `# Project\n\n${pointerText}\n\n${legacyDelegationText}\n\nUser restriction stays.\n`);
+  ensureProjectFiles(r, kit, { pointer: true });
+  const once = text(r, 'AGENTS.md'); assert.ok(once.includes(delegationText)); assert.ok(!once.includes(legacyDelegationText)); assert.ok(once.endsWith('User restriction stays.\n'));
+  ensureProjectFiles(r, kit, { pointer: true }); assert.equal(text(r, 'AGENTS.md'), once);
+});
 test('adds the delegation to a pointer section written before it existed, once', () => { const r = temp(); put(r, 'AGENTS.md', `# Project\n\n## Shared contract\n\n${pointerText}\n\nOwn rule.\n`); assert.deepEqual(ensureProjectFiles(r, kit, { pointer: true }).Pointer, { Path: 'AGENTS.md', Status: 'Inserted', Detail: 'standing delegation' }); const once = `# Project\n\n## Shared contract\n\n${pointerText}\n\n${delegationText}\n\nOwn rule.\n`; assert.equal(text(r, 'AGENTS.md'), once); assert.deepEqual(ensureProjectFiles(r, kit, { pointer: true }).Pointer, { Path: 'AGENTS.md', Status: 'Present' }); assert.equal(text(r, 'AGENTS.md'), once); });
 test('writes no pointer when both files hold content', () => { const r = temp(), long = 'rule\n'.repeat(300); put(r, 'AGENTS.md', long); put(r, 'CLAUDE.md', long); assert.equal(ensureProjectFiles(r, kit, { pointer: true }).Pointer?.Status, 'Ambiguous'); assert.equal(text(r, 'AGENTS.md'), long); });
 test('installs the commit-msg hook, then reports it present', () => { const r = repo(); assert.equal(ensureProjectFiles(r, kit, { hook: true }).Hook?.Status, 'Created'); assert.equal(text(r, '.git/hooks/commit-msg'), text(kit, 'tools/git-hooks/commit-msg')); assert.equal(ensureProjectFiles(r, kit, { hook: true }).Hook?.Status, 'Present'); });

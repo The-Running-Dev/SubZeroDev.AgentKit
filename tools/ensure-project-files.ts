@@ -4,6 +4,8 @@ import { parseOptions } from './lib/options.ts';
 import { resolveKitRoot } from './lib/kit-root.ts';
 import { isMain, main, writeJson } from './lib/runtime.ts';
 import { run } from './lib/process.ts';
+import { delegationText, legacyDelegationText } from './lib/plan-assignment.ts';
+export { delegationText } from './lib/plan-assignment.ts';
 
 // Each command creates the repository files it needs on first use, so a repository never needs
 // an install step before its first command. Nothing here overwrites content it did not write.
@@ -15,7 +17,6 @@ export const options = {
 export const pointerText = '**Read `AGENTS.shared.md` completely before this file.** It holds the rules every repository using the kit shares, resolved from the `AGENTKIT_HOME` environment variable if set, else `.agent-kit` in the home directory.';
 // The project file loads in every session, so it carries the delegation /next relies on itself: free text
 // such as "next" runs no command, and without this the host's ask-before-commit defaults stop the build.
-export const delegationText = '**Standing delegation.** In this repository, committing, pushing, opening non-draft pull requests, fixing review comments and resolving their threads, and merging through the kit\'s `tools/merge-pull-request.ts` are delegated: do them without asking, never on the default branch. Building `design/30-slices.md` never pauses between slices — after one merges, take the next. "next", "continue" or "resume" means `/next` over the whole plan, not one slice. Stop only on a genuine blocker (`AGENTS.shared.md` § *When to stop*).';
 const pointerSection = `## Shared contract\n\n${pointerText}\n\n${delegationText}\n`;
 
 export interface Entry { Path: string; Status: string; Detail?: string }
@@ -23,16 +24,20 @@ export interface Report { Design: Entry[]; Pointer: Entry | null; Hook: Entry | 
 
 const read = (path: string) => readFileSync(path, 'utf8').replace(/^﻿/, '');
 
+export function designIsOccupied(root: string, kitRoot: string): boolean {
+  const path = join(root, 'design');
+  if (!existsSync(path)) return false;
+  const seeds = readdirSync(join(kitRoot, 'templates/design'));
+  return !statSync(path).isDirectory()
+    || (readdirSync(path).length > 0 && !readdirSync(path).some(e => seeds.includes(e)));
+}
+
 export function ensureDesign(root: string, kitRoot: string, names: string[]): Entry[] {
   const templateDir = join(kitRoot, 'templates/design');
   const seeds = readdirSync(templateDir).filter(f => /\.md$/i.test(f));
   for (const name of names) if (!seeds.includes(name)) throw new Error(`'${name}' is not a design seed. Seeds: ${seeds.join(', ')}.`);
   const designDir = join(root, 'design');
-  if (existsSync(designDir)) {
-    const occupied = !statSync(designDir).isDirectory()
-      || (readdirSync(designDir).length > 0 && !readdirSync(designDir).some(e => seeds.includes(e)));
-    if (occupied) return names.map(n => ({ Path: `design/${n}`, Status: 'Occupied', Detail: 'design/ holds something other than the kit\'s documents' }));
-  }
+  if (designIsOccupied(root, kitRoot)) return names.map(n => ({ Path: `design/${n}`, Status: 'Occupied', Detail: 'design/ holds something other than the kit\'s documents' }));
   return names.map(name => {
     const dest = join(designDir, name);
     if (existsSync(dest)) return { Path: `design/${name}`, Status: 'Present' };
@@ -52,7 +57,10 @@ export function ensurePointer(root: string): { entry: Entry; written: string[] }
     if (!text?.includes('AGENTS.shared.md')) continue;
     // A pointer section this tool wrote before the delegation existed gains it; any other wording is the project's own.
     if (!text.includes(pointerText) || text.includes(delegationText)) return { entry: { Path: name, Status: 'Present' }, written: [] };
-    writeFileSync(join(root, name), text.replace(pointerText, `${pointerText}\n\n${delegationText}`));
+    const updated = text.includes(legacyDelegationText)
+      ? text.replace(legacyDelegationText, delegationText)
+      : text.replace(pointerText, `${pointerText}\n\n${delegationText}`);
+    writeFileSync(join(root, name), updated);
     return { entry: { Path: name, Status: 'Inserted', Detail: 'standing delegation' }, written: [name] };
   }
   if (a === null && c === null) {

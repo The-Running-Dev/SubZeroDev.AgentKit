@@ -25,6 +25,6 @@ export function merged(root: string, branch = 'feature/foo', worktree?: string) 
 export function fakeGh(branch = '', head = ''): Runner {
   return (command, args, options) => command !== 'gh' ? run(command, args, options) : {
     code: 0, found: true, stderr: '', stdout: JSON.stringify(args[args.indexOf('--head') + 1] === branch
-      ? [{ number: 1, url: 'https://example.invalid/pr/1', mergeCommit: { oid: 'abc123' }, headRefOid: head }] : []),
+      ? [{ number: 1, url: 'https://example.invalid/pr/1', mergeCommit: { oid: head }, headRefOid: head, isCrossRepository: false }] : []),
   };
 }

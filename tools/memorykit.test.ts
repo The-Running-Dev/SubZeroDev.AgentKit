@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { callCli, contextBlock, correct, accept, context, createContext, item, lastAssistantText, logPath, operationId, recall, remember, runHook, show, CHECKPOINT_BYTES, CONTEXT_ITEMS, MemoryFailure } from './memorykit.ts';
+import { callCli, contextBlock, correct, accept, context, createContext, item, lastAssistantText, logPath, operationId, recall, remember, runHook, show, browse, select, capabilities, detectCapability, installedVersion, BROWSE_BYTES, CHECKPOINT_BYTES, CONTEXT_ITEMS, SELECT_ITEMS, MemoryFailure } from './memorykit.ts';
 import type { Context, MemoryConfig } from './memorykit.ts';
 import { git, put, repo, temp } from './lib/fixtures.ts';
 import { run } from './lib/process.ts';
@@ -13,17 +13,21 @@ import type { ProcessResult, Runner } from './lib/process.ts';
 const REAL = process.env.MEMORYKIT_CLI;
 const SCRIPT = join(import.meta.dirname, 'memorykit.ts');
 const problem = (code: string, details: object = {}, retryable = false, title = code): ProcessResult => ({ code: 1, found: true, stdout: '', stderr: JSON.stringify({ code, title, retryable, details }) + '\n' });
-function fakeMemoryKit(cli: string, stores: Set<string>): Runner {
+// `browse: false` is an older MemoryKit whose `setup --help` lists no browse and which refuses it as an unknown command.
+function fakeMemoryKit(cli: string, stores: Set<string>, caps: { browse?: boolean } = {}): Runner {
   const records = new Map<string, any>(), operations = new Map<string, { input: string; out: string }>();
   let next = 0;
   return (command, args, options) => {
     if (command !== process.execPath || args[0] !== cli) return run(command, args, options);
-    const [, verb, ...rest] = args, flags: Record<string, string> = {}, positional: string[] = [];
+    const [, verb, ...rest] = args, flags: Record<string, string> = {}, multi: Record<string, string[]> = {}, positional: string[] = [];
+    const set = (name: string, value: string) => { flags[name] = value; (multi[name] ??= []).push(value); };
     for (let i = 0; i < rest.length; i++) {
       const eq = /^--([^=]+)=([^]*)$/.exec(rest[i]);
-      if (eq) flags[eq[1]] = eq[2];
-      else rest[i].startsWith('--') ? (flags[rest[i].slice(2)] = rest[i + 1]?.startsWith('--') || rest[i + 1] === undefined ? 'true' : rest[++i]) : positional.push(rest[i]);
+      if (eq) set(eq[1], eq[2]);
+      else rest[i].startsWith('--') ? set(rest[i].slice(2), rest[i + 1]?.startsWith('--') || rest[i + 1] === undefined ? 'true' : rest[++i]) : positional.push(rest[i]);
     }
+    const unknown = (): ProcessResult => ({ code: 2, found: true, stdout: '', stderr: `Unknown command "${verb}"\n` });
+    if (verb === 'setup' && flags.help) return { code: 0, found: true, stderr: '', stdout: `Usage: memorykit setup\n  capture --profile <json> --input <json|->\n  context --profile <json>\n${caps.browse === false ? '' : '  browse --profile <json> [--text <literal-substring>]\n'}  accept <id> --profile <json>\n` };
     if (!stores.has(flags.store)) return problem('StoreUnavailable', { reason: 'not_a_store' });
     const ok = (value: object): ProcessResult => ({ code: 0, found: true, stderr: '', stdout: JSON.stringify(value) });
     const write = (fn: () => ProcessResult) => {
@@ -42,12 +46,37 @@ function fakeMemoryKit(cli: string, stores: Set<string>): Runner {
       const from = Number(flags.cursor ?? 0), items = all.slice(from, from + limit);
       return ok({ items, nextCursor: from + limit < all.length ? String(from + limit) : null });
     }
+    if (verb === 'browse') {
+      if (caps.browse === false) return unknown();
+      const limit = Number(flags.limit ?? 20), maxBytes = Number(flags['max-bytes'] ?? 8192), preview = Number(flags['preview-chars'] ?? 0);
+      if (!(limit >= 1 && limit <= 50) || !(maxBytes >= 512 && maxBytes <= 65536) || !(preview >= 0 && preview <= 256)) return problem('ValidationFailed', {}, false, 'Invalid browse bounds');
+      const kinds = [...(multi.kind ?? [])].sort(), candidates = flags['include-candidates'] === 'true';
+      const fingerprint = JSON.stringify([flags.namespace, flags.text ?? null, kinds, candidates, preview]);
+      let from = 0;
+      if (flags.cursor !== undefined) {
+        try { const c = JSON.parse(flags.cursor); if (c.v !== 1 || c.q !== fingerprint) throw new Error(); from = Number(c.c); } catch { return problem('ValidationFailed', {}, false, 'Invalid browse cursor'); }
+      }
+      const eligible = [...records.values()].filter(r => r.namespace === flags.namespace && r.state === 'active' && !r.supersededBy.length && (r.metadata.status === 'accepted' || (candidates && r.metadata.status === 'candidate')) && (!kinds.length || kinds.includes(r.kind)) && (!flags.text || r.content.toLowerCase().includes(flags.text.toLowerCase())));
+      const cursor = (offset: number) => JSON.stringify({ v: 1, q: fingerprint, c: offset });
+      const envelope = (items: any[], next: string | null, reasons: string[]) => { const e = { items, count: items.length, bytes: 0, nextCursor: next, completeness: reasons.length ? 'partial' : 'complete', reasons }; for (;;) { const n = Buffer.byteLength(JSON.stringify(e)); if (n === e.bytes) return e; e.bytes = n; } };
+      const items: any[] = [], reasons: string[] = [];
+      let at = from;
+      for (; at < eligible.length; at++) {
+        if (items.length === limit) { reasons.push('item_limit'); break; }
+        const r = eligible[at], summary: any = { id: r.id, revision: r.revision, namespace: r.namespace, key: null, kind: r.kind, state: 'active', status: r.metadata.status, sourceRole: null, updatedAt: r.updatedAt, contentBytes: Buffer.byteLength(r.content) };
+        if (preview) { const chars = Array.from(r.content); summary.preview = { text: chars.slice(0, preview).join(''), truncated: chars.length > preview }; }
+        if (envelope([...items, summary], cursor(at + 1), ['byte_limit', 'item_limit']).bytes > maxBytes) { reasons.push('byte_limit'); break; }
+        items.push(summary);
+      }
+      return ok(envelope(items, at < eligible.length ? cursor(at) : null, reasons));
+    }
     if (verb === 'create') return write(() => { const r = fresh(); r.namespace = flags.namespace; records.set(r.id, r); return outcome(r); });
     if (!current) return notFound();
     if (Number(flags['expected-revision']) !== current.revision) return problem('RevisionConflict', { id: current.id, currentRevision: current.revision });
     if (verb === 'update') return write(() => { Object.assign(current, { metadata: JSON.parse(flags.metadata), provenance: flags.provenance ? JSON.parse(flags.provenance) : current.provenance, revision: current.revision + 1, updatedAt: now() }); return outcome(current); });
     if (verb === 'supersede') return write(() => { const r = { ...fresh(), namespace: current.namespace }; records.set(r.id, r); Object.assign(current, { state: 'superseded', supersededBy: [r.id], revision: current.revision + 1, updatedAt: now() }); return outcome(r); });
-    return { code: 2, found: true, stdout: '', stderr: `unknown command ${verb}` };
+    if (verb === 'archive') return write(() => { Object.assign(current, { state: 'archived', revision: current.revision + 1, updatedAt: now() }); return outcome(current); });
+    return unknown();
   };
 }
 
@@ -353,4 +382,269 @@ test('the script runs a hook from stdin, printing nothing on stdout when it fail
   assert.equal(recallHook.code, 1); assert.match(recallHook.stderr, /--hook takes --action context or checkpoint/);
   const bare = run(process.execPath, [SCRIPT, '--action', 'checkpoint'], { env });
   assert.equal(bare.code, 1); assert.match(bare.stderr, /runs only as a hook/);
+});
+
+// Bounded browsing. Browse lists summaries; select is the only step that puts memory text into
+// context, and it reads each record again as it is now. Every test here also holds the release gate:
+// a memory that is foreign, a candidate, revoked, superseded or stale is never inserted.
+const accepted = (ctx: Context, content: string, kind = 'lesson') => remember(ctx, { kind, content, accept: true }).Memory;
+const revisionOf = (ctx: Context, id: string) => show(ctx, id).Memory.revision;
+const archiveMemory = (ctx: Context, id: string) => { const r = callCli(ctx.config, ['archive', id, `--expected-revision=${revisionOf(ctx, id)}`, `--operation-id=archive-${id}`], ctx.runner); assert.ok(r.ok, JSON.stringify(r)); };
+const ids = (items: Record<string, any>[]): string[] => items.map(i => i.id).sort();
+const pick = (page: { Items: any[] }, m: { id: string }) => { const it = page.Items.find((i: any) => i.id === m.id); assert.ok(it, `${m.id} was browsed`); return `${m.id}@${it.revision}`; };
+// Records every CLI call by verb; `inject` can answer a call itself, as a failing provider would.
+function spy(base: Runner, inject: (verb: string, nth: number) => ProcessResult | undefined = () => undefined) {
+  const calls: string[] = [], seen: Record<string, number> = {};
+  const runner: Runner = (command, args, options) => {
+    if (command !== process.execPath) return base(command, args, options);
+    const verb = args[1] ?? ''; calls.push(verb); seen[verb] = (seen[verb] ?? 0) + 1;
+    return inject(verb, seen[verb]) ?? base(command, args, options);
+  };
+  return { runner, calls };
+}
+const spied = (b: Backend, inject?: Parameters<typeof spy>[1]) => { const { config, runner } = b.make(), probe = spy(runner, inject); return { probe, ctx: createContext({ project: project(), host: 'test-host', config, runner: probe.runner })! }; };
+const stub = (config: MemoryConfig, r: Partial<ProcessResult>, namespace = 'project/a/b'): Context => ({ config, runner: () => ({ code: 0, found: true, stdout: '', stderr: '', ...r }), project: '.', root: '.', namespace, host: 'h' });
+
+for (const b of backends) {
+  test(`${b.name}: browse lists bounded summaries, then select inserts only the chosen current memories`, { skip: b.skip }, () => {
+    const ctx = setup(b), other = { ...ctx, namespace: 'project/other/repo' };
+    const a = accepted(ctx, 'Alpha decision.', 'decision'), l = accepted(ctx, 'Beta lesson.');
+    const cand = remember(ctx, { kind: 'lesson', content: 'Gamma candidate.' }).Memory;
+    accepted(other, 'Delta foreign.');
+    const old = accepted(ctx, 'Epsilon old.', 'decision'), fixed = correct(ctx, old.id, revisionOf(ctx, old.id), { content: 'Epsilon new.', accept: true }).Memory;
+    const page = browse(ctx);
+    assert.equal(page.State, 'Browsed'); assert.deepEqual(ids(page.Items), ids([a, l, fixed]));
+    assert.equal(page.NextCursor, null); assert.equal(page.Completeness, 'complete'); assert.ok(page.Bytes <= BROWSE_BYTES);
+    for (const it of page.Items) assert.equal(it.content, undefined, 'a summary carries no memory text');
+    assert.deepEqual(ids(browse(ctx, { includeCandidates: true }).Items), ids([a, l, cand, fixed]));
+    assert.deepEqual(ids(browse(ctx, { kinds: ['decision'] }).Items), ids([a, fixed]));
+    assert.deepEqual(ids(browse(ctx, { text: 'Beta' }).Items), [l.id]);
+    assert.deepEqual(browse(ctx, { previewChars: 5 }).Items.find((i: any) => i.id === a.id)?.preview, { text: 'Alpha', truncated: true });
+    const sel = select(ctx, [pick(page, a), pick(page, l)]);
+    assert.deepEqual([sel.State, sel.Fetches, sel.Rejected], ['Selected', 2, []]);
+    assert.deepEqual(sel.Inserted.map(i => i.id).sort(), ids([a, l]));
+    assert.match(sel.Text, /Alpha decision\./); assert.match(sel.Text, /Beta lesson\./); assert.doesNotMatch(sel.Text, /Gamma|Delta|Epsilon/);
+    assert.equal(sel.Bytes, Buffer.byteLength(sel.Text)); assert.ok(sel.Bytes <= sel.LimitBytes);
+  });
+
+  test(`${b.name}: select rechecks scope, revision, state, acceptance and supersession and inserts nothing forbidden`, { skip: b.skip }, () => {
+    const ctx = setup(b), other = { ...ctx, namespace: 'project/other/repo' };
+    const keep = accepted(ctx, 'Keep current.'), stale = accepted(ctx, 'Stale content.'), sup = accepted(ctx, 'Superseded content.'), gone = accepted(ctx, 'Revoked content.');
+    const page = browse(ctx), chosen = { keep: pick(page, keep), stale: pick(page, stale), sup: pick(page, sup), gone: pick(page, gone) };
+    // Between browsing and selecting, three of the four change.
+    accept(ctx, stale.id, undefined, 'verified');
+    correct(ctx, sup.id, revisionOf(ctx, sup.id), { content: 'Newer content.', accept: true });
+    archiveMemory(ctx, gone.id);
+    const cand = remember(ctx, { kind: 'lesson', content: 'Candidate content.' }).Memory, foreign = accepted(other, 'Foreign content.');
+    const missing = foreign.id.slice(0, -1) + (foreign.id.endsWith('0') ? '1' : '0');
+    const r = select(ctx, [chosen.keep, chosen.stale, chosen.sup, chosen.gone, `${cand.id}@${cand.revision}`, `${foreign.id}@${foreign.revision}`, `${missing}@1`, chosen.keep]);
+    assert.equal(r.State, 'Selected'); assert.equal(r.Requested, 7, 'a repeated id at one revision is one selection'); assert.equal(r.Fetches, 7);
+    assert.deepEqual(r.Inserted, [{ id: keep.id, revision: Number(chosen.keep.split('@')[1]) }]);
+    const why = Object.fromEntries(r.Rejected.map(x => [x.id, x]));
+    assert.deepEqual(why[stale.id], { id: stale.id, reason: 'stale_revision', currentRevision: revisionOf(ctx, stale.id) });
+    assert.equal(why[sup.id].reason, 'superseded'); assert.equal(why[gone.id].reason, 'not_active'); assert.equal(why[cand.id].reason, 'not_accepted');
+    assert.deepEqual(why[foreign.id], { id: foreign.id, reason: 'not_found' }, 'a foreign memory reads as a missing one');
+    assert.deepEqual(why[missing], { id: missing, reason: 'not_found' });
+    assert.match(r.Text, /Keep current\./);
+    for (const forbidden of ['Stale content', 'Superseded content', 'Revoked content', 'Candidate content', 'Foreign content']) assert.doesNotMatch(r.Text, new RegExp(forbidden));
+  });
+
+  test(`${b.name}: select reports what does not fit its byte limit and never cuts a memory`, { skip: b.skip }, () => {
+    const ctx = setup(b), one = accepted(ctx, 'One. ' + 'x'.repeat(300)), two = accepted(ctx, 'Two. ' + 'y'.repeat(300)), page = browse(ctx);
+    const r = select(ctx, [pick(page, one), pick(page, two)], 1000);
+    assert.equal(r.Inserted.length, 1); assert.ok(r.Bytes <= 1000 && r.Bytes === Buffer.byteLength(r.Text));
+    assert.deepEqual(r.Rejected.map(x => x.reason), ['byte_limit']); assert.notEqual(r.Rejected[0].id, r.Inserted[0].id);
+    const none = select(ctx, [pick(page, one)], 300);
+    assert.deepEqual([none.State, none.Text, none.Bytes, none.Rejected.map(x => x.reason)], ['Omitted', '', 0, ['byte_limit']]);
+  });
+
+  test(`${b.name}: browse pages with a continuation cursor and respects its byte and item bounds`, { skip: b.skip }, () => {
+    const ctx = setup(b), made = Array.from({ length: 5 }, (_, i) => accepted(ctx, `Item ${i} ${'x'.repeat(60)}`));
+    const seen: string[] = [], sizes: number[] = [];
+    let cursor: string | undefined;
+    do {
+      const p = browse(ctx, { limit: 2, cursor });
+      sizes.push(p.Count); seen.push(...p.Items.map(i => i.id)); cursor = p.NextCursor ?? undefined;
+      if (cursor) assert.ok(p.Reasons.includes('item_limit'), `a partial page says why: ${p.Reasons}`);
+    } while (cursor);
+    assert.deepEqual(sizes, [2, 2, 1]); assert.deepEqual([...seen].sort(), ids(made), 'every memory exactly once');
+    const tight = browse(ctx, { maxBytes: 700, previewChars: 100 });
+    assert.ok(tight.Bytes <= 700); assert.ok(tight.Count < 5); assert.ok(tight.NextCursor !== null); assert.ok(tight.Reasons.includes('byte_limit'));
+    for (const bad of [{ limit: 0 }, { limit: 51 }, { maxBytes: 100 }]) assert.equal(failure(() => browse(ctx, bad)).code, 'ValidationFailed');
+  });
+
+  test(`${b.name}: a cursor is bound to its project and filters, and continuing after changes shows only current memories`, { skip: b.skip }, () => {
+    const ctx = setup(b), other = { ...ctx, namespace: 'project/other/repo' };
+    const made = Array.from({ length: 4 }, (_, i) => accepted(ctx, `Cursor ${i}`));
+    const first = browse(ctx, { limit: 1 }), cursor = first.NextCursor!;
+    assert.ok(cursor);
+    for (const fn of [() => browse(other, { limit: 1, cursor }), () => browse(ctx, { limit: 1, cursor, kinds: ['decision'] }), () => browse(ctx, { limit: 1, cursor, previewChars: 10 }), () => browse(ctx, { limit: 1, cursor: 'not-a-cursor' })]) assert.equal(failure(fn).code, 'ValidationFailed');
+    // Revoke and supersede what has not been read yet, and supersede what has.
+    const read = made.find(m => m.id === first.Items[0].id)!, unseen = made.filter(m => m.id !== read.id);
+    archiveMemory(ctx, unseen[0].id);
+    correct(ctx, unseen[1].id, revisionOf(ctx, unseen[1].id), { content: 'Replaced.', accept: true });
+    correct(ctx, read.id, revisionOf(ctx, read.id), { content: 'Replaced too.', accept: true });
+    const rest: string[] = [];
+    for (let c: string | undefined = cursor; c;) { const p = browse(ctx, { limit: 1, cursor: c }); rest.push(...p.Items.map(i => i.id)); c = p.NextCursor ?? undefined; }
+    for (const m of [unseen[0], unseen[1], read]) assert.ok(!rest.includes(m.id), `${m.id} is no longer current`);
+    const r = select(ctx, [`${read.id}@${first.Items[0].revision}`]);
+    assert.deepEqual([r.State, r.Inserted, r.Rejected.map(x => x.reason), r.Text], ['Rejected', [], ['superseded'], '']);
+  });
+}
+
+test('a selection that is not <id>@<revision> is refused before any memory is read', () => {
+  const { ctx, probe } = spied(backends[0]);
+  for (const bad of [[], ['M0001'], ['M0001@'], ['@3'], ['M0001@x'], ['M0001@-1'], ['M0001@1@2'], ['M0001 @1'], ['--store@1'], ['-x@1']]) assert.equal(failure(() => select(ctx, bad)).code, 'InvalidSelection', JSON.stringify(bad));
+  assert.equal(failure(() => select(ctx, ['M0001@1', 'M0001@2'])).code, 'InvalidSelection');
+  assert.equal(failure(() => select(ctx, Array.from({ length: SELECT_ITEMS + 1 }, (_, i) => `M${i}@1`))).code, 'LimitExceeded');
+  assert.equal(failure(() => select(ctx, ['M0001@1'], 100)).code, 'InvalidLimit');
+  assert.deepEqual(probe.calls, []);
+});
+
+test('an unsupported MemoryKit is named as such and never answered from another read path', () => {
+  const cli = put(temp(), 'main.js', ''), store = join(temp(), 'store'), probe = spy(fakeMemoryKit(cli, new Set([store]), { browse: false }));
+  const ctx = createContext({ project: project(), host: 'test-host', config: { cli, store }, runner: probe.runner })!;
+  const cap = capabilities(ctx);
+  assert.deepEqual([cap.State, cap.browse], ['Capabilities', 'unsupported']);
+  probe.calls.length = 0;
+  const f = failure(() => browse(ctx));
+  assert.equal(f.code, 'BrowseUnsupported'); assert.equal((f.details as any).capability.browse, 'unsupported');
+  assert.deepEqual(probe.calls, ['browse', 'setup'], 'no recall, search, context or get stands in for browse');
+  assert.deepEqual(recall(ctx).Items, [], 'the explicit recall path still works on the old MemoryKit');
+  assert.equal(context(ctx).State, 'Empty');
+});
+
+test('an older MemoryKit that rejects the browse options is unsupported; a browse-capable one reports its usage error as it is', () => {
+  const config = { cli: put(temp(), 'main.js', ''), store: 's' };
+  const refuse = { code: 2, found: true, stdout: '', stderr: "Unknown option '--max-bytes'\n" };
+  const answer = (help: Partial<ProcessResult>): Runner => (_c, args) => args.includes('--help') ? { code: 0, found: true, stdout: '', stderr: '', ...help } : refuse;
+  const older = failure(() => browse({ ...stub(config, {}), runner: answer({ stdout: 'Usage\n  capture --x\n' }) }));
+  assert.deepEqual([older.code, (older.details as any).capability.browse], ['BrowseUnsupported', 'unsupported']);
+  const newer = failure(() => browse({ ...stub(config, {}), runner: answer({ stdout: 'Usage\n  browse --profile <json>\n' }) }));
+  assert.equal(newer.code, 'UsageError');
+  const unsure = failure(() => browse({ ...stub(config, {}), runner: answer({ code: 7 }) }));
+  assert.equal(unsure.code, 'UsageError', 'unknown capability is not turned into unsupported');
+});
+
+test('only an unknown browse command is unsupported; any other usage error is reported as it is', () => {
+  const config = { cli: put(temp(), 'main.js', ''), store: 's' };
+  assert.equal(failure(() => browse(stub(config, { code: 2, stderr: 'Unknown option --max-bytes\nUsage: ...' }))).code, 'UsageError');
+  assert.equal(failure(() => browse(stub(config, { code: 2, stderr: 'Unknown command "browse"\n' }))).code, 'BrowseUnsupported');
+});
+
+test('an authorization or provider failure is reported as it is, with no second read', () => {
+  const denied = () => problem('Forbidden', { namespace: 'project/a/b' }, false, 'Not authorized'), down = () => problem('ProviderUnavailable', {}, true, 'Provider unavailable');
+  for (const [name, fail, code] of [['authorization', denied, 'Forbidden'], ['provider', down, 'ProviderUnavailable']] as const) {
+    const on = spied(backends[0], verb => verb === 'browse' ? fail() : undefined);
+    const f = failure(() => browse(on.ctx));
+    assert.deepEqual([f.code, on.probe.calls], [code, ['browse']], `${name} on browse`);
+    assert.equal(f.retryable, name === 'provider');
+    let armed = false;
+    const sel = spied(backends[0], verb => verb === 'get' && armed ? fail() : undefined), m = accepted(sel.ctx, 'Seen.');
+    armed = true;
+    assert.equal(failure(() => select(sel.ctx, [`${m.id}@${m.revision}`])).code, code);
+  }
+  // A failure part-way through a selection ends it whole: nothing already read is inserted.
+  let armed = false, gets = 0;
+  const mid = spied(backends[0], verb => verb === 'get' && armed && ++gets === 3 ? down() : undefined);
+  const made = ['One.', 'Two.', 'Three.', 'Four.'].map(t => accepted(mid.ctx, t));
+  armed = true; mid.probe.calls.length = 0;
+  assert.equal(failure(() => select(mid.ctx, made.map(m => `${m.id}@${m.revision}`))).code, 'ProviderUnavailable');
+  assert.deepEqual(mid.probe.calls, ['get', 'get', 'get'], 'it stops at the failure and tries nothing else');
+});
+
+test('a browse page that breaks a bound or names a forbidden record is refused whole', () => {
+  const config = { cli: put(temp(), 'main.js', ''), store: 's' }, ns = 'project/a/b';
+  const good = { id: 'M1', revision: 1, namespace: ns, kind: 'lesson', state: 'active', status: 'accepted', updatedAt: 't', contentBytes: 1 };
+  const page = (over: object, items: object[] = [good]) => stub(config, { stdout: JSON.stringify({ items, count: items.length, bytes: 100, nextCursor: null, completeness: 'complete', reasons: [], ...over }) }, ns);
+  assert.equal(browse(page({})).State, 'Browsed');
+  const bad: Record<string, Context> = {
+    foreign: page({}, [{ ...good, namespace: 'project/other/repo' }]), candidate: page({}, [{ ...good, status: 'candidate' }]),
+    superseded: page({}, [{ ...good, state: 'superseded' }]), archived: page({}, [{ ...good, state: 'archived' }]),
+    miscounted: page({ count: 3 }), oversized: page({ bytes: BROWSE_BYTES + 1 }), 'bytes understated': page({ bytes: 100 }, [good, ...Array.from({ length: 60 }, (_, i) => ({ ...good, id: `M${i + 2}`, kind: 'x'.repeat(200) }))]), 'long preview': page({}, [{ ...good, preview: { text: 'p'.repeat(257), truncated: false } }]), 'no revision': page({}, [{ ...good, revision: undefined }]),
+  };
+  for (const [name, ctx] of Object.entries(bad)) assert.equal(failure(() => browse(ctx)).code, 'BrowseViolation', name);
+  assert.equal(failure(() => browse(page({}, [good, good]), { limit: 1 })).code, 'BrowseViolation', 'more items than the limit');
+  assert.equal(browse(page({}, [{ ...good, status: 'candidate' }]), { includeCandidates: true }).Count, 1, 'a candidate is allowed only when asked for');
+});
+
+test('the browse capability is what the installed CLI reports, and is never assumed', () => {
+  const root = temp(), cli = put(root, 'dist/cli/main.js', ''), config = { cli, store: 's' };
+  const help = (r: Partial<ProcessResult>): Runner => () => ({ code: 0, found: true, stdout: '', stderr: '', ...r });
+  assert.equal(installedVersion(config), null, 'no package, no version');
+  put(root, 'package.json', JSON.stringify({ name: '@example/other', version: '1.0.0' })); assert.equal(installedVersion(config), null, 'another package is not MemoryKit');
+  put(root, 'package.json', JSON.stringify({ name: '@subzerodev/memorykit', version: '0.2.0-rc.1' })); assert.equal(installedVersion(config), '0.2.0-rc.1');
+  assert.deepEqual(detectCapability(config, help({ stdout: 'Usage\n  capture --x\n  browse --profile <json>\n' })), { version: '0.2.0-rc.1', browse: 'supported', evidence: 'setup --help lists browse' });
+  assert.equal(detectCapability(config, help({ stdout: 'Usage\n  capture --x\n  context --y\n' })).browse, 'unsupported');
+  assert.equal(detectCapability(config, help({ stdout: 'see browse in the docs\n' })).browse, 'unsupported', 'a mention is not a command');
+  assert.equal(detectCapability(config, help({ code: 2, stderr: 'Unknown command "setup"' })).browse, 'unsupported');
+  for (const r of [{ code: 1, stderr: '{"code":"X"}' }, { code: 2, stderr: 'Unknown option --help' }, { code: 7 }]) assert.equal(detectCapability(config, help(r)).browse, 'unknown', JSON.stringify(r));
+  assert.equal(failure(() => detectCapability({ ...config, cli: join(root, 'absent.js') }, help({}))).code, 'CliNotFound');
+  assert.equal(failure(() => detectCapability({ cli: 'memorykit-absent-binary', store: 's' }, help({ found: false }))).code, 'CliNotFound');
+});
+
+for (const b of backends) {
+  test(`${b.name}: automatic context is unchanged by browsing, and a paired measurement holds the zero-forbidden gate`, { skip: b.skip }, t => {
+    const ctx = setup(b), other = { ...ctx, namespace: 'project/other/repo' };
+    const kept = Array.from({ length: 12 }, (_, i) => accepted(ctx, `Kept ${i}. ${'w'.repeat(40 * (i + 1))}`, i % 3 ? 'lesson' : 'decision'));
+    const cand = remember(ctx, { kind: 'lesson', content: 'Forbidden candidate.' }).Memory, foreign = accepted(other, 'Forbidden foreign.');
+    const sup = accepted(ctx, 'Forbidden superseded.'), supRev = revisionOf(ctx, sup.id);
+    correct(ctx, sup.id, supRev, { content: 'Kept replacement.', accept: true });
+    const gone = accepted(ctx, 'Forbidden revoked.'); archiveMemory(ctx, gone.id);
+
+    // Old path, measured through its own CLI calls: the task-aware verified recall is what feeds hooks.
+    const before = spy(ctx.runner), oldCtx = { ...ctx, runner: before.runner }, autoStart = process.hrtime.bigint(), auto = context(oldCtx), autoMicros = Number((process.hrtime.bigint() - autoStart) / 1000n);
+    assert.equal(auto.State, 'Context'); assert.match(auto.Text, /^<memorykit-context untrusted="true"/);
+    for (const forbidden of ['Forbidden candidate', 'Forbidden foreign', 'Forbidden superseded', 'Forbidden revoked']) assert.doesNotMatch(auto.Text, new RegExp(forbidden));
+    assert.ok(!before.calls.includes('browse') && !before.calls.includes('get'), `context reads only its own path: ${before.calls}`);
+
+    // New path: browse summaries, then fetch three chosen memories.
+    const probe = spy(ctx.runner), newCtx = { ...ctx, runner: probe.runner };
+    const started = process.hrtime.bigint(), page = browse(newCtx, { limit: 20 }), chosen = page.Items.slice(0, 3).map((i: any) => `${i.id}@${i.revision}`), sel = select(newCtx, chosen), micros = Number((process.hrtime.bigint() - started) / 1000n);
+    assert.deepEqual(context(oldCtx), auto, 'browsing and selecting change nothing the automatic path reads');
+    assert.deepEqual(probe.calls.filter(v => v === 'browse'), ['browse']); assert.equal(probe.calls.filter(v => v === 'get').length, 3);
+    assert.equal(sel.Inserted.length, 3);
+    const inserted = sel.Text, browsed = JSON.stringify(page.Items);
+    for (const forbidden of ['Forbidden candidate', 'Forbidden foreign', 'Forbidden superseded', 'Forbidden revoked']) { assert.doesNotMatch(inserted, new RegExp(forbidden)); assert.doesNotMatch(browsed, new RegExp(forbidden)); }
+    assert.ok(!page.Items.some((i: any) => [cand.id, foreign.id, sup.id, gone.id].includes(i.id)), 'no forbidden record is even listed');
+    // Diagnostics only: costs are reported as measured and no saving is asserted.
+    t.diagnostic(JSON.stringify({ backend: b.name, memories: kept.length, auto: { bytes: auto.Bytes, items: auto.Items, cliCalls: before.calls.length, microseconds: autoMicros }, browseSelect: { browseBytes: page.Bytes, selectBytes: sel.Bytes, totalBytes: page.Bytes + sel.Bytes, fetches: sel.Fetches, cliCalls: probe.calls.length, microseconds: micros }, forbiddenInserted: 0 }));
+  });
+}
+
+// The entry point is what a person runs. The stand-in cannot cross a process boundary, so these use a
+// stub CLI that is an older MemoryKit (no browse) and, when MEMORYKIT_CLI is set, the real one.
+const entry = (config: MemoryConfig, root: string, ...args: string[]) => {
+  const file = put(temp(), 'memorykit.json', JSON.stringify(config));
+  const r = run(process.execPath, [SCRIPT, ...args, '--project', root], { env: { ...process.env, AGENTKIT_MEMORYKIT_CONFIG: file } });
+  return { ...r, json: r.stdout.trim() ? JSON.parse(r.stdout) : null };
+};
+
+test('entry point: an older MemoryKit is reported unsupported and browse does not fall back', () => {
+  const cli = put(temp(), 'main.js', "const a = process.argv.slice(2); if (a[0] === 'setup' && a.includes('--help')) { process.stdout.write('Usage: memorykit setup\\n  capture --profile <json>\\n'); process.exit(0); } process.stderr.write(a[0] === 'browse' ? \"Unknown option '--max-bytes'\\n\" : `Unknown command \"${a[0]}\"\\n`); process.exit(2);\n");
+  const config = { cli, store: join(temp(), 'store') }, root = project();
+  const cap = entry(config, root, '--action', 'capabilities');
+  assert.deepEqual([cap.code, cap.json.State, cap.json.browse], [0, 'Capabilities', 'unsupported']);
+  const browsed = entry(config, root, '--action', 'browse');
+  assert.deepEqual([browsed.code, browsed.json.State, browsed.json.code], [1, 'Failed', 'BrowseUnsupported']);
+  const selected = entry(config, root, '--action', 'select', '--select', 'M0001@1');
+  assert.equal(selected.code, 1); assert.equal(selected.json.State, 'Failed');
+  assert.deepEqual(entry(config, root, '--action', 'select').json.code, 'InvalidSelection');
+});
+
+test('entry point: with the real MemoryKit the script browses and selects, and refuses what changed', { skip: !REAL }, () => {
+  const store = join(temp(), 'store'), init = run(process.execPath, [REAL!, 'init', store]);
+  assert.equal(init.code, 0, init.stderr);
+  const config = { cli: REAL!, store }, root = project();
+  assert.equal(entry(config, root, '--action', 'capabilities').json.browse, 'supported');
+  const one = entry(config, root, '--action', 'remember', '--kind', 'lesson', '--content', 'Entry point one.', '--accept').json.Memory;
+  const two = entry(config, root, '--action', 'remember', '--kind', 'lesson', '--content', 'Entry point two.', '--accept').json.Memory;
+  entry(config, root, '--action', 'remember', '--kind', 'lesson', '--content', 'Entry point candidate.');
+  const page = entry(config, root, '--action', 'browse', '--limit', '10');
+  assert.deepEqual([page.code, page.json.State, page.json.Items.map((i: any) => i.id).sort()], [0, 'Browsed', [one.id, two.id].sort()]);
+  entry(config, root, '--action', 'correct', '--id', two.id, '--expected-revision', String(two.revision), '--content', 'Entry point two, fixed.', '--accept');
+  const sel = entry(config, root, '--action', 'select', '--select', `${one.id}@${one.revision}`, '--select', `${two.id}@${two.revision}`);
+  assert.deepEqual([sel.code, sel.json.State, sel.json.Inserted.map((i: any) => i.id)], [0, 'Selected', [one.id]]);
+  assert.deepEqual(sel.json.Rejected.map((r: any) => r.reason), ['superseded']);
+  assert.match(sel.json.Text, /Entry point one\./); assert.doesNotMatch(sel.json.Text, /Entry point two|candidate/);
 });

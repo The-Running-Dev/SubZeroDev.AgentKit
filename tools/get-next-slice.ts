@@ -17,8 +17,13 @@ export function getSlicePlan(text: string) {
     Slices: [...live.matchAll(/^## S(\d+)\b/gm)].map(h => {
       const rest = live.slice(h.index! + h[0].length);
       const body = rest.split(/^#{1,2} /m)[0];
+      const dependencies = body.match(/^Depends on:(.*)$/mi)?.[1]?.trim() ?? '';
+      const external = dependencies.split(/[,\s]+/).filter(t => t && !/^(?:S?\d+|none|[-—])$/i.test(t));
       return { Id: Number(h[1]), Done: /^Status:[ \t]*done(?:\s|$)/mi.test(body),
-        DependsOn: [...(body.match(/^Depends on:(.*)$/m)?.[1] ?? '').matchAll(/\bS?(\d+)\b/g)].map(m => Number(m[1])) };
+        BlockedBy: body.match(/^Blocked by:[ \t]*(.+)$/mi)?.[1]?.trim()
+          || (external.length ? `unresolved dependencies: ${external.join(', ')}` : '')
+          || (/^Status:[ \t]*blocked(?:\s|$)/mi.test(body) ? 'Status: blocked (prerequisite not resolved)' : ''),
+        DependsOn: dependencies.split(/[,\s]+/).filter(t => /^S?\d+$/i.test(t)).map(t => Number(t.replace(/^S/i, ''))) };
     }),
     Landed: [...text.slice(live.length).matchAll(/\bS(\d+)\b/g)].map(m => Number(m[1])),
   };
@@ -72,8 +77,14 @@ export function getNextSlice(input: NextInput = {}, runner: Runner = run) {
   const fetch = git('fetch', '--prune', 'origin');
   if (fetch.code) return complete('Blocked', 'FetchFailed', `git fetch origin failed, so ${base} may be stale: ${fetch.output}`);
   const show = git('show', `${base}:design/30-slices.md`);
-  if (show.code) return complete('Blocked', 'NoPlan', `No design/30-slices.md on ${base}: ${show.output}`);
+  if (show.code) {
+    const tree = git('ls-tree', '--name-only', base, '--', 'design/30-slices.md');
+    if (tree.code || tree.output) return complete('Blocked', 'PlanUnavailable', show.output);
+    return complete('Prepare', 'NoPlan', `No design/30-slices.md on ${base}. Adopt the agreed plan with tools/adopt-project.ts, deliver the preparation through review and guarded merge, then rerun this selector. Do not ask the user to perform setup.`);
+  }
   const plan = getSlicePlan(show.output);
+  if (new Set(plan.Slices.map(s => s.Id)).size !== plan.Slices.length) return complete('Blocked', 'InvalidPlan', 'Duplicate slice ids on the remote default branch.');
+  if (!plan.Slices.length && !plan.Landed.length) return complete('Blocked', 'InvalidPlan', 'The remote plan contains no slices or landed history.');
   const done = [...plan.Landed, ...plan.Slices.filter(s => s.Done).map(s => s.Id)];
   let pending = plan.Slices.filter(s => !s.Done);
   if (input.slice) {
@@ -107,17 +118,18 @@ export function getNextSlice(input: NextInput = {}, runner: Runner = run) {
     }
   }
   for (const s of pending) {
+    if (s.BlockedBy) continue;
     const pattern = new RegExp(`^slice/S${s.Id}(?![0-9])`, 'i');
     const matching = prs.filter(p => pattern.test(p.headRefName));
     if (matching.length > 1) {
       result.Slice = `S${s.Id}`;
       return complete('Blocked', 'AmbiguousPullRequest', `S${s.Id} has more than one open pull request: ${matching.map(p => `#${p.number} ${p.headRefName}`).join(', ')}.`);
     }
+    const branches = [...flights].filter(([name]) => pattern.test(name));
     if (matching.length === 1) {
       const p = matching[0]; result.Slice = `S${s.Id}`; result.Branch = p.headRefName; result.PullRequest = p.number; result.PullRequestUrl = p.url;
       return complete('Resume', 'OpenPullRequest', `S${s.Id} has open pull request #${p.number} on ${p.headRefName}.`);
     }
-    const branches = [...flights].filter(([name]) => pattern.test(name));
     if (branches.length > 1) {
       result.Slice = `S${s.Id}`;
       return complete('Blocked', 'AmbiguousBranch', `S${s.Id} has work in flight on more than one branch: ${branches.map(b => b[0]).join(', ')}.`);
@@ -131,6 +143,7 @@ export function getNextSlice(input: NextInput = {}, runner: Runner = run) {
   }
   const waiting: string[] = [];
   for (const s of pending) {
+    if (s.BlockedBy) { waiting.push(`S${s.Id} blocked by ${s.BlockedBy}`); continue; }
     const missing = s.DependsOn.filter(d => !done.includes(d));
     if (!missing.length) { result.Slice = `S${s.Id}`; return complete('Start', null, `Start S${s.Id} from ${base}.`); }
     waiting.push(`S${s.Id} waits on ${missing.map(d => `S${d}`).join(', ')}`);

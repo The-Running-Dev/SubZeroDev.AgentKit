@@ -12,6 +12,8 @@ The shared rules for every agent session in a repository that uses the kit, what
 
 Any instruction the user gives directly — "just do this", a pasted spec, an issue to implement — is done directly. No brief, no slice, no tracker entry first.
 
+A natural-language assignment to finish or resume an agreed plan uses `/next`, including adoption of an existing repository when project files are missing. Interpret "continue" in the active assignment; continuing a discussion or review does not start delivery. Keep explicit slice/count limits, pauses and later restrictions. A slice merge is progress within the assignment, not a handoff. Missing project files and delivery of the initial plan are preparation work the agent completes through the same review and guarded-merge path. A local plan is not ready until verified on the remote default branch. Restore scope and existing work after compaction; host termination is a separate boundary, never an automatic-restart promise.
+
 ## The design is the spec
 
 `design/` is written during the design phase and then left alone while the plan is built. It describes what to build; it is not kept in sync slice by slice. Once the plan is finished, `/next` brings it up to date in one pull request.
