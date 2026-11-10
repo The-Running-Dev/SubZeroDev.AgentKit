@@ -1,0 +1,1469 @@
+{
+  "schemaVersion": 1,
+  "backend": "real-memorykit-cli",
+  "data": "synthetic-only",
+  "measuredAt": "2026-11-10T11:53:57.366Z",
+  "environment": {
+    "node": "v24.22.1",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "agentkitBaseCommit": "b0280bb7d151c997cdb726765bb843552bbf0942",
+  "harnessSha256": "1fb2f70206111ef57a08b3039406ca25183c9017339a6e37aad7c24a93b6233c",
+  "memorykitVersion": "0.2.0-rc.1",
+  "cliSha256": "f5face5809c127a72649b50dc0bdccbfe65bc287c2e4ad156abd0d7050588fd6",
+  "actualModelTokens": null,
+  "tokenEstimates": null,
+  "scenarios": [
+    {
+      "primaryRecords": 12,
+      "acceptedRecords": 13,
+      "budget": "default",
+      "limitBytes": 8192,
+      "pageLimit": 20,
+      "pageBytes": 8192,
+      "previewChars": 0,
+      "targetOrdinals": [
+        0,
+        6,
+        11
+      ],
+      "samples": [
+        {
+          "repeat": 1,
+          "order": "automatic-first",
+          "automatic": {
+            "elapsedMs": 435.25480699999935,
+            "cliCalls": 1,
+            "rawCliStdoutBytes": 13762,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4979,
+            "legacyOutputBytes": 4807,
+            "contextTextBytes": 4807,
+            "pageCount": 1,
+            "recordsInspected": 13,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 13762,
+                "stderrBytes": 0,
+                "elapsedMs": 420.0025949999999
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 3053.9866970000003,
+            "cliCalls": 4,
+            "rawCliStdoutBytes": 5951,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4120,
+            "legacyOutputBytes": 4528,
+            "contextTextBytes": 1402,
+            "pageCount": 1,
+            "recordsInspected": 16,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 3127,
+                "stderrBytes": 0,
+                "elapsedMs": 1321.2585199999994
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 1152.171425999999
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 955,
+                "stderrBytes": 0,
+                "elapsedMs": 304.3416560000005
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1154,
+                "stderrBytes": 0,
+                "elapsedMs": 273.31570900000224
+              }
+            ]
+          },
+          "automaticItems": 13,
+          "automaticOmitted": 0,
+          "automaticTruncated": false
+        },
+        {
+          "repeat": 2,
+          "order": "browse-first",
+          "automatic": {
+            "elapsedMs": 356.2757210000018,
+            "cliCalls": 1,
+            "rawCliStdoutBytes": 13762,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4979,
+            "legacyOutputBytes": 4807,
+            "contextTextBytes": 4807,
+            "pageCount": 1,
+            "recordsInspected": 13,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 13762,
+                "stderrBytes": 0,
+                "elapsedMs": 355.94518600000083
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 1324.9124359999987,
+            "cliCalls": 4,
+            "rawCliStdoutBytes": 5951,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4120,
+            "legacyOutputBytes": 4528,
+            "contextTextBytes": 1402,
+            "pageCount": 1,
+            "recordsInspected": 16,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 3127,
+                "stderrBytes": 0,
+                "elapsedMs": 325.01029899999776
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 387.4901239999999
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 955,
+                "stderrBytes": 0,
+                "elapsedMs": 281.73114700000224
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1154,
+                "stderrBytes": 0,
+                "elapsedMs": 329.75760100000116
+              }
+            ]
+          },
+          "automaticItems": 13,
+          "automaticOmitted": 0,
+          "automaticTruncated": false
+        },
+        {
+          "repeat": 3,
+          "order": "automatic-first",
+          "automatic": {
+            "elapsedMs": 325.88863400000264,
+            "cliCalls": 1,
+            "rawCliStdoutBytes": 13762,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4979,
+            "legacyOutputBytes": 4807,
+            "contextTextBytes": 4807,
+            "pageCount": 1,
+            "recordsInspected": 13,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 13762,
+                "stderrBytes": 0,
+                "elapsedMs": 325.0506859999987
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 1426.9280839999992,
+            "cliCalls": 4,
+            "rawCliStdoutBytes": 5951,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4120,
+            "legacyOutputBytes": 4528,
+            "contextTextBytes": 1402,
+            "pageCount": 1,
+            "recordsInspected": 16,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 3127,
+                "stderrBytes": 0,
+                "elapsedMs": 354.7133040000008
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 343.78960599999846
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 955,
+                "stderrBytes": 0,
+                "elapsedMs": 348.07678900000246
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1154,
+                "stderrBytes": 0,
+                "elapsedMs": 379.3746839999985
+              }
+            ]
+          },
+          "automaticItems": 13,
+          "automaticOmitted": 0,
+          "automaticTruncated": false
+        }
+      ]
+    },
+    {
+      "primaryRecords": 12,
+      "acceptedRecords": 13,
+      "budget": "all-fit",
+      "limitBytes": 11939,
+      "pageLimit": 20,
+      "pageBytes": 8192,
+      "previewChars": 0,
+      "targetOrdinals": [
+        0,
+        6,
+        11
+      ],
+      "samples": [
+        {
+          "repeat": 1,
+          "order": "automatic-first",
+          "automatic": {
+            "elapsedMs": 367.0320509999983,
+            "cliCalls": 1,
+            "rawCliStdoutBytes": 13762,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4981,
+            "legacyOutputBytes": 4808,
+            "contextTextBytes": 4808,
+            "pageCount": 1,
+            "recordsInspected": 13,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 13762,
+                "stderrBytes": 0,
+                "elapsedMs": 366.6587589999981
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 1792.5797669999993,
+            "cliCalls": 4,
+            "rawCliStdoutBytes": 5951,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4122,
+            "legacyOutputBytes": 4529,
+            "contextTextBytes": 1403,
+            "pageCount": 1,
+            "recordsInspected": 16,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 3127,
+                "stderrBytes": 0,
+                "elapsedMs": 358.3817080000008
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 376.634016
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 955,
+                "stderrBytes": 0,
+                "elapsedMs": 336.272356999998
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1154,
+                "stderrBytes": 0,
+                "elapsedMs": 719.9747459999999
+              }
+            ]
+          },
+          "automaticItems": 13,
+          "automaticOmitted": 0,
+          "automaticTruncated": false
+        },
+        {
+          "repeat": 2,
+          "order": "browse-first",
+          "automatic": {
+            "elapsedMs": 471.49478699999963,
+            "cliCalls": 1,
+            "rawCliStdoutBytes": 13762,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4981,
+            "legacyOutputBytes": 4808,
+            "contextTextBytes": 4808,
+            "pageCount": 1,
+            "recordsInspected": 13,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 13762,
+                "stderrBytes": 0,
+                "elapsedMs": 470.4044799999974
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 1685.5942140000006,
+            "cliCalls": 4,
+            "rawCliStdoutBytes": 5951,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4122,
+            "legacyOutputBytes": 4529,
+            "contextTextBytes": 1403,
+            "pageCount": 1,
+            "recordsInspected": 16,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 3127,
+                "stderrBytes": 0,
+                "elapsedMs": 432.48153100000127
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 334.8984840000012
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 955,
+                "stderrBytes": 0,
+                "elapsedMs": 502.7613459999993
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1154,
+                "stderrBytes": 0,
+                "elapsedMs": 414.54250500000126
+              }
+            ]
+          },
+          "automaticItems": 13,
+          "automaticOmitted": 0,
+          "automaticTruncated": false
+        },
+        {
+          "repeat": 3,
+          "order": "automatic-first",
+          "automatic": {
+            "elapsedMs": 540.3300869999985,
+            "cliCalls": 1,
+            "rawCliStdoutBytes": 13762,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4981,
+            "legacyOutputBytes": 4808,
+            "contextTextBytes": 4808,
+            "pageCount": 1,
+            "recordsInspected": 13,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 13762,
+                "stderrBytes": 0,
+                "elapsedMs": 540.0220909999989
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 3187.585632999999,
+            "cliCalls": 4,
+            "rawCliStdoutBytes": 5951,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 4122,
+            "legacyOutputBytes": 4529,
+            "contextTextBytes": 1403,
+            "pageCount": 1,
+            "recordsInspected": 16,
+            "distinctRecordsInspected": 13,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 13,
+                "stdoutBytes": 3127,
+                "stderrBytes": 0,
+                "elapsedMs": 557.3692279999996
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 1861.7236330000014
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 955,
+                "stderrBytes": 0,
+                "elapsedMs": 385.4485609999974
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1154,
+                "stderrBytes": 0,
+                "elapsedMs": 380.16593900000225
+              }
+            ]
+          },
+          "automaticItems": 13,
+          "automaticOmitted": 0,
+          "automaticTruncated": false
+        }
+      ]
+    },
+    {
+      "primaryRecords": 120,
+      "acceptedRecords": 121,
+      "budget": "default",
+      "limitBytes": 8192,
+      "pageLimit": 20,
+      "pageBytes": 8192,
+      "previewChars": 0,
+      "targetOrdinals": [
+        0,
+        60,
+        119
+      ],
+      "samples": [
+        {
+          "repeat": 1,
+          "order": "automatic-first",
+          "automatic": {
+            "elapsedMs": 644.2829970000021,
+            "cliCalls": 2,
+            "rawCliStdoutBytes": 128063,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 8299,
+            "legacyOutputBytes": 8118,
+            "contextTextBytes": 8118,
+            "pageCount": 2,
+            "recordsInspected": 121,
+            "distinctRecordsInspected": 121,
+            "targetHits": 1,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 100,
+                "stdoutBytes": 106372,
+                "stderrBytes": 0,
+                "elapsedMs": 267.93621399998665
+              },
+              {
+                "verb": "search",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 21,
+                "stdoutBytes": 21691,
+                "stderrBytes": 0,
+                "elapsedMs": 371.55407900000864
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 3688.976020000002,
+            "cliCalls": 10,
+            "rawCliStdoutBytes": 33305,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 25258,
+            "legacyOutputBytes": 31876,
+            "contextTextBytes": 1164,
+            "pageCount": 7,
+            "recordsInspected": 124,
+            "distinctRecordsInspected": 121,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 322.96744399999443
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 417.43655600000056
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 770.2920840000006
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5067,
+                "stderrBytes": 0,
+                "elapsedMs": 336.2199629999959
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 289.9074180000025
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 301.66273500000534
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 325,
+                "stderrBytes": 0,
+                "elapsedMs": 320.60115199998836
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 324.3076460000011
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 716,
+                "stderrBytes": 0,
+                "elapsedMs": 300.17843100000755
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1155,
+                "stderrBytes": 0,
+                "elapsedMs": 303.04966999999306
+              }
+            ]
+          },
+          "automaticItems": 20,
+          "automaticOmitted": 101,
+          "automaticTruncated": false
+        },
+        {
+          "repeat": 2,
+          "order": "browse-first",
+          "automatic": {
+            "elapsedMs": 637.361785000001,
+            "cliCalls": 2,
+            "rawCliStdoutBytes": 128063,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 8299,
+            "legacyOutputBytes": 8118,
+            "contextTextBytes": 8118,
+            "pageCount": 2,
+            "recordsInspected": 121,
+            "distinctRecordsInspected": 121,
+            "targetHits": 1,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 100,
+                "stdoutBytes": 106372,
+                "stderrBytes": 0,
+                "elapsedMs": 331.2054019999923
+              },
+              {
+                "verb": "search",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 21,
+                "stdoutBytes": 21691,
+                "stderrBytes": 0,
+                "elapsedMs": 300.3112640000036
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 3303.343179999996,
+            "cliCalls": 10,
+            "rawCliStdoutBytes": 33305,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 25258,
+            "legacyOutputBytes": 31876,
+            "contextTextBytes": 1164,
+            "pageCount": 7,
+            "recordsInspected": 124,
+            "distinctRecordsInspected": 121,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 333.7701439999946
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 329.7925610000093
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 327.36676600000646
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5067,
+                "stderrBytes": 0,
+                "elapsedMs": 293.95008199999575
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 319.0725269999966
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 331.28053699999873
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 325,
+                "stderrBytes": 0,
+                "elapsedMs": 301.99160100000154
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 329.25719400000526
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 716,
+                "stderrBytes": 0,
+                "elapsedMs": 349.64311299999827
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1155,
+                "stderrBytes": 0,
+                "elapsedMs": 383.49916599999415
+              }
+            ]
+          },
+          "automaticItems": 20,
+          "automaticOmitted": 101,
+          "automaticTruncated": false
+        },
+        {
+          "repeat": 3,
+          "order": "automatic-first",
+          "automatic": {
+            "elapsedMs": 1251.1890659999917,
+            "cliCalls": 2,
+            "rawCliStdoutBytes": 128063,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 8299,
+            "legacyOutputBytes": 8118,
+            "contextTextBytes": 8118,
+            "pageCount": 2,
+            "recordsInspected": 121,
+            "distinctRecordsInspected": 121,
+            "targetHits": 1,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 100,
+                "stdoutBytes": 106372,
+                "stderrBytes": 0,
+                "elapsedMs": 934.7815970000083
+              },
+              {
+                "verb": "search",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 21,
+                "stdoutBytes": 21691,
+                "stderrBytes": 0,
+                "elapsedMs": 313.65377499999886
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 3302.985109000001,
+            "cliCalls": 10,
+            "rawCliStdoutBytes": 33305,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 25258,
+            "legacyOutputBytes": 31876,
+            "contextTextBytes": 1164,
+            "pageCount": 7,
+            "recordsInspected": 124,
+            "distinctRecordsInspected": 121,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 313.7765159999981
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 338.0888949999935
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 317.0435640000069
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5067,
+                "stderrBytes": 0,
+                "elapsedMs": 295.56453200000396
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 327.30956100000185
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 316.8813790000131
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 325,
+                "stderrBytes": 0,
+                "elapsedMs": 360.86317599999893
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 419.03516800000216
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 716,
+                "stderrBytes": 0,
+                "elapsedMs": 315.5372020000068
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1155,
+                "stderrBytes": 0,
+                "elapsedMs": 296.27455600000394
+              }
+            ]
+          },
+          "automaticItems": 20,
+          "automaticOmitted": 101,
+          "automaticTruncated": false
+        }
+      ]
+    },
+    {
+      "primaryRecords": 120,
+      "acceptedRecords": 121,
+      "budget": "all-fit",
+      "limitBytes": 96307,
+      "pageLimit": 20,
+      "pageBytes": 8192,
+      "previewChars": 0,
+      "targetOrdinals": [
+        0,
+        60,
+        119
+      ],
+      "samples": [
+        {
+          "repeat": 1,
+          "order": "automatic-first",
+          "automatic": {
+            "elapsedMs": 629.647702000002,
+            "cliCalls": 2,
+            "rawCliStdoutBytes": 128063,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 44928,
+            "legacyOutputBytes": 44645,
+            "contextTextBytes": 44645,
+            "pageCount": 2,
+            "recordsInspected": 121,
+            "distinctRecordsInspected": 121,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 100,
+                "stdoutBytes": 106372,
+                "stderrBytes": 0,
+                "elapsedMs": 308.14091400000325
+              },
+              {
+                "verb": "search",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 21,
+                "stdoutBytes": 21691,
+                "stderrBytes": 0,
+                "elapsedMs": 314.01079000000027
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 3594.605712000004,
+            "cliCalls": 10,
+            "rawCliStdoutBytes": 33305,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 25260,
+            "legacyOutputBytes": 31877,
+            "contextTextBytes": 1165,
+            "pageCount": 7,
+            "recordsInspected": 124,
+            "distinctRecordsInspected": 121,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 760.1116340000008
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 277.09298300000955
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 285.7714160000032
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5067,
+                "stderrBytes": 0,
+                "elapsedMs": 352.41184000000067
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 332.2477979999967
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 324.10628199999337
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 325,
+                "stderrBytes": 0,
+                "elapsedMs": 333.9921939999913
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 327.0077270000038
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 716,
+                "stderrBytes": 0,
+                "elapsedMs": 299.27117700000235
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1155,
+                "stderrBytes": 0,
+                "elapsedMs": 300.19534099999873
+              }
+            ]
+          },
+          "automaticItems": 121,
+          "automaticOmitted": 0,
+          "automaticTruncated": false
+        },
+        {
+          "repeat": 2,
+          "order": "browse-first",
+          "automatic": {
+            "elapsedMs": 598.5649249999988,
+            "cliCalls": 2,
+            "rawCliStdoutBytes": 128063,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 44928,
+            "legacyOutputBytes": 44645,
+            "contextTextBytes": 44645,
+            "pageCount": 2,
+            "recordsInspected": 121,
+            "distinctRecordsInspected": 121,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 100,
+                "stdoutBytes": 106372,
+                "stderrBytes": 0,
+                "elapsedMs": 305.93263899999147
+              },
+              {
+                "verb": "search",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 21,
+                "stdoutBytes": 21691,
+                "stderrBytes": 0,
+                "elapsedMs": 287.1387140000006
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 4213.972928999996,
+            "cliCalls": 10,
+            "rawCliStdoutBytes": 33305,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 25260,
+            "legacyOutputBytes": 31877,
+            "contextTextBytes": 1165,
+            "pageCount": 7,
+            "recordsInspected": 124,
+            "distinctRecordsInspected": 121,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 320.013042999999
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 308.61450799999875
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 317.2357389999961
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5067,
+                "stderrBytes": 0,
+                "elapsedMs": 803.6089890000003
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 316.1310310000117
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 898.3570890000119
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 325,
+                "stderrBytes": 0,
+                "elapsedMs": 306.89146600000095
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 311.26903799999855
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 716,
+                "stderrBytes": 0,
+                "elapsedMs": 315.3911999999982
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1155,
+                "stderrBytes": 0,
+                "elapsedMs": 313.876465999987
+              }
+            ]
+          },
+          "automaticItems": 121,
+          "automaticOmitted": 0,
+          "automaticTruncated": false
+        },
+        {
+          "repeat": 3,
+          "order": "automatic-first",
+          "automatic": {
+            "elapsedMs": 617.853237000003,
+            "cliCalls": 2,
+            "rawCliStdoutBytes": 128063,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 44928,
+            "legacyOutputBytes": 44645,
+            "contextTextBytes": 44645,
+            "pageCount": 2,
+            "recordsInspected": 121,
+            "distinctRecordsInspected": 121,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "search",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 100,
+                "stdoutBytes": 106372,
+                "stderrBytes": 0,
+                "elapsedMs": 335.2510259999981
+              },
+              {
+                "verb": "search",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 21,
+                "stdoutBytes": 21691,
+                "stderrBytes": 0,
+                "elapsedMs": 276.9830409999995
+              }
+            ]
+          },
+          "browseSelect": {
+            "elapsedMs": 3598.486732999998,
+            "cliCalls": 10,
+            "rawCliStdoutBytes": 33305,
+            "rawCliStderrBytes": 0,
+            "agentkitResponseBytes": 25260,
+            "legacyOutputBytes": 31877,
+            "contextTextBytes": 1165,
+            "pageCount": 7,
+            "recordsInspected": 124,
+            "distinctRecordsInspected": 121,
+            "targetHits": 3,
+            "targetCount": 3,
+            "calls": [
+              {
+                "verb": "browse",
+                "cursorSupplied": false,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 321.5937649999978
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 303.71632600000885
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 340.12622200000624
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5067,
+                "stderrBytes": 0,
+                "elapsedMs": 320.19039799999155
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5066,
+                "stderrBytes": 0,
+                "elapsedMs": 789.949265999996
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": true,
+                "rows": 20,
+                "stdoutBytes": 5065,
+                "stderrBytes": 0,
+                "elapsedMs": 322.8362209999905
+              },
+              {
+                "verb": "browse",
+                "cursorSupplied": true,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 325,
+                "stderrBytes": 0,
+                "elapsedMs": 298.265373000002
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 715,
+                "stderrBytes": 0,
+                "elapsedMs": 293.2842789999995
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 716,
+                "stderrBytes": 0,
+                "elapsedMs": 311.8697059999977
+              },
+              {
+                "verb": "get",
+                "cursorSupplied": false,
+                "hasNextCursor": false,
+                "rows": 1,
+                "stdoutBytes": 1155,
+                "stderrBytes": 0,
+                "elapsedMs": 292.1387410000025
+              }
+            ]
+          },
+          "automaticItems": 121,
+          "automaticOmitted": 0,
+          "automaticTruncated": false
+        }
+      ]
+    }
+  ]
+}

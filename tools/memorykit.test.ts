@@ -592,8 +592,9 @@ for (const b of backends) {
     correct(ctx, sup.id, supRev, { content: 'Kept replacement.', accept: true });
     const gone = accepted(ctx, 'Forbidden revoked.'); archiveMemory(ctx, gone.id);
 
-    // Old path, measured through its own CLI calls: the task-aware verified recall is what feeds hooks.
+    // Old path: task-agnostic context, with counters frozen before postflight validation.
     const before = spy(ctx.runner), oldCtx = { ...ctx, runner: before.runner }, autoStart = process.hrtime.bigint(), auto = context(oldCtx), autoMicros = Number((process.hrtime.bigint() - autoStart) / 1000n);
+    const autoCalls = before.calls.length;
     assert.equal(auto.State, 'Context'); assert.match(auto.Text, /^<memorykit-context untrusted="true"/);
     for (const forbidden of ['Forbidden candidate', 'Forbidden foreign', 'Forbidden superseded', 'Forbidden revoked']) assert.doesNotMatch(auto.Text, new RegExp(forbidden));
     assert.ok(!before.calls.includes('browse') && !before.calls.includes('get'), `context reads only its own path: ${before.calls}`);
@@ -608,7 +609,8 @@ for (const b of backends) {
     for (const forbidden of ['Forbidden candidate', 'Forbidden foreign', 'Forbidden superseded', 'Forbidden revoked']) { assert.doesNotMatch(inserted, new RegExp(forbidden)); assert.doesNotMatch(browsed, new RegExp(forbidden)); }
     assert.ok(!page.Items.some((i: any) => [cand.id, foreign.id, sup.id, gone.id].includes(i.id)), 'no forbidden record is even listed');
     // Diagnostics only: costs are reported as measured and no saving is asserted.
-    t.diagnostic(JSON.stringify({ backend: b.name, memories: kept.length, auto: { bytes: auto.Bytes, items: auto.Items, cliCalls: before.calls.length, microseconds: autoMicros }, browseSelect: { browseBytes: page.Bytes, selectBytes: sel.Bytes, totalBytes: page.Bytes + sel.Bytes, fetches: sel.Fetches, cliCalls: probe.calls.length, microseconds: micros }, forbiddenInserted: 0 }));
+    assert.equal(before.calls.length, autoCalls * 2, 'postflight validation is separate from retrieval cost');
+    t.diagnostic(JSON.stringify({ backend: b.name, memories: kept.length, auto: { bytes: auto.Bytes, items: auto.Items, cliCalls: autoCalls, microseconds: autoMicros }, browseSelect: { browseBytes: page.Bytes, selectBytes: sel.Bytes, totalBytes: page.Bytes + sel.Bytes, fetches: sel.Fetches, cliCalls: probe.calls.length, microseconds: micros }, forbiddenInserted: 0 }));
   });
 }
 
