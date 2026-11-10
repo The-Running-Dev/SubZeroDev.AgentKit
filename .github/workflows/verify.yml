@@ -12,7 +12,7 @@ jobs:
   # Node floor, Node 24 and Node 26, through the shared library. Its `node / Result` check
   # is the one a ruleset requires.
   node:
-    uses: The-Running-Dev/GitHub-ActionTemplates/.github/workflows/node-ci.yml@v1
+    uses: The-Running-Dev/GitHub-ActionTemplates/.github/workflows/node-ci.yml@v2
     permissions:
       contents: read
     with:
