@@ -60,3 +60,11 @@ test('S1.10: no configured checks never passes', async () => {
 test('WaitResult exit-code map', () => {
   assert.equal(waitExitCode('Passed'), 0); assert.equal(waitExitCode('Failed'), 1); assert.equal(waitExitCode('NotEvaluated'), 2);
 });
+test('a gh agent hint on stderr does not break head or checks parsing', async () => {
+  // gh 2.105+ prints this to stderr when it sees agent environment variables (CLAUDECODE, AI_AGENT, ...).
+  const hint = 'hint: if you need to wait for this pull request to be reviewed, merged, or closed before continuing, use this instead of polling:\n'
+    + '    gh event listen --resource https://github.com/o/r/pull/9 --event com.github.pull_request.review.submitted.v1,com.github.pull_request.state.changed.v1\n'
+    + '  - It prints the first event as a JSON line on stdout and exits; run it again to wait for the next one.\n';
+  const mock: Runner = (cmd, args) => ({ ...runner()(cmd, args), stderr: hint });
+  const r = await invokeWait(input, mock); assert.equal(r.State, 'Passed'); assert.deepEqual(r.Passed.map(c => c.Name), ['build']);
+});

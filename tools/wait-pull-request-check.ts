@@ -40,6 +40,11 @@ export function ghFailure(result: ProcessResult): string {
 export function ghText(result: ProcessResult): string {
   return result.stdout + result.stderr;
 }
+// gh writes its JSON to stdout. stderr is diagnostics only: gh 2.105+ prints an agent hint there
+// when it sees agent environment variables, so it is never parsed. Empty or invalid stdout throws.
+export function ghJson(result: ProcessResult): any {
+  return JSON.parse(result.stdout);
+}
 export function repositoryArgs(repository?: string): string[] {
   return repository ? ['-R', repository] : [];
 }
@@ -48,7 +53,7 @@ export function getPullRequestHead(input: WaitOptions, runner: Runner = runProce
   const failure = ghFailure(result);
   if (failure) return { HeadSha: null, Checks: null, Failure: failure };
   try {
-    const parsed = JSON.parse(ghText(result));
+    const parsed = ghJson(result);
     if (!Object.hasOwn(parsed, 'headRefOid')) throw new Error('Missing headRefOid');
     return { HeadSha: parsed.headRefOid as string, Checks: null, Failure: '' };
   } catch { return { HeadSha: null, Checks: null, Failure: 'GhUnavailable' }; }
@@ -59,7 +64,7 @@ export function getPullRequestChecks(input: WaitOptions, runner: Runner = runPro
   if (failure === 'PullRequestMissing' && /no checks reported/i.test(ghText(result))) failure = 'NoChecksConfigured';
   if (failure) return { HeadSha: null, Checks: null, Failure: failure };
   try {
-    const parsed = JSON.parse(ghText(result));
+    const parsed = ghJson(result);
     return { HeadSha: null, Checks: (Array.isArray(parsed) ? parsed : [parsed]) as { name: string; bucket: string }[], Failure: '' };
   } catch { return { HeadSha: null, Checks: null, Failure: 'GhUnavailable' }; }
 }

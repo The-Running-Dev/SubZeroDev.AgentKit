@@ -2,7 +2,7 @@ import { run } from './lib/process.ts';
 import type { Runner } from './lib/process.ts';
 import { parseOptions } from './lib/options.ts';
 import { isMain, main, writeJson } from './lib/runtime.ts';
-import { ghFailure, ghText, invokeWait, repositoryArgs, waitOptions } from './wait-pull-request-check.ts';
+import { ghFailure, ghJson, ghText, invokeWait, repositoryArgs, waitOptions } from './wait-pull-request-check.ts';
 import type { CheckRun, WaitOptions, WaitResult } from './wait-pull-request-check.ts';
 
 export const options = {
@@ -37,7 +37,7 @@ export function getPullRequestState(input: MergeOptions, runner: Runner = run) {
   const failure = ghFailure(result);
   if (failure) return { Failure: failure };
   try {
-    const parsed = JSON.parse(ghText(result));
+    const parsed = ghJson(result);
     for (const key of ['state', 'isDraft', 'headRefOid']) if (!Object.hasOwn(parsed, key)) throw new Error('Missing ' + key);
     return { State: parsed.state as string, IsDraft: Boolean(parsed.isDraft), HeadSha: parsed.headRefOid as string, Failure: null };
   } catch { return { Failure: 'GhUnavailable' }; }
@@ -53,7 +53,7 @@ export function getUnresolvedReviewThreads(input: MergeOptions, runner: Runner =
     const failure = ghFailure(lookup);
     if (failure) return { Failure: failure };
     try {
-      const parsed = JSON.parse(ghText(lookup));
+      const parsed = ghJson(lookup);
       if (!Object.hasOwn(parsed.owner, 'login') || !Object.hasOwn(parsed, 'name')) throw new Error('Missing repository');
       owner = parsed.owner.login; repo = parsed.name;
     } catch { return { Failure: 'GhUnavailable' }; }
@@ -72,7 +72,7 @@ export function getUnresolvedReviewThreads(input: MergeOptions, runner: Runner =
   const failure = ghFailure(response);
   if (failure) return { Failure: failure };
   try {
-    const parsed = JSON.parse(ghText(response));
+    const parsed = ghJson(response);
     const threads: ReviewThread[] = [];
     for (const page of Array.isArray(parsed) ? parsed : [parsed]) {
       const nodes = page.data.repository.pullRequest.reviewThreads.nodes;
