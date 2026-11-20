@@ -91,3 +91,30 @@ test('dry run evaluates every gate but does not merge', async () => {
 test('refuses a head that moves after reading threads', async () => {
   const m = mock({ moved: 'newsha' }); const r = await invokeMerge(input, m.runner, wait); assert.equal(r.State, 'Refused'); assert.equal(r.Refusal, 'HeadMoved'); assert.equal(m.calls.some(a => a[1] === 'merge'), false);
 });
+// gh 2.105+ prints this to stderr when it sees agent environment variables (CLAUDECODE, AI_AGENT, ...).
+const agentHint = 'hint: if you need to wait for this pull request to be reviewed, merged, or closed before continuing, use this instead of polling:\n'
+  + '    gh event listen --resource https://github.com/o/r/pull/9 --event com.github.pull_request.review.submitted.v1,com.github.pull_request.state.changed.v1\n'
+  + '  - It prints the first event as a JSON line on stdout and exits; run it again to wait for the next one.\n';
+function hinting(threads: unknown = page()): Runner {
+  return (_command, args) => {
+    const stdout = args[0] === 'pr' && args[1] === 'view' ? JSON.stringify({ state: 'OPEN', isDraft: false, headRefOid: 'abc123' })
+      : args[0] === 'pr' && args[1] === 'checks' ? JSON.stringify([{ name: 'build', bucket: 'pass' }])
+      : args[0] === 'repo' ? JSON.stringify({ owner: { login: 'o' }, name: 'r' })
+      : args[0] === 'api' ? JSON.stringify(threads) : '';
+    return { code: 0, found: true, stdout, stderr: agentHint };
+  };
+}
+test('a gh agent hint on stderr does not stop JSON parsing through checks, threads and merge', async () => {
+  const r = await invokeMerge({ ...input, pollSeconds: 0, quiet: true }, hinting());
+  assert.equal(r.State, 'Merged'); assert.equal(r.Refusal, ''); assert.deepEqual(r.Passed.map(c => c.Name), ['build']);
+});
+test('a gh agent hint on stderr still reports unresolved threads', async () => {
+  const r = await invokeMerge({ ...input, pollSeconds: 0, quiet: true }, hinting(page([node()])));
+  assert.equal(r.State, 'Refused'); assert.equal(r.Refusal, 'UnresolvedThreads');
+});
+test('JSON on stderr alone is never parsed: empty stdout fails closed', async () => {
+  const calls: string[][] = [];
+  const runner: Runner = (_command, args) => { calls.push(args); return { code: 0, found: true, stdout: '', stderr: JSON.stringify({ state: 'OPEN', isDraft: false, headRefOid: 'abc123' }) }; };
+  const r = await invokeMerge(input, runner, wait); assert.equal(r.State, 'NotEvaluated'); assert.equal(r.Refusal, 'GhUnavailable'); assert.equal(mergeExitCode(r.State), 2);
+  assert.deepEqual(calls.map(a => a.slice(0, 2)), [['pr', 'view']]);
+});
